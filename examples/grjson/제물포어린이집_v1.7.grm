@@ -1,0 +1,1153 @@
+{
+    "building": {
+        "name": "제물포어린이집",
+        "north_axis": 105,
+        "address": "인천광역시 미추홀구",
+        "vintage": [
+            1983,
+            1,
+            1
+        ],
+        "num_aboveground_floors": 1,
+        "num_underground_floors": 0,
+        "floors": [
+            {
+                "floor_number": 1,
+                "zones": [
+                    {
+                        "id": "ZONE-0x000000",
+                        "name": "자료실",
+                        "height": 2.6,
+                        "profile": "창고/설비/문서실",
+                        "light_density": 5.0,
+                        "infiltration": 1.5,
+                        "supply_system_heating_id": null,
+                        "supply_system_cooling_id": null,
+                        "ventilation_system_id": null,
+                        "surfaces": [
+                            {
+                                "id": "SURF-0x000000",
+                                "name": "자료실_바닥",
+                                "type": "floor",
+                                "boundary_condition": "ground",
+                                "area": 17.3,
+                                "construction_id": "CTSF-0x000004",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x000001",
+                                "name": "자료실_북벽",
+                                "type": "wall",
+                                "boundary_condition": "outdoors",
+                                "area": 13.3,
+                                "azimuth": 0.0,
+                                "construction_id": "CTSF-0x000001",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x000002",
+                                "name": "자료실_동벽",
+                                "type": "wall",
+                                "boundary_condition": "zone",
+                                "area": 11.7,
+                                "adjacent_zone_id": "ZONE-0x000009",
+                                "construction_id": "CTSF-0x000003",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x000003",
+                                "name": "자료실_남벽_1",
+                                "type": "wall",
+                                "boundary_condition": "zone",
+                                "area": 5.1,
+                                "adjacent_zone_id": "ZONE-0x000004",
+                                "construction_id": "CTSF-0x000003",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x000004",
+                                "name": "자료실_서벽_1",
+                                "type": "wall",
+                                "boundary_condition": "zone",
+                                "area": 4.7,
+                                "adjacent_zone_id": "ZONE-0x000001",
+                                "construction_id": "CTSF-0x000003",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x000005",
+                                "name": "자료실_남벽_2",
+                                "type": "wall",
+                                "boundary_condition": "zone",
+                                "area": 8.2,
+                                "adjacent_zone_id": "ZONE-0x000001",
+                                "construction_id": "CTSF-0x000003",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x000006",
+                                "name": "자료실_서벽_2",
+                                "type": "wall",
+                                "boundary_condition": "outdoors",
+                                "area": 7.0,
+                                "azimuth": 90.0,
+                                "construction_id": "CTSF-0x000001",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x000007",
+                                "name": "자료실_천장",
+                                "type": "ceiling",
+                                "boundary_condition": "outdoors",
+                                "area": 17.3,
+                                "coolroof_reflectance": null,
+                                "construction_id": "CTSF-0x000005",
+                                "fenestrations": []
+                            }
+                        ]
+                    },
+                    {
+                        "id": "ZONE-0x000001",
+                        "name": "화장실-1",
+                        "height": 2.6,
+                        "profile": "화장실",
+                        "light_density": 5.0,
+                        "infiltration": 1.5,
+                        "supply_system_heating_id": null,
+                        "supply_system_cooling_id": null,
+                        "ventilation_system_id": null,
+                        "surfaces": [
+                            {
+                                "id": "SURF-0x00003E",
+                                "name": "화장실-1_바닥",
+                                "type": "floor",
+                                "boundary_condition": "ground",
+                                "area": 16.4,
+                                "construction_id": "CTSF-0x000004",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x00003F",
+                                "name": "화장실-1_동벽",
+                                "type": "wall",
+                                "boundary_condition": "zone",
+                                "area": 8.8,
+                                "adjacent_zone_id": "ZONE-0x000004",
+                                "construction_id": "CTSF-0x000003",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x000040",
+                                "name": "화장실-1_서벽",
+                                "type": "wall",
+                                "boundary_condition": "outdoors",
+                                "area": 13.5,
+                                "azimuth": 90.0,
+                                "construction_id": "CTSF-0x000001",
+                                "fenestrations": [
+                                    {
+                                        "id": "FNST-0x00000D",
+                                        "name": "화장실- 1_서벽_창",
+                                        "type": "window",
+                                        "area": 2.0,
+                                        "blind": null,
+                                        "construction_id": "CTFN-0x000000"
+                                    }
+                                ]
+                            },
+                            {
+                                "id": "SURF-0x000041",
+                                "name": "화장실-1_천장",
+                                "type": "ceiling",
+                                "boundary_condition": "outdoors",
+                                "area": 16.4,
+                                "coolroof_reflectance": null,
+                                "construction_id": "CTSF-0x000005",
+                                "fenestrations": []
+                            }
+                        ]
+                    },
+                    {
+                        "id": "ZONE-0x000002",
+                        "name": "영아반-1",
+                        "height": 2.6,
+                        "profile": "교실(초중고)",
+                        "light_density": 12.0,
+                        "infiltration": 1.5,
+                        "supply_system_heating_id": "SUPL-0x000002",
+                        "supply_system_cooling_id": null,
+                        "ventilation_system_id": null,
+                        "surfaces": [
+                            {
+                                "id": "SURF-0x000037",
+                                "name": "영아반-1_바닥",
+                                "type": "floor",
+                                "boundary_condition": "ground",
+                                "area": 26.9,
+                                "construction_id": "CTSF-0x000004",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x000038",
+                                "name": "영아반-1_북벽_1",
+                                "type": "wall",
+                                "boundary_condition": "zone",
+                                "area": 8.2,
+                                "adjacent_zone_id": "ZONE-0x000001",
+                                "construction_id": "CTSF-0x000003",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x000039",
+                                "name": "영아반-1_동벽",
+                                "type": "wall",
+                                "boundary_condition": "zone",
+                                "area": 7.3,
+                                "adjacent_zone_id": "ZONE-0x000004",
+                                "construction_id": "CTSF-0x000003",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x00003A",
+                                "name": "영아반-1_북벽_2",
+                                "type": "wall",
+                                "boundary_condition": "zone",
+                                "area": 1.8,
+                                "adjacent_zone_id": "ZONE-0x000004",
+                                "construction_id": "CTSF-0x000003",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x00003B",
+                                "name": "영아반-1_남벽",
+                                "type": "wall",
+                                "boundary_condition": "outdoors",
+                                "area": 8.2,
+                                "azimuth": 180.0,
+                                "construction_id": "CTSF-0x000001",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x00003C",
+                                "name": "영아반-1_서벽",
+                                "type": "wall",
+                                "boundary_condition": "outdoors",
+                                "area": 21.6,
+                                "azimuth": 90.0,
+                                "construction_id": "CTSF-0x000001",
+                                "fenestrations": [
+                                    {
+                                        "id": "FNST-0x00000A",
+                                        "name": "영아반-1_서벽_창_1",
+                                        "type": "window",
+                                        "area": 2.0,
+                                        "blind": null,
+                                        "construction_id": "CTFN-0x000000"
+                                    },
+                                    {
+                                        "id": "FNST-0x00000B",
+                                        "name": "영아반-1_서벽_창_2",
+                                        "type": "window",
+                                        "area": 2.0,
+                                        "blind": null,
+                                        "construction_id": "CTFN-0x000000"
+                                    },
+                                    {
+                                        "id": "FNST-0x00000C",
+                                        "name": "영아반-1_서벽_창_3",
+                                        "type": "window",
+                                        "area": 2.0,
+                                        "blind": null,
+                                        "construction_id": "CTFN-0x000000"
+                                    }
+                                ]
+                            },
+                            {
+                                "id": "SURF-0x00003D",
+                                "name": "영아반-1_천장",
+                                "type": "ceiling",
+                                "boundary_condition": "outdoors",
+                                "area": 26.9,
+                                "coolroof_reflectance": null,
+                                "construction_id": "CTSF-0x000005",
+                                "fenestrations": []
+                            }
+                        ]
+                    },
+                    {
+                        "id": "ZONE-0x000003",
+                        "name": "화장실-2",
+                        "height": 2.6,
+                        "profile": "화장실",
+                        "light_density": 5.0,
+                        "infiltration": 0.0,
+                        "supply_system_heating_id": null,
+                        "supply_system_cooling_id": null,
+                        "ventilation_system_id": null,
+                        "surfaces": [
+                            {
+                                "id": "SURF-0x000032",
+                                "name": "화장실-2_바닥",
+                                "type": "floor",
+                                "boundary_condition": "ground",
+                                "area": 9.5,
+                                "construction_id": "CTSF-0x000004",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x000033",
+                                "name": "화장실-2_북벽_1",
+                                "type": "wall",
+                                "boundary_condition": "zone",
+                                "area": 5.1,
+                                "adjacent_zone_id": "ZONE-0x000004",
+                                "construction_id": "CTSF-0x000003",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x000034",
+                                "name": "화장실-2_서벽",
+                                "type": "wall",
+                                "boundary_condition": "zone",
+                                "area": 8.6,
+                                "adjacent_zone_id": "ZONE-0x000002",
+                                "construction_id": "CTSF-0x000003",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x000035",
+                                "name": "화장실-2_북벽_2",
+                                "type": "wall",
+                                "boundary_condition": "zone",
+                                "area": 1.8,
+                                "adjacent_zone_id": "ZONE-0x000002",
+                                "construction_id": "CTSF-0x000003",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x000036",
+                                "name": "화장실-2_천장",
+                                "type": "ceiling",
+                                "boundary_condition": "outdoors",
+                                "area": 9.5,
+                                "coolroof_reflectance": null,
+                                "construction_id": "CTSF-0x000005",
+                                "fenestrations": []
+                            }
+                        ]
+                    },
+                    {
+                        "id": "ZONE-0x000004",
+                        "name": "복도",
+                        "height": 2.6,
+                        "profile": "부속공간",
+                        "light_density": 5.0,
+                        "infiltration": 0.0,
+                        "supply_system_heating_id": "SUPL-0x000002",
+                        "supply_system_cooling_id": null,
+                        "ventilation_system_id": null,
+                        "surfaces": [
+                            {
+                                "id": "SURF-0x000042",
+                                "name": "복도_바닥",
+                                "type": "floor",
+                                "boundary_condition": "ground",
+                                "area": 41.5,
+                                "construction_id": "CTSF-0x000004",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x000043",
+                                "name": "복도_천장",
+                                "type": "ceiling",
+                                "boundary_condition": "outdoors",
+                                "area": 41.5,
+                                "coolroof_reflectance": null,
+                                "construction_id": "CTSF-0x000005",
+                                "fenestrations": []
+                            }
+                        ]
+                    },
+                    {
+                        "id": "ZONE-0x000005",
+                        "name": "보일러실",
+                        "height": 2.6,
+                        "profile": "창고/설비/문서실",
+                        "light_density": 5.0,
+                        "infiltration": 1.5,
+                        "supply_system_heating_id": null,
+                        "supply_system_cooling_id": null,
+                        "ventilation_system_id": null,
+                        "surfaces": [
+                            {
+                                "id": "SURF-0x00002D",
+                                "name": "보일러실_바닥",
+                                "type": "floor",
+                                "boundary_condition": "ground",
+                                "area": 7.4,
+                                "construction_id": "CTSF-0x000004",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x00002E",
+                                "name": "보일러실_북벽",
+                                "type": "wall",
+                                "boundary_condition": "zone",
+                                "area": 8.7,
+                                "adjacent_zone_id": "ZONE-0x000003",
+                                "construction_id": "CTSF-0x000003",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x00002F",
+                                "name": "보일러실_남벽",
+                                "type": "wall",
+                                "boundary_condition": "outdoors",
+                                "area": 8.7,
+                                "azimuth": 180.0,
+                                "construction_id": "CTSF-0x000001",
+                                "fenestrations": [
+                                    {
+                                        "id": "FNST-0x000009",
+                                        "name": "보일러실_남벽_창",
+                                        "type": "window",
+                                        "area": 1.4,
+                                        "blind": null,
+                                        "construction_id": "CTFN-0x000000"
+                                    }
+                                ]
+                            },
+                            {
+                                "id": "SURF-0x000030",
+                                "name": "보일러실_서벽",
+                                "type": "wall",
+                                "boundary_condition": "zone",
+                                "area": 5.7,
+                                "adjacent_zone_id": "ZONE-0x000002",
+                                "construction_id": "CTSF-0x000003",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x000031",
+                                "name": "보일러실_천장",
+                                "type": "ceiling",
+                                "boundary_condition": "outdoors",
+                                "area": 7.4,
+                                "coolroof_reflectance": null,
+                                "construction_id": "CTSF-0x000005",
+                                "fenestrations": []
+                            }
+                        ]
+                    },
+                    {
+                        "id": "ZONE-0x000006",
+                        "name": "영아반-2",
+                        "height": 2.6,
+                        "profile": "교실(초중고)",
+                        "light_density": 12.0,
+                        "infiltration": 0.0,
+                        "supply_system_heating_id": "SUPL-0x000002",
+                        "supply_system_cooling_id": "SUPL-0x000001",
+                        "ventilation_system_id": null,
+                        "surfaces": [
+                            {
+                                "id": "SURF-0x000027",
+                                "name": "영아반-2_바닥",
+                                "type": "floor",
+                                "boundary_condition": "ground",
+                                "area": 18.3,
+                                "construction_id": "CTSF-0x000004",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x000028",
+                                "name": "영아반-2_북벽",
+                                "type": "wall",
+                                "boundary_condition": "zone",
+                                "area": 15.6,
+                                "adjacent_zone_id": "ZONE-0x000004",
+                                "construction_id": "CTSF-0x000003",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x000029",
+                                "name": "영아반-2_동벽",
+                                "type": "wall",
+                                "boundary_condition": "zone",
+                                "area": 8.6,
+                                "adjacent_zone_id": "ZONE-0x000004",
+                                "construction_id": "CTSF-0x000003",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x00002A",
+                                "name": "영아반-2_서벽",
+                                "type": "wall",
+                                "boundary_condition": "zone",
+                                "area": 8.6,
+                                "adjacent_zone_id": "ZONE-0x000003",
+                                "construction_id": "CTSF-0x000003",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x00002B",
+                                "name": "영아반-2_남벽",
+                                "type": "wall",
+                                "boundary_condition": "zone",
+                                "area": 1.8,
+                                "adjacent_zone_id": "ZONE-0x000003",
+                                "construction_id": "CTSF-0x000003",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x00002C",
+                                "name": "영아반-2_천장",
+                                "type": "ceiling",
+                                "boundary_condition": "outdoors",
+                                "area": 18.3,
+                                "coolroof_reflectance": null,
+                                "construction_id": "CTSF-0x000005",
+                                "fenestrations": []
+                            }
+                        ]
+                    },
+                    {
+                        "id": "ZONE-0x000007",
+                        "name": "주방",
+                        "height": 2.6,
+                        "profile": "주방 및 조리실",
+                        "light_density": 10.0,
+                        "infiltration": 1.5,
+                        "supply_system_heating_id": "SUPL-0x000002",
+                        "supply_system_cooling_id": null,
+                        "ventilation_system_id": null,
+                        "surfaces": [
+                            {
+                                "id": "SURF-0x000021",
+                                "name": "주방_바닥",
+                                "type": "floor",
+                                "boundary_condition": "ground",
+                                "area": 14.1,
+                                "construction_id": "CTSF-0x000004",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x000022",
+                                "name": "주방_북벽_1",
+                                "type": "wall",
+                                "boundary_condition": "zone",
+                                "area": 13.8,
+                                "adjacent_zone_id": "ZONE-0x000006",
+                                "construction_id": "CTSF-0x000003",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x000023",
+                                "name": "주방_북벽_2",
+                                "type": "wall",
+                                "boundary_condition": "zone",
+                                "area": 2.9,
+                                "adjacent_zone_id": "ZONE-0x000004",
+                                "construction_id": "CTSF-0x000003",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x000024",
+                                "name": "주방_남벽",
+                                "type": "wall",
+                                "boundary_condition": "outdoors",
+                                "area": 16.6,
+                                "azimuth": 180.0,
+                                "construction_id": "CTSF-0x000002",
+                                "fenestrations": [
+                                    {
+                                        "id": "FNST-0x000008",
+                                        "name": "주방_남벽_창",
+                                        "type": "window",
+                                        "area": 1.8,
+                                        "blind": null,
+                                        "construction_id": "CTFN-0x000000"
+                                    }
+                                ]
+                            },
+                            {
+                                "id": "SURF-0x000025",
+                                "name": "주방_서벽",
+                                "type": "wall",
+                                "boundary_condition": "zone",
+                                "area": 5.7,
+                                "adjacent_zone_id": "ZONE-0x000005",
+                                "construction_id": "CTSF-0x000003",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x000026",
+                                "name": "주방_천장",
+                                "type": "ceiling",
+                                "boundary_condition": "outdoors",
+                                "area": 14.1,
+                                "coolroof_reflectance": null,
+                                "construction_id": "CTSF-0x000005",
+                                "fenestrations": []
+                            }
+                        ]
+                    },
+                    {
+                        "id": "ZONE-0x000008",
+                        "name": "원장실",
+                        "height": 2.6,
+                        "profile": "소규모사무실",
+                        "light_density": 10.0,
+                        "infiltration": 1.5,
+                        "supply_system_heating_id": "SUPL-0x000002",
+                        "supply_system_cooling_id": null,
+                        "ventilation_system_id": null,
+                        "surfaces": [
+                            {
+                                "id": "SURF-0x00001A",
+                                "name": "원장실_바닥",
+                                "type": "floor",
+                                "boundary_condition": "ground",
+                                "area": 21.8,
+                                "construction_id": "CTSF-0x000004",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x00001B",
+                                "name": "원장실_북벽",
+                                "type": "wall",
+                                "boundary_condition": "zone",
+                                "area": 9.6,
+                                "adjacent_zone_id": "ZONE-0x000004",
+                                "construction_id": "CTSF-0x000003",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x00001C",
+                                "name": "원장실_동벽",
+                                "type": "wall",
+                                "boundary_condition": "outdoors",
+                                "area": 11.4,
+                                "azimuth": 270.0,
+                                "construction_id": "CTSF-0x000002",
+                                "fenestrations": [
+                                    {
+                                        "id": "FNST-0x000006",
+                                        "name": "원장실_동벽_창",
+                                        "type": "window",
+                                        "area": 1.5,
+                                        "blind": null,
+                                        "construction_id": "CTFN-0x000000"
+                                    }
+                                ]
+                            },
+                            {
+                                "id": "SURF-0x00001D",
+                                "name": "원장실_남벽",
+                                "type": "wall",
+                                "boundary_condition": "outdoors",
+                                "area": 14.8,
+                                "azimuth": 180.0,
+                                "construction_id": "CTSF-0x000002",
+                                "fenestrations": [
+                                    {
+                                        "id": "FNST-0x000007",
+                                        "name": "원장실_남벽_창",
+                                        "type": "window",
+                                        "area": 1.8,
+                                        "blind": null,
+                                        "construction_id": "CTFN-0x000000"
+                                    }
+                                ]
+                            },
+                            {
+                                "id": "SURF-0x00001E",
+                                "name": "원장실_서벽_1",
+                                "type": "wall",
+                                "boundary_condition": "zone",
+                                "area": 5.7,
+                                "adjacent_zone_id": "ZONE-0x000007",
+                                "construction_id": "CTSF-0x000003",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x00001F",
+                                "name": "원장실_서벽_2",
+                                "type": "wall",
+                                "boundary_condition": "zone",
+                                "area": 5.7,
+                                "adjacent_zone_id": "ZONE-0x000004",
+                                "construction_id": "CTSF-0x000003",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x000020",
+                                "name": "원장실_천장",
+                                "type": "ceiling",
+                                "boundary_condition": "outdoors",
+                                "area": 21.8,
+                                "coolroof_reflectance": null,
+                                "construction_id": "CTSF-0x000005",
+                                "fenestrations": []
+                            }
+                        ]
+                    },
+                    {
+                        "id": "ZONE-0x000009",
+                        "name": "유아반-1",
+                        "height": 2.6,
+                        "profile": "교실(초중고)",
+                        "light_density": 12.0,
+                        "infiltration": 1.5,
+                        "supply_system_heating_id": "SUPL-0x000002",
+                        "supply_system_cooling_id": null,
+                        "ventilation_system_id": null,
+                        "surfaces": [
+                            {
+                                "id": "SURF-0x000008",
+                                "name": "유아반-1_바닥",
+                                "type": "floor",
+                                "boundary_condition": "ground",
+                                "area": 56.1,
+                                "construction_id": "CTSF-0x000004",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x000009",
+                                "name": "유아반-1_북벽",
+                                "type": "wall",
+                                "boundary_condition": "outdoors",
+                                "area": 15.9,
+                                "azimuth": 0.0,
+                                "construction_id": "CTSF-0x000001",
+                                "fenestrations": [
+                                    {
+                                        "id": "FNST-0x000000",
+                                        "name": "유아반-1_북벽_창_1",
+                                        "type": "window",
+                                        "area": 2.0,
+                                        "blind": null,
+                                        "construction_id": "CTFN-0x000000"
+                                    },
+                                    {
+                                        "id": "FNST-0x000001",
+                                        "name": "유아반-1_북벽_창_2",
+                                        "type": "window",
+                                        "area": 2.0,
+                                        "blind": null,
+                                        "construction_id": "CTFN-0x000000"
+                                    }
+                                ]
+                            },
+                            {
+                                "id": "SURF-0x00000A",
+                                "name": "유아반-1_동벽",
+                                "type": "wall",
+                                "boundary_condition": "zone",
+                                "area": 23.9,
+                                "adjacent_zone_id": "ZONE-0x00000A",
+                                "construction_id": "CTSF-0x000003",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x00000B",
+                                "name": "유아반-1_남벽",
+                                "type": "wall",
+                                "boundary_condition": "zone",
+                                "area": 15.9,
+                                "adjacent_zone_id": "ZONE-0x000004",
+                                "construction_id": "CTSF-0x000003",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x00000C",
+                                "name": "유아반-1_서벽",
+                                "type": "wall",
+                                "boundary_condition": "zone",
+                                "area": 12.0,
+                                "adjacent_zone_id": "ZONE-0x000004",
+                                "construction_id": "CTSF-0x000003",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x00000D",
+                                "name": "유아반-1_천장",
+                                "type": "ceiling",
+                                "boundary_condition": "outdoors",
+                                "area": 56.1,
+                                "coolroof_reflectance": null,
+                                "construction_id": "CTSF-0x000005",
+                                "fenestrations": []
+                            }
+                        ]
+                    },
+                    {
+                        "id": "ZONE-0x00000A",
+                        "name": "유아반-2",
+                        "height": 2.6,
+                        "profile": "교실(초중고)",
+                        "light_density": 12.0,
+                        "infiltration": 1.5,
+                        "supply_system_heating_id": "SUPL-0x000002",
+                        "supply_system_cooling_id": "SUPL-0x000000",
+                        "ventilation_system_id": null,
+                        "surfaces": [
+                            {
+                                "id": "SURF-0x00000E",
+                                "name": "유아반-2_바닥",
+                                "type": "floor",
+                                "boundary_condition": "ground",
+                                "area": 54.6,
+                                "construction_id": "CTSF-0x000004",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x00000F",
+                                "name": "유아반-2_북벽_1",
+                                "type": "wall",
+                                "boundary_condition": "outdoors",
+                                "area": 8.3,
+                                "azimuth": 0.0,
+                                "construction_id": "CTSF-0x000001",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x000010",
+                                "name": "유아반-2_동벽",
+                                "type": "wall",
+                                "boundary_condition": "outdoors",
+                                "area": 23.9,
+                                "azimuth": 270.0,
+                                "construction_id": "CTSF-0x000002",
+                                "fenestrations": [
+                                    {
+                                        "id": "FNST-0x000003",
+                                        "name": "유아반-2_동벽_창_1",
+                                        "type": "window",
+                                        "area": 1.5,
+                                        "blind": null,
+                                        "construction_id": "CTFN-0x000000"
+                                    },
+                                    {
+                                        "id": "FNST-0x000004",
+                                        "name": "유아반-2_동벽_창_2",
+                                        "type": "window",
+                                        "area": 1.5,
+                                        "blind": null,
+                                        "construction_id": "CTFN-0x000000"
+                                    }
+                                ]
+                            },
+                            {
+                                "id": "SURF-0x000011",
+                                "name": "유아반-2_북벽_2",
+                                "type": "wall",
+                                "boundary_condition": "outdoors",
+                                "area": 10.9,
+                                "azimuth": 0.0,
+                                "construction_id": "CTSF-0x000002",
+                                "fenestrations": [
+                                    {
+                                        "id": "FNST-0x000002",
+                                        "name": "유아반-2_북벽_2_창",
+                                        "type": "window",
+                                        "area": 1.5,
+                                        "blind": null,
+                                        "construction_id": "CTFN-0x000000"
+                                    }
+                                ]
+                            },
+                            {
+                                "id": "SURF-0x000012",
+                                "name": "유아반-2_남벽_1",
+                                "type": "wall",
+                                "boundary_condition": "zone",
+                                "area": 5.2,
+                                "adjacent_zone_id": "ZONE-0x00000B",
+                                "construction_id": "CTSF-0x000003",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x000013",
+                                "name": "유아반-2_남벽_2",
+                                "type": "wall",
+                                "boundary_condition": "zone",
+                                "area": 14.0,
+                                "adjacent_zone_id": "ZONE-0x000004",
+                                "construction_id": "CTSF-0x000003",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x000014",
+                                "name": "유아반-2_천장",
+                                "type": "ceiling",
+                                "boundary_condition": "outdoors",
+                                "area": 54.6,
+                                "coolroof_reflectance": null,
+                                "construction_id": "CTSF-0x000005",
+                                "fenestrations": []
+                            }
+                        ]
+                    },
+                    {
+                        "id": "ZONE-0x00000B",
+                        "name": "현관",
+                        "height": 2.6,
+                        "profile": "부속공간",
+                        "light_density": 5.0,
+                        "infiltration": 1.5,
+                        "supply_system_heating_id": null,
+                        "supply_system_cooling_id": null,
+                        "ventilation_system_id": null,
+                        "surfaces": [
+                            {
+                                "id": "SURF-0x000015",
+                                "name": "현관_바닥",
+                                "type": "floor",
+                                "boundary_condition": "ground",
+                                "area": 5.4,
+                                "construction_id": "CTSF-0x000004",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x000016",
+                                "name": "현관_동벽",
+                                "type": "wall",
+                                "boundary_condition": "outdoors",
+                                "area": 7.0,
+                                "azimuth": 270.0,
+                                "construction_id": "CTSF-0x000002",
+                                "fenestrations": [
+                                    {
+                                        "id": "FNST-0x000005",
+                                        "name": "현관_동벽_유리문",
+                                        "type": "glassdoor",
+                                        "area": 4.3,
+                                        "blind": null,
+                                        "construction_id": "CTFN-0x000000"
+                                    }
+                                ]
+                            },
+                            {
+                                "id": "SURF-0x000017",
+                                "name": "현관_남벽",
+                                "type": "wall",
+                                "boundary_condition": "zone",
+                                "area": 5.2,
+                                "adjacent_zone_id": "ZONE-0x000008",
+                                "construction_id": "CTSF-0x000003",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x000018",
+                                "name": "현관_서벽",
+                                "type": "wall",
+                                "boundary_condition": "zone",
+                                "area": 7.0,
+                                "adjacent_zone_id": "ZONE-0x000004",
+                                "construction_id": "CTSF-0x000003",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x000019",
+                                "name": "현관_천장",
+                                "type": "ceiling",
+                                "boundary_condition": "outdoors",
+                                "area": 5.4,
+                                "coolroof_reflectance": null,
+                                "construction_id": "CTSF-0x000005",
+                                "fenestrations": []
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "supply_systems": [
+            {
+                "id": "SUPL-0x000000",
+                "name": "실내기-유아반-2",
+                "type": "air_handling_unit",
+                "source_system_id": "SRCE-0x000000"
+            },
+            {
+                "id": "SUPL-0x000001",
+                "name": "실내기-영아반-2",
+                "type": "air_handling_unit",
+                "source_system_id": "SRCE-0x000001"
+            },
+            {
+                "id": "SUPL-0x000002",
+                "name": "바닥난방-공통",
+                "type": "radiant_floor",
+                "source_system_id": "SRCE-0x000002"
+            }
+        ],
+        "source_systems": [
+            {
+                "id": "SRCE-0x000000",
+                "name": "실외기_1",
+                "type": "heatpump",
+                "capacity_cooling": 8300.0,
+                "capacity_heating": 9200.0,
+                "cop_cooling": 3.27,
+                "cop_heating": 3.41,
+                "fuel_type": "electricity"
+            },
+            {
+                "id": "SRCE-0x000001",
+                "name": "실외기_2",
+                "type": "heatpump",
+                "capacity_cooling": 3000.0,
+                "capacity_heating": 3800.0,
+                "cop_cooling": 4.05,
+                "cop_heating": 4.09,
+                "fuel_type": "electricity"
+            },
+            {
+                "id": "SRCE-0x000002",
+                "name": "보일러_1",
+                "type": "boiler",
+                "capacity_heating": null,
+                "efficiency": 0.006999999999999999,
+                "hotwater_supply": true,
+                "fuel_type": "natural_gas"
+            }
+        ],
+        "ventilation_systems": [],
+        "photovoltaic_systems": []
+    },
+    "profiles": [],
+    "profile_components": {
+        "schedules": [],
+        "rulesets": [],
+        "day_schedules": []
+    },
+    "materials": [
+        {
+            "id": "MTRL-0x000000",
+            "name": "시멘트벽돌",
+            "conductivity": 0.81,
+            "density": 1800,
+            "specific_heat": 840
+        },
+        {
+            "id": "MTRL-0x000001",
+            "name": "단열재",
+            "conductivity": 0.035,
+            "density": 25,
+            "specific_heat": 1400
+        },
+        {
+            "id": "MTRL-0x000002",
+            "name": "치장벽돌",
+            "conductivity": 0.72,
+            "density": 1920,
+            "specific_heat": 840
+        },
+        {
+            "id": "MTRL-0x000003",
+            "name": "드라이비트",
+            "conductivity": 0.87,
+            "density": 1200,
+            "specific_heat": 1000
+        },
+        {
+            "id": "MTRL-0x000004",
+            "name": "콘크리트",
+            "conductivity": 1.6,
+            "density": 2300,
+            "specific_heat": 880
+        }
+    ],
+    "surface_constructions": [
+        {
+            "id": "CTSF-0x000000",
+            "name": "open",
+            "layers": []
+        },
+        {
+            "id": "CTSF-0x000001",
+            "name": "외벽_1",
+            "layers": [
+                {
+                    "material_id": "MTRL-0x000000",
+                    "thickness": 0.19
+                },
+                {
+                    "material_id": "MTRL-0x000001",
+                    "thickness": 0.2
+                },
+                {
+                    "material_id": "MTRL-0x000002",
+                    "thickness": 0.09
+                },
+                {
+                    "material_id": "MTRL-0x000001",
+                    "thickness": 0.02
+                },
+                {
+                    "material_id": "MTRL-0x000003",
+                    "thickness": 0.01
+                }
+            ]
+        },
+        {
+            "id": "CTSF-0x000002",
+            "name": "외벽_2",
+            "layers": [
+                {
+                    "material_id": "MTRL-0x000000",
+                    "thickness": 0.19
+                },
+                {
+                    "material_id": "MTRL-0x000001",
+                    "thickness": 0.2
+                },
+                {
+                    "material_id": "MTRL-0x000002",
+                    "thickness": 0.09
+                }
+            ]
+        },
+        {
+            "id": "CTSF-0x000003",
+            "name": "내벽_알고있음_1",
+            "layers": [
+                {
+                    "material_id": "MTRL-0x000004",
+                    "thickness": 0.2
+                }
+            ]
+        },
+        {
+            "id": "CTSF-0x000004",
+            "name": "바닥",
+            "layers": [
+                {
+                    "material_id": "MTRL-0x000004",
+                    "thickness": 0.4
+                }
+            ]
+        },
+        {
+            "id": "CTSF-0x000005",
+            "name": "천장",
+            "layers": [
+                {
+                    "material_id": "MTRL-0x000004",
+                    "thickness": 0.3
+                }
+            ]
+        }
+    ],
+    "fenestration_constructions": [
+        {
+            "id": "CTFN-0x000000",
+            "name": "창문_알고있음_1",
+            "is_transparent": true,
+            "u": 3.49,
+            "g": 0.774
+        }
+    ]
+}

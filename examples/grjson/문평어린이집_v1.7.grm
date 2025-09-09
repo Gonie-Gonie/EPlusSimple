@@ -1,0 +1,630 @@
+{
+    "building": {
+        "name": "문평어린이집",
+        "north_axis": 43.37  ,
+        "address": "대전광역시 대덕구 문평동 79-2",
+        "vintage": [1998, 1, 22],
+        "num_aboveground_floor": 1,
+        "num_underground_floor": 1,
+        "floors":[
+            {
+                "floor_number"   : -1,
+                "zones": [
+                    {
+                        "id"  : "ZN-0x0000",
+                        "name": "지하실",
+                        "height": 2.45,
+                        "profile": "custom",
+                        "profile_id": "PF-0x0000",
+                        "light_density": 0,
+                        "infiltration" : 1.5,
+                        "supply_system_heating_id" : null,
+                        "supply_system_cooling_id" : null,
+                        "ventilation_system_id"     : null,
+                        "surfaces": [
+                            {
+                                "id": "SF-0x0000",
+                                "name": "지하실 바닥",
+                                "type": "floor",
+                                "construction_id": "CT-0x0000",
+                                "boundary_condition": "ground"   ,
+                                "area"           : 38.4,
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SF-0x0001",
+                                "name": "지하실 남측벽",
+                                "type": "wall",
+                                "construction_id": "CT-0x0001",
+                                "boundary_condition": "ground"   ,
+                                "area"           : 19.6,
+                                "fenestrations"  : []
+                            },
+                            {
+                                "id": "SF-0x0002",
+                                "name": "지하실 동측벽",
+                                "type": "wall",
+                                "construction_id": "CT-0x0001",
+                                "boundary_condition": "ground"   ,
+                                "area"           : 11.76,
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SF-0x0003",
+                                "name": "지하실 북측벽",
+                                "type": "wall",
+                                "construction_id": "CT-0x0001",
+                                "boundary_condition": "ground"   ,
+                                "area"           : 19.6,
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SF-0x0004",
+                                "name": "지하실 서측벽",
+                                "type": "wall",
+                                "construction_id": "CT-0x0001",
+                                "boundary_condition": "ground"   ,
+                                "area"           : 11.76,
+                                "fenestrations": []
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "floor_number"   : 1,
+                "zones": [
+                    {
+                        "id"  : "ZN-0x0001",
+                        "name": "보육실(진달래반)",
+                        "height": 2.45,
+                        "profile": "custom",
+                        "profile_id": "PF-0x0001",
+                        "light_density": 4.5,
+                        "infiltration" : 1.5,
+                        "supply_system_heating_id" : "SP-0x0000",
+                        "supply_system_cooling_id" : "SP-0x0000",
+                        "ventilation_system_id"    : "AAAAACCCCCDDDDDD",
+                        "surfaces": [
+                            {
+                                "id": "SF-0x0007",
+                                "name": "보육실 바닥",
+                                "type": "floor",
+                                "construction_id": "CT-0x0007",
+                                "boundary_condition": "zone"  ,
+                                "adjacent_zone_id"    : "ZN-0x0000",
+                                "area"           : 25.92,
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SF-0x0008",
+                                "name": "남측 외벽",
+                                "type": "wall",
+                                "construction_id": "CT-0x0004",
+                                "boundary_condition": "outdoors"  ,
+                                "area"           : 13.72,
+                                "azimuth"        : 180,
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SF-0x0009",
+                                "name": "동측 내벽",
+                                "type": "wall",
+                                "construction_id": "CT-0x0005",
+                                "boundary_condition": "zone"  ,
+                                "adjacent_zone_id"    : "ZN-0x0002",
+                                "area"           : 12.19,
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SF-0x000A",
+                                "name": "북측 외벽",
+                                "type": "wall",
+                                "construction_id": "CT-0x0004",
+                                "boundary_condition": "outdoors"  ,
+                                "area"           : 13.72,
+                                "azimuth"        : 0,
+                                "fenestrations": [
+                                    {
+                                        "id"  : "FN-0x0000",
+                                        "name": "진달래반 창문~",
+                                        "type": "window",
+                                        "construction_id": "WN-0x0000",
+                                        "area": 4.5,
+                                        "blind":null
+                                    }
+                                ]
+                            },
+                            {
+                                "id": "SF-0x000B",
+                                "name": "서측 외벽",
+                                "type": "wall",
+                                "construction_id": "CT-0x0004",
+                                "boundary_condition": "outdoors"  ,
+                                "area"           : 12.19,
+                                "azimuth"        : 90,
+                                "fenestrations": [
+                                    {
+                                        "id"  : "FN-0x0001",
+                                        "name": "진달래반 창문~22",
+                                        "type": "window",
+                                        "construction_id": "WN-0x0000",
+                                        "area": 4.5,
+                                        "blind":"shade"  
+                                    },
+                                    {
+                                        "id"  : "FN-0x0002",
+                                        "name": "정문",
+                                        "type": "door",
+                                        "construction_id": "DR-0x0000",
+                                        "area": 1.89,
+                                        "blind": null
+                                    }
+                                ]
+                            },
+                            {
+                                "id": "SF-0x000C",
+                                "name": "지붕",
+                                "type": "ceiling",
+                                "construction_id": "CT-0x0006",
+                                "boundary_condition": "outdoors"  ,
+                                "area"           : 25.92,
+                                "coolroof_reflectance": 0.65,
+                                "fenestrations": []
+                            }
+                        ]
+                    },
+                    {
+                        "id"  : "ZN-0x0002",
+                        "name": "1층 계단실",
+                        "height": 2.45,
+                        "profile": "custom",
+                        "profile_id": "PF-0x0000",
+                        "light_density": 1,
+                        "infiltration" : 0,
+                        "supply_system_heating_id" : null,
+                        "supply_system_cooling_id" : null,
+                        "ventilation_system_id"    : null,
+                        "surfaces": [
+                            {
+                                "id": "SF-0x000D",
+                                "name": "계단실 가짜바닥",
+                                "type": "floor",
+                                "construction_id": "open",
+                                "boundary_condition": "zone"  ,
+                                "adjacent_zone_id"    : "ZN-0x0000",
+                                "area"           : 12.48,
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SF-0x000E",
+                                "name": "남측 외벽",
+                                "type": "wall",
+                                "construction_id": "CT-0x0004",
+                                "boundary_condition": "outdoors"  ,
+                                "area"           : 6.60,
+                                "azimuth"        : 180,
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SF-0x000F",
+                                "name": "동측 외벽",
+                                "type": "wall",
+                                "construction_id": "CT-0x0004",
+                                "boundary_condition": "outdoors"  ,
+                                "area"           : 12.19,
+                                "azimuth"        : 270,
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SF-0x0010",
+                                "name": "북측 외벽",
+                                "type": "wall",
+                                "construction_id": "CT-0x0004",
+                                "boundary_condition": "outdoors"  ,
+                                "area"           : 6.60,
+                                "azimuth"        : 0,
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SF-0x0012",
+                                "name": "지붕",
+                                "type": "ceiling",
+                                "construction_id": "CT-0x0006",
+                                "boundary_condition": "outdoors"  ,
+                                "area"           : 12.48,
+                                "coolroof_reflectance": null,
+                                "fenestrations": []
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "supply_systems": [
+            {
+                "id"  : "SP-0x0000",
+                "name": "그냥 실내기?",
+                "type": "air_handling_unit",
+                "source_system_id": "SR-0x0000"
+            }
+        ],
+        "source_systems": [
+            {
+                "id"  : "SR-0x0000",
+                "name": "그냥 $%^&실외기?",
+                "type": "heatpump",
+                "capacity_cooling": 8300.0,
+                "capacity_heating": 9200,
+                "cop_heating": 3.0,
+                "cop_cooling": 3.0,
+                "fuel_type"  : "electricity"
+            },
+            {
+                "id"  : "SR-0x0001",
+                "name": "킹★킹 실외기",
+                "type": "heatpump",
+                "capacity_cooling": 8300.0,
+                "capacity_heating": 9200,
+                "cop_heating": 3.9,
+                "cop_cooling": 4.3,
+                "fuel_type"  : "electricity"
+            },
+            {
+                "id": "SR-0x0002",
+                "name": "급탕용 보일러",
+                "type": "boiler",
+                "capacity_heating": null,
+                "efficiency": 0.91,
+                "hotwater_supply": true,
+                "fuel_type": "oil"
+            }
+        ],
+        "ventilation_systems": [
+            {
+                "id": "AAAAACCCCCDDDDDD",
+                "name": "HIMPEL HRF-50C"  ,
+                "efficiency_heating": 0.72,
+                "efficiency_cooling": 0.49
+            }
+        ],
+        "photovoltaic_systems": [
+            {
+                "id": "PVPN-0x0001",
+                "name": "옥상 태양광",
+                "area": 3.4,
+                "efficiency": 0.23,
+                "azimuth" : 180,
+                "tilt"    : 30
+            }
+        ]
+    },
+    "profiles": [
+        {
+            "id"  : "PF-0x0000",
+            "name": "'''창고'''",
+            "heating_setpoint_id" : null,
+            "cooling_setpoint_id" : null,
+            "hvac_availability_id": "SC-0x0003",
+            "hotwater_id"         : null,
+            "occupant_id"         : null,
+            "lighting_id"         : "SC-0x0002",
+            "equipment_id"        : null
+        },
+        {
+            "id"  : "PF-0x0001",
+            "name": "💕공공기관😊",
+            "heating_setpoint_id" : "SC-0x0000",
+            "cooling_setpoint_id" : "SC-0x0001",
+            "hvac_availability_id": "SC-0x0002",
+            "hotwater_id"         : null,
+            "occupant_id"         : "SCHE-0x000001",
+            "lighting_id"         : null,
+            "equipment_id"        : null
+        }
+    ],
+    "profile_components": {
+        "schedules": [
+            {
+                "id"  : "SC-0x0000",
+                "name": "공공기관 표준난방",
+                "periods": [
+                    {
+                        "start"  : "01/01",
+                        "end"    : "12/31",
+                        "ruleset_id": "RS-0x0000"
+                    }
+                ]
+            },
+            {
+                "id"  : "SC-0x0001",
+                "name": "공공기관 표준냉방",
+                "periods": [
+                    {
+                        "start"  : "01/01",
+                        "end"    : "12/31",
+                        "ruleset_id": "RS-0x0001"
+                    }
+                ]
+            },
+            {
+                "id"  : "SC-0x0002",
+                "name": "공공기관 ON/OFF",
+                "periods": [
+                    {
+                        "start"  : "01/01",
+                        "end"    : "12/31",
+                        "ruleset_id": "RS-0x0002"
+                    }
+                ]
+            },
+            {
+                "id"  :  "SCHE-0x000001",
+                "name": "아무튼 사람있음",
+                "periods": [
+                    {
+                        "start": "01/01",
+                        "end"  : "12/31",
+                        "ruleset_id": "RS-0x0004"
+                    }
+                ]
+            },
+            {
+                "id"  : "SC-0x0003",
+                "name": "ALL OFF",
+                "periods": [
+                    {
+                        "start"  : "01/01",
+                        "end"    : "12/31",
+                        "ruleset_id": "RS-0x0003"
+                    }
+                ]
+            }
+        ],
+        "rulesets": [
+            {
+                "id"  : "RS-0x0000",
+                "name": "공공기관 표준난방",
+                "weekdays_id": "DS-0x0000",
+                "weekends_id": "DS-0x0000",
+                "monday_id"   : null, "tuesday_id"  : null, "wednesday_id": null, "thursday_id" : null,
+                "friday_id"   : null, "saturday_id" : null, "sunday_id"   : null, "holiday_id"  : null
+            },
+            {
+                "id"  : "RS-0x0001",
+                "name": "공공기관 표준냉방",
+                "weekdays_id": "DS-0x0001",
+                "weekends_id": "DS-0x0001",
+                "monday_id"   : null, "tuesday_id"  : null, "wednesday_id": null, "thursday_id" : null,
+                "friday_id"   : null, "saturday_id" : null, "sunday_id"   : null, "holiday_id"  : null
+            },
+            {
+                "id"  : "RS-0x0002",
+                "name": "공공기관 ON/OFF",
+                "weekdays_id": "DS-0x0002",
+                "weekends_id": "DS-0x0003",
+                "monday_id"   : null, "tuesday_id"  : null, "wednesday_id": null, "thursday_id" : null,
+                "friday_id"   : null, "saturday_id" : null, "sunday_id"   : null, "holiday_id"  : "DS-0x0003"
+            },
+            {
+                "id"  : "RS-0x0003",
+                "name": "ALL OFF",
+                "weekdays_id": "DS-0x0003",
+                "weekends_id": "DS-0x0003",
+                "monday_id"   : null, "tuesday_id"  : null, "wednesday_id": null, "thursday_id" : null,
+                "friday_id"   : null, "saturday_id" : null, "sunday_id"   : null, "holiday_id"  : null
+            },
+            {
+                "id"  : "RS-0x0004",
+                "name": "사람사람",
+                "weekdays_id": "DS-0x0005",
+                "weekends_id": "DS-0x0005",
+                "monday_id"   : null, "tuesday_id"  : null, "wednesday_id": null, "thursday_id" : null,
+                "friday_id"   : null, "saturday_id" : null, "sunday_id"   : null, "holiday_id"  : null
+            }
+        ],
+        "day_schedules": [
+            {
+                "id"    : "DS-0x0000",
+                "name"  : "공공기관 표준난방",
+                "type"  : "temperature",
+                "values": [
+                    20,20,20,20,20,20, 20,20,20,20,20,20, 20,20,20,20,20,20, 20,20,20,20,20,20, 20,20,20,20,20,20, 20,20,20,20,20,20,
+                    20,20,20,20,20,20, 20,20,20,20,20,20, 20,20,20,20,20,20, 20,20,20,20,20,20, 20,20,20,20,20,20, 20,20,20,20,20,20,
+                    20,20,20,20,20,20, 20,20,20,20,20,20, 20,20,20,20,20,20, 20,20,20,20,20,20, 20,20,20,20,20,20, 20,20,20,20,20,20,
+                    20,20,20,20,20,20, 20,20,20,20,20,20, 20,20,20,20,20,20, 20,20,20,20,20,20, 20,20,20,20,20,20, 20,20,20,20,20,20
+                ]
+            },
+            {
+                "id"    : "DS-0x0001",
+                "name"  : "공공기관 표준냉방",
+                "type"  : "temperature",
+                "values": [
+                    26,26,26,26,26,26, 26,26,26,26,26,26, 26,26,26,26,26,26, 26,26,26,26,26,26, 26,26,26,26,26,26, 26,26,26,26,26,26,
+                    26,26,26,26,26,26, 26,26,26,26,26,26, 26,26,26,26,26,26, 26,26,26,26,26,26, 26,26,26,26,26,26, 26,26,26,26,26,26,
+                    26,26,26,26,26,26, 26,26,26,26,26,26, 26,26,26,26,26,26, 26,26,26,26,26,26, 26,26,26,26,26,26, 26,26,26,26,26,26,
+                    26,26,26,26,26,26, 26,26,26,26,26,26, 26,26,26,26,26,26, 26,26,26,26,26,26, 26,26,26,26,26,26, 26,26,26,26,26,26
+                ]
+            },
+            {
+                "id"    : "DS-0x0002",
+                "name"  : "9to6 ON/OFF",
+                "type"  : "onoff",
+                "values": [
+                    0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0,
+                    0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 1,1,1,1,1,1, 1,1,1,1,1,1, 1,1,1,1,1,1,
+                    1,1,1,1,1,1, 1,1,1,1,1,1, 1,1,1,1,1,1, 1,1,1,1,1,1, 1,1,1,1,1,1, 1,1,1,1,1,1,
+                    0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0
+                ]
+            },
+            {
+                "id"    : "DS-0x0003",
+                "name"  : "ALL OFF",
+                "type"  : "onoff",
+                "values": [
+                    0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0,
+                    0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0,
+                    0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0,
+                    0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0
+                ]
+            },
+            {
+                "id"    : "DS-0x0004",
+                "name"  : "ALL ON",
+                "type"  : "onoff",
+                "values": [
+                    1,1,1,1,1,1, 1,1,1,1,1,1, 1,1,1,1,1,1, 1,1,1,1,1,1, 1,1,1,1,1,1, 1,1,1,1,1,1,
+                    1,1,1,1,1,1, 1,1,1,1,1,1, 1,1,1,1,1,1, 1,1,1,1,1,1, 1,1,1,1,1,1, 1,1,1,1,1,1,
+                    1,1,1,1,1,1, 1,1,1,1,1,1, 1,1,1,1,1,1, 1,1,1,1,1,1, 1,1,1,1,1,1, 1,1,1,1,1,1,
+                    1,1,1,1,1,1, 1,1,1,1,1,1, 1,1,1,1,1,1, 1,1,1,1,1,1, 1,1,1,1,1,1, 1,1,1,1,1,1
+                ]
+            },
+            {
+                "id"    : "DS-0x0005",
+                "name"  : "occupancy",
+                "type"  : "real",
+                "values": [
+                    1,1,1,1,1,1, 1,2,3,4,5,6, 1,1,1,1,1,1, 1,1,1,1,1,1, 1,1,1,1,1,1, 1,1,1,1,1,1,
+                    1,1,1,1,1,1, 1,1,1,1,1,1, 7,8,9,10,11,12, 1,1,1,1,1,1, 1,1,1,1,1,1, 1,1,1,1,1,1,
+                    1,1,1,1,1,1, 1,1,1,1,1,1, 1,1,1,1,1,1, 0,0,0,0,0,0, 1,1,1,1,1,1, 1,1,1,1,1,1,
+                    1,1,1,1,1,1, 1,1,1,1,1,1, 1,1,1,1,1,1, 1,1,1,1,1,1, 1,1,1,1,1,1, 1,1,1,1,1,1
+                ]
+            }
+        ]
+    },
+    "materials": [
+        {
+            "id"  : "MT-0x0001",
+            "name": "콘크리트",
+            "conductivity" :  2.5,
+            "density"      : 2400,
+            "specific_heat":  880
+        },
+        {
+            "id"  : "MT-0x0002",
+            "name": "단열재",
+            "conductivity" : 0.05,
+            "density"      :   30,
+            "specific_heat": 1500
+        }
+    ],
+    "surface_constructions": [
+        {
+            "id"  : "CT-0x0000",
+            "name": "1994 중부 최하층바닥",
+            "layers": [
+                {
+                    "material_id": "MT-0x0001",
+                    "thickness"  : 0.2
+                },
+                {
+                    "material_id": "MT-0x0002",
+                    "thickness"  : 0.2
+                }
+            ]
+        },
+        {
+            "id"  : "CT-0x0001",
+            "name": "지하층 벽체",
+            "layers": [
+                {
+                    "material_id": "MT-0x0001",
+                    "thickness"  : 0.2
+                },
+                {
+                    "material_id": "MT-0x0002",
+                    "thickness"  : 0.3
+                }
+            ]
+        },
+        {
+            "id"  : "CT-0x0002",
+            "name": "층간천장",
+            "layers": [
+                {
+                    "material_id": "MT-0x0001",
+                    "thickness"  : 0.3
+                }
+            ]
+        },
+        {
+            "id"  : "CT-0x0004",
+            "name": "1994 중부 조적조 외벽",
+            "layers": [
+                {
+                    "material_id": "MT-0x0001",
+                    "thickness"  : 0.2
+                },
+                {
+                    "material_id": "MT-0x0002",
+                    "thickness"  : 0.3
+                }
+            ]
+        },
+        {
+            "id"  : "CT-0x0008",
+            "name": "킹킹 외벽",
+            "layers": [
+                {
+                    "material_id": "MT-0x0001",
+                    "thickness"  : 0.2
+                },
+                {
+                    "material_id": "MT-0x0002",
+                    "thickness"  : 1.0
+                }
+            ]
+        },
+        {
+            "id"  : "CT-0x0005",
+            "name": "내벽",
+            "layers": [
+                {
+                    "material_id": "MT-0x0001",
+                    "thickness"  : 0.200
+                }
+            ]
+        },
+        {
+            "id"  : "CT-0x0006",
+            "name": "1994 중부 콘크리트 지붕",
+            "layers": [
+                {
+                    "material_id": "MT-0x0001",
+                    "thickness"  : 0.2
+                },
+                {
+                    "material_id": "MT-0x0002",
+                    "thickness"  : 0.2
+                }
+            ]
+        },
+        {
+            "id"  : "CT-0x0007",
+            "name": "층간바닥",
+            "layers": [
+                {
+                    "material_id": "MT-0x0001",
+                    "thickness"  : 0.3
+                }
+            ]
+        }
+    ],
+    "fenestration_constructions":[
+        {
+            "id"  : "WN-0x0000",
+            "name": "그시절 창문",
+            "is_transparent": true,
+            "u"   : 2.0,
+            "g"   : 0.8
+        },
+        {
+            "id"  : "DR-0x0000",
+            "name": "그냥 보통 철문",
+            "is_transparent": false,
+            "u"   : 1.5
+        }
+    ]
+}
+
+

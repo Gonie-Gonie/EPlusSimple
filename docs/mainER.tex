@@ -1,0 +1,89 @@
+
+% ---------------------------------------------------------------------------- %
+%                              DOCUMENT DEFINITION                             %
+% ---------------------------------------------------------------------------- %
+
+% --- 문서 스타일 정의 ---
+\documentclass[oneside,openany,a4paper,12pt]{book}
+\input{./_common/preamble.tex}
+
+% --- 문서 시작 ---
+\begin{document}
+\pagestyle{plain} 
+
+% ---------------------------------------------------------------------------- %
+%                                 PRELIMINARIES                                %
+% ---------------------------------------------------------------------------- %
+
+\listoftodos
+
+% --- 표지 ---
+\begin{titlepage}
+  \centering
+  % 제목 및 상단 문구
+  {\scshape\large \simulator Version 0.2.0 Documentation\par}
+  \vspace{6em}
+  {\bfseries\Huge Input, Output, and Engineering Reference\par}
+  \vspace{1em}
+  {\itshape\Large Korea Authority of Land \& Infrastructure Safety\par}
+  {\itshape\Large Seoul National University\par}
+  \vfill
+  % 중앙 그림 (로고)
+  \includegraphics[height=0.25\textwidth]{국토안전관리원_시그니처2.png}
+  \hspace{4em}
+  \includegraphics[height=0.25\textwidth]{snu_ui.png}
+  \vfill
+  % 하단
+  {\large \today \par}
+  \vspace{0.5em}
+  {\small COPYRIGHT (c) \simulator\는 국토교통부, 국토안전관리원의 지원으로 제작되었습니다.. 이 문서도 소유권은 누구에게 있고...}
+\end{titlepage}
+
+% --- 서문 ---
+\section*{서문}
+본 문서는 high-fidelity 동적에너지 시뮬레이션에 기반한 그린리모델링 의사결정 지원 도구, \simulator 엔진(Version\simulatorversion)의 구조, 사용법 및 설계 원리를 기술한 문서로, 본 엔진을 이용하여 독자적인 GUI 개발을 고려하는 개발자, 본 엔진을 직접 이용하여 상세한 건물 시뮬레이션을 요구하는 연구자, 및 본 엔진을 개량, 보수하는 개발자를 위해 작성되었습니다.
+
+본 문서는 아래와 같은 순서로 기술되어 있습니다.
+\begin{itemize}
+  \item 제1부[{\bfseries 서론}]에서는, 본 엔진의 개발 배경 및 기본 철학에 대하여 기술합니다.
+  \item 제2부[{\bfseries 프로그램 구성}]에서는, 본 엔진의 구성 요소, 입력 및 출력 데이터의 구조, 및 실행 방법에 대하여 기술합니다.
+  \item 제3부[{\bfseries 시뮬레이션 알고리즘}]에서는, 본 엔진의 입력 데이터를 EnergyPlus의 동적 건물 에너지 시뮬레이션 모델(idf형식)로 변환하는 과정, EnergyPlus 시뮬레이션을 수행하는 방법에 대하여 기술합니다.
+  \item 제4부[{\bfseries 유지보수 및 신기술 적용}]에서는, 본 엔진을 위해 개발된 \pymodule의 개발 과정 및 구조, 사용법에 대하여 기술하고, 모듈의 수정 등 유지보수를 위한 가이드를 기술합니다.
+  \item 마지막으로 {\bfseries 부록}에서는, 본 엔진을 개발함에 있어 의사결정의 근거가 되었던 각종 실험 결과 등에 대하여 기술합니다.
+\end{itemize}
+
+% --- 목차 ---
+\pagenumbering{roman}
+\tableofcontents       
+\listoffigures          
+\listoftables          
+
+% ---------------------------------------------------------------------------- %
+%                                  MAINMATTER                                  %
+% ---------------------------------------------------------------------------- %
+
+% --- 페이지 초기화 ---
+\clearpage      
+\pagenumbering{arabic}
+
+% --- 본문 ---
+\mainmatter
+\include{EngineeringReference/part1}
+\include{EngineeringReference/part2}
+\include{EngineeringReference/part3}
+\include{EngineeringReference/part4}
+
+% --- 부록 --- 
+\include{EngineeringReference/appendix}
+
+% ---------------------------------------------------------------------------- %
+%                                  BACKMATTER                                  %
+% ---------------------------------------------------------------------------- %
+
+% --- 참고문헌 ---
+\backmatter
+\bibliographystyle{plain}
+\bibliography{_common/references}
+
+% --- 문서 끝 ---
+\end{document}

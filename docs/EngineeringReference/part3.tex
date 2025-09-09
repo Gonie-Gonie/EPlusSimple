@@ -1,0 +1,847 @@
+% chap2.tex
+\part{시뮬레이션 알고리즘}
+\label{part:algorithm}
+
+% ---------------------------------------------------------------------------- %
+%                                  NEW SECTION                                 %
+% ---------------------------------------------------------------------------- %
+
+\chapter{시뮬레이션의 절차 및 구조}
+
+\section{데이터 변환 시뮬레이션의 순서}
+
+\subsection{시뮬레이션 개요}
+시뮬레이션을 하려면, 일단 데이터를 읽고 변환하고 옵션 설정해서 돌리고 결과 나온거 정리해서 return함.
+
+\subsection{데이터 체계}
+json구조로 들어온 데이터는, 동일한 python 구조체로 변환되고 그게 dragon이라는 EP친화적 구조체로 변환된 다음 idf로 내보내짐.
+
+\begin{defaultfigure}
+  \includegraphics[scale=0.1]{데이터 schema의 위계.png}
+  \caption{\simulator\ 데이터 체계 및 변환 과정(??)}
+  \label{fig:data_hierarchy}
+\end{defaultfigure}
+
+% ---------------------------------------------------------------------------- %
+%                                  NEW SECTION                                 %
+% ---------------------------------------------------------------------------- %
+
+\section{시뮬레이션 조건}
+\subsection{기상데이터}
+\subsubsection{주소 및 행정구역 기준}
+주소 정보는 2024년 12월 31일 기준 행정구역 체계를 적용하였으며, 세종특별자치시와 제주특별자치도(제주시, 서귀포시)를 포함하여 전국을 총 229개 시·군·구로 분류하였다.
+각 시·군·구의 중심 좌표는 Naver Cloud Platform(NCP)에서 제공하는 Geocoding API를 기반으로 한 \texttt{korean\_geocoding} 파이썬 패키지를 활용하여 위도(latitude)와 경도(longitude) 정보를 추출하였다.
+
+\subsubsection{기상데이터 수집}
+기상데이터는 국제적으로 통용되는 기상데이터 플랫폼인 OneBuilding.org\cite{onebuilding2025}에서 제공하는 TMYx(Typical Meteorological Year) 데이터를 활용하였다. 해당 플랫폼은 각 지역별 기상데이터를 총 7개 형식(clm, ddy, epw, pvsyst, rain, stat, wea)으로 제공하며, 본 시뮬레이터에서는 EnergyPlus 시뮬레이션에 요구되는 EPW 형식을 사용한다.
+\begin{itemize}
+  \item 수집 대상: 전국 95개 기상지점
+  \item 데이터 기간: 2009년 - 2023년
+  \item 데이터 검토: 결측치 없음
+\end{itemize}
+\paragraph{tmy} TMYx(Typical Meteorological Year)는 ISO 15927-4를 기반으로 작성한 표준 기상데이터를 의미한다. ISO 15927-4 방법은 아래와 같은 절차로 이루어진다\cite{shimtmyx} (Figure \ref{fig:tmyxalgorithm})
+\begin{enumerate}
+  \item 지역별 데이터 수집 (시간별 건구온도, 상대습도, 수평면 전일사량, 풍속)
+  \item 시간별 수집 데이터를 일 평균 데이터로 변환
+  \item 하루평균 데이터를 long-term CDF(전체 수집 기간), monthly CDF로 구분하고, 건구온도, 상대습도, 수평면 전일사량의 누적분포 함수 계산 (FS방법)
+  
+\[ 
+  FS_{x}(y,m) = \left(\frac{1}{n}\right) \sum_{i=1}^{n} |CDF_{m}(x_{i}) - CDF_{y,m}(x_{i})|
+\]
+
+  \item $FS_{x}(y,m)$의 값이 작은 순으로 월 별 3개 연도를 선정
+  \item 장기 평균 풍속과 월별 평균 풍속의 편차가 가장 작은 해를 대표 해로 선정
+\end{enumerate}
+
+\begin{defaultfigure}
+  \includegraphics[width=\textwidth]{표준기상데이터생성.png}
+  \caption{표준기상데이터 생성 방법 (ISO 15927-4)}
+  \label{fig:tmyxalgorithm}
+\end{defaultfigure}
+
+
+\subsubsection{주소와 기상데이터 매칭방식}
+\label{sec:address_weather_matching}
+기상데이터 매칭은 각 시·군·구의 중심 좌표와 95개 TMY 기상지점의 위도·경도 정보를 비교하여, Haversine 공식을 이용한 거리 계산 결과 가장 가까운 지점을 선택하는 방식으로 매칭함. 
+각 행정구역별 최근접 기상지점의 epw를 매칭한 결과는 표~\ref{tab:weather_mapping}에 제시함.
+
+\renewcommand{\arraystretch}{0.9}
+\begin{longtable}{lcclcc}
+  \caption{행정구역별 기상데이터 매칭 결과} \\
+  \label{tab:weather_mapping} \\
+  \toprule
+  \small
+  시·군·구 & 위도[$^\circ$] & 경도[$^\circ$] & 매칭 EPW 지역명 & WMOcode & EPW 기준년도 \\ \midrule
+  \endfirsthead
+  \multicolumn{6}{r}{\textit{(이전 페이지에서 계속)}} \\ \toprule
+  시·군·구 & 위도[$^\circ$] & 경도[$^\circ$] & 매칭 EPW 지역명 & WMOcode & EPW 기준년도 \\ \midrule
+  \endhead
+  \midrule \multicolumn{6}{r}{\textit{(다음 페이지에 계속)}} \\ \bottomrule
+  \endfoot
+  \bottomrule
+  \endlastfoot
+  % 본문 데이터 (예시)
+  서울특별시 종로구 & 37.57 & 126.98 & Seoul.WS & 471080 & '09-'23 \\
+  서울특별시 중구 & 37.56 & 127.00 & Seoul.WS & 471080 & '09-'23 \\
+  서울특별시 용산구 & 37.53 & 126.99 & Seoul.WS & 471080 & '09-'23 \\
+  서울특별시 성동구 & 37.56 & 127.04 & Seoul.WS & 471080 & '09-'23 \\
+  서울특별시 광진구 & 37.54 & 127.08 & Seoul-Seongnam.AP & 471110 & '09-'23 \\
+  서울특별시 동대문구 & 37.57 & 127.04 & Seoul.WS & 471080 & '09-'23 \\
+  서울특별시 중랑구 & 37.61 & 127.09 & Seoul.WS & 471080 & '09-'23 \\
+  서울특별시 성북구 & 37.59 & 127.02 & Seoul.WS & 471080 & '09-'23 \\
+  서울특별시 강북구 & 37.64 & 127.03 & Seoul.WS & 471080 & '09-'23 \\
+  서울특별시 도봉구 & 37.67 & 127.05 & Seoul.WS & 471080 & '09-'23 \\
+  서울특별시 노원구 & 37.65 & 127.06 & Seoul.WS & 471080 & '09-'23 \\
+  서울특별시 은평구 & 37.60 & 126.93 & Seoul.WS & 471080 & '09-'23 \\
+  서울특별시 서대문구 & 37.58 & 126.94 & Seoul.WS & 471080 & '09-'23 \\
+  서울특별시 마포구 & 37.57 & 126.90 & Seoul.WS & 471080 & '09-'23 \\
+  서울특별시 양천구 & 37.52 & 126.87 & Gimpo.Intl.AP & 471100 & '09-'23 \\
+  서울특별시 강서구 & 37.55 & 126.85 & Gimpo.Intl.AP & 471100 & '09-'23 \\
+  서울특별시 구로구 & 37.50 & 126.89 & Seoul.WS & 471080 & '09-'23 \\
+  서울특별시 금천구 & 37.46 & 126.90 & Seoul.WS & 471080 & '09-'23 \\
+  서울특별시 영등포구 & 37.53 & 126.90 & Seoul.WS & 471080 & '09-'23 \\
+  서울특별시 동작구 & 37.51 & 126.94 & Seoul.WS & 471080 & '09-'23 \\
+  서울특별시 관악구 & 37.48 & 126.95 & Seoul.WS & 471080 & '09-'23 \\
+  서울특별시 서초구 & 37.48 & 127.03 & Seoul-Seongnam.AP & 471110 & '09-'23 \\
+  서울특별시 강남구 & 37.52 & 127.05 & Seoul.WS & 471080 & '09-'23 \\
+  서울특별시 송파구 & 37.51 & 127.11 & Seoul-Seongnam.AP & 471110 & '09-'23 \\
+  서울특별시 강동구 & 37.53 & 127.12 & Seoul-Seongnam.AP & 471110 & '09-'23 \\
+  부산광역시 중구 & 35.11 & 129.03 & Busan-Daecheongdong.WS & 471590 & '09-'23 \\
+  부산광역시 서구 & 35.10 & 129.02 & Busan-Daecheongdong.WS & 471590 & '09-'23 \\
+  부산광역시 동구 & 35.13 & 129.05 & Busan-Daecheongdong.WS & 471590 & '09-'23 \\
+  부산광역시 영도구 & 35.09 & 129.07 & Busan-Daecheongdong.WS & 471590 & '09-'23 \\
+  부산광역시 부산진구 & 35.16 & 129.05 & Busan-Daecheongdong.WS & 471590 & '09-'23 \\
+  부산광역시 동래구 & 35.20 & 129.09 & Busan-Daecheongdong.WS & 471590 & '09-'23 \\
+  부산광역시 남구 & 35.14 & 129.08 & Busan-Daecheongdong.WS & 471590 & '09-'23 \\
+  부산광역시 북구 & 35.20 & 128.99 & Busan-Gimhae.Intl.AP & 471530 & '09-'23 \\
+  부산광역시 해운대구 & 35.16 & 129.16 & Busan-Daecheongdong.WS & 471590 & '09-'23 \\
+  부산광역시 사하구 & 35.10 & 128.97 & Busan-Daecheongdong.WS & 471590 & '09-'23 \\
+  부산광역시 금정구 & 35.24 & 129.09 & Busan-Gimhae.Intl.AP & 471530 & '09-'23 \\
+  부산광역시 강서구 & 35.21 & 128.98 & Busan-Gimhae.Intl.AP & 471530 & '09-'23 \\
+  부산광역시 연제구 & 35.18 & 129.08 & Busan-Daecheongdong.WS & 471590 & '09-'23 \\
+  부산광역시 수영구 & 35.15 & 129.11 & Busan-Daecheongdong.WS & 471590 & '09-'23 \\
+  부산광역시 사상구 & 35.15 & 128.99 & Busan-Gimhae.Intl.AP & 471530 & '09-'23 \\
+  부산광역시 기장군 & 35.24 & 129.22 & Busan-Daecheongdong.WS & 471590 & '09-'23 \\
+  대구광역시 중구 & 35.87 & 128.61 & Camp.Walker-Daegu & 471425 & '09-'23 \\
+  대구광역시 동구 & 35.89 & 128.64 & Daegu.Intl.AP & 471420 & '09-'23 \\
+  대구광역시 서구 & 35.87 & 128.56 & Camp.Walker-Daegu & 471425 & '09-'23 \\
+  대구광역시 남구 & 35.85 & 128.60 & Camp.Walker-Daegu & 471425 & '09-'23 \\
+  대구광역시 북구 & 35.89 & 128.58 & Camp.Walker-Daegu & 471425 & '09-'23 \\
+  대구광역시 수성구 & 35.86 & 128.63 & Daegu & 471430 & '09-'23 \\
+  대구광역시 달서구 & 35.83 & 128.53 & Camp.Walker-Daegu & 471425 & '09-'23 \\
+  대구광역시 달성군 & 35.77 & 128.43 & Camp.Walker-Daegu & 471425 & '09-'23 \\
+  대구광역시 군위군 & 36.24 & 128.57 & Gumi & 471540 & '09-'23 \\
+  인천광역시 강화군 & 37.75 & 126.49 & Pyoripsan & 471084 & '09-'23 \\
+  인천광역시 옹진군 & 37.45 & 126.64 & Incheon.WS & 471120 & '09-'23 \\
+  인천광역시 중구 & 37.47 & 126.62 & Incheon.WS & 471120 & '09-'23 \\
+  인천광역시 동구 & 37.47 & 126.64 & Incheon.WS & 471120 & '09-'23 \\
+  인천광역시 미추홀구 & 37.46 & 126.65 & Incheon.WS & 471120 & '09-'23 \\
+  인천광역시 연수구 & 37.41 & 126.68 & Incheon.WS & 471120 & '09-'23 \\
+  인천광역시 남동구 & 37.45 & 126.73 & Incheon.WS & 471120 & '09-'23 \\
+  인천광역시 부평구 & 37.51 & 126.72 & Gimpo.Intl.AP & 471100 & '09-'23 \\
+  인천광역시 계양구 & 37.54 & 126.74 & Gimpo.Intl.AP & 471100 & '09-'23 \\
+  인천광역시 서구 & 37.55 & 126.68 & Incheon.WS & 471120 & '09-'23 \\
+  광주광역시 동구 & 35.15 & 126.92 & Gwangju & 471560 & '09-'23 \\
+  광주광역시 서구 & 35.15 & 126.89 & Gwangju & 471560 & '09-'23 \\
+  광주광역시 남구 & 35.13 & 126.90 & Gwangju & 471560 & '09-'23 \\
+  광주광역시 북구 & 35.17 & 126.91 & Gwangju & 471560 & '09-'23 \\
+  광주광역시 광산구 & 35.14 & 126.79 & Gwangju.AP & 471580 & '09-'23 \\
+  대전광역시 동구 & 36.31 & 127.45 & Daejeon.WS & 471330 & '09-'23 \\
+  대전광역시 중구 & 36.33 & 127.42 & Daejeon.WS & 471330 & '09-'23 \\
+  대전광역시 서구 & 36.36 & 127.38 & Daejeon.WS & 471330 & '09-'23 \\
+  대전광역시 유성구 & 36.36 & 127.36 & Daejeon.WS & 471330 & '09-'23 \\
+  대전광역시 대덕구 & 36.35 & 127.42 & Daejeon.WS & 471330 & '09-'23 \\
+  울산광역시 중구 & 35.57 & 129.33 & Ulsan & 471520 & '09-'23 \\
+  울산광역시 남구 & 35.54 & 129.33 & Ulsan & 471520 & '09-'23 \\
+  울산광역시 동구 & 35.50 & 129.42 & Ulsan & 471520 & '09-'23 \\
+  울산광역시 북구 & 35.58 & 129.36 & Ulsan & 471520 & '09-'23 \\
+  울산광역시 울주군 & 35.52 & 129.24 & Ulsan & 471520 & '09-'23 \\
+  세종특별자치시 & 36.48 & 127.29 & Gongju & 692214 & '09-'23 \\
+  경기도 수원시 & 37.26 & 127.03 & Suwon.AP & 471200 & '09-'23 \\
+  경기도 고양시 & 37.66 & 126.83 & Gimpo.Intl.AP & 471100 & '09-'23 \\
+  경기도 용인시 & 37.24 & 127.18 & Maesanri & 471205 & '09-'23 \\
+  경기도 성남시 & 37.42 & 127.13 & Seoul-Seongnam.AP & 471110 & '09-'23 \\
+  경기도 부천시 & 37.50 & 126.77 & Gimpo.Intl.AP & 471100 & '09-'23 \\
+  경기도 화성시 & 37.20 & 126.83 & Suwon.WS & 471190 & '09-'23 \\
+  경기도 안산시 & 37.32 & 126.83 & Suwon.WS & 471190 & '09-'23 \\
+  경기도 남양주시 & 37.64 & 127.22 & Yangsu.Ri & 693594 & '09-'23 \\
+  경기도 안양시 & 37.39 & 126.96 & Suwon.WS & 471190 & '09-'23 \\
+  경기도 평택시 & 36.99 & 127.11 & Pyeongtaek.AP & 471270 & '09-'23 \\
+  경기도 시흥시 & 37.38 & 126.80 & Incheon.WS & 471120 & '09-'23 \\
+  경기도 파주시 & 37.76 & 126.78 & Paju & 470990 & '09-'23 \\
+  경기도 의정부시 & 37.74 & 127.03 & Gwangjeok & 693604 & '09-'23 \\
+  경기도 김포시 & 37.62 & 126.72 & Gimpo.Intl.AP & 471100 & '09-'23 \\
+  경기도 광주시 & 37.43 & 127.26 & Maesanri & 471205 & '09-'23 \\
+  경기도 광명시 & 37.48 & 126.86 & Gimpo.Intl.AP & 471100 & '09-'23 \\
+  경기도 군포시 & 37.36 & 126.94 & Suwon.WS & 471190 & '09-'23 \\
+  경기도 하남시 & 37.54 & 127.21 & Seoul-Seongnam.AP & 471110 & '09-'23 \\
+  경기도 오산시 & 37.15 & 127.08 & Osan.AB & 471220 & '09-'23 \\
+  경기도 양주시 & 37.79 & 127.05 & Gwangjeok & 693604 & '09-'23 \\
+  경기도 이천시 & 37.27 & 127.44 & Icheon & 470970 & '09-'23 \\
+  경기도 구리시 & 37.59 & 127.13 & Seoul.WS & 471080 & '09-'23 \\
+  경기도 안성시 & 37.01 & 127.28 & Pyeongtaek.AP & 471270 & '09-'23 \\
+  경기도 포천시 & 37.89 & 127.20 & Dongducheon & 470980 & '09-'23 \\
+  경기도 의왕시 & 37.34 & 126.97 & Suwon.WS & 471190 & '09-'23 \\
+  경기도 양평군 & 37.49 & 127.49 & Yeoju.Range & 471315 & '09-'23 \\
+  경기도 여주시 & 37.30 & 127.60 & Icheon & 470970 & '09-'23 \\
+  경기도 동두천시 & 37.90 & 127.06 & Dongducheon & 470980 & '09-'23 \\
+  경기도 과천시 & 37.43 & 126.99 & Seoul-Seongnam.AP & 471110 & '09-'23 \\
+  경기도 가평군 & 37.83 & 127.51 & Gapyeong & 692114 & '09-'23 \\
+  경기도 연천군 & 38.10 & 127.07 & Cheorwon & 470950 & '09-'23 \\
+  강원도 춘천시 & 37.88 & 127.73 & Chuncheon-Camp.Page.AP & 471040 & '09-'23 \\
+  강원도 원주시 & 37.34 & 127.92 & Wonju.WS & 471140 & '09-'23 \\
+  강원도 강릉시 & 37.75 & 128.88 & Gangneung & 471050 & '09-'23 \\
+  강원도 동해시 & 37.52 & 129.11 & Donghae.Radar & 471060 & '09-'23 \\
+  강원도 태백시 & 37.16 & 128.99 & Taebaek.Provincial.Park & 471223 & '09-'23 \\
+  강원도 속초시 & 38.21 & 128.59 & Sokcho & 470900 & '09-'23 \\
+  강원도 삼척시 & 37.45 & 129.17 & Donghae.Radar & 471060 & '09-'23 \\
+  강원도 홍천군 & 37.70 & 127.89 & Hongchon & 693624 & '09-'23 \\
+  강원도 횡성군 & 37.49 & 127.99 & Wonju.WS & 471140 & '09-'23 \\
+  강원도 영월군 & 37.18 & 128.46 & Yeongwol.WS & 471210 & '09-'23 \\
+  강원도 평창군 & 37.37 & 128.39 & Yeongwol.WS & 471210 & '09-'23 \\
+  강원도 정선군 & 37.38 & 128.66 & Yeongwol.WS & 471210 & '09-'23 \\
+  강원도 철원군 & 38.15 & 127.31 & Cheorwon & 470950 & '09-'23 \\
+  강원도 화천군 & 38.11 & 127.71 & Sachang.Ri & 693614 & '09-'23 \\
+  강원도 양구군 & 38.11 & 127.99 & Yanggu & 692094 & '09-'23 \\
+  강원도 인제군 & 38.07 & 128.17 & Yanggu & 692094 & '09-'23 \\
+  강원도 고성군 & 38.38 & 128.47 & Geojin & 470800 & '09-'23 \\
+  강원도 양양군 & 38.08 & 128.62 & Yangyang.Intl.AP & 470920 & '09-'23 \\
+  충청북도 청주시 & 36.64 & 127.49 & Cheongju.WS & 471310 & '09-'23 \\
+  충청북도 충주시 & 36.99 & 127.93 & Jungwon.AB & 471250 & '09-'23 \\
+  충청북도 제천시 & 37.13 & 128.19 & Yeongwol.WS & 471210 & '09-'23 \\
+  충청북도 보은군 & 36.49 & 127.73 & Seongmu.AB & 471240 & '09-'23 \\
+  충청북도 옥천군 & 36.31 & 127.57 & Daejeon.WS & 471330 & '09-'23 \\
+  충청북도 영동군 & 36.18 & 127.78 & Chupungnyeong & 471350 & '09-'23 \\
+  충청북도 증평군 & 36.79 & 127.58 & Cheongju.Intl.AP & 471280 & '09-'23 \\
+  충청북도 진천군 & 36.86 & 127.44 & Cheonan & 471450 & '09-'23 \\
+  충청북도 괴산군 & 36.82 & 127.79 & Jungwon.AB & 471250 & '09-'23 \\
+  충청북도 음성군 & 36.94 & 127.69 & Jungwon.AB & 471250 & '09-'23 \\
+  충청북도 단양군 & 36.98 & 128.37 & Yeongwol.WS & 471210 & '09-'23 \\
+  충청남도 천안시 & 36.82 & 127.11 & Cheonan & 471450 & '09-'23 \\
+  충청남도 공주시 & 36.45 & 127.12 & Gongju & 692214 & '09-'23 \\
+  충청남도 보령시 & 36.33 & 126.61 & Boryeong & 471500 & '09-'23 \\
+  충청남도 아산시 & 36.79 & 127.00 & Pyeongtaek.AP & 471270 & '09-'23 \\
+  충청남도 서산시 & 36.78 & 126.45 & Seosan.WS & 471290 & '09-'23 \\
+  충청남도 논산시 & 36.19 & 127.10 & Daejeon.WS & 471330 & '09-'23 \\
+  충청남도 계룡시 & 36.27 & 127.25 & Daejeon.WS & 471330 & '09-'23 \\
+  충청남도 당진시 & 36.89 & 126.65 & Seosan.WS & 471290 & '09-'23 \\
+  충청남도 금산군 & 36.11 & 127.49 & Geumsan & 692244 & '09-'23 \\
+  충청남도 부여군 & 36.28 & 126.91 & Boryeong & 471500 & '09-'23 \\
+  충청남도 서천군 & 36.08 & 126.69 & Gunsan & 471400 & '09-'23 \\
+  충청남도 청양군 & 36.46 & 126.80 & Boryeong & 471500 & '09-'23 \\
+  충청남도 홍성군 & 36.60 & 126.66 & Seosan.WS & 471290 & '09-'23 \\
+  충청남도 예산군 & 36.68 & 126.84 & Seosan.WS & 471290 & '09-'23 \\
+  충청남도 태안군 & 36.75 & 126.30 & Seosan.WS & 471290 & '09-'23 \\
+  전라북도 전주시 & 35.82 & 127.15 & Jeonju & 471460 & '09-'23 \\
+  전라북도 군산시 & 35.97 & 126.74 & Gunsan & 471400 & '09-'23 \\
+  전라북도 익산시 & 35.95 & 126.96 & Jeonju & 471460 & '09-'23 \\
+  전라북도 정읍시 & 35.57 & 126.86 & Jeongeup & 471710 & '09-'23 \\
+  전라북도 남원시 & 35.42 & 127.39 & Namwon & 471730 & '09-'23 \\
+  전라북도 김제시 & 35.80 & 126.88 & Jeonju & 471460 & '09-'23 \\
+  전라북도 완주군 & 35.90 & 127.16 & Jeonju & 471460 & '09-'23 \\
+  전라북도 진안군 & 35.79 & 127.42 & Jeonju & 471460 & '09-'23 \\
+  전라북도 무주군 & 36.01 & 127.66 & Geumsan & 692244 & '09-'23 \\
+  전라북도 장수군 & 35.65 & 127.52 & Namwon & 471730 & '09-'23 \\
+  전라북도 임실군 & 35.62 & 127.29 & Namwon & 471730 & '09-'23 \\
+  전라북도 순창군 & 35.37 & 127.14 & Namwon & 471730 & '09-'23 \\
+  전라북도 고창군 & 35.44 & 126.70 & Gochang & 471720 & '09-'23 \\
+  전라북도 부안군 & 35.73 & 126.73 & Jeongeup & 471710 & '09-'23 \\
+  전라남도 목포시 & 34.81 & 126.39 & Mokpo & 471650 & '09-'23 \\
+  전라남도 여수시 & 34.76 & 127.66 & Yeosu.Obs & 471680 & '09-'23 \\
+  전라남도 순천시 & 34.95 & 127.49 & Suncheon.WS & 471740 & '09-'23 \\
+  전라남도 나주시 & 35.02 & 126.71 & Gwangju.AP & 471580 & '09-'23 \\
+  전라남도 광양시 & 34.94 & 127.70 & Yeosu.AP & 471670 & '09-'23 \\
+  전라남도 담양군 & 35.32 & 126.99 & Gwangju & 471560 & '09-'23 \\
+  전라남도 곡성군 & 35.28 & 127.29 & Namwon & 471730 & '09-'23 \\
+  전라남도 구례군 & 35.20 & 127.46 & Suncheon.WS & 471740 & '09-'23 \\
+  전라남도 고흥군 & 34.60 & 127.28 & Yeosu.AP & 471670 & '09-'23 \\
+  전라남도 보성군 & 34.77 & 127.08 & Suncheon.WS & 471740 & '09-'23 \\
+  전라남도 화순군 & 35.06 & 126.99 & Gwangju & 471560 & '09-'23 \\
+  전라남도 장흥군 & 34.68 & 126.91 & Wando.WS & 471700 & '09-'23 \\
+  전라남도 강진군 & 34.64 & 126.77 & Wando.WS & 471700 & '09-'23 \\
+  전라남도 해남군 & 34.57 & 126.60 & Wando.WS & 471700 & '09-'23 \\
+  전라남도 영암군 & 34.80 & 126.70 & Mokpo & 471650 & '09-'23 \\
+  전라남도 무안군 & 34.99 & 126.48 & Muan.Intl.AP & 471630 & '09-'23 \\
+  전라남도 함평군 & 35.07 & 126.52 & Muan.Intl.AP & 471630 & '09-'23 \\
+  전라남도 영광군 & 35.28 & 126.51 & Gochang & 471720 & '09-'23 \\
+  전라남도 장성군 & 35.30 & 126.78 & Gwangju & 471560 & '09-'23 \\
+  전라남도 완도군 & 34.31 & 126.75 & Wando.WS & 471700 & '09-'23 \\
+  전라남도 진도군 & 34.49 & 126.26 & Jindo.WS & 471750 & '09-'23 \\
+  전라남도 신안군 & 34.83 & 126.35 & Mokpo & 471650 & '09-'23 \\
+  경상북도 포항시 & 36.02 & 129.34 & Pohang.WS & 471380 & '09-'23 \\
+  경상북도 경주시 & 35.86 & 129.22 & Pohang.AP & 471390 & '09-'23 \\
+  경상북도 김천시 & 36.14 & 128.11 & Chupungnyeong & 471350 & '09-'23 \\
+  경상북도 안동시 & 36.57 & 128.73 & Andong.WS & 471360 & '09-'23 \\
+  경상북도 구미시 & 36.12 & 128.34 & Gumi & 471540 & '09-'23 \\
+  경상북도 영주시 & 36.81 & 128.62 & Andong.WS & 471360 & '09-'23 \\
+  경상북도 영천시 & 35.97 & 128.94 & Daegu.Intl.AP & 471420 & '09-'23 \\
+  경상북도 상주시 & 36.41 & 128.16 & Sangju.WS & 471370 & '09-'23 \\
+  경상북도 문경시 & 36.59 & 128.19 & Yecheon.AP & 471340 & '09-'23 \\
+  경상북도 경산시 & 35.83 & 128.74 & Daegu & 471430 & '09-'23 \\
+  경상북도 의성군 & 36.35 & 128.70 & Andong.WS & 471360 & '09-'23 \\
+  경상북도 청송군 & 36.44 & 129.06 & Andong.WS & 471360 & '09-'23 \\
+  경상북도 영양군 & 36.67 & 129.11 & Andong.WS & 471360 & '09-'23 \\
+  경상북도 영덕군 & 36.42 & 129.37 & Pohang.WS & 471380 & '09-'23 \\
+  경상북도 청도군 & 35.65 & 128.73 & Cheongdo & 693414 & '09-'23 \\
+  경상북도 고령군 & 35.73 & 128.26 & Camp.Walker-Daegu & 471425 & '09-'23 \\
+  경상북도 성주군 & 35.92 & 128.28 & Gumi & 471540 & '09-'23 \\
+  경상북도 칠곡군 & 36.00 & 128.40 & Gumi & 471540 & '09-'23 \\
+  경상북도 예천군 & 36.65 & 128.44 & Yecheon.AP & 471340 & '09-'23 \\
+  경상북도 봉화군 & 36.89 & 128.73 & Taebaek.Provincial.Park & 471223 & '09-'23 \\
+  경상북도 울진군 & 36.99 & 129.40 & Uljin.WS & 471300 & '09-'23 \\
+  경상북도 울릉군 & 37.48 & 130.91 & Ulleungdo.WS & 471150 & '09-'23 \\
+  경상남도 창원시 & 35.23 & 128.68 & Changwon & 471550 & '09-'23 \\
+  경상남도 진주시 & 35.18 & 128.11 & Jinju.WS & 471920 & '09-'23 \\
+  경상남도 통영시 & 34.85 & 128.43 & Tongyeong.WS & 471620 & '09-'23 \\
+  경상남도 사천시 & 35.00 & 128.06 & Sacheon.AB & 471610 & '09-'23 \\
+  경상남도 김해시 & 35.23 & 128.89 & Busan-Gimhae.Intl.AP & 471530 & '09-'23 \\
+  경상남도 밀양시 & 35.50 & 128.75 & Cheongdo & 693414 & '09-'23 \\
+  경상남도 거제시 & 34.88 & 128.62 & Tongyeong.WS & 471620 & '09-'23 \\
+  경상남도 양산시 & 35.34 & 129.04 & Busan-Gimhae.Intl.AP & 471530 & '09-'23 \\
+  경상남도 의령군 & 35.32 & 128.26 & Jinju.WS & 471920 & '09-'23 \\
+  경상남도 함안군 & 35.27 & 128.41 & Changwon & 471550 & '09-'23 \\
+  경상남도 창녕군 & 35.54 & 128.49 & Cheongdo & 693414 & '09-'23 \\
+  경상남도 고성군 & 34.97 & 128.32 & Tongyeong.WS & 471620 & '09-'23 \\
+  경상남도 남해군 & 34.84 & 127.89 & Yeosu.Obs & 471680 & '09-'23 \\
+  경상남도 하동군 & 35.07 & 127.75 & Jinju.WS & 471920 & '09-'23 \\
+  경상남도 산청군 & 35.42 & 127.87 & Geochang.WS & 471570 & '09-'23 \\
+  경상남도 함양군 & 35.52 & 127.73 & Geochang.WS & 471570 & '09-'23 \\
+  경상남도 거창군 & 35.69 & 127.91 & Geochang.WS & 471570 & '09-'23 \\
+  경상남도 합천군 & 35.57 & 128.17 & Geochang.WS & 471570 & '09-'23 \\
+  제주특별자치도 제주시 & 33.50 & 126.53 & Jeju.WS & 471840 & '09-'23 \\
+  제주특별자치도 서귀포시 & 33.25 & 126.56 & Seogwipo & 471890 & '09-'23 \\
+\end{longtable}
+
+\subsection{EnergyPlus 옵션} 시뮬레이션 옵션은 주로 건물의 전역 특성, 계산 시간 단위, 설비 용량 산정을 위한 부하 계산 조건 등이 있으며, 본 절에서는 주요 항목을 아래와 같이 정리한다.
+
+\subsubsection{Building} 시뮬레이션 대상 건물의 특성을 정의하는 클래스이다. 본 매뉴얼에서는, 주요 항목만을 정리한다.
+\paragraph[short]{Terrain} 건물이 위치한 주변 지형 조건을 정의한다. 이는, 외부 대류열전달계수와 풍속 등에 영향을 준다. 예를 들어, \texttt{Urban}은 주변이 빽빽한 도심 환경을 의미하고, \texttt{Country}는 개방된 농촌 지역을 의미한다. \simulator\는 기본값으로 \texttt{Suburbs}를 적용한다.
+\paragraph[short]{Solar Distribution} 태양복사를 건물에 분배하는 방식을 정의하는 항목으로, 음영 효과를 무시하거나 외부·내부 음영 및 반사까지 고려하는 등 여러 수준의 방법을 선택할 수 있다. 
+\simulator\는 형상 입력 방식을 \texttt{simplified geometry}로 채택하였으므로, 음영 효과를 무시하는 \texttt{MinimalShadowing} 옵션을 적용한다 (\cref{chap:simulator_geometry}).
+
+\subsubsection{Timestep} 시뮬레이션의 기본 계산 시간 단위를 의미하며, 1시간(60분)을 몇 회로 분할하여 계산할 것인지 지정한다. 이 값은 실의 열 평형 계산(Zone Heat Balance)에서 열전달 및 부하 계산의 구동 시간 단위로 사용된다. 허용되는 입력 값은 4에서 60까지, 60을 정확히 나눌 수 있는 정수 (1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30, 60)이며, \ep\는 6(10분 단위 계산)을 권장한다 \cite{energyplusior242}. 더 낮은 값을 입력할 경우 연산 시간은 단축되나, 정확도가 저하될 수 있으며, \simulator\는 기본값으로 6을 적용한다. 
+
+\subsubsection{DesignCondition} 냉·난방 부하 산정을 위해 기상데이터에서 대표적인 설계 조건을 정의하는 항목이다. 일반적으로 가장 더운 날(하계 설계일, SummerDesignDay)과 가장 추운 날(동계 설계일, WinterDesignDay)을 설계일로 지정하며, 사용자가 직접 조건을 입력하거나, 기상 파일(EPW)에 내장된 극한일(Extreme) 등의 데이터를 불러오는 방법도 활용할 수 있다 \cite{energyplusior242}.
+\simulator 는 기상 파일(EPW)에 내장된 극한일(Extreme)을 설계 조건으로 정의함. @TODO
+
+
+% ---------------------------------------------------------------------------- %
+%                                  NEW SECTION                                 %
+% ---------------------------------------------------------------------------- %
+
+\section{EnergyPlus 구동}
+\subsection{EnergyPlus 실행}
+\subsubsection{EnergyPlus의 독립 구동 방법}
+EnergyPlus 핵심은 EnergyPlus.exe 맞나? 그것임.
+그 전에 expansion 필요하면 expandobject.exe도 실행해주어야 함.
+각각은 아래 option들을 받을 수 있음.
+
+\subsection{디렉토리 구조}
+코드 내부적으로는 이렇게 호출하고 있는데,
+디렉토리는 중간에 3개의 temp 폴더가 생김.
+temp 폴더 경로는 C:/users/.../Appdata/Local/Temp/하위에 생김
+
+% ---------------------------------------------------------------------------- %
+%                                  NEW SECTION                                 %
+% ---------------------------------------------------------------------------- %
+
+\section{오류의 정의와 처리}
+오류가 날 수도 있는데, 분류별로 보면 입력이 잘못된 경우와 뭐가 잘못된 경우와... \dots
+각각에 대하여는 이렇게 이렇게 처리할 수 있음.
+
+\subsection{입력변수가 잘못된 경우}
+입력변수 오류는 python 객체로 전환될 때 탐지해서 이런식으로 return함. 사용자는 이걸 보고 무엇을 판단할 수 있음.
+
+\subsection{idf 변환 과정이 잘못된 경우}
+@TODO
+
+\subsection{EP가 안돌아가는 경우}
+@TODO report와 건물 파일을 개발자에게 문의
+
+% ---------------------------------------------------------------------------- %
+%                                  NEW SECTION                                 %
+% ---------------------------------------------------------------------------- %
+
+\chapter{항목별 idf 변환 방법}
+\label{chap:simulator_geometry}
+
+\section{형상 변환 알고리즘}
+
+\subsection{EnergyPlus의 형상 입력 방식}
+
+\subsubsection{형상 정보와 부하 계산 사이의 관계}
+
+형상 정보는 실--외부, 실--실 사이 열교환, 일사 부하 등을 위해 필수적인 정보이다. EnergyPlus는 Figure \ref{fig:geometry_mechanism}\과 같이 면 단위로  면을 통해 이뤄진다. 이때 열교환에 영향을 미치는 면의 속성들은 아래와 같다. 일사부하 계산 시 음영효과 반영을 제외하면 실의 부하 계산을 위한 열평형 방정식에서 면들의 구체적인 좌푯값은 필수적이지 않으며, 면적으로 대체 가능함을 시사한다(Figure \ref{fig:geometry_mechanism2}).
+
+\begin{itemize}
+  \item 면과 외기와의 열교환 (\underline{면적}, 대류 열전달 계수, u값 등)
+  \item 면 일사 부하 (\underline{면적}, 방위각, 음영효과, 흡수율 등)
+  \item 실 공기와의 열교환 (\underline{면적}, 대류 열전달 계수)
+  \item 개구부를 통한 일사부하 (\underline{면적}, 태양열 취득률)
+\end{itemize}
+
+\begin{defaultfigure}
+  \includegraphics[width=0.8\textwidth]{geometry_mechanism.png}
+  \caption{면을 통한 열교환 도식화}
+  \label{fig:geometry_mechanism}
+\end{defaultfigure}
+
+\begin{defaultfigure}
+  \includegraphics[width=0.8\textwidth]{geometry_mechanism2.png}
+  \caption{열평형 방정식 도출 과정}
+  \label{fig:geometry_mechanism2}
+\end{defaultfigure}
+
+\subsubsection{Detailed geometry, simplified geometry}
+
+EnergyPlus의 형상 입력 방식은 크게 detailed geometry와 simplified geometry로 구분할 수 있다 (Figure \ref{fig:geometry_types}). Detailed geometry(DG)는 실제 실의 모양을 그대로 모델에 반영하는 방식으로, 면들을 구성하는 점들의 좌푯값을 상세하게 입력하게 된다. DesignBuilder, OpenStudio 등 일반적인 EnergyPlus 모델 저작 도구에서 사용하고 있다. 반면 simplified geometry(SG)는 실을 구성하는 각종 요소(벽, 바닥, 천장 등)와 동일한 면적과 방위각을 가지는 면들을 생성하여 열평형 방정식 계산에 사용하는 방식으로, 건물의 구체적인 형상이 구현되지 않아 건물 형상 및 차양을 직달 일사 계산에 반영하지 못한다는 특징이 있다. 이러한 한계에도 불구하고 비교적 간소화된 형상 입력만으로 상세한 동적 건물 에너지 시뮬레이션이 가능하다는 점에서 널리 사용되고 있으며, 미국 캘리포니아의 에너지 평가 툴인 CBECC (California's Building Energy Code Compliance Software)의 SG 방식\cite{cbecc}이 대표적인 예시이다. Simulator 역시 3D 모델링 프로그램 없이 비교적 간단한 입력을 통한 편의성 확보를 위해 SG 방식을 형상 입력 방식으로 체택하고 있다.
+
+\begin{defaultfigure}
+  
+  \begin{subfigure}[b]{0.45\textwidth}
+    \centering
+    \includegraphics[scale=0.6]{형상_DG.png}
+    \caption{detailed geometry}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.45\textwidth}
+    \centering
+    \includegraphics[scale=0.6]{형상_SG.png}
+    \caption{simplified geometry}
+  \end{subfigure}
+  
+  \caption{형상 입력 방식}
+  \label{fig:geometry_types}
+
+\end{defaultfigure}
+
+\subsection{벽체, 지붕, 바닥 변환 방법}
+좌표 생성하고 뒤집고 copy하고 ...
+
+\subsubsection{좌표 생성}
+천장은 높이 받아서 생성하고 나머지도 높이 받아서 만들고 바닥 만들고.
+Azimuth는 hash함수로 랜덤하게 생성함. copy한 얘들끼리 180도 뒤집도록 잘 했음
+
+\subsubsection{clone 객체 생성}
+이걸 뒤집어서 복제할 것임
+
+\subsubsection{연산 옵션 설정}
+EnergyPlus \texttt{Building} 객체의 \texttt{Solar Distribution} 속성을 `\texttt{MinimalShadowing}'으로 설정하며, 모든 \texttt{ShadowCalculation} 객체를 삭제한다.
+
+\subsection{창호, 문 변환 방법}
+벽의 일부로 정사각형을...
+
+\subsection{블라인드 변환 방법}
+20W/m2...으로는 안하겠지만...
+
+% ---------------------------------------------------------------------------- %
+%                                  NEW SECTION                                 %
+% ---------------------------------------------------------------------------- %
+
+\section{구조체 정의}
+\subsection{EnergyPlus 구조체의 정의 및 변환 방법}
+비슷함.
+
+\subsection{모르는 값 추정}
+기축건물은 구조체를 모르는 경우가 많으며, 성적서 없는 경우도 다수 존재.
+구조체 모르는 경우 법규 연계, 창호는 현장 조사에서 레이어 조사 후 DB에서 값 선택 등 @TODO
+
+\subsubsection{재료}
+ASHRAE 참고
+
+여기다 단위를 쓰겠습니다 \unit{density} \unit{asdfasdf}
+
+\renewcommand{\arraystretch}{0.9}
+\begin{longtable}{llcclc}
+  \caption{기본 재료 물성치} \\
+  \toprule
+  재료명(국문) & \makecell{열전도도 \\ $[W{\cdot}m^{-1}{\cdot} K^{-1}]$}  & \makecell{밀도 \\ $[kg/m^{3}]$} & \makecell {비열 \\ $[J/kg\cdot K]$} & 재료명 (영문) &  출처 \\ \midrule
+  \endfirsthead
+  \multicolumn{6}{r}{\textit{(이전 페이지에서 계속)}} \\ \toprule
+  재료명(국문) & \makecell{열전도도 \\ $[W{\cdot}m^{-1}{\cdot} K^{-1}]$}  & \makecell{밀도 \\ $[kg/m^{3}]$} & \makecell {비열 \\ $[J/kg\cdot K]$} & 재료명 (영문) & 출처 \\ \midrule
+  \endhead
+  \midrule \multicolumn{6}{r}{\textit{(다음 페이지에 계속)}} \\ \bottomrule
+  \endfoot
+  \bottomrule
+  \endlastfoot
+  시멘트벽돌 &   0.600 &  464 & 0.88 & LW concrete block & \cite{ashrae_f18} \\
+  내화벽돌 &   0.990 & 1920 & 0.79 & brick & \cite{ashrae_f18} \\
+  타일 &   1.300 & 1920 & 1.26 & Slate or tile & \cite{ashrae_f18} \\
+  콘크리트블록(경량) &   0.700 &  512 & 0.88 & LW concrete block & \cite{ashrae_f18} \\
+  콘크리트블록(중량) &   1.000 &  800 & 0.92 & concrete block & \cite{ashrae_f18} \\
+  대리석 &   2.800 & 2560 & 0.79 & stone & \cite{ashrae_f18} \\
+  화강암 &   3.300 & 2560 & 0.79 & stone & \cite{ashrae_f18} \\
+  천연슬레이트 &   1.500 & 1920 & 1.26 & Slate or tile & \cite{ashrae_f18} \\
+  파티클보드 &   0.150 &  400 & 1.30 & fiberboard sheathing & \cite{ashrae_f18} \\
+  석고보드 &   0.180 &  800 & 1.09 & gyp board & \cite{ashrae_f18} \\
+  목재(가벼움) &   0.140 &  608 & 1.63 & wood & \cite{ashrae_f18} \\
+  목재(중간) &   0.170 &  608 & 1.63 & wood & \cite{ashrae_f18} \\
+  목재(무거움) &   0.190 &  608 & 1.63 & wood & \cite{ashrae_f18} \\
+  바닥재(아스팔트) &   0.330 & 1120 & 1.26 & Asphalt shingles & \cite{ashrae_f18} \\
+  아스팔트펠트17kg &   0.110 & 1120 & 1.26 & Asphalt shingles & \cite{ashrae_f18} \\
+  아스팔트펠트22kg &   0.140 & 1120 & 1.26 & Asphalt shingles & \cite{ashrae_f18} \\
+  아스팔트펠트26kg &   0.220 & 1120 & 1.26 & Asphalt shingles & \cite{ashrae_f18} \\
+  아스팔트루핑17kg &   0.190 & 1120 & 1.46 & Built-up roofing & \cite{ashrae_f18} \\
+  아스팔트루핑22kg &   0.270 & 1120 & 1.46 & Built-up roofing & \cite{ashrae_f18} \\
+  아스팔트루핑30kg &   0.340 & 1120 & 1.46 & Built-up roofing & \cite{ashrae_f18} \\
+  콘크리트(1:2:4) &   1.600 & 2240 & 0.90 & heavyweight concrete & \cite{ashrae_f18} \\
+  기포콘크리트0.4품 &   0.130 & 1280 & 0.84 & lightweight concrete & \cite{ashrae_f18} \\
+  기포콘크리트0.5품 &   0.160 & 1280 & 0.84 & lightweight concrete & \cite{ashrae_f18} \\
+  기포콘크리트0.6품 &   0.190 & 1280 & 0.84 & lightweight concrete & \cite{ashrae_f18} \\
+  비드법보온판1종1호 &   0.036 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
+  비드법보온판1종2호 &   0.037 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
+  비드법보온판1종3호 &   0.040 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
+  비드법보온판1종4호 &   0.043 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
+  비드법보온판2종1호 &   0.031 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
+  비드법보온판2종2호 &   0.032 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
+  비드법보온판2종3호 &   0.033 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
+  비드법보온판2종4호 &   0.034 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
+  압출법보온판특호 &   0.027 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
+  압출법보온판1호 &   0.028 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
+  압출법보온판2호 &   0.029 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
+  압출법보온판3호 &   0.031 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
+  경질우레탄보온판1종1호 &   0.024 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
+  경질우레탄보온판1종2호 &   0.024 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
+  경질우레탄보온판1종3호 &   0.025 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
+  경질우레탄보온판2종1호 &   0.023 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
+  경질우레탄보온판2종2호 &   0.023 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
+  경질우레탄보온판2종3호 &   0.024 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
+  미네랄울보온판1호 &   0.037 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
+  미네랄울보온판2호 &   0.036 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
+  미네랄울보온판3호 &   0.038 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
+  미네랄울펠트 &   0.039 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
+  미네랄울보온대1호 &   0.040 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
+  미네랄울보온대2호 &   0.039 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
+  미네랄울보온통 &   0.036 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
+  그라스울보온판24K &   0.037 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
+  그라스울보온판32K &   0.036 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
+  그라스울보온판40K &   0.035 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
+  그라스울보온판48K-120K &   0.034 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
+  그라스울보온통 &   0.036 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
+  미네랄울 &   0.044 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
+  미네랄울블랭킷1호a &   0.039 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
+  미네랄울블랭킷1호b &   0.037 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
+  미네랄울블랭킷2호 &   0.036 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
+  그라스울 &   0.035 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
+  그라스울보온대a &   0.044 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
+  그라스울보온대b &   0.044 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
+  그라스울보온대c &   0.044 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
+  그라스울블랭킷a &   0.040 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
+  그라스울블랭킷b &   0.036 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
+  동 & 370 & 7824 & 0.50 & Metal surface & \cite{ashrae_f18} \\
+  청동(75Cu,25Sn) &  25 & 7824 & 0.50 & Metal surface & \cite{ashrae_f18} \\
+  황동(70CU,30Zn) & 110 & 7824 & 0.50 & Metal surface & \cite{ashrae_f18} \\
+  알루미늄/합금 & 200 & 7824 & 0.50 & Metal surface & \cite{ashrae_f18} \\
+  강재 &  53 & 7824 & 0.50 & Metal surface & \cite{ashrae_f18} \\
+  납 &  34 & 7824 & 0.50 & Metal surface & \cite{ashrae_f18} \\
+  아연도철판 &  44 & 7824 & 0.50 & Metal surface & \cite{ashrae_f18} \\
+  스텐레스강 &  15 & 7824 & 0.50 & Metal surface & \cite{ashrae_f18} \\
+  \bottomrule
+\end{longtable}
+
+\subsubsection{구조체}
+구조체와 실내외 표면열전달저항 값은 에너지절약설계기준값을 참고. 그냥 콘크리트랑 단열재만 가지고 만듦. RC diagram으로 생각하면 아래 그림과 같은 형태인 것임. 구조체 만들때는 이걸 맞춘거니까 이거 쓰는게 맞음.\par
+참고로 EnergyPlus에서는 실내외 표면열전달저항 동적으로 계산됨. 수식은 아래와 같고, 시뮬레이션 해보니 보통 아래와 같음. 비교해보면 차이는 있긴 함.
+\begin{tcolorbox}[colback=gray!10, colframe=gray!80, boxrule=0.5pt, left=1em, right=1em]
+대충 1년간 hout hin 변화하는 그림 (에절서에 정의된 값이랑 비교할 것) -> 이런 얘기할 때 test건물에 대한 정의는 어떻게 해야 되나? test건물들을 만들어두고 문서 부록에서 기술하여야 할 듯
+\end{tcolorbox}
+
+\subsubsection{창호}
+창호는 법규에서 U값은 지정하고 있음. SHGC가 없어서 문제임. 또 현장에서 알 수가 없는 경우가 많음. 그래서 그냥 창호 종류에 따라 U, SHGC값을 선택하도록 만들었음.
+이것도 에절서 긁었는데, 현재 기준에 있는 걸로 긁었음. 참고로 에절서에 있는 창호 종류별 성능은 에절서 제정된 2013년 이후로 바뀐 적 없음.
+
+
+% ---------------------------------------------------------------------------- %
+%                                  NEW SECTION                                 %
+% ---------------------------------------------------------------------------- %
+
+\section{프로필 정의와 활용}
+\subsection{ECO2 프로필의 정의}
+ECO2는 모델링 과정에서 실의 용도를 프로필로 지정하도록 하고 있으며, 총 20개의 프로필을 제공한다.
+
+
+\begin{table}[ht]
+  \caption{ECO2에서 제공하는 용도프로필 종류}
+  \label{tbl:eco2profiles}  
+  \centering
+  \begin{tabular}{llll}
+    \toprule
+    번호 & 프로필명 & 번호 & 프로필명 \\ \midrule
+    (1) & 주거공간             & (11) & 전산실 \\ \midrule
+    (2) & 소규모사무실(30m2이하) & (12) & 주방 및 조리실 \\ \midrule
+    (3) & 대규모사무실(30m2초과) & (13) & 병실 \\ \midrule
+    (4) & 회의실 및 세미나실     & (14) & 객실 \\ \midrule
+    (5) & 강당                & (15) & 교실(초중고) \\ \midrule
+    (6) & 구내식당             & (16) & 강의실(대학) \\ \midrule
+    (7) & 화장실               & (17) & 매장(상점/백화점) \\ \midrule
+    (8) & 그 외 체류공간 (휴게실, 탈의실, 헬스장, 등) & (18) & 전시실(전시관/박물관) \\ \midrule
+    (9) & 부속공간 (로비, 복도, 계단실 등) & (19) & 열람실(도서관) \\ \midrule
+    (10) & 창고/설비/문서실     & (20) & 체육시설 \\ \bottomrule
+  \end{tabular}
+\end{table}
+
+
+건설기술연구원 보고서 참고 source값 표로 삽입 필요@TODO \cite{law:usageprofile}
+2. 소규모 사무실(30m2이하)의 용도프로필
+
+\renewcommand{\arraystretch}{0.9}
+\begin{longtable}{ccc}
+  \caption{소규모사무실(30m2이하)} \\
+  \toprule
+  \small
+  구분 & 단위 & 값 \\ \midrule
+  \endfirsthead
+  \multicolumn{3}{r}{\textit{(이전 페이지에서 계속)}} \\ \toprule
+  구분 & 단위 & 값 \\ \midrule
+  \endhead
+  \midrule \multicolumn{3}{r}{\textit{(다음 페이지에 계속)}} \\ \bottomrule
+  \endfoot
+  \bottomrule
+  \endlastfoot
+  % 본문 데이터 (예시)
+  사용시간과 운전시간 & & \\
+  \midrule
+  사용시작시간 & [hh:mm] & 09:00 \\
+  사용종료시간 & [hh:mm] & 18:00 \\
+  운전시작시간 & [hh:mm] & 07:00 \\
+  운전종료시간 & [hh:mm] & 18:00 \\
+  \midrule
+  설정 요구량 & & \\
+  \midrule
+  최소도입외기량 & [m3/(m2h)] & 4 \\
+  급탕요구량 & [Wh/(m2d)] & 30 \\
+  조명시간 & [h] & 6 \\
+  \midrule
+  열발열원 & & \\
+  \midrule
+  사람 & [Wh/(m2d)] & 30 \\
+  작업보조기기 & [Wh/(m2d)] & 42 \\
+  \midrule
+  실내공기온도 & & \\
+  \midrule
+  난방설정온도 & [°C] & 20 \\
+  냉방설정온도 & [°C] & 26 \\
+  \midrule
+  월간 사용일수 & & \\
+  \midrule
+  1월 사용일수 & [d/mth] & 22 \\
+  2월 사용일수 & [d/mth] & 19 \\
+  3월 사용일수 & [d/mth] & 21 \\
+  4월 사용일수 & [d/mth] & 22 \\  
+  5월 사용일수 & [d/mth] & 22 \\
+  6월 사용일수 & [d/mth] & 20 \\
+  7월 사용일수 & [d/mth] & 22 \\
+  8월 사용일수 & [d/mth] & 21 \\
+  9월 사용일수 & [d/mth] & 18 \\
+  10월 사용일수 & [d/mth] & 21 \\
+  11월 사용일수 & [d/mth] & 21 \\
+  12월 사용일수 & [d/mth] & 21 \\
+\end{longtable}
+
+
+
+
+\subsection{EnergyPlus 프로필의 정의}
+constant도 있고 하지만 simple schedule쓰면 Figure \ref{fig:ep_profile_structure}\와 같이 구별됨
+
+\begin{defaultfigure}
+  \includegraphics[width=\textwidth]{프로필구조도.png}
+  \caption{EP 프로필 구조 예시}
+  \label{fig:ep_profile_structure}
+\end{defaultfigure}
+
+\subsection{ECO2 프로필을 EnergyPlus 프로필로 변환 방법}
+단위는 이렇게 맞추고 나누고 쪼개고 하면 됨 @TODO
+
+\subsubsection{재실밀도}
+재실밀도
+
+\subsubsection{조명}
+조명
+
+\subsubsection{기기발열}
+기기발열
+
+\subsubsection{환기}
+환기
+
+\subsubsection{냉난방 가동 및 설정온도}
+냉난방
+
+\subsection{신규 프로필 정의 방법}
+\subsubsection{직접 정의하는 방법}
+사용자가 직접 프로필을 정의하는 경우, 단위에 맞추어서 입력하면 됨.
+
+\subsubsection{form에 기반하는 방법}
+부동산원 과업 대상지는 기본적으로 이런 입력을 지원할 수 있음.
+Simulator 탑재 여부는 미정.
+
+% ---------------------------------------------------------------------------- %
+%                                  NEW SECTION                                 %
+% ---------------------------------------------------------------------------- %
+
+\section{설비 변환 알고리즘}
+\subsection{Simulator 설비 데이터의 구조와 이해}
+공급-생산 이원화함
+
+\subsection{EnergyPlus 설비 데이터의 구조와 이해}
+branch와 loop 개념임
+
+\subsection{공급 및 생산 설비 변환 방법}
+\subsubsection{데이터 구조 변환}
+공급 만들고, 생산 만들면 일단 loop만들고 branch 만듦.
+그거 결합하면 됨.
+필요하면 source의 source도 있음.
+
+\subsubsection{모르는 값 추정}
+default 값 쓰는 걸 기본으로 함. 결정해야 했던 것들도 물론 있음.
+\paragraph{냉각탑} defulat씀. 기본 팬 제어 채택함
+\paragraph{냉동기} defulat씀. 기본 팬 제어 채택함
+\paragraph{보일러} defulat씀. 기본 팬 제어 채택함
+
+\subsection{전열교환기 변환 방법}
+ventilation에 포함
+
+\subsection{태양광패널 변환 방법}
+가상의 surface 만듦.
+
+% ---------------------------------------------------------------------------- %
+%                                  NEW SECTION                                 %
+% ---------------------------------------------------------------------------- %
+
+\chapter{시뮬레이션 결과의 해석} @TODO
+
+\section{EnergyPlus의 실행 결과물 종류와 의미}
+Table: 어떤 결과 
+CSV:어떤 결과를 의미
+이것을 종합하여, 연료별 table 생성하고 읽어들임.
+
+\subsection{EP 결과 내는 법과 의미}
+Table:Output 활용함. Output은 6가지로 구분되는데, heating, cooling, lighting, fan, pump, cogeneration, ...
+
+\subsubsection{heating}
+뭐뭐뭐뭐를 포함함
+
+\subsubsection{cooling}
+뭐뭐뭐뭐를 포함함
+
+\subsubsection{lighting}
+뭐뭐뭐뭐를 포함함
+
+\subsubsection{fan}
+뭐뭐뭐뭐를 포함함.
+예를들어, 전열교환기를 설치하는 경우 전열교환기 팬이 사용하는 전력은 여기에 들어감.
+nn절에 따라 전열교환기를 모델링하면 전열교환기 1대당 보통 00kW 수준의 전력을 소비함.
+
+\subsubsection{pump}
+뭐뭐뭐뭐를 포함함. 예를들어, ...
+
+\subsubsection{cogeneration}
+뭐뭐뭐뭐를 포함함
+
+\subsection{EP 결과 읽는 법과 의미}
+우리가 원하는 결과는 냉방, 난방, 조명, 유체동력계, 급탕, 발전임.
+각각 heating, cooling, lighting, fan과 pump, domestic hot water, cogeneration에 대응됨.
+
+% ---------------------------------------------------------------------------- %
+%                                  NEW SECTION                                 %
+% ---------------------------------------------------------------------------- %
+
+\section{그린리모델링을 위한 결과 해석}
+
+\subsection{단위면적당 에너지소비량} \label{subsec:floorarea_definition_for_EUI}
+가장 널리 사용되는 단위면적당 에너지 소요량 (EUI) 씀. 여기서 단위면적당에는 (@memo 전체 연면적? )까지 포함임. 참고로, ECO2는 냉난방 공조 면적을 구분함. 바닥면적은 그냥 공조하는 모든 zone의 바닥면적의 총합임.
+
+\subsection{산출 지표들} \label{subsec:result_converting_coeff_definition}
+\simulator\은 계산된 용도별, 열원별, 월별 에너지소요량을 바탕으로, 1차에너지소요량, 온실가스 배출량 및 에너지 비용을 산출하여 제시한다. 각 지표에 대한 변환 계수는 본 엔진에서 지원하는 4가지 연료(전기, 천연가스, 등유, 지역난방)에 대하여 각각 정의되며, 건물 전체의 1차에너지소요량, 온실가스배출량 및 에너지 비용은 4가지 연료에 대한 값의 합으로 정의된다 (식 \ref{eq:1st_energy_calculation} - \ref{eq:cost_calculation}).
+
+\begin{align}
+  \text{건물 전체의 에너지소요량} = \sum_{\text{연료}} \text{연료별 에너지소요량} \times \text{연료별 변환계수} \label{eq:1st_energy_calculation}\\
+  \text{건물 전체의 온실가스 배출량} = \sum_{\text{연료}} \text{연료별 에너지소요량} \times \text{연료별 변환계수} \label{eq:co2_calculation}\\ 
+  \text{건물 전체의 에너지 비용} = \sum_{\text{연료}} \text{연료별 에너지소요량} \times \text{연료별 변환계수} \label{eq:cost_calculation}
+\end{align}
+
+\subsubsection{1차에너지소요량}
+연료별 1차에너지 환산 계수는 표 \ref{tbl:coeff_kWh_to_1stkWh}\와 같다. 이는 제로에너지건축물 인증제도 운영규정 \cite{law:energy_to_1stenergy} 에서 제시하고 있다. 국내에서는 모든 연료에 대하여 대표적인 환산계수만을 제시하고 있어 \cite{Jeong2021energydeungkeup}, 가스 및 등유에 대하여 동일한 환산계수를 적용하였다.
+
+\begin{table}[ht]
+  \caption{연료별 사용량의 1차에너지 환산 계수}
+  \label{tbl:coeff_kWh_to_1stkWh}  
+  \centering
+  \begin{tabular}{cr}
+    \toprule
+    연료명 & \makecell{환산계수 \\ $[kWh/kWh]$} \\ \midrule
+    전기 & 2.75 \\
+    가스 & 1.1 \\
+    등유 & 1.1 \\
+    지역난방 & 0.728 \\ \bottomrule
+  \end{tabular}
+\end{table}
+
+1차에너지 환산계수는 관련 법령의 개정에 따라 수정 반영되어야 한다.
+
+\subsubsection{온실가스 배출량}
+연료별 온실가스 배출량 환산 계수는 표 \ref{tbl:coeff_kWh_to_CO2}\와 같다. 온실가스는 CO\textsubscript{2,eq}로 계산하는게 표준임. eq 계산은 어떻게 함. 온실가스 종류별 CO2변환계수(지구온난화지수?)는 아래 표 참고 바람.
+
+\begin{table}[ht]
+  \caption{연료별 사용량의 온실가스 배출량 환산 계수}
+  \label{tbl:coeff_kWh_to_CO2}  
+  \centering
+  \begin{tabular}{cr}
+    \toprule
+    연료명 & 환산계수 [kgCO\textsubscript{2,eq}/kWh] \\ \midrule
+    전기 & 0.4541 \\
+    가스 & 0.2024 \\
+    등유 & 0.2603 \\
+    지역난방 & 0.1358 \\ \bottomrule
+  \end{tabular}
+\end{table}
+
+\paragraph{전기} 전기의 온실가스 배출량 환산 계수는 매년 환경부 온실가스 종합정보센터에서 공포하고 있다.
+\paragraph{가스 및 등유} 이건 좀 복잡한데, IPCC에서... 이런 수식을 사용하고 있고, 이런 표를 제시하고 있고, 그 값은 아래 표와 같고...
+
+\paragraph{지역난방} 지역난방의 온실가스 배출량 환산 계수는 매년 3월 경 한국지역난방공사에서 공포하고 있다 (그림 \ref{fig:co2_bboombboom}). 배출권거래제 기본계획의 기간(제3차: 2021-2025년, 제4차: 2026-2030)에 따라 다른 환산 계수를 공포하고 있으며, 본 엔진은 제4차 기간을 기준으로 참조하였다.
+
+\begin{defaultfigure}
+  \includegraphics[width=\textwidth]{지역난방공사 온실가스 배출계수 공표 (나중에 표로 바꾸기).png}
+  \caption{한국지역난방공사의 온실가스 배출계수 공포 예시 (2024년 기준)}
+  \label{fig:co2_bboombboom}
+\end{defaultfigure}
+
+가스 및 등유는 2006년 이후로 개정된 바 없으며, 추후 IPCC 개정에 따라 수정 반영되어야 한다. 전기 및 지역난방의 경우 매년 공포되는 값이므로, 매년 공포되는 내용에 따라 계수가 수정 반영되어야 한다.
+
+\subsubsection{비용}
+연료별 비용 환산 계수는 표 \ref{tbl:coeff_kWh_to_cost}\와 같다. 에너지 요금 체계는 기본요금, 구간별 단가, 계절별 차등 등 다양한 요소로 구성되어 있어 단일 기준으로 정확히 산정하기는 어렵다. 따라서 복잡한 체계를 단순화하여 대표 환산계수를 적용하는 통계적 접근 방식을 사용하였다.
+
+\begin{table}[ht]
+  \caption{연료별 사용량의 요금 환산 계수}
+  \label{tbl:coeff_kWh_to_cost}  
+  \centering
+  \begin{tabular}{cr}
+    \toprule
+    연료명 & 환산계수 [won/kWh] \\ \midrule
+    전기 & 162.92 \\
+    가스 & 78.12 \\
+    등유 & 141.92 \\
+    지역난방 & 94.98 \\ \bottomrule
+  \end{tabular}
+\end{table}
+
+\paragraph{전기, 가스 및 등유} 매월 발간되는 KESIS 국가에너지통계 종합정보시스템에서 2024년 기준값을 참고하였다 (그림 \ref{fig:naturalgas_cost}). 전기와 가스의 경우 말단 용도별로 상이한 통계치가 제시되는데, 각 건물의 계약전력 등 세부 구분을 명확히 반영하기 어려우므로 각 용도별 값의 평균을 사용하였다. 예를 들어, 도시가스의 경우 가정용(21.4원/MJ), 일반용(21.0원/MJ), 산업용(20.8원/MJ), 업무난방용(23.6원/MJ)의 평균인 21.7원/MJ을 기준값으로 사용하였다.
+
+\begin{defaultfigure}
+  \includegraphics[width=\textwidth]{KIESIS 도시가스 가격 공표 (나중에 표로 바꾸기).png}
+  \caption{KIESIS의 도시가스 가격 공포 예시 (2024년 기준)}
+  \label{fig:naturalgas_cost}
+\end{defaultfigure}
+
+이 때 에너지열량 환산기준은 「에너지법 시행규칙」을 참고하였다. 연료의 발열량은 총발열량이 아닌 순발열량을 적용하는 것이 원칙이다. 이는 연소 과정에서 수분 증발 잠열 손실을 제외한 실제 이용 가능한 에너지량을 반영해야 하기 때문이다.
+
+
+\paragraph{지역난방} 지역난방은 한국지역난방공사의 경영실적 공시에 판매단가를 명시하고 있다 (그림 \ref{fig:districtheating_cost}).
+
+\begin{defaultfigure}
+  \includegraphics[width=\textwidth]{지역난방공사 운영실적 (나중에 표로 바꿔야되나).png}
+  \caption{한국지역난방공사 판매단가 공시 예시 (2024년 기준)}
+  \label{fig:districtheating_cost}
+\end{defaultfigure}

@@ -1,0 +1,3 @@
+name,conductivity,density,heat_capacity,
+concrete,2.5,2400,880, 
+insulation,0.05,30,1500,

@@ -1,3 +1,9 @@
+# 내가 추가한 것
+launchers/uploads/*.xlsx
+launchers/uploads/*.grm
+launchers/uploads/*.grr
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

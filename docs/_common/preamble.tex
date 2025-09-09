@@ -1,0 +1,170 @@
+% ---------------------------------------------------------------------------- %
+%                                   PACKAGES                                   %
+% ---------------------------------------------------------------------------- %
+
+% --- 한글 및 기본 설정 패키지 ---
+\usepackage{kotex}                     % 한글 지원
+\usepackage{graphicx}                  % 그림 포함
+\usepackage{xcolor}                    % 색상 지원
+
+% --- 제목/번호/목차 관련 ---
+\usepackage{titling}                   % 커스텀 표지 지원
+\usepackage{titlesec}                  % 제목 포맷 커스텀
+\usepackage{setspace}                  % 줄간격 조정
+\setstretch{1.5}                       % 기본 줄간격 1.5배
+\setlength{\parskip}{0.6em}            % 단락 사이 간격
+\setlength{\parindent}{1em}            % 단락 들여쓰기
+
+% --- 수식 및 수학 패키지 ---
+\usepackage{amsmath}                   % 수학 공식
+\numberwithin{equation}{chapter}       % 챕터별 수식번호
+
+% --- 표, 그림 관련 패키지 ---
+\usepackage{booktabs}                  % \toprule 등 고급 표
+\usepackage{longtable}                 % 페이지 나누는 표
+\usepackage{tabularx}                  % 가변 폭 표
+\usepackage{multirow}                  % 셀 병합
+\usepackage{makecell}
+\usepackage[tableposition=top]{caption}% 표 캡션 위 고정
+\usepackage{subcaption}
+\usepackage{array}
+\newcolumntype{Y}{>{\centering\arraybackslash}X}
+
+% --- 기타 디자인 ---
+\usepackage[most]{tcolorbox}                 % 박스 디자인
+
+% --- 레이아웃, 그림폴더 등 ---
+\usepackage[margin=2cm,headheight=1cm]{geometry}
+\graphicspath{{./_figures/}}
+
+% --- 코드류 ---
+\usepackage{listings}
+\usepackage{ifthen}
+
+% --- 주석 --- 
+\usepackage{todonotes}
+
+% --- 링크 ---
+\usepackage[colorlinks, linkcolor=blue, citecolor=red]{hyperref} % 하이퍼링크
+\usepackage[capitalise]{cleveref}      % cref 레퍼런스
+\hypersetup{
+  pdftitle={시뮬레이터 기술문서},
+  pdfauthor={서울대학교 건축에너지연구실},
+  pdfkeywords={},
+  bookmarksopen=true
+}
+% ---------------------------------------------------------------------------- %
+%                                   SETTINGS                                   %
+% ---------------------------------------------------------------------------- %
+
+% --- 목차, 그림/표목차, 참고문헌 등 한글화 ---
+\renewcommand{\contentsname}{목차}
+\renewcommand{\listfigurename}{그림 목록}
+\renewcommand{\listtablename}{표 목록}
+\renewcommand{\bibname}{참고문헌}
+
+% --- 그림, 표, 식, 장, 절 인용 표기 --- 
+\crefname{figure}{그림}{그림}
+\Crefname{figure}{그림}{그림}
+\crefname{table}{표}{표}
+\Crefname{table}{표}{표}
+\crefname{equation}{식}{식}
+\Crefname{equation}{식}{식}
+% \crefname{chapter}{장}{장}  % 밑에 crefformat이 오버라이딩해서 없어도 될듯
+\crefformat{chapter}{#2#1장#3}
+\crefformat{section}{#2#1절#3}
+\crefformat{subsection}{#2#1절#3}
+
+% --- secnum, 제목 스타일, 단락 스타일 등 ---
+\setcounter{secnumdepth}{3}            % subsubsection까지 번호 매김
+
+% --- part 스타일 ---
+\titleformat{\part}
+  {\centering\Huge\bfseries}
+  {\thepart}
+  {0pt}
+  {
+    \thispagestyle{empty}
+  }
+
+% --- chapter 스타일: 본문과 appendix에 따라 변경 가능하게 ---
+\newcommand{\chapterlabel}{제\thechapter 장}
+\titleformat{\chapter}[hang]
+  {\normalfont\huge\bfseries}
+  {\chapterlabel}
+  {1em}
+  {}
+
+% --- paragraph, subparagraph 스타일 ---
+\titleformat{\paragraph}[runin]
+  {\normalfont\itshape\bfseries}
+  {\theparagraph}{1em}{}
+\titleformat{\subparagraph}[runin]
+  {\normalfont\itshape\bfseries}
+  {\thesubparagraph}{1em}{}
+
+% --- 메모 스타일 ---
+\definecolor{gonie_color}{RGB}{255, 255, 180}  
+\definecolor{hongI_color}{RGB}{200, 255, 200} 
+\definecolor{theungDu_color}{RGB}{176, 224, 230}   
+\definecolor{형진_color}{RGB}{255, 220, 230}   
+
+\let\originaltodo\todo
+\renewcommand{\todo}[2]{%
+  \ifthenelse{\equal{#1}{형곤}}%
+    {\originaltodo[color=gonie_color, size=tiny]{\textbf{#1}: #2}}%
+  {%
+  \ifthenelse{\equal{#1}{철홍}}%
+    {\originaltodo[color=hongI_color, size=tiny]{\textbf{#1}: #2}}%
+  {%
+  \ifthenelse{\equal{#1}{승주}}%
+    {\originaltodo[color=theungDu_color, size=tiny]{\textbf{#1}: #2}}%
+  {%
+  \ifthenelse{\equal{#1}{형진}}%
+    {\originaltodo[color=형진_color, size=tiny]{\textbf{#1}: #2}}%
+  {%
+    \originaltodo[color=gray!20, size=tiny]{\textbf{#1}: #2} % 기본값
+  }}}}%
+}
+% ---------------------------------------------------------------------------- %
+%                                     STYLE                                    %
+% ---------------------------------------------------------------------------- %
+
+% --- 그림, 표 환경 커스텀 ---
+\newenvironment{defaultfigure}
+  {%
+  \vspace{0.3em}
+  \begin{figure}[htbp]\centering
+    \setlength{\belowcaptionskip}{0.3em}
+  }
+  {\end{figure}}
+
+\renewcommand{\arraystretch}{1.5}
+\newenvironment{defaulttable}
+  {\begin{table}[htbp]\centering\small}
+  {\end{table}}
+
+\newenvironment{variabletable}
+  {\begin{defaulttable}}
+  {\end{defaulttable}}
+
+% 단위 표시
+\newcommand{\unitsty}[1]{{\small $#1$}}
+% ---------------------------------------------------------------------------- %
+%                                     NAMES                                    %
+% ---------------------------------------------------------------------------- %
+
+% --- 반복되는 용어/alias 정의 ---
+\newcommand{\ep}{EnergyPlus}
+\newcommand{\simulator}{epGRsim}
+\newcommand{\simulatorversion}{0-2-0}
+\newcommand{\pymodule}{pyGRsim}
+\newcommand{\unit}[1]{
+  \begingroup
+  \ifthenelse{\equal{#1}{density}}{$kg/m^3$}{%
+  \ifthenelse{\equal{#1}{conductivity}}{$W/mK$}{%
+  \ifthenelse{\equal{#1}{U}}{$W/m^2K$}{-}}}
+  \endgroup
+}
+
+% --- 
