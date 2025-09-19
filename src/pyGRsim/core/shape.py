@@ -34,12 +34,12 @@ from .hvac         import (
     SupplySystem,
     VentilationSystem,
 )
-from ..idragon import dragon
-from ..idragon.dragon import (
+from idragon import dragon
+from idragon.dragon import (
     SurfaceType,
     SurfaceBoundaryCondition,
 )
-from ..idragon.utils import (
+from idragon.utils import (
     SMALLEST_VALUE,
     validate_range,
     validate_type ,

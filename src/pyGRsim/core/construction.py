@@ -14,14 +14,14 @@ from datetime import datetime
 import pandas as pd
 
 # local modules
-from ..idragon import (
+from idragon import (
     dragon,
 )
-from ..idragon.dragon import (
+from idragon.dragon import (
     SurfaceType             ,
     SurfaceBoundaryCondition,
 )
-from ..idragon.utils import (
+from idragon.utils import (
     SMALLEST_VALUE,
     validate_type ,
     validate_range,
