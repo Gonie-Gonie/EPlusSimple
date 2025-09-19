@@ -19,5 +19,5 @@ target_files = [
 for file in target_files:
     run_grjson(
         os.path.join(target_dir, file),
-        os.path.join(target_dir, file.replace(r".xlsx",r".grr"))
+        os.path.join(target_dir, file.replace(r".grm",r".grr"))
     )
