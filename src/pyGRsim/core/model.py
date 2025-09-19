@@ -17,9 +17,9 @@ from datetime import datetime
 import pandas as pd
 
 # local modules
-from ..              import idragon
-from ..idragon       import dragon
-from ..idragon.utils import (
+import idragon
+from idragon       import dragon
+from idragon.utils import (
     validate_range,
     validate_type ,
     SMALLEST_VALUE,

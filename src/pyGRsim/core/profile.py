@@ -21,9 +21,9 @@ from ..constants      import (
     SpecialTag,
     AUTOID_PREFIX ,
 )
-from ..idragon        import dragon
-from ..idragon.dragon import ScheduleType
-from ..idragon.utils  import (
+from idragon        import dragon
+from idragon.dragon import ScheduleType
+from idragon.utils  import (
     validate_type ,
     validate_enum ,
     validate_range,

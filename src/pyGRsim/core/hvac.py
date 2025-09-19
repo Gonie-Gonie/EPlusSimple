@@ -12,8 +12,8 @@ from typing import Any
 # third-party modules
 
 # local modules
-from ..idragon import dragon
-from ..idragon.utils import (
+from idragon import dragon
+from idragon.utils import (
     SMALLEST_VALUE,
     validate_type ,
     validate_enum ,
