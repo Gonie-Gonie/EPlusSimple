@@ -2,9 +2,6 @@
 import os
 import sys
 
-
-
-sys.path.append(r"src")
 from pyGRsim import run_grjson, run_grexcel
 
 
