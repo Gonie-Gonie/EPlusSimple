@@ -3,7 +3,6 @@ setlocal
 
 :: ============================================================================
 ::                            [ Configuration ]
-::  To change the Python version, only modify the variables in this section.
 :: ============================================================================
 set PYTHON_VERSION_SHORT=312
 set PYTHON_VERSION_FULL=3.12.7
@@ -26,7 +25,7 @@ if exist "%PYTHON_DIR%\" (
 echo [2/5] Downloading Portable Python %PYTHON_VERSION_FULL%...
 curl -L -o %PYTHON_ZIP_FILENAME% %PYTHON_DOWNLOAD_URL%
 if %errorlevel% neq 0 (
-    echo [ERROR] Download failed. Check the URL or your network connection.
+    echo [ERROR] Download failed.
     pause
     exit /b
 )
@@ -42,16 +41,23 @@ if %errorlevel% neq 0 (
 del %PYTHON_ZIP_FILENAME%
 
 :InstallPackages
-echo [4/5] Installing pip...
+echo [4/5] Installing pip and enabling site-packages...
 curl -L -o get-pip.py %GET_PIP_URL%
 if %errorlevel% neq 0 (
     echo [ERROR] Failed to download get-pip.py.
     pause
     exit /b
 )
+
+:: Run get-pip.py to install pip
 .\%PYTHON_DIR%\python.exe get-pip.py
 del get-pip.py
-echo     ...pip installation complete!
+
+:: *** NEW STEP: Uncomment 'import site' in ._pth file to enable site-packages ***
+echo     ...Enabling site-packages for the environment.
+powershell -Command "(Get-Content -Path '%PTH_FILE%') -replace '#import site', 'import site' | Set-Content -Path '%PTH_FILE%'"
+
+echo     ...pip installation and configuration complete!
 
 echo [5/5] Installing packages and setting up paths...
 call :DoSetup
