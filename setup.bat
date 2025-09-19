@@ -3,35 +3,34 @@ setlocal
 
 :: ============================================================================
 ::                            [ 설정 변수 ]
-::  Python 버전을 변경하려면 여기만 수정하면 됩니다.
 :: ============================================================================
 set PYTHON_VERSION_SHORT=312
 set PYTHON_VERSION_FULL=3.12.7
-set PYTHON_DIR=venv
+set PYTHON_DIR=python-portable
 set PYTHON_ZIP_FILENAME=python-%PYTHON_VERSION_FULL%-embed-amd64.zip
 set PYTHON_DOWNLOAD_URL=https://www.python.org/ftp/python/%PYTHON_VERSION_FULL%/%PYTHON_ZIP_FILENAME%
+set GET_PIP_URL=https://bootstrap.pypa.io/get-pip.py
 
 :: ============================================================================
 
 set PTH_FILE=.\%PYTHON_DIR%\python%PYTHON_VERSION_SHORT%._pth
 set SRC_PATH=..\src
 
-echo [1/4] Portable Python 환경을 확인합니다...
+echo [1/5] Portable Python 환경을 확인합니다...
 if exist "%PYTHON_DIR%\" (
     echo     ...이미 '%PYTHON_DIR%' 폴더가 존재합니다. 다운로드를 건너뜁니다.
     goto :InstallPackages
 )
 
-echo [2/4] Portable Python %PYTHON_VERSION_FULL% 버전을 다운로드합니다...
-echo     URL: %PYTHON_DOWNLOAD_URL%
+echo [2/5] Portable Python %PYTHON_VERSION_FULL% 버전을 다운로드합니다...
 curl -L -o %PYTHON_ZIP_FILENAME% %PYTHON_DOWNLOAD_URL%
 if %errorlevel% neq 0 (
-    echo [오류] 다운로드에 실패했습니다. URL을 확인하거나 네트워크 상태를 점검하세요.
+    echo [오류] 다운로드에 실패했습니다.
     pause
     exit /b
 )
 
-echo [3/4] 다운로드한 파일의 압축을 해제합니다...
+echo [3/5] 다운로드한 파일의 압축을 해제합니다...
 mkdir %PYTHON_DIR%
 tar -xf %PYTHON_ZIP_FILENAME% -C %PYTHON_DIR%
 if %errorlevel% neq 0 (
@@ -40,10 +39,20 @@ if %errorlevel% neq 0 (
     exit /b
 )
 del %PYTHON_ZIP_FILENAME%
-echo     ...압축 해제 완료!
 
 :InstallPackages
-echo [4/4] 패키지 설치 및 경로 설정을 진행합니다...
+echo [4/5] pip를 설치합니다...
+curl -L -o get-pip.py %GET_PIP_URL%
+if %errorlevel% neq 0 (
+    echo [오류] get-pip.py 다운로드에 실패했습니다.
+    pause
+    exit /b
+)
+.\%PYTHON_DIR%\python.exe get-pip.py
+del get-pip.py
+echo     ...pip 설치 완료!
+
+echo [5/5] 패키지 설치 및 경로 설정을 진행합니다...
 call :DoSetup
 goto :eof
 
