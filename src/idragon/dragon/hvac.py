@@ -1941,7 +1941,7 @@ class PackagedAirConditioner(SupplySystem):
                 "Gross Rated Total Cooling Capacity": self.capacity if self.capacity is not None else "autosize",
                 "Gross Rated Sensible Heat Ratio":"autosize",
                 "Gross Rated Cooling COP": self.cop,
-                "Rated Air Flow Rate": "autosize",                
+                "Rated Air Flow Rate": 0.00005034, # IO ref 참고. 허용되는 값 범위의 중간값.                
                 "Air Inlet Node Name" : f"{self.idf_get_objname(zone)} Fan2CoolingCoil Air MiddleNode",
                 "Air Outlet Node Name": self.idf_get_airoutletnodename(zone),
                 "Total Cooling Capacity Function of Temperature Curve Name"  :  f"Curve_for_{self.idf_get_objname(zone)}:CoolingCapaTemp",
