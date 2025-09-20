@@ -78,7 +78,7 @@ CLIMATE_TABLE      = pd.read_csv(os.path.join(Directory.WEATHER, "기후지역.c
 class InvalidAddressError(Exception):
     pass
 
-class UnexpectedEnergyPlusRunResultError(Exception):
+class EnergyPlusError(Exception):
     
     def __init__(self, err:pd.DataFrame):
         
@@ -667,7 +667,7 @@ class GreenRetrofitResult:
         self.result = result
         
         if result.tbl is None:
-            raise UnexpectedEnergyPlusRunResultError(self.result.err)
+            raise EnergyPlusError(self.result.err)
     
     @property
     def area(self) -> float:
