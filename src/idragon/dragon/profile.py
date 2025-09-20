@@ -423,14 +423,14 @@ class RuleSet:
     @property
     def min(self) -> int|float:
         return min([
-            min(day_schedule)
+            day_schedule.min
             for day_schedule in self.to_dict().values()
         ])
     
     @property
     def max(self) -> int|float:
         return max([
-            max(day_schedule)
+            day_schedule.max
             for day_schedule in self.to_dict().values()
         ])
         
@@ -556,11 +556,11 @@ class Schedule(UserList):
     
     @property
     def min(self) -> int|float:
-        return min([min(ruleset) for ruleset in self.data])
+        return min([ruleset.min for ruleset in self.data])
     
     @property
     def max(self) -> int|float:
-        return max([max(ruleset) for ruleset in self.data])
+        return max([ruleset.max for ruleset in self.data])
     
     def normalize_by_max(self, *, new_name:str=None):
         
