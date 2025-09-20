@@ -768,7 +768,7 @@ class Zone:
             occupant_object = IdfObject("People",[
                 f"people:{self.name}",
                 self.name,
-                self.profile.occupant.name, + f"_normalized:for:{self.name}"
+                self.profile.occupant.name + f"_normalized:for:{self.name}"
                 "People/Area",
                 None,
                 self.profile.occupant.max,
