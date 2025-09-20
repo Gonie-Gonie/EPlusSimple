@@ -169,8 +169,13 @@ class DaySchedule(UserList):
     
     def normalize_by_max(self, inplace:bool=False, *, new_name:str=None):
         
+        if self.max == 0:
+            scaler = 1
+        else:
+            scaler = self.max
+        
         if inplace:
-            self.data = [item/self.max for item in self.data]
+            self.data = [item/scaler for item in self.data]
             return
         
         else:
@@ -178,7 +183,7 @@ class DaySchedule(UserList):
             if new_name is None:
                 new_name = self.name + "_normalized"
             
-            normalized_schedule = self / self.max
+            normalized_schedule = self / scaler
             normalized_schedule.name = new_name
             
             return normalized_schedule
