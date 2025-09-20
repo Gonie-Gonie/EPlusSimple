@@ -425,6 +425,7 @@ class RuleSet:
         return min([
             day_schedule.min
             for day_schedule in self.to_dict().values()
+            if day_schedule is not None
         ])
     
     @property
@@ -432,6 +433,7 @@ class RuleSet:
         return max([
             day_schedule.max
             for day_schedule in self.to_dict().values()
+            if day_schedule is not None
         ])
         
     def normalize_by_max(self, *, new_name:str=None):
