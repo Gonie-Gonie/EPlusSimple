@@ -743,7 +743,7 @@ class Zone:
             
             load_objs.append(
                 self.profile.equipment.normalize_by_max(
-                    new_name=self.profile.equipemnt.name + f"_normalized:for:{self.name}",
+                    new_name=self.profile.equipement.name + f"_normalized:for:{self.name}",
                 ).to_idf_object()
             )
             
