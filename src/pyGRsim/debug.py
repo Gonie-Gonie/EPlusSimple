@@ -458,6 +458,36 @@ class DuplicatedName(ExcelException):
                 )
         
         return exceptions
+    
+
+
+class ExcessiveOpeningArea(ExcelException):
+    
+    def __init__(self,
+        object_name :str         ,
+        surface_area:int|float   ,
+        df_opening  :pd.DataFrame,
+        ) -> None:
+        
+        super().__init__("면", object_name)
+        self.message = f"면 {object_name}의 {len(df_opening)}개 개구부의 면적 총합({df_opening["면적 [m2]"].sum():.2f}m2)이 면의 면적({surface_area:.2f}m2)보다 큽니다."
+    
+    @staticmethod
+    def inspect(exceldata:dict[str, pd.DataFrame]) -> list[ExcessiveOpeningArea]:
+        
+        exceptions = []
+        for _, row in exceldata["면"].iterrows():
+            
+            openings = exceldata["개구부"].query("`소속 면` == @row['이름']")
+            opening_area = openings["면적 [m2]"].sum()
+            surface_area = row["면적 [m2]"]
+            
+            if opening_area > surface_area:
+                exceptions.append(
+                    ExcessiveOpeningArea(row["이름"], surface_area, openings)
+                )
+                
+        return exceptions
 
 # ---------------------------------------------------------------------------- #
 #                                 JSON WARNINGS                                #
@@ -696,6 +726,7 @@ EXCEL_INSPECTORS = [
     BlindForNonOutdoorWindow,
     InsufficientMaterialDefinition,
     DuplicatedName,
+    ExcessiveOpeningArea,
     # warnings
     NotUsedSupplySystem,
     NotUsedSourceSystem,
