@@ -1,20 +1,18 @@
 # ==============================================================================
 # 1. 모듈 임포트 및 전역 설정
 # ==============================================================================
-import os
-import sys
+
+# built-in modules
 from pathlib import Path
 from typing import Dict, List, Any, Tuple, Optional
 import argparse
+
+# third-party modules
 import pandas as pd
-from flask import Flask, render_template, request, Response
+from flask import Flask, render_template, request
 from werkzeug.datastructures import FileStorage
 
-# 상위 폴더의 pyGRsim 패키지 경로 추가
-# (주의: 이 방식은 개발 환경에서는 편리하지만, 배포 시에는 setup.py 등을 통한
-#  패키지 설치가 더 안정적인 방법입니다.)
-sys.path.append(str(Path(__file__).resolve().parent.parent))
-
+# local modules
 from pyGRsim import check_grexcel, run_grexcel
 from pyGRsim.reb.preprocess import process_excel_file
 from pyGRsim.debug import debug_excel, report_result, ReportCode

@@ -15,7 +15,7 @@ echo The server is now running. To stop it, close this window or press Ctrl+C.
 echo ==============================
 
 :: 'start' 명령어 없이 직접 실행하여 배치파일이 서버 프로세스를 제어하도록 함
-"..\GRPython\python.exe" ".\server.py" --mode run
+"..\venv\python.exe" ".\server.py" --mode run
 
 
 :: --- [추가된 부분] ---

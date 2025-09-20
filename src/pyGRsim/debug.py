@@ -751,7 +751,7 @@ def debug_json(filepath:str) -> list[ExcelException]:
 
 
 class ReportCode(Enum):
-    
+                   
     CLEAR   = auto()
     WARNING = auto()
     SEVERE  = auto()
