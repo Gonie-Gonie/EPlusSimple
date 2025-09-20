@@ -743,14 +743,14 @@ class Zone:
             
             load_objs.append(
                 self.profile.equipment.normalize_by_max(
-                    new_name=self.profile.equipment.name + f"_normalized:for:{self.name}",
+                    new_name=self.profile.equipment.name + f"_normalized:for:{self.name}:equipment",
                 ).to_idf_object()
             )
             
             load_objs.append(IdfObject("ElectricEquipment",[
                 f"electric_equipment:{self.name}",
                 self.name,
-                self.profile.equipment.name + f"_normalized:for:{self.name}",
+                self.profile.equipment.name + f"_normalized:for:{self.name}:equipment",
                 "Watts/Area",
                 None,
                 self.profile.equipment.max,
@@ -761,14 +761,14 @@ class Zone:
             
             load_objs.append(
                 self.profile.occupant.normalize_by_max(
-                    new_name=self.profile.occupant.name + f"_normalized:for:{self.name}",
+                    new_name=self.profile.occupant.name + f"_normalized:for:{self.name}:occupant",
                 ).to_idf_object()
             )
             
             occupant_object = IdfObject("People",[
                 f"people:{self.name}",
                 self.name,
-                self.profile.occupant.name + f"_normalized:for:{self.name}",
+                self.profile.occupant.name + f"_normalized:for:{self.name}:occupant",
                 "People/Area",
                 None,
                 self.profile.occupant.max,
