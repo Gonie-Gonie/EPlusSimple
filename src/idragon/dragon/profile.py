@@ -159,14 +159,29 @@ class DaySchedule(UserList):
             
         return self.__add__(other.__mul__(-1))
     
-    def normalize(self, inplace=False):
+    @property
+    def min(self) -> int|float:
+        return min(self.data)
+    
+    @property
+    def max(self) -> int|float:
+        return max(self.data)
+    
+    def normalize_by_max(self, inplace:bool=False, *, new_name:str=None):
         
         if inplace:
-            self.data = [item/max(self.data) for item in self.data]
+            self.data = [item/self.max for item in self.data]
             return
         
         else:
-            return self / max(self.data)
+            
+            if new_name is None:
+                new_name = self.name + "_normalized"
+            
+            normalized_schedule = self / self.max
+            normalized_schedule.name = new_name
+            
+            return normalized_schedule
     
     """ prohibited methods
     """
@@ -249,7 +264,7 @@ class DaySchedule(UserList):
          
         return cls(name, schedule_values, schedule_type=schedule_type)
     
-    """ print 
+    """ representation
     """
     
     def __str__(self) -> str:
@@ -300,7 +315,7 @@ class RuleSet:
         self.__sunday    = sunday
         self.__holiday   = holiday
     
-    """ wrapped properties
+    """ fundamental properties
     """
     
     @property
@@ -397,14 +412,66 @@ class RuleSet:
     def holiday(self, value: DaySchedule) -> None:
         self.__holiday = value
     
-    """ print 
+    """ algebraric methods
     """
+    
+    @property
+    def min(self) -> int|float:
+        return min([
+            min(day_schedule)
+            for day_schedule in self.to_dict().values()
+        ])
+    
+    @property
+    def max(self) -> int|float:
+        return max([
+            max(day_schedule)
+            for day_schedule in self.to_dict().values()
+        ])
+        
+    def normalize_by_max(self, *, new_name:str=None):
+        
+        if new_name is None:
+            new_name = self.name + "_normalized"
+        
+        return RuleSet(
+            new_name,
+            self.weekdays.normalize_by_max() if self.weekdays is not None else None,
+            self.weekends.normalize_by_max() if self.weekends is not None else None,
+            monday    = self.monday   .normalize_by_max() if self.monday    is not None else None,
+            tuesday   = self.tuesday  .normalize_by_max() if self.tuesday   is not None else None,
+            wednesday = self.wednesday.normalize_by_max() if self.wednesday is not None else None,
+            thursday  = self.thursday .normalize_by_max() if self.thursday  is not None else None,
+            friday    = self.friday   .normalize_by_max() if self.friday    is not None else None,
+            saturday  = self.saturday .normalize_by_max() if self.saturday  is not None else None,
+            sunday    = self.sunday   .normalize_by_max() if self.sunday    is not None else None,
+            holiday   = self.holiday  .normalize_by_max() if self.holiday   is not None else None,
+        )
+    
+    """ representation
+    """
+    
+    def to_dict(self) -> dict[str, DaySchedule]:
+        return {
+            "weekdays" : self.weekdays ,
+            "weekdends": self.weekends ,
+            "monday"   : self.monday   ,
+            "tuesday"  : self.tuesday  ,
+            "wednesday": self.wednesday,
+            "thursday" : self.thursday ,
+            "friday"   : self.friday   ,
+            "saturday" : self.saturday ,
+            "sunday"   : self.sunday   ,
+            "holiday"  : self.holiday  ,
+        }
     
     def __str__(self) -> str:        
         return f"RuleSet {self.name}:"
     
     def __repr__(self) -> str:
         return f"<RuleSet {self.name} at {hex(id(self))}>"
+    
+    
     
 class Schedule(UserList):
     
@@ -478,7 +545,34 @@ class Schedule(UserList):
                 
         if not inplace:
             return target
+    
+    """ algebraric operation
+    """
+    
+    @property
+    def min(self) -> int|float:
+        return min([min(ruleset) for ruleset in self.data])
+    
+    @property
+    def max(self) -> int|float:
+        return max([max(ruleset) for ruleset in self.data])
+    
+    def normalize_by_max(self, *, new_name:str=None):
         
+        if new_name is None:
+            new_name = self.name + "_normalized"
+            
+        compactized_schedule = self.compactize()
+        normalized_compactized_schedule = [
+            (start_date, end_date, ruleset.normalize_by_max())
+            for start_date, end_date, ruleset in compactized_schedule
+        ]
+        
+        return Schedule.from_compact(
+            new_name                       ,
+            normalized_compactized_schedule,
+        )
+    
     """ prohibited methods
     """
     
@@ -533,7 +627,10 @@ class Schedule(UserList):
         return compact_tuples
     
     @classmethod
-    def from_compact(cls, name, rulesets:list[tuple]) -> Schedule:
+    def from_compact(cls,
+        name    :str        ,
+        rulesets:list[tuple],
+        ) -> Schedule:
         
         schedule = cls(name)
         for start, end, ruleset in rulesets:
@@ -569,7 +666,6 @@ class Schedule(UserList):
             ],start=[])
         ])
 
-    
     """ representation
     """
     
