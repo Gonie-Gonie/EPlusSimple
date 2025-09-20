@@ -30,4 +30,3 @@ popd
 
 echo.
 echo ✅ Distribution packaging complete!
-pause
