@@ -78,6 +78,15 @@ CLIMATE_TABLE      = pd.read_csv(os.path.join(Directory.WEATHER, "기후지역.c
 class InvalidAddressError(Exception):
     pass
 
+class EnergyPlusError(Exception):
+    
+    def __init__(self, err:pd.DataFrame):
+        
+        err_message = "===EnergyPlusError===\n" +\
+                      "\n".join(err.query("type=='Severe' | type=='Fatal'")["title"].values)
+                      
+        super().__init__(err_message)
+        
 
 # ---------------------------------------------------------------------------- #
 #                             GRIM SIMULATOR MODEL                             #
@@ -656,6 +665,9 @@ class GreenRetrofitResult:
         
         self.model  = model
         self.result = result
+        
+        if result.tbl is None:
+            raise EnergyPlusError(self.result.err)
     
     @property
     def area(self) -> float:
@@ -722,9 +734,9 @@ class GreenRetrofitResult:
         df_site = pd.DataFrame(index=[v.name for v in Fuel], columns=list(usecol_map.keys())).map(lambda _: [float(0)]*12)
         for fuel_type in Fuel:
             
-            # check table existence (use of the fuel)
-            table_name = f"EndUseEnergyConsumption{fuel_name_in_energyplus[fuel_type]}Monthly"            
-            if table_name not in self.result.tbl.keys():
+            # check if the fuel is used
+            table_name = f"EndUseEnergyConsumption{fuel_name_in_energyplus[fuel_type]}Monthly"
+            if table_name not in self.result.tbl:
                 continue
             
             # get use 
