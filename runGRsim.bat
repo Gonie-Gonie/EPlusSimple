@@ -9,7 +9,7 @@ REM -----------------------------------------
 REM --- Configuration Variables ---
 SET "BATCH_DIR=%~dp0"
 SET "PYTHON_EXE=%BATCH_DIR%venv\python.exe"
-SET "MODULE_PATH=%BATCH_DIR%src\pyGRsim"
+SET "MODULE_NAME=pyGRsim"
 SET "LOG_FILE=%BATCH_DIR%log.log"
 
 REM --- Delete existing log file ---
@@ -25,8 +25,7 @@ ECHO.
 
 REM --- Execute Python script and save log ---
 REM Pass all arguments and redirect both stdout and stderr to the log file
-"%PYTHON_EXE%" "%MODULE_PATH%" %* > "%LOG_FILE%" 2>&1
+"%PYTHON_EXE%" -m "%MODULE_NAME%" %* > "%LOG_FILE%" 2>&1
 
 ECHO.
 ECHO Script execution finished.
-pause
