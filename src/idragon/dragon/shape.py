@@ -726,6 +726,7 @@ class Zone:
         
         # internal loads
         load_objs = []
+        
         # light
         if isinstance(self.profile.lighting, Schedule):
             load_objs.append(IdfObject("Lights",[
@@ -739,24 +740,38 @@ class Zone:
             
         # electric equipment
         if isinstance(self.profile.equipment, Schedule):
+            
+            load_objs.append(
+                self.profile.equipment.normalize_by_max(
+                    new_name=self.profile.equipemnt.name + f"_normalized:for:{self.name}",
+                ).to_idf_object()
+            )
+            
             load_objs.append(IdfObject("ElectricEquipment",[
                 f"electric_equipment:{self.name}",
                 self.name,
-                self.profile.equipment.name,
+                self.profile.equipment.name + f"_normalized:for:{self.name}",
                 "Watts/Area",
                 None,
-                1,
+                self.profile.equipment.max,
             ]))
             
         # people
         if isinstance(self.profile.occupant, Schedule):
+            
+            load_objs.append(
+                self.profile.occupant.normalize_by_max(
+                    new_name=self.profile.occupant.name + f"_normalized:for:{self.name}",
+                ).to_idf_object()
+            )
+            
             occupant_object = IdfObject("People",[
                 f"people:{self.name}",
                 self.name,
-                self.profile.occupant.name,
+                self.profile.occupant.name, + f"_normalized:for:{self.name}"
                 "People/Area",
                 None,
-                1,
+                self.profile.occupant.max,
             ])
             occupant_object["Activity Level Schedule Name"] = "$DEFAULT$PEOPLEACTIVITY"
             load_objs.append(occupant_object)
