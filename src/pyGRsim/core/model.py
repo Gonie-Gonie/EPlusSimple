@@ -78,11 +78,7 @@ CLIMATE_TABLE      = pd.read_csv(os.path.join(Directory.WEATHER, "기후지역.c
 class InvalidAddressError(Exception):
     pass
 
-<<<<<<< HEAD
 class EnergyPlusError(Exception):
-=======
-class UnexpectedEnergyPlusRunResultError(Exception):
->>>>>>> 3e998c96fce109655e8320dd5fb5fbc1d031c957
     
     def __init__(self, err:pd.DataFrame):
         
