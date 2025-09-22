@@ -265,7 +265,7 @@ def get_database(
 
 
 class GreenRetrofitDataFormat(str, Enum):
-    EXCEL = ("excel", "xlsx", ("grm", "idf"))
+    EXCEL = ("excel", "xlsx", ("json", "idf"))
     JSON  = ("json" , "grm" , ("idf",))
     IDF   = ("idf"  , "idf" , ())
 

@@ -71,7 +71,7 @@ converter.add_argument(
 )
 converter.add_argument(
     "-o", "--output_filepath", dest="output_filepath",
-    type=str
+    default=None, type=str,
 )
 
 # arguments for: DB_interface
@@ -122,7 +122,7 @@ if __name__ == "__main__":
         
         # convert format of an input file
         case "convert":
-            convert(args.input_filepath, args.src, args.dst, args.output_filepath)
+            convert(args.input_filepath, args.src, args.dst, output_filepath = args.output_filepath)
         
         # else
         case _:
