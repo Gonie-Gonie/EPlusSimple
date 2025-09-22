@@ -12,7 +12,8 @@ echo [2/3] Copying files for distribution...
 xcopy /E /I /Q "venv"     "%RELEASE_DIR%\venv\"
 xcopy /E /I /Q "src"      "%RELEASE_DIR%\src\"
 xcopy /E /I /Q "launcher" "%RELEASE_DIR%\launcher\"
-copy "runGRsim.bat"       "%RELEASE_DIR%\runGRsim.bat" > nul
+copy "runEngine.bat"       "%RELEASE_DIR%\runEngine.bat" > nul
+copy "runExcelLauncher.bat"       "%RELEASE_DIR%\runExcelLauncher.bat" > nul
 
 :: Add src path to the ._pth file for distribution
 findstr /C:"..\src" "%RELEASE_DIR%\venv\python312._pth" > nul

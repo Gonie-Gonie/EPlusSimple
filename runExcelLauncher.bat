@@ -2,7 +2,7 @@
 
 echo ==============================
 echo [1/4] Changing to working directory...
-cd /d %~dp0
+cd /d %~dp0/launcher/
 
 echo [2/4] Waiting for the server to start... (about 3 seconds)
 ping 127.0.0.1 -n 3 > nul
@@ -24,8 +24,6 @@ echo.
 echo ==============================
 echo The server process has ended.
 echo If it was unexpected, check for error messages above.
-echo Press any key to close this window.
-pause
 
 
 
