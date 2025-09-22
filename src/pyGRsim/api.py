@@ -7,8 +7,7 @@
 from __future__ import annotations
 import os
 import re
-import sys
-import traceback
+from enum import Enum
 from typing import Literal
 
 # third-party modules
@@ -262,4 +261,72 @@ def get_database(
             )
     
     return
+
+
+
+class GreenRetrofitDataFormat(str, Enum):
+    EXCEL = ("excel", "xlsx", ("grm", "idf"))
+    JSON  = ("json" , "grm" , ("idf",))
+    IDF   = ("idf"  , "idf" , ())
+
+    def __new__(cls,
+        value    :str,
+        extension:str,
+        convertibles: tuple[str, ...]
+        ) -> GreenRetrofitDataFormat:  
+        
+        # 
+        obj = str.__new__(cls, value) 
+        obj._value_ = value            
+        
+        # properties
+        obj.extension    = extension
+        obj.convertibles = tuple(convertibles)  
+        
+        return obj
+
+def convert(
+    input_filepath: str,
+    src: GreenRetrofitDataFormat,
+    dst: GreenRetrofitDataFormat,
+    *,
+    output_filepath:str|None = None
+) -> None:    
+    
+    # convert format to enum
+    src = GreenRetrofitDataFormat(src)
+    dst = GreenRetrofitDataFormat(dst)
+    
+    # inspect convertibility
+    if dst.value not in src.convertibles:
+        available = ",".join(src.convertibles)
+        raise ValueError(
+            f"{src.value} is not convertible to {dst.value} (available: {available})."
+        )
+        
+    # default output filepath: same as input
+    if output_filepath is None:
+        if input_filepath.endswith(f".{src.extension}"):
+            output_filepath = input_filepath.replace(src.extension, dst.extension)
+        else:
+            output_filepath = f"{input_filepath}.{dst.extension}"
+    
+    # main
+    match (src, dst):
+        
+        case (GreenRetrofitDataFormat.EXCEL, GreenRetrofitDataFormat.JSON): 
+            _ = excel2grjson(input_filepath, output_filepath)
+            return
             
+        case (GreenRetrofitDataFormat.EXCEL, GreenRetrofitDataFormat.IDF): 
+            grm = GreenRetrofitModel.from_excel(input_filepath)
+            idf = grm.to_idf()
+            idf.write(output_filepath)
+            return
+        
+        case (GreenRetrofitDataFormat.JSON, GreenRetrofitDataFormat.IDF): 
+            grm = GreenRetrofitModel.from_grjson(input_filepath)
+            idf = grm.to_idf()
+            idf.write(output_filepath)
+            return
+    

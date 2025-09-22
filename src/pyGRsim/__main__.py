@@ -14,6 +14,7 @@ from .api import (
     run_grjson  ,
     run_grexcel ,
     get_database,
+    convert     ,
 )
 from .constants import (
     PackageInfo
@@ -36,6 +37,10 @@ launcher = subparsers.add_parser(
     "run",
     help=f"Run a green-retrofit model using {PackageInfo.NAME}"
 )
+converter = subparsers.add_parser(
+    "convert",
+    help="Convert format of an input file"
+)
 DB_interface = subparsers.add_parser(
     "DB",
     help="Get or set values about embedded database"
@@ -49,6 +54,24 @@ launcher.add_argument(
 launcher.add_argument(
     "-o", "--output", dest="output_filepath",
     type=str, help="(relative or absolute) path of the output grjson file",
+)
+
+# arguments for: converter
+converter.add_argument(
+    "input_filepath",
+    type=str
+)
+converter.add_argument(
+    "-s", "--source", dest="src",
+    type=str
+)
+converter.add_argument(
+    "-d", "--destination", dest="dst",
+    type=str
+)
+converter.add_argument(
+    "-o", "--output_filepath", dest="output_filepath",
+    type=str
 )
 
 # arguments for: DB_interface
@@ -90,12 +113,16 @@ if __name__ == "__main__":
                     "error"  : None       ,
                 })
                 
-            except Exception as e:
+            except Exception as e: 
                 print({
                     "success": 0     ,
                     "result" : None  ,
                     "error"  : traceback.format_exc(),
                 })
+        
+        # convert format of an input file
+        case "convert":
+            convert(args.input_filepath, args.src, args.dst, args.output_filepath)
         
         # else
         case _:
