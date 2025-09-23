@@ -7,8 +7,6 @@ set OUTPUT_ZIP=%~dp0dist\%PROJECT_NAME%_v%VERSION%.zip
 
 echo [1/5] Cleaning up previous build and creating release folder...
 if exist "dist" rd /s /q "dist"
-mkdir "%RELEASE_DIR%"
-
 
 echo [2/5] Generating releaseinfo.tex...
 
@@ -36,7 +34,7 @@ pushd docs
 
 :: -pdf: PDF 파일을 생성합니다.
 :: -outdir: 출력 폴더를 지정합니다. 최상위 폴더 기준이므로 ../dist/docs 입니다.
-if not exist "dist\docs\EngineeringReference" mkdir "dist\docs\EngineeringReference"
+if not exist "..\dist\docs\EngineeringReference" mkdir "..\dist\docs\EngineeringReference"
 
 %LATEX_COMPILER% -pdf -outdir=../dist/docs "mainER.tex"
 
@@ -53,6 +51,8 @@ echo     ...Documentation build successful.
 
 
 echo [4/5] Copying files for distribution...
+mkdir "%RELEASE_DIR%"
+mkdir "%RELEASE_DIR%\docs"
 xcopy /E /I /Q "venv"     "%RELEASE_DIR%\venv\"
 xcopy /E /I /Q "src"      "%RELEASE_DIR%\src\"
 xcopy /E /I /Q "launcher" "%RELEASE_DIR%\launcher\"
