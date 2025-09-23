@@ -43,6 +43,37 @@ class 기본사항:
     응답자근무기간:str
     유형         :str
     
+# @dataclass
+# class Record:
+#     date_str: str # 입력은 str로 받음
+#     date: datetime = field(init=False)
+
+#     def __post_init__(self): # str → datetime 변환
+#         self.date = datetime.strptime(self.date_str, "%Y-%m-%d")
+
+# from dataclasses import dataclass, field, fields
+
+# @dataclass
+# class SurveyResponse:
+#     age: int = field(default=None, metadata={"col": "A1"})
+#     gender: str = field(default=None, metadata={"col": "A2"})
+#     income: float = field(default=None, metadata={"col": "A3"})
+
+# import pandas as pd
+
+# row = {"A1": 25, "A2": "M", "A3": 50000.0}  # 데이터 예시
+
+# def row_to_dataclass(row: dict, cls):
+#     kwargs = {}
+#     for f in fields(cls):
+#         col = f.metadata.get("col")
+#         if col and col in row:
+#             kwargs[f.name] = row[col]
+#     return cls(**kwargs)
+
+# person = row_to_dataclass(row, SurveyResponse)
+# print(person)  # SurveyResponse(age=25, gender='M', income=50000.0)
+    
 # ---------------------------------------------------------------------------- #
 #                                     MAIN                                     #
 # ---------------------------------------------------------------------------- #
