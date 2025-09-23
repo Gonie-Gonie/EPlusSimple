@@ -110,22 +110,6 @@
 \definecolor{형진_color}{RGB}{255, 220, 230}   
 
 \let\originaltodo\todo
-\renewcommand{\todo}[2]{%
-  \ifthenelse{\equal{#1}{형곤}}%
-    {\originaltodo[color=gonie_color, size=tiny]{\textbf{#1}: #2}}%
-  {%
-  \ifthenelse{\equal{#1}{철홍}}%
-    {\originaltodo[color=hongI_color, size=tiny]{\textbf{#1}: #2}}%
-  {%
-  \ifthenelse{\equal{#1}{승주}}%
-    {\originaltodo[color=theungDu_color, size=tiny]{\textbf{#1}: #2}}%
-  {%
-  \ifthenelse{\equal{#1}{형진}}%
-    {\originaltodo[color=형진_color, size=tiny]{\textbf{#1}: #2}}%
-  {%
-    \originaltodo[color=gray!20, size=tiny]{\textbf{#1}: #2} % 기본값
-  }}}}%
-}
 % ---------------------------------------------------------------------------- %
 %                                     STYLE                                    %
 % ---------------------------------------------------------------------------- %
@@ -159,7 +143,7 @@
 
 % --- 반복되는 용어/alias 정의 ---
 \newcommand{\ep}{EnergyPlus}
-\newcommand{\simulator}{epGRsim}
+\newcommand{\simulator}{Eplus-GR}
 
 \newcommand{\pymodule}{pyGRsim}
 \newcommand{\unit}[1]{
