@@ -12,6 +12,9 @@
 
 \subsection{시뮬레이션 개요}
 시뮬레이션을 하려면, 일단 데이터를 읽고 변환하고 옵션 설정해서 돌리고 결과 나온거 정리해서 return함.
+본 \simulator\는 요구하는 포맷이 있음. @todo 예시 json파일 아래에 넣기
+
+데이터를 읽고, 요구하는 json 파일로 변환하는 과정이 필요함. 이렇게 해서 json을 입력하면 \simulator 엔진으로 시뮬레이션을 수행하고, 결과를 불러와 사용자에게 보여주는 방식임.
 
 \subsection{데이터 체계}
 json구조로 들어온 데이터는, 동일한 python 구조체로 변환되고 그게 dragon이라는 EP친화적 구조체로 변환된 다음 idf로 내보내짐.
@@ -65,7 +68,7 @@ json구조로 들어온 데이터는, 동일한 python 구조체로 변환되고
 기상데이터 매칭은 각 시·군·구의 중심 좌표와 95개 TMY 기상지점의 위도·경도 정보를 비교하여, Haversine 공식을 이용한 거리 계산 결과 가장 가까운 지점을 선택하는 방식으로 매칭함. 
 각 행정구역별 최근접 기상지점의 epw를 매칭한 결과는 표~\ref{tab:weather_mapping}에 제시함.
 
-\renewcommand{\arraystretch}{0.9}
+\renewcommand{\arraystretch}{0.8}
 \begin{longtable}{lcclcc}
   \caption{행정구역별 기상데이터 매칭 결과} \\
   \label{tab:weather_mapping} \\
@@ -336,6 +339,7 @@ EnergyPlus 핵심은 EnergyPlus.exe 맞나? 그것임.
 그 전에 expansion 필요하면 expandobject.exe도 실행해주어야 함.
 각각은 아래 option들을 받을 수 있음.
 
+
 \subsection{디렉토리 구조}
 코드 내부적으로는 이렇게 호출하고 있는데,
 디렉토리는 중간에 3개의 temp 폴더가 생김.
@@ -349,8 +353,14 @@ temp 폴더 경로는 C:/users/.../Appdata/Local/Temp/하위에 생김
 오류가 날 수도 있는데, 분류별로 보면 입력이 잘못된 경우와 뭐가 잘못된 경우와... \dots
 각각에 대하여는 이렇게 이렇게 처리할 수 있음.
 
+@todo시뮬레이터 사용 과정에서, 발생 가능한 오류의 종류는 다음과 같다: (1) 입력변수가 잘못된 경우, (2) idf 변환 과정이 잘못된 경우, ... (3) EnergyPlus 시뮬레이션이 진행되지 않는 경우.
+각 오류는 다음과 같이 해결할 수 있다.
+
+
 \subsection{입력변수가 잘못된 경우}
 입력변수 오류는 python 객체로 전환될 때 탐지해서 이런식으로 return함. 사용자는 이걸 보고 무엇을 판단할 수 있음.
+지금까지 발견한 오류들?
+(1) 
 
 \subsection{idf 변환 과정이 잘못된 경우}
 @TODO
@@ -440,18 +450,22 @@ EnergyPlus \texttt{Building} 객체의 \texttt{Solar Distribution} 속성을 `\t
 
 \section{구조체 정의}
 \subsection{EnergyPlus 구조체의 정의 및 변환 방법}
-비슷함.
+EnergyPlus는 Material class에서 먼저 재료의 물성치 (열전도율, 밀도, 비열) 입력하고 구조체는 Construction class에서 하나씩 referecing해와서 구조체를 만드는 방식임.
+외부에서부터 내부 방향으로 각 layer가 어떻게 구성되어있는지 입력하는것임 
+우리도 똑같아용..
 
 \subsection{모르는 값 추정}
 기축건물은 구조체를 모르는 경우가 많으며, 성적서 없는 경우도 다수 존재.
 구조체 모르는 경우 법규 연계, 창호는 현장 조사에서 레이어 조사 후 DB에서 값 선택 등 @TODO
+그린리모델링의 대상인 기축건물은 도면 및 시방서의 누락 등으로 인해 건물의 각 부위별 구조체를 모르는 경우가 많으며, 구조체 정보는 존재하더라도, 물성치에 대한 정보(시험성적서 등)가 없는 경우도 다수 존재한다. 이를 위해, 본 @바꿔 시뮬레이터 구조체 모르는 경우 법규 연계, 창호는 현장 조사에서 레이어 조사 후 DB에서 값 선택 등 @TODO
+
 
 \subsubsection{재료}
 ASHRAE 참고
 
 여기다 단위를 쓰겠습니다 \unit{density} \unit{asdfasdf}
 
-\renewcommand{\arraystretch}{0.9}
+\renewcommand{\arraystretch}{0.8}
 \begin{longtable}{llcclc}
   \caption{기본 재료 물성치} \\
   \toprule
@@ -557,11 +571,10 @@ ASHRAE 참고
 
 \section{프로필 정의와 활용}
 \subsection{ECO2 프로필의 정의}
-ECO2는 모델링 과정에서 실의 용도를 프로필로 지정하도록 하고 있으며, 총 20개의 프로필을 제공한다.
-
+건축물에너지효율등급인증규정은 건물 에너지 모델 구축 과정에서 실의 용도를 프로필로 지정하도록 하고 있으며, 총 20개의 프로필을 제공한다\cite{law:usageprofile}. 국내 용도프로필은 (1)사용시간과 운전 시간, (2)설정 요구량, (3)열발열원, (4)실내공기온도, (5)월간 사용일수에 관한 정보를 담고 있다 (\cref{tab:smallofficeusage}). 
 
 \begin{table}[ht]
-  \caption{ECO2에서 제공하는 용도프로필 종류}
+  \caption{ECO2:주거 및 주거용 이외 건축물 용도프로필 종류}
   \label{tbl:eco2profiles}  
   \centering
   \begin{tabular}{llll}
@@ -581,14 +594,12 @@ ECO2는 모델링 과정에서 실의 용도를 프로필로 지정하도록 하
 \end{table}
 
 
-건설기술연구원 보고서 참고 source값 표로 삽입 필요@TODO \cite{law:usageprofile}
-2. 소규모 사무실(30m2이하)의 용도프로필
 
-\renewcommand{\arraystretch}{0.9}
+\renewcommand{\arraystretch}{0.85}
 \begin{longtable}{ccc}
-  \caption{소규모사무실(30m2이하)} \\
+  \caption{용도프로필 입력값 예시: 소규모사무실($30m^2$이하)} \\
+  \label{tab:smallofficeusage} \\
   \toprule
-  \small
   구분 & 단위 & 값 \\ \midrule
   \endfirsthead
   \multicolumn{3}{r}{\textit{(이전 페이지에서 계속)}} \\ \toprule
@@ -608,14 +619,14 @@ ECO2는 모델링 과정에서 실의 용도를 프로필로 지정하도록 하
   \midrule
   설정 요구량 & & \\
   \midrule
-  최소도입외기량 & [m3/(m2h)] & 4 \\
-  급탕요구량 & [Wh/(m2d)] & 30 \\
+  최소도입외기량 & [$m^3/(m^2h)$] & 4 \\
+  급탕요구량 & [$Wh/(m^2d)$] & 30 \\
   조명시간 & [h] & 6 \\
   \midrule
   열발열원 & & \\
   \midrule
-  사람 & [Wh/(m2d)] & 30 \\
-  작업보조기기 & [Wh/(m2d)] & 42 \\
+  사람 & [$Wh/(m^2d)$] & 30 \\
+  작업보조기기 & [$Wh/(m^2d)$] & 42 \\
   \midrule
   실내공기온도 & & \\
   \midrule
@@ -640,9 +651,17 @@ ECO2는 모델링 과정에서 실의 용도를 프로필로 지정하도록 하
 
 
 
-
 \subsection{EnergyPlus 프로필의 정의}
-constant도 있고 하지만 simple schedule쓰면 Figure \ref{fig:ep_profile_structure}\와 같이 구별됨
+본 시뮬레이터는 EnergyPlus의 \texttt{Schedule:Compact}를 활용하여 용도프로필의 값을 적용하며, \cref{fig:ep_profile_structure}\와 같은 구조로 구성한다.
+
+\begin{itemize}
+  \item \textbf{Level 1(일간스케줄)}: 하루를 10분 간격으로 나누고, 각 간격에 해당하는 값을 순서대로 나열하여 구성한다. (예: 10분 간격일 경우 144개(1일;24시간;1440분)의 값으로 입력한다)
+  \item \textbf{Level 2(스케줄규칙)}: Level 1에서 정의한 일간스케줄을 요일(예: 주중, 주말, 공휴일 등) 유형에 따라 규칙을 정의한다. 즉, 어떤 요일 유형에 어떤 일간스케줄을 적용할지 결정한다. 예를 들어, \cref{fig:ep_profile_structure}의 ``주중 9to6 yes/no"스케줄의 경우, 9to6 yes/no(기본)을 모든 요일의 기본스케줄로 설정하되, 주말(토/일)과 휴일(공휴일)은 ``하루종일 no"스케줄을 override한다.
+  \item \textbf{Level 3(연간스케줄)}: 1년 동안의 스케줄을 정의한다. Level 2의 스케줄 규칙을 특정 기간에 맞게 조합하여 연간스케줄을 구성한다. 이를 통해, 방학 등 특정 기간에 따른 스케줄 변화가 필요한 실의 스케줄을 입력한다.
+  \item \textbf{Level 4(프로필)}: 실 운영관련 인자(기기가동, 재실, 조명, 실내 설정온도)의 연간스케줄(Level 3)최종 스케줄 객체이다.
+\end{itemize}
+
+이처럼, EnergyPlus 스케줄은 일간스케줄(Level 1) $\to$ 스케줄규칙(Level 2) $\to$ 연간스케줄(Level 3) $\to$ 프로필(Level 4)순서로 조합되어, 실 용도별 운영 스케줄을 상세하게 반영할 수 있도록 지원한다.
 
 \begin{defaultfigure}
   \includegraphics[width=\textwidth]{프로필구조도.png}
@@ -650,31 +669,100 @@ constant도 있고 하지만 simple schedule쓰면 Figure \ref{fig:ep_profile_st
   \label{fig:ep_profile_structure}
 \end{defaultfigure}
 
-\subsection{ECO2 프로필을 EnergyPlus 프로필로 변환 방법}
-단위는 이렇게 맞추고 나누고 쪼개고 하면 됨 @TODO
+\subsection{건축물에너지효율등급인증규정의 용도프로필을 EnergyPlus 프로필로 변환 방법}
+현재 건축물에너지효율등급인증규정에서 사용하는 용도프로필은 각 항목의 "대표값"으로 단순하게 구성되어있다. 이를 EnergyPlus에서 활용하기 위해서는, 두 가지 핵심 변환 과정이 요구된다.
+
+\begin{enumerate}
+  \item 단위 및 값 변환: 건축물에너지효율등급인증규정의 용도프로필의 값(예:열발열원-사람 [$Wh/(m^2d)$])을 EnergyPlus가 요구하는 단위 (예:면적당 인원 [$people/m^2$])로 변환한다.
+  \item 스케줄 변환: 건축물에너지효율등급인증규정의 단순 운영 시간 및 운영일수를 EnergyPlus 스케줄 형식으로 변환한다.
+\end{enumerate}
+
+아래는 건축물에너지효율등급인증규정의 소규모 사무소(30$m^2$이하)(\cref{tab:smallofficeusage})의 프로필을 EnergyPlus입력 스케줄로 변환하는 과정의 예시이다.
 
 \subsubsection{재실밀도}
-재실밀도
+\begin{table}[ht]
+  \caption{재실스케줄 변환}
+  \centering
+  \begin{tabular}{lcc}
+    \toprule
+     & \makecell{에너지효율등급\\인증규정} & EnergyPlus\\ \midrule
+    재실밀도 &  30 [$Wh/(m^2d)$] & 0.048 [$people/m^2$] \\ \midrule
+    스케줄  &  09:00-18:00      & \makecell{주중 09:00-18:00\\ 주말 및 공휴일 0} \\ \midrule
+  \end{tabular}
+\end{table}
+
+\paragraph{단위 및 값 변환} 건축물에너지효율등급인증규정은 인체의 발열량을 일일 면적당 발열 [$Wh/(m^2d)$]로 정의한다. 반면, EnergyPlus는 인체의 발열을 (a)인당 발열량 [$W/person$]과 (b) 단위 면적당 재실 인원 [$people/m^2$]의 조합으로 입력한다. 본 시뮬레이터에서는 인체의 현열 발열량을 70 [$W/person$]으로 가정하여 변환하였다.\par
+  (30$Wh/(m^2d)$ $\div$ 사용시간 9h $\div$ 인체발열(현열) 70 W/person = 0.048 $people/m^2$)
+\paragraph{스케줄 변환} 인증규정에 명시된 사용시간(09:00-18:00)과 월간 사용일수를 바탕으로 EnergyPlus의 연간 스케줄을 생성한다. 사용시간은 주중(Weekdays)스케줄에 적용하며, 주말(Weekends) 및 공휴일(Holidays)에는 재실이 없는 것으로 설정한다.
+
 
 \subsubsection{조명}
-조명
+\begin{table}[ht]
+  \caption{조명스케줄 변환}
+  \centering
+  \begin{tabular}{lcc}
+    \toprule
+     & \makecell{에너지효율등급\\인증규정} & EnergyPlus \\ \midrule
+    스케줄  &  6 [h]      & \makecell{주중 10:00-11:00,13:00-18:00(6[h])\\ 주말 및 공휴일 0} \\ \midrule
+  \end{tabular}
+\end{table}
 
-\subsubsection{기기발열}
-기기발열
+\paragraph{스케줄 변환} 인증규정의 일일 조명시간 6시간을 충족하기 위해, 점심시간을 제외한 주 업무시간대를 반영하여 EnergyPlus스케줄을 10-11시 및 13-18시로 설정하였다.
 
-\subsubsection{환기}
-환기
+
+
+\subsubsection{작업보조기기 발열}
+\begin{table}[ht]
+  \caption{작업보조기기스케줄 변환}
+  \centering
+  \begin{tabular}{lcc}
+    \toprule
+     & \makecell{에너지효율등급\\인증규정} & EnergyPlus \\ \midrule
+    기기발열 &  42 [$Wh/(m^2d)$] & 4.7 [$W/m^2$]  \\ \midrule
+    스케줄  &  09:00-18:00      & \makecell{주중 09:00-18:00\\ 주말 및 공휴일 0} \\ \midrule
+  \end{tabular}
+\end{table}
+
+\paragraph{단위 및 값 변환} 건축물에너지효율등급인증규정은 작업보조기기의 발열량을 일일 면적당 발열 [$Wh/(m^2d)$]의 단위로 정의한다. 반면, EnergyPlus는 작업보조기기의 발열을 면적당 발열량 [$W/m^2$]로 입력한다.\par
+  (42$Wh/(m^2d)$ $\div$ 사용시간 9h = 4.7 $W/m^2$)
+\paragraph{스케줄 변환} 재실스케줄과 같게 설정한다.
+
+
+
+\subsubsection{최소도입외기량}
+\begin{table}[ht]
+  \caption{최소도입외기량 변환}
+  \centering
+  \begin{tabular}{lcc}
+    \toprule
+     & \makecell{에너지효율등급\\인증규정} & EnergyPlus\\ \midrule
+    최소도입외기량 &  4 [$m^3/(m^2{\cdot}h)$] & 0.0011 [$m^3/(m^2{\cdot}s)$]  \\ \midrule
+    스케줄  &  09:00-18:00      & \makecell{주중 09:00-18:00\\ 주말 및 공휴일 0}  \\ \midrule
+  \end{tabular}
+\end{table}
+
+
+\paragraph{단위 및 값 변환} 건축물에너지효율등급인증규정은 최소도입외기량을 시간-단위면적당 외기도입량[$m^3/(m^2{\cdot}h)$]으로 정의한다. 반면, EnergyPlus는 최소도입외기량을 초-단위면적당 외기도입량[$m^3/(m^2{\cdot}s)$]으로 정의한다.\par
+  (4 $m^3/(m^2{\cdot}h)$ $\div$ 3600 s = 0.0011 $m^3/(m^2{\cdot}s)$)
+\paragraph{스케줄 변환} 재실스케줄과 같게 설정한다.
+
 
 \subsubsection{냉난방 가동 및 설정온도}
-냉난방
+\begin{table}[ht]
+  \caption{냉난방 가동 및 설정온도 변환}
+  \centering
+  \begin{tabular}{lcc}
+    \toprule
+     & \makecell{에너지효율등급\\인증규정} & EnergyPlus\\ \midrule
+    난방설정온도 &  20 [°C] & 20 [°C] \\ \midrule
+    냉방설정온도 &  26 [°C] & 26 [°C] \\ \midrule
+    스케줄      &  07:00-18:00   & \makecell{주중 07:00-18:00\\ 주말 및 공휴일 0}  \\ \midrule
+  \end{tabular}
+\end{table}
 
-\subsection{신규 프로필 정의 방법}
-\subsubsection{직접 정의하는 방법}
-사용자가 직접 프로필을 정의하는 경우, 단위에 맞추어서 입력하면 됨.
+\paragraph{단위 및 값 변환} 에너지효율등급규정의 값을 동일하게 적용한다.
+\paragraph{스케줄 변환} 인증규정에 명시된 운전시간(07:00-18:00)과 월간 사용일수를 바탕으로 EnergyPlus의 연간 스케줄을 생성한다. 운전시간은 주중(Weekdays)스케줄에 적용하며, 주말(Weekends) 및 공휴일(Holidays)에는 설비를 운전하지 않는 것으로 설정한다.
 
-\subsubsection{form에 기반하는 방법}
-부동산원 과업 대상지는 기본적으로 이런 입력을 지원할 수 있음.
-Simulator 탑재 여부는 미정.
 
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %

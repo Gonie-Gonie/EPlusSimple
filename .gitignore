@@ -1,8 +1,13 @@
-# 내가 추가한 것
+# 내가 추가한 것 (engine)
 launchers/uploads/*.xlsx
 launchers/uploads/*.grm
 launchers/uploads/*.grr
 *.log
+
+# 내가 추가한 것 (documentation)
+dist/docs/mainER.pdf
+dist/docs/mainPM.pdf
+dist/docs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
