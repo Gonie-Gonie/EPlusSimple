@@ -372,6 +372,7 @@ class Surface:
     
     def to_idf_object(self, zone:Zone) -> IdfObject:
         
+        # for stable calculation, opening sizes are reduced
         SAFETY_FACTOR_FOR_OPENING_SIZE = 0.999
         
         # window and door objects
