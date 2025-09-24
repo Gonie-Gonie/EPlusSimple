@@ -372,6 +372,8 @@ class Surface:
     
     def to_idf_object(self, zone:Zone) -> IdfObject:
         
+        SAFETY_FACTOR_FOR_OPENING_SIZE = 0.999
+        
         # window and door objects
         if isinstance(self.boundary, Surface):
             window_idfobjects = [
@@ -382,7 +384,8 @@ class Surface:
                     win_copied.name,
                     1,
                     1E-3, 1E-3,
-                    win.area**(1/2), win.area**(1/2)
+                    win.area**(1/2)*SAFETY_FACTOR_FOR_OPENING_SIZE,
+                    win.area**(1/2)*SAFETY_FACTOR_FOR_OPENING_SIZE,
                 ])
                 for win, win_copied in zip(self.window, self.boundary.window)
             ]
@@ -394,7 +397,8 @@ class Surface:
                     door_copied.name,
                     1,
                     1E-3, 1E-3,
-                    door.area**(1/2), door.area**(1/2)
+                    door.area**(1/2)*SAFETY_FACTOR_FOR_OPENING_SIZE,
+                    door.area**(1/2)*SAFETY_FACTOR_FOR_OPENING_SIZE,
                 ])
                 for door, door_copied in zip(self.door, self.boundary.door)
             ]
@@ -407,7 +411,8 @@ class Surface:
                     None,
                     1,
                     1E-3, 1E-3,
-                    win.area**(1/2), win.area**(1/2)
+                    win.area**(1/2)*SAFETY_FACTOR_FOR_OPENING_SIZE,
+                    win.area**(1/2)*SAFETY_FACTOR_FOR_OPENING_SIZE,
                 ]) 
                 for win in self.window
             ]
@@ -418,7 +423,8 @@ class Surface:
                     self.name,
                     1,
                     1E-3, 1E-3,
-                    door.area**(1/2), door.area**(1/2)
+                    door.area**(1/2)*SAFETY_FACTOR_FOR_OPENING_SIZE,
+                    door.area**(1/2)*SAFETY_FACTOR_FOR_OPENING_SIZE,
                 ])
                 for door in self.door
             ]       
