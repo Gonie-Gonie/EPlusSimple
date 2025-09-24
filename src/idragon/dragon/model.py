@@ -118,7 +118,7 @@ class EnergyModel:
         idf["Output:Table:SummaryReports"].append([
             "EndUseEnergyConsumptionElectricityMonthly",
             "EndUseEnergyConsumptionNaturalGasMonthly",
-            "EndUseEnergyConsumptionFuelOilMonthly"   ,
+            "EndUseEnergyConsumptionDieselMonthly"   ,
             "EndUseEnergyConsumptionOtherFuelsMonthly"   ,
             "EnergyConsumptionElectricityGeneratedPropaneMonthly",
         ])
