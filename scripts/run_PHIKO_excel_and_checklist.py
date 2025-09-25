@@ -76,7 +76,7 @@ if PREPROCESSING_REQUIRED:=True:
         output_filepath = os.path.join(PROCESSED_EXCEL_FILES_BEFORE_GR, filename)
         
         try:
-            _ = process_excel_file(os.path.join(ORIGINAL_EXCEL_FILES_BEFORE_GR, filename), output_filepath=output_filepath)
+            _ = process_excel_file(os.path.join(ORIGINAL_EXCEL_FILES_BEFORE_GR, filename), output_filepath=output_filepath, verbose=False)
             write_log(LOG_CATEGORY, True, filename)
             
         except Exception as e:
@@ -88,7 +88,7 @@ if PREPROCESSING_REQUIRED:=True:
         output_filepath = os.path.join(PROCESSED_EXCEL_FILES_AFTER_GR, filename)
         
         try:
-            _ = process_excel_file(os.path.join(ORIGINAL_EXCEL_FILES_AFTER_GR, filename), output_filepath=output_filepath)
+            _ = process_excel_file(os.path.join(ORIGINAL_EXCEL_FILES_AFTER_GR, filename), output_filepath=output_filepath, verbose=False)
             write_log(LOG_CATEGORY, True, filename)
             
         except Exception as e:

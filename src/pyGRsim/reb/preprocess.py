@@ -186,7 +186,7 @@ def convert_formulas_in_column_to_values(
     if verbose and converted_count > 0:
         print(f"[변환] 시트='{sheet_name}', 컬럼='{col_name}'의 수식 {converted_count}개를 값으로 변경했습니다.")
         
-def convert_이전레이어(wb) -> None:
+def convert_이전레이어(wb, verbose:bool=True) -> None:
     
     sheet = wb["구조체_면"]
     
@@ -244,7 +244,7 @@ def convert_이전레이어(wb) -> None:
                     for idx2, value in enumerate(원래값들):
                         sheet.cell(현재구조체개수+2, 2*(idx+1)+2+idx2).value = value
                     
-    drop_rows_inplace(wb, sheet_name="구조체_면", col_name="레이어1_재료", values=['&SPECIAL&이전레이어&'])        
+    drop_rows_inplace(wb, sheet_name="구조체_면", col_name="레이어1_재료", values=['&SPECIAL&이전레이어&'], verbose=verbose)        
 
 
 def replace_typo(wb) -> None:
@@ -263,7 +263,8 @@ def save_excel(
     output_filepath: Optional[str] = None,
     *,
     original_filepath: Optional[str] = None,
-    suffix: str = "_preprocess"
+    suffix: str = "_preprocess",
+    verbose:bool = True
 ):
     """
     워크북 저장만 담당.
@@ -279,7 +280,8 @@ def save_excel(
         output_filepath = str(p.with_name(f"{p.stem}{suffix}{p.suffix}"))  # <- 여기만 변경
 
     wb.save(output_filepath)
-    print(f"[저장] {output_filepath}")
+    if verbose:
+        print(f"[저장] {output_filepath}")
     
     return output_filepath
 
@@ -339,19 +341,26 @@ def process_excel_file(
         ) # 예시: 이 컬럼에 있는 모든 수식을 값으로 변경
         
         # 4. 특정 열 값 일괄 곱셈
-        multiply_column_inplace(wb, sheet_name="재료", col_name="비열 [J/kg·K]", factor=1000)
+        multiply_column_inplace(
+            wb,
+            sheet_name="재료",
+            col_name="비열 [J/kg·K]",
+            factor=1000,
+            verbose=False)
 
         # 오타 수정
         replace_typo(wb)
         
         # 이전레이어 처리
-        convert_이전레이어(wb)
+        convert_이전레이어(
+            wb,
+            verbose=verbose)
         
         # 5. 결과 저장
         if output_filepath is None:
             output_filepath = save_excel(wb, original_filepath=file_path, suffix=suffix)
         else:
-            output_filepath = save_excel(wb, output_filepath)
+            output_filepath = save_excel(wb, output_filepath, verbose=verbose)
         
         return output_filepath
 
