@@ -4,11 +4,15 @@ setlocal
 :: ============================================================================
 ::                            [ Configuration ]
 :: ============================================================================
+
+:: Python
 set PYTHON_VERSION_SHORT=312
 set PYTHON_VERSION_FULL=3.12.7
 set PYTHON_DIR=venv
 set PYTHON_ZIP_FILENAME=python-%PYTHON_VERSION_FULL%-embed-amd64.zip
 set PYTHON_DOWNLOAD_URL=https://www.python.org/ftp/python/%PYTHON_VERSION_FULL%/%PYTHON_ZIP_FILENAME%
+
+:: pip
 set GET_PIP_URL=https://bootstrap.pypa.io/get-pip.py
 
 :: ============================================================================
@@ -53,9 +57,9 @@ if %errorlevel% neq 0 (
 .\%PYTHON_DIR%\python.exe get-pip.py
 del get-pip.py
 
-:: *** NEW STEP: Uncomment 'import site' in ._pth file to enable site-packages ***
-echo     ...Enabling site-packages for the environment.
-powershell -Command "(Get-Content -Path '%PTH_FILE%') -replace '#import site', 'import site' | Set-Content -Path '%PTH_FILE%'"
+:: *** NEW STEP: Add site-packages path to ._pth file ***
+echo     ...Configuring environment paths.
+(echo Lib\site-packages) >> "%PTH_FILE%"
 
 echo     ...pip installation and configuration complete!
 
@@ -64,10 +68,14 @@ call :DoSetup
 goto :eof
 
 :DoSetup
-    echo     (a) Installing packages from requirements.txt...
+    echo     (a) Installing build tools...
+    .\%PYTHON_DIR%\Scripts\pip.exe install setuptools wheel
+
+    echo     (b) Installing packages from requirements.txt...
     .\%PYTHON_DIR%\Scripts\pip.exe install -r requirements.txt
 
-    echo     (b) Adding src path to '%PTH_FILE%'...
+    echo     (c) Adding src path to '%PTH_FILE%'...
+
     findstr /C:"%SRC_PATH%" "%PTH_FILE%" > nul
     if %errorlevel% equ 0 (
         echo         ...Path already exists.
@@ -78,6 +86,7 @@ goto :eof
     goto :eof
 
 :eof
+
 echo.
 echo ============================================================================
 echo  ^>^> All development environment setup is complete! ^<^<
