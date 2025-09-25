@@ -73,10 +73,14 @@ call :DoSetup
 goto :eof
 
 :DoSetup
-    echo     (a) Installing packages from requirements.txt...
+    echo     (a) Installing build tools...
+    .\%PYTHON_DIR%\Scripts\pip.exe install setuptools wheel
+
+    echo     (b) Installing packages from requirements.txt...
     .\%PYTHON_DIR%\Scripts\pip.exe install -r requirements.txt
 
-    echo     (b) Adding src path to '%PTH_FILE%'...
+    echo     (c) Adding src path to '%PTH_FILE%'...
+
     findstr /C:"%SRC_PATH%" "%PTH_FILE%" > nul
     if %errorlevel% equ 0 (
         echo         ...Path already exists.
