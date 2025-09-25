@@ -9,10 +9,6 @@ working_dir   = r"B:\공유 드라이브\01 진행과제\(안전원) 시뮬레�
 
 target_files = [file for file in os.listdir(working_dir) if file.endswith(r".xlsx") and not file.endswith(r"preprocess.xlsx")]
 
-target_files = [
-    r"022_화송어린이집_GR이전.xlsx"
-]
-
 for file in target_files:
     
     fullfilename = os.path.join(working_dir, file)
