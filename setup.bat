@@ -53,9 +53,9 @@ if %errorlevel% neq 0 (
 .\%PYTHON_DIR%\python.exe get-pip.py
 del get-pip.py
 
-:: *** NEW STEP: Uncomment 'import site' in ._pth file to enable site-packages ***
-echo     ...Enabling site-packages for the environment.
-powershell -Command "(Get-Content -Path '%PTH_FILE%') -replace '#import site', 'import site' | Set-Content -Path '%PTH_FILE%'"
+:: *** NEW STEP: Add site-packages path to ._pth file ***
+echo     ...Configuring environment paths.
+(echo Lib\site-packages) >> "%PTH_FILE%"
 
 echo     ...pip installation and configuration complete!
 
