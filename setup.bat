@@ -15,23 +15,18 @@ set PYTHON_DOWNLOAD_URL=https://www.python.org/ftp/python/%PYTHON_VERSION_FULL%/
 :: pip
 set GET_PIP_URL=https://bootstrap.pypa.io/get-pip.py
 
-:: 7zip
-set TOOLS_DIR=tools
-set SEVENZIP_DOWNLOAD_URL=https://7-zip.org/a/7z2407-extra.zip
-set SEVENZIP_ZIP_FILENAME=7z2407-extra.zip
-
 :: ============================================================================
 
 set PTH_FILE=.\%PYTHON_DIR%\python%PYTHON_VERSION_SHORT%._pth
 set SRC_PATH=..\src
 
-echo [1/6] Checking for existing Python environment...
+echo [1/5] Checking for existing Python environment...
 if exist "%PYTHON_DIR%\" (
     echo     ...Found '%PYTHON_DIR%' directory. Skipping download.
     goto :InstallPackages
 )
 
-echo [2/6] Downloading Portable Python %PYTHON_VERSION_FULL%...
+echo [2/5] Downloading Portable Python %PYTHON_VERSION_FULL%...
 curl -L -o %PYTHON_ZIP_FILENAME% %PYTHON_DOWNLOAD_URL%
 if %errorlevel% neq 0 (
     echo [ERROR] Download failed.
@@ -39,7 +34,7 @@ if %errorlevel% neq 0 (
     exit /b
 )
 
-echo [3/6] Extracting downloaded files...
+echo [3/5] Extracting downloaded files...
 mkdir %PYTHON_DIR%
 tar -xf %PYTHON_ZIP_FILENAME% -C %PYTHON_DIR%
 if %errorlevel% neq 0 (
@@ -50,7 +45,7 @@ if %errorlevel% neq 0 (
 del %PYTHON_ZIP_FILENAME%
 
 :InstallPackages
-echo [4/6] Installing pip and enabling site-packages...
+echo [4/5] Installing pip and enabling site-packages...
 curl -L -o get-pip.py %GET_PIP_URL%
 if %errorlevel% neq 0 (
     echo [ERROR] Failed to download get-pip.py.
@@ -68,7 +63,7 @@ echo     ...Configuring environment paths.
 
 echo     ...pip installation and configuration complete!
 
-echo [5/6] Installing packages and setting up paths...
+echo [5/5] Installing packages and setting up paths...
 call :DoSetup
 goto :eof
 
@@ -91,33 +86,6 @@ goto :eof
     goto :eof
 
 :eof
-
-echo [6/6] Checking for 7-Zip...
-if exist "%TOOLS_DIR%\7z.exe" (
-    echo     ...Found 7z.exe. Skipping download.
-) else (
-    echo     ...7-Zip not found. Downloading...
-    if not exist "%TOOLS_DIR%" mkdir %TOOLS_DIR%
-    
-    curl -L -o %SEVENZIP_ZIP_FILENAME% %SEVENZIP_DOWNLOAD_URL%
-    if %errorlevel% neq 0 (
-        echo [ERROR] 7-Zip download failed.
-        pause
-        exit /b
-    )
-    
-    echo     ...Extracting 7-Zip to '%TOOLS_DIR%'.
-    powershell -Command "Expand-Archive -Path '%SEVENZIP_ZIP_FILENAME%' -DestinationPath '%TOOLS_DIR%' -Force"
-    if %errorlevel% neq 0 (
-        echo [ERROR] 7-Zip extraction failed.
-        echo Please ensure PowerShell is available to extract files.
-        pause
-        exit /b
-    )
-    
-    del %SEVENZIP_ZIP_FILENAME%
-    echo     ...7-Zip setup complete.
-)
 
 echo.
 echo ============================================================================
