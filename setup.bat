@@ -17,8 +17,8 @@ set GET_PIP_URL=https://bootstrap.pypa.io/get-pip.py
 
 :: 7zip
 set TOOLS_DIR=tools
-set SEVENZIP_DOWNLOAD_URL=https://www.7-zip.org/a/7z2407-extra.zip
-set SEVENZIP_ZIP_FILENAME=7z-extra.zip
+set SEVENZIP_DOWNLOAD_URL=https://7-zip.org/a/7z2407-extra.zip
+set SEVENZIP_ZIP_FILENAME=7z2407-extra.zip
 
 :: ============================================================================
 
