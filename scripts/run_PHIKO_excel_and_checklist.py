@@ -6,7 +6,8 @@
 import os
 
 # third-party modules
-from tqdm import tqdm
+import pandas as pd
+from tqdm     import tqdm
 from datetime import datetime
 
 # local modules
@@ -18,8 +19,6 @@ from pyGRsim.reb.postprocess import (
     어린이집GR이후체크리스트,
     보건소GR이전체크리스트,
     보건소GR이후체크리스트,
-    보건지소GR이전체크리스트,
-    보건지소GR이후체크리스트,
 )
 
 
@@ -46,6 +45,8 @@ def write_log(
         else      : f.write(f"{category:10s}, fail   , {filename}, {exception}\n")
         
 # directory: on-site survey
+SURVEY_BEFORE_GR = os.path.join(working_dir, "checklist_beforeGR")
+SURVEY_AFTER_GR  = os.path.join(working_dir, "checklist_afterGR")
 
 # directory: excel
 ORIGINAL_EXCEL_FILES_BEFORE_GR  = os.path.join(working_dir, "excel_original_beforeGR")
@@ -60,6 +61,23 @@ PROCESSED_EXCEL_FILES_AFTER_GR  = os.path.join(working_dir, "excel_preprocessed_
 # ---------------------------------------------------------------------------- #
 #                                ON-SITE SURVEY                                #
 # ---------------------------------------------------------------------------- #
+
+# 어린이집
+beforesurvey어린이집 = 어린이집GR이전체크리스트.from_dataframe(
+    pd.read_csv(os.path.join(SURVEY_BEFORE_GR, "어린이집.csv"))
+)
+aftersurvey어린이집  = 어린이집GR이후체크리스트.from_dataframe(
+    pd.read_csv(os.path.join(SURVEY_AFTER_GR, "어린이집.csv"))
+)
+
+# 보건소
+beforesurvey보건소 = 보건소GR이전체크리스트.from_dataframe(
+    pd.read_csv(os.path.join(SURVEY_BEFORE_GR, "보건소.csv"))
+)
+aftersurvey보건소  = 보건소GR이후체크리스트.from_dataframe(
+    pd.read_csv(os.path.join(SURVEY_AFTER_GR, "보건소.csv"))
+)
+
 
 
 # ---------------------------------------------------------------------------- #

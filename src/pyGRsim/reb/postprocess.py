@@ -4,6 +4,7 @@
 # ------------------------------------------------------------------------ #
 
 # built-in modules
+from __future__ import annotations
 from abc import (
     ABC           ,
     abstractmethod,
@@ -15,7 +16,7 @@ from dataclasses import (
 
 
 # third-party modules
-
+import pandas as pd
 
 # local modules
 from pyGRsim import GreenRetrofitModel
@@ -80,29 +81,49 @@ class 기본사항:
 
 class 현장조사체크리스트(ABC):
 
-    @abstractmethod
-    def from_dataframe(filepath:str):
+    
+    """ input
+    """
+    
+    @classmethod
+    def from_row(cls, row:pd.Series) -> 현장조사체크리스트:
         ...
-        
+    
+    @classmethod
+    def from_dataframe(cls, df:pd.DataFrame) -> list[현장조사체크리스트]:
+        return [cls.from_row(row) for _, row in df.iterrows()]
+    
+    """ output
+    """
+    
     @abstractmethod
     def apply_to(grm:GreenRetrofitModel) -> IDF:
         ...
         
-class 어린이집GR이전체크리스트(현장조사체크리스트): ...
-
-class 어린이집GR이후체크리스트(현장조사체크리스트): ...
+class 어린이집GR이전체크리스트(현장조사체크리스트):
     
-class 보건소GR이전체크리스트(현장조사체크리스트): ...
+    @classmethod
+    def from_row(cls, row:pd.Series) -> 어린이집GR이전체크리스트:
+        pass
 
-class 보건소GR이후체크리스트(현장조사체크리스트): ...
+class 어린이집GR이후체크리스트(현장조사체크리스트):
+    
+    @classmethod
+    def from_row(cls, row:pd.Series) -> 어린이집GR이후체크리스트:
+        pass
+    
+class 보건소GR이전체크리스트(현장조사체크리스트): 
+    
+    @classmethod
+    def from_row(cls, row:pd.Series) -> 보건소GR이전체크리스트:
+        pass
+    
+class 보건소GR이후체크리스트(현장조사체크리스트):
 
-# 보건지소 = 보건소
-class 보건지소GR이전체크리스트(보건소GR이전체크리스트):
-    pass
-
-class 보건지소GR이후체크리스트(보건소GR이후체크리스트):
-    pass
-
+    @classmethod
+    def from_row(cls, row:pd.Series) -> 보건소GR이후체크리스트:
+        pass
+    
 class 의료시설GR이전체크리스트(현장조사체크리스트): ...
 
 class 의료시설GR이후체크리스트(현장조사체크리스트): ...
