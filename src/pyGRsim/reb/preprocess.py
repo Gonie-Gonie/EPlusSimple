@@ -300,8 +300,8 @@ def process_excel_file(
         wb = load_excel(file_path)
         wb_values = load_excel(file_path, data_only=True)
         # 2. 행 삭제 작업
-        drop_rows_inplace(wb, sheet_name="구조체_면", col_name="이름", values=["open"])
-        drop_rows_inplace(wb, sheet_name="재료", col_name="이름", values=["공기층", r"&SPECIAL&이전레이어&"])
+        drop_rows_inplace(wb, sheet_name="구조체_면", col_name="이름", values=["open"], verbose=verbose)
+        drop_rows_inplace(wb, sheet_name="재료", col_name="이름", values=["공기층", r"&SPECIAL&이전레이어&"], verbose=verbose)
         
         # 3. 수식을 숫자로 변경
         convert_formulas_in_column_to_values( 
@@ -354,7 +354,8 @@ def process_excel_file(
         # 이전레이어 처리
         convert_이전레이어(
             wb,
-            verbose=verbose)
+            verbose=verbose
+        )
         
         # 5. 결과 저장
         if output_filepath is None:
