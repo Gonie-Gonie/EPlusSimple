@@ -1,6 +1,5 @@
 
 import os
-import sys
 
 from pyGRsim import run_grjson, run_grexcel
 
