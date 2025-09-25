@@ -48,8 +48,10 @@ def drop_rows_inplace(
     col_name: str,
     values: List[Any],
     header_row: int = 1,
-    normalize: bool = True
-):
+    normalize: bool = True,
+    *,
+    verbose:bool=True,
+    ):
     """
     주어진 워크북(wb)에서, sheet_name 시트의 col_name 컬럼이
     values 목록과 일치하는 행들을 '서식 유지'한 채로 삭제 (메모리에서만 변경).
@@ -78,7 +80,8 @@ def drop_rows_inplace(
     for r in rows_to_delete:
         ws.delete_rows(r, 1)
 
-    print(f"[삭제] 시트='{sheet_name}', 컬럼='{col_name}', 삭제행수={len(rows_to_delete)}")
+    if verbose:
+        print(f"[삭제] 시트='{sheet_name}', 컬럼='{col_name}', 삭제행수={len(rows_to_delete)}")
 
 def multiply_column_inplace(
     wb,
@@ -87,7 +90,9 @@ def multiply_column_inplace(
     factor: float = 1000.0,
     header_row: int = 1,
     coerce_numeric: bool = True,  
-    skip_formula: bool = True
+    skip_formula: bool = True,
+    *,
+    verbose:bool=True,
 ) -> int:
     """
     시트 `sheet_name`의 컬럼 `col_name` 전체 값을 factor 배로 곱하여 덮어씀.
@@ -132,7 +137,8 @@ def multiply_column_inplace(
             cell.value = int(num * factor) if s.isdigit() and float(s).is_integer() else (num * factor)
             changed += 1
 
-    print(f"[곱셈] 시트='{sheet_name}', 컬럼='{col_name}', factor={factor}, 변경셀수={changed}")
+    if verbose:
+        print(f"[곱셈] 시트='{sheet_name}', 컬럼='{col_name}', factor={factor}, 변경셀수={changed}")
     return changed
 
 def convert_formulas_in_column_to_values(
@@ -140,7 +146,9 @@ def convert_formulas_in_column_to_values(
     wb_values,
     sheet_name: str,
     col_name: str,
-    header_row: int = 1
+    header_row: int = 1,
+    *,
+    verbose:bool=True,
 ):
     """
     특정 '컬럼(col_name)'에 포함된 모든 수식을 계산된 값으로 덮어씁니다.
@@ -175,11 +183,9 @@ def convert_formulas_in_column_to_values(
             cell_main.value = cell_with_value.value
             converted_count += 1
     
-    if converted_count > 0:
+    if verbose and converted_count > 0:
         print(f"[변환] 시트='{sheet_name}', 컬럼='{col_name}'의 수식 {converted_count}개를 값으로 변경했습니다.")
-    else:
-        print(f"[정보] 시트='{sheet_name}', 컬럼='{col_name}'에 변환할 수식이 없습니다.")
-
+        
 def convert_이전레이어(wb) -> None:
     
     sheet = wb["구조체_면"]
@@ -283,6 +289,7 @@ def process_excel_file(
     *,
     suffix         :str="preprocess",
     output_filepath:str=None        ,
+    verbose:bool=True,
     ) -> str:
     
         """하나의 엑셀 파일에 대한 전체 전처리 작업을 수행합니다."""
@@ -299,32 +306,37 @@ def process_excel_file(
             wb_main=wb,
             wb_values=wb_values,
             sheet_name="건물정보",
-            col_name="north_axis [°]" # 예시: 이 컬럼에 있는 모든 수식을 값으로 변경
-        )
+            col_name="north_axis [°]",
+            verbose = verbose,
+        ) # 예시: 이 컬럼에 있는 모든 수식을 값으로 변경
         convert_formulas_in_column_to_values(
             wb_main=wb,
             wb_values=wb_values,
             sheet_name="면",
-            col_name="면적 [m2]" # 예시: 이 컬럼에 있는 모든 수식을 값으로 변경
-        )
+            col_name="면적 [m2]",
+            verbose = verbose,
+        ) # 예시: 이 컬럼에 있는 모든 수식을 값으로 변경
         convert_formulas_in_column_to_values(
             wb_main=wb,
             wb_values=wb_values,
             sheet_name="개구부",
-            col_name="면적 [m2]" # 예시: 이 컬럼에 있는 모든 수식을 값으로 변경
-        )
+            col_name="면적 [m2]",
+            verbose = verbose, 
+        ) # 예시: 이 컬럼에 있는 모든 수식을 값으로 변경
         convert_formulas_in_column_to_values(
             wb_main=wb,
             wb_values=wb_values,
             sheet_name="생산설비",
-            col_name="냉방COP [W/W]" # 예시: 이 컬럼에 있는 모든 수식을 값으로 변경
-        )
+            col_name="냉방COP [W/W]",
+            verbose = verbose, 
+        ) # 예시: 이 컬럼에 있는 모든 수식을 값으로 변경
         convert_formulas_in_column_to_values(
             wb_main=wb,
             wb_values=wb_values,
             sheet_name="생산설비",
-            col_name="난방COP [W/W]" # 예시: 이 컬럼에 있는 모든 수식을 값으로 변경
-        )
+            col_name="난방COP [W/W]",
+            verbose = verbose, 
+        ) # 예시: 이 컬럼에 있는 모든 수식을 값으로 변경
         
         # 4. 특정 열 값 일괄 곱셈
         multiply_column_inplace(wb, sheet_name="재료", col_name="비열 [J/kg·K]", factor=1000)
