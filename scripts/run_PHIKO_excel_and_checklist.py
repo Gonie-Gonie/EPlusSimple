@@ -6,7 +6,8 @@
 import os
 
 # third-party modules
-import tqdm
+from tqdm import tqdm
+from datetime import datetime
 
 # local modules
 from pyGRsim import run_grexcel
@@ -25,7 +26,83 @@ from pyGRsim.reb.postprocess import (
 # settings
 working_dir = r"B:\공유 드라이브\01 진행과제\(안전원) 시뮬레이터\12 개발\scripts\run_PHIKO_excel_and_checklist"
 
+
+# ---------------------------------------------------------------------------- #
+#                                INITIALIZATION                                #
+# ---------------------------------------------------------------------------- #
+
+# log
+LOGFILE_PATH = os.path.join(working_dir, datetime.now().strftime(r"%Y%m%d-%H%M%S.log"))
+
+def write_log(
+    category :str ,
+    success  :bool,
+    filename :str ,
+    exception:Exception|None=None
+    ) -> None:
+    
+    with open(LOGFILE_PATH, "a") as f:
+        if success: f.write(f"{category:10s}, success, {filename}\n")
+        else      : f.write(f"{category:10s}, fail   , {filename}, {exception}\n")
+        
+# directory: on-site survey
+
+# directory: excel
+ORIGINAL_EXCEL_FILES_BEFORE_GR  = os.path.join(working_dir, "excel_original_beforeGR")
+PROCESSED_EXCEL_FILES_BEFORE_GR = os.path.join(working_dir, "excel_preprocessed_beforeGR")
+ORIGINAL_EXCEL_FILES_AFTER_GR   = os.path.join(working_dir, "excel_original_afterGR")
+PROCESSED_EXCEL_FILES_AFTER_GR  = os.path.join(working_dir, "excel_preprocessed_afterGR")
+
+# directory: result
+
+
+
 # ---------------------------------------------------------------------------- #
 #                                ON-SITE SURVEY                                #
 # ---------------------------------------------------------------------------- #
 
+
+# ---------------------------------------------------------------------------- #
+#                                 PREPROCESSING                                #
+# ---------------------------------------------------------------------------- #
+
+LOG_CATEGORY = "PREPROCESSING"
+
+if PREPROCESSING_REQUIRED:=True:
+    
+    # before GR
+    beforeGR_filelist = os.listdir(ORIGINAL_EXCEL_FILES_BEFORE_GR) 
+    for filename in tqdm(beforeGR_filelist, desc=f"Preprocessing before GR excel files"):
+        output_filepath = os.path.join(PROCESSED_EXCEL_FILES_BEFORE_GR, filename)
+        
+        try:
+            _ = process_excel_file(os.path.join(ORIGINAL_EXCEL_FILES_BEFORE_GR, filename), output_filepath=output_filepath)
+            write_log(LOG_CATEGORY, True, filename)
+            
+        except Exception as e:
+            write_log(LOG_CATEGORY, False, filename, e)
+    
+    # after GR    
+    afterGR_filelist = os.listdir(ORIGINAL_EXCEL_FILES_AFTER_GR) 
+    for filename in tqdm(afterGR_filelist, desc=f"Preprocessing after GR excel files"):
+        output_filepath = os.path.join(PROCESSED_EXCEL_FILES_AFTER_GR, filename)
+        
+        try:
+            _ = process_excel_file(os.path.join(ORIGINAL_EXCEL_FILES_AFTER_GR, filename), output_filepath=output_filepath)
+            write_log(LOG_CATEGORY, True, filename)
+            
+        except Exception as e:
+            write_log(LOG_CATEGORY, False, filename, e)
+            
+    
+# ---------------------------------------------------------------------------- #
+#                              STANDARD CONDITION                              #
+# ---------------------------------------------------------------------------- #
+
+# ---------------------------------------------------------------------------- #
+#                          BEFORE-GR SURVEY CONDITION                          #
+# ---------------------------------------------------------------------------- #
+
+# ---------------------------------------------------------------------------- #
+#                           AFTER-GR SURVEY CONDITION                          #
+# ---------------------------------------------------------------------------- #
