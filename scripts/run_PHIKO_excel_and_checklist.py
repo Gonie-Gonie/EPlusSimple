@@ -72,7 +72,7 @@ if PREPROCESSING_REQUIRED:=True:
     
     # before GR
     beforeGR_filelist = os.listdir(ORIGINAL_EXCEL_FILES_BEFORE_GR) 
-    for filename in tqdm(beforeGR_filelist, desc=f"Preprocessing before GR excel files"):
+    for filename in tqdm(beforeGR_filelist, desc=f"Preprocessing before-GR excel files"):
         output_filepath = os.path.join(PROCESSED_EXCEL_FILES_BEFORE_GR, filename)
         
         try:
@@ -84,7 +84,7 @@ if PREPROCESSING_REQUIRED:=True:
     
     # after GR    
     afterGR_filelist = os.listdir(ORIGINAL_EXCEL_FILES_AFTER_GR) 
-    for filename in tqdm(afterGR_filelist, desc=f"Preprocessing after GR excel files"):
+    for filename in tqdm(afterGR_filelist, desc=f"Preprocessing after-GR  excel files"):
         output_filepath = os.path.join(PROCESSED_EXCEL_FILES_AFTER_GR, filename)
         
         try:
