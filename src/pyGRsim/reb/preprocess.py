@@ -254,9 +254,9 @@ def replace_typo(wb) -> None:
     
 def save_excel(
     wb,
-    output_path: Optional[str] = None,
+    output_filepath: Optional[str] = None,
     *,
-    original_path: Optional[str] = None,
+    original_filepath: Optional[str] = None,
     suffix: str = "_preprocess"
 ):
     """
@@ -265,33 +265,26 @@ def save_excel(
     - 없으면 original_path의 파일명에 '{suffix}'를 붙여 저장  <- 여기만 변경
       (예: foo.xlsx -> foo_preprocess.xlsx)
     """
-    if output_path is None and original_path is None:
+    if output_filepath is None and original_filepath is None:
         raise ValueError("output_path 또는 original_path 중 하나는 지정해야 합니다.")
 
-    if output_path is None:
-        p = Path(original_path)                                  # <- 여기만 변경
-        output_path = str(p.with_name(f"{p.stem}{suffix}{p.suffix}"))  # <- 여기만 변경
+    if output_filepath is None:
+        p = Path(original_filepath)                                  # <- 여기만 변경
+        output_filepath = str(p.with_name(f"{p.stem}{suffix}{p.suffix}"))  # <- 여기만 변경
 
-    wb.save(output_path)
-    print(f"[저장] {output_path}")
+    wb.save(output_filepath)
+    print(f"[저장] {output_filepath}")
     
-    return output_path
-
-# ---------------- 실행 ---------------- #
-# file_path = r"Z:\01 진행과제\(안전원) 시뮬레이터\11 개발\_docs\InputOutput\example (엑셀전처리)\구립 화송어린이집_GR이후.xlsx"
-# wb = load_excel(file_path)
-
-# # 여러 번 ‘삭제만’ 수행 (메모리에서만 변경됨)
-# drop_rows_inplace(wb, sheet_name="구조체_면" , col_name="이름", values=["open","GR이후_외벽"])
-# drop_rows_inplace(wb, sheet_name="재료",      col_name="이름", values=["공기층"])
-# multiply_column_inplace(wb, sheet_name="재료", col_name="비열 [J/kg·K]", factor=1000)  # <- 여기만 변경
-
-# # 최종에 ‘저장만’ 수행
-# save_excel(wb, original_path=file_path)
+    return output_filepath
 
 
-
-def process_excel_file(file_path: str, *, suffix="preprocess") -> str:
+def process_excel_file(
+    file_path:str,
+    *,
+    suffix         :str="preprocess",
+    output_filepath:str=None        ,
+    ) -> str:
+    
         """하나의 엑셀 파일에 대한 전체 전처리 작업을 수행합니다."""
     # try:
         # 1. 엑셀 파일 로드
@@ -343,23 +336,11 @@ def process_excel_file(file_path: str, *, suffix="preprocess") -> str:
         convert_이전레이어(wb)
         
         # 5. 결과 저장
-        output_filepath = save_excel(wb, original_path=file_path, suffix=suffix)
+        if output_filepath is None:
+            output_filepath = save_excel(wb, original_filepath=file_path, suffix=suffix)
+        else:
+            output_filepath = save_excel(wb, output_filepath)
         
         return output_filepath
-
-    # except Exception as e:
-    #     # 특정 파일 처리 중 에러가 발생해도 전체 스크립트가 멈추지 않도록 예외 처리
-    #     print(f"[오류] 파일 '{Path(file_path).name}' 처리 중 문제가 발생했습니다: {e}")
-
-    #     return
-
-
-
-
-
-
-
-
-
 
 
