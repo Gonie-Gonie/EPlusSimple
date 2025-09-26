@@ -4,6 +4,7 @@
 
 # built-in modules
 import os
+import re
 from datetime  import datetime
 from functools import partial
 
@@ -13,10 +14,11 @@ from tqdm     import tqdm
 from tqdm.contrib.concurrent import process_map
 
 # local modules
-from pyGRsim import run_grexcel
+from pyGRsim import run_grexcel, GreenRetrofitModel, GreenRetrofitResult
 from pyGRsim.debug import debug_excel, report_result
 from pyGRsim.reb.preprocess  import process_excel_file
 from pyGRsim.reb.postprocess import (
+    현장조사체크리스트,
     어린이집GR이전체크리스트,
     어린이집GR이후체크리스트,
     보건소GR이전체크리스트,
@@ -61,7 +63,7 @@ def write_log(
     category :str ,
     success  :bool,
     filename :str ,
-    exception:Exception|None=None
+    exception:Exception|None=None,
     ) -> None:
     
     with open(LOGFILE_PATH, "a") as f:
@@ -162,6 +164,119 @@ def run_standard_condition(
     return
 
 
+def run_priorgr_condition_single(
+    filename:str,
+    *,
+    dir_processed:str,
+    dir_result   :str,
+    surveymap    :dict[str, 현장조사체크리스트],
+    log_category :str,
+    ) -> None: 
+    
+    # define output path
+    output_filepath = os.path.join(dir_result, filename).replace(r".xlsx",r".grr")
+    
+    # survey info
+    buildingname = re.search(r"(?P<code>^\d+)_(?P<name>[^_]+)_(?P<tag>[^_]+)\.xlsx", filename).group("name")
+    if buildingname not in surveymap.keys():
+        return
+    survey = surveymap[buildingname]
+    
+    # try to preprocess and log if succeed
+    try:
+        grm = GreenRetrofitModel.from_excel(os.path.join(dir_processed, filename))
+        idf = survey.apply_to(grm)
+        grr = GreenRetrofitResult(grm, idf.run(grm.weather_filepath))
+        grr.write(output_filepath)
+        
+        write_log(log_category, True, filename)
+    
+    # log if failed
+    except Exception as e:
+        write_log(log_category, False, filename, e)
+        
+    return
+
+def run_priorgr_condition(
+    dir_processed:str,
+    dir_result   :str,
+    surveymap    :dict[str, 현장조사체크리스트],
+    desc         :str,
+    ) -> None:
+    
+    # settings
+    LOG_CATEGORY = "RUNNING_PRIOR"
+    filelist = os.listdir(dir_processed)
+    
+    # multiprocessing
+    worker = partial(
+        run_priorgr_condition_single,
+        dir_processed=dir_processed  ,
+        dir_result = dir_result      ,
+        surveymap  = surveymap       ,
+        log_category=LOG_CATEGORY    ,
+    )
+    process_map(worker, filelist, max_workers=num_workers, desc=desc, ncols=150)
+    
+    return
+
+
+def run_posteriorgr_condition_single(
+    filename:str,
+    *,
+    dir_processed:str,
+    dir_result   :str,
+    surveymap    :dict[str, 현장조사체크리스트],
+    log_category :str,
+    ) -> None:
+    
+    # define output path
+    output_filepath = os.path.join(dir_result, filename).replace(r".xlsx",r".grr")
+    
+    # survey info
+    buildingname = re.search(r"(?<=^\d+_)\w+(?=_)", filename).group(0)
+    if buildingname not in surveymap.keys():
+        return
+    survey = surveymap[buildingname]
+    
+    # try to preprocess and log if succeed
+    try:
+        grm = GreenRetrofitModel.from_excel(os.path.join(dir_processed, filename))
+        idf = survey.apply_to(grm)
+        grr = GreenRetrofitResult(grm, idf.run(grm.weather_filepath))
+        grr.write(output_filepath)
+        
+        write_log(log_category, True, filename)
+    
+    # log if failed
+    except Exception as e:
+        write_log(log_category, False, filename, e)
+        
+    return
+
+def run_posteriorgr_condition(
+    dir_processed:str,
+    dir_result   :str,
+    surveymap    :dict[str, 현장조사체크리스트],
+    desc         :str,
+    ) -> None:
+    
+    # settings
+    LOG_CATEGORY = "RUNNING_POSTERIOR"
+    filelist = os.listdir(dir_processed)
+    
+    # multiprocessing
+    worker = partial(
+        run_posteriorgr_condition_single,
+        dir_processed=dir_processed  ,
+        dir_result = dir_result      ,
+        surveymap  = surveymap       ,
+        log_category=LOG_CATEGORY    ,
+    )
+    process_map(worker, filelist, max_workers=num_workers, desc=desc, ncols=150)
+    
+    return
+
 
 if __name__ == "__main__":
 
@@ -170,21 +285,36 @@ if __name__ == "__main__":
     # ---------------------------------------------------------------------------- #
 
     # 어린이집
-    beforesurvey어린이집 = 어린이집GR이전체크리스트.from_dataframe(
+    priorsurvey어린이집 = 어린이집GR이전체크리스트.from_dataframe(
         pd.read_csv(os.path.join(SURVEY_BEFORE_GR, "어린이집.csv"))
     )
-    aftersurvey어린이집  = 어린이집GR이후체크리스트.from_dataframe(
+    posteriorsurvey어린이집  = 어린이집GR이후체크리스트.from_dataframe(
         pd.read_csv(os.path.join(SURVEY_AFTER_GR, "어린이집.csv"))
     )
 
     # 보건소
-    beforesurvey보건소 = 보건소GR이전체크리스트.from_dataframe(
+    priorsurvey보건소 = 보건소GR이전체크리스트.from_dataframe(
         pd.read_csv(os.path.join(SURVEY_BEFORE_GR, "보건소.csv"))
     )
-    aftersurvey보건소  = 보건소GR이후체크리스트.from_dataframe(
+    posteriorsurvey보건소  = 보건소GR이후체크리스트.from_dataframe(
         pd.read_csv(os.path.join(SURVEY_AFTER_GR, "보건소.csv"))
     )
 
+    priorsurveymap = {
+        survey.기본정보.건물명: survey
+        for survey in priorsurvey어린이집
+    }|{
+        survey.기본정보.건물명: survey
+        for survey in priorsurvey보건소
+    }
+    
+    posteriorsurveymap = {
+        survey.기본정보.건물명: survey
+        for survey in posteriorsurvey어린이집
+    }|{
+        survey.기본정보.건물명: survey
+        for survey in posteriorsurvey보건소
+    }
 
     # ---------------------------------------------------------------------------- #
     #                                 PREPROCESSING                                #
@@ -210,7 +340,7 @@ if __name__ == "__main__":
     #                              STANDARD CONDITION                              #
     # ---------------------------------------------------------------------------- #
 
-    if STANDARD_RUNNING_REQUIRED:=True:
+    if STANDARD_RUNNING_REQUIRED:=False:
         
         # before-GR
         run_standard_condition(
@@ -225,12 +355,50 @@ if __name__ == "__main__":
             STANDARD_CONDITION_AFTER_GR,
             "Running after-GR  excel files w/ standard condition",        
         )
-        
-        
+            
     # ---------------------------------------------------------------------------- #
-    #                          BEFORE-GR SURVEY CONDITION                          #
+    #                           PRIOR-GR SURVEY CONDITION                          #
     # ---------------------------------------------------------------------------- #
 
+    if PRIORGR_RUNNING_REQUIRED:=True:
+        
+        # before-GR
+        run_priorgr_condition(
+            PROCESSED_EXCEL_FILES_BEFORE_GR,
+            PRIORSURVEY_CONDITION_BEFORE_GR,
+            priorsurveymap,
+            "Running before-GR excel files w/ prior-GR condition",   
+        )
+        
+        # after-GR
+        run_priorgr_condition(
+            PROCESSED_EXCEL_FILES_AFTER_GR,
+            PRIORSURVEY_CONDITION_AFTER_GR,
+            priorsurveymap,
+            "Running before-GR excel files w/ prior-GR condition",   
+        )
+    
     # ---------------------------------------------------------------------------- #
     #                           AFTER-GR SURVEY CONDITION                          #
     # ---------------------------------------------------------------------------- #
+
+    if POSTERIORGR_RUNNING_REQUIRED:=True:
+        
+        # before-GR
+        run_posteriorgr_condition(
+            PROCESSED_EXCEL_FILES_BEFORE_GR,
+            POSTERIORSURVEY_CONDITION_BEFORE_GR,
+            posteriorsurveymap,
+            "Running before-GR excel files w/ prior-GR condition",   
+        )
+        
+        # after-GR
+        run_posteriorgr_condition(
+            PROCESSED_EXCEL_FILES_AFTER_GR,
+            POSTERIORSURVEY_CONDITION_AFTER_GR,
+            posteriorsurveymap,
+            "Running before-GR excel files w/ prior-GR condition",   
+        )
+    
+    
+    

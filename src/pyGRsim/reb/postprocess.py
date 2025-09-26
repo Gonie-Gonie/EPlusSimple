@@ -13,6 +13,7 @@ from dataclasses import (
     field    ,
     dataclass,
 )
+from enum import Enum
 
 
 # third-party modules
@@ -29,7 +30,7 @@ from idragon import IDF
 
 @dataclass
 class MetaData:
-    userId    : str = field()
+    userId    : str 
     userName  : str
     name      : str
     department: str
@@ -37,50 +38,22 @@ class MetaData:
     version   : str
     
 @dataclass
-class 기본사항:
-    건물명       :str
-    GR준공일     :str
-    조사일       :str
-    응답자근무기간:str
+class 기본정보:
+    건물명       :str 
+    GR준공일     :str 
+    조사일       :str 
+    응답자근무기간:str 
     유형         :str
     
-# @dataclass
-# class Record:
-#     date_str: str # 입력은 str로 받음
-#     date: datetime = field(init=False)
-
-#     def __post_init__(self): # str → datetime 변환
-#         self.date = datetime.strptime(self.date_str, "%Y-%m-%d")
-
-# from dataclasses import dataclass, field, fields
-
-# @dataclass
-# class SurveyResponse:
-#     age: int = field(default=None, metadata={"col": "A1"})
-#     gender: str = field(default=None, metadata={"col": "A2"})
-#     income: float = field(default=None, metadata={"col": "A3"})
-
-# import pandas as pd
-
-# row = {"A1": 25, "A2": "M", "A3": 50000.0}  # 데이터 예시
-
-# def row_to_dataclass(row: dict, cls):
-#     kwargs = {}
-#     for f in fields(cls):
-#         col = f.metadata.get("col")
-#         if col and col in row:
-#             kwargs[f.name] = row[col]
-#     return cls(**kwargs)
-
-# person = row_to_dataclass(row, SurveyResponse)
-# print(person)  # SurveyResponse(age=25, gender='M', income=50000.0)
+    @classmethod
+    def from_row(cls, row:pd.Series,):
+        pass
     
 # ---------------------------------------------------------------------------- #
 #                                     MAIN                                     #
 # ---------------------------------------------------------------------------- #
 
 class 현장조사체크리스트(ABC):
-
     
     """ input
     """
@@ -97,37 +70,94 @@ class 현장조사체크리스트(ABC):
     """
     
     @abstractmethod
-    def apply_to(grm:GreenRetrofitModel) -> IDF:
+    def apply_to(self, grm:GreenRetrofitModel) -> IDF:
         ...
         
 class 어린이집GR이전체크리스트(현장조사체크리스트):
     
     @classmethod
-    def from_row(cls, row:pd.Series) -> 어린이집GR이전체크리스트:
-        pass
+    def from_row(cls, row:pd.Series) -> 보건소GR이전체크리스트:
+        
+        # create obj
+        obj = cls()
+        obj.raw = row
+        
+        # metadata
+        obj.metadata = MetaData(
+            row["userId"], row["userName"], row["name"], row["department"], row["updatedAt"], row["version"]
+        )
+        obj.기본정보 = 기본정보(row["A1"],row["A2"],row["A3"],row["A4"],None)
+        
+        return obj
+        
+    def apply_to(self, grm:GreenRetrofitModel) -> IDF:
+        
+        return IDF()
 
 class 어린이집GR이후체크리스트(현장조사체크리스트):
     
     @classmethod
-    def from_row(cls, row:pd.Series) -> 어린이집GR이후체크리스트:
-        pass
+    def from_row(cls, row:pd.Series) -> 보건소GR이전체크리스트:
+        
+        # create obj
+        obj = cls()
+        obj.raw = row
+        
+        # metadata
+        obj.metadata = MetaData(
+            row["userId"], row["userName"], row["name"], row["department"], row["updatedAt"], row["version"]
+        )
+        obj.기본정보 = 기본정보(row["A1"],row["A2"],row["A3"],row["A4"],row["A5"])
+        
+        return obj
+        
+    def apply_to(self, grm:GreenRetrofitModel) -> IDF:
+        
+        return IDF()
     
 class 보건소GR이전체크리스트(현장조사체크리스트): 
     
     @classmethod
     def from_row(cls, row:pd.Series) -> 보건소GR이전체크리스트:
-        pass
+        
+        # create obj
+        obj = cls()
+        obj.raw = row
+        
+        # metadata
+        obj.metadata = MetaData(
+            row["userId"], row["userName"], row["name"], row["department"], row["updatedAt"], row["version"]
+        )
+        obj.기본정보 = 기본정보(row["A1"],row["A2"],row["A3"],row["A4"],row["A5"])
+        
+        return obj
+    
+    def apply_to(self, grm:GreenRetrofitModel) -> IDF:
+        
+        return IDF()
     
 class 보건소GR이후체크리스트(현장조사체크리스트):
 
     @classmethod
-    def from_row(cls, row:pd.Series) -> 보건소GR이후체크리스트:
-        pass
+    def from_row(cls, row:pd.Series) -> 보건소GR이전체크리스트:
+        
+        # create obj
+        obj = cls()
+        obj.raw = row
+        
+        # metadata
+        obj.metadata = MetaData(
+            row["userId"], row["userName"], row["name"], row["department"], row["updatedAt"], row["version"]
+        )
+        obj.기본정보 = 기본정보(row["A1"],row["A2"],row["A3"],row["A4"],row["A5"])
+        
+        return obj
+        
+    def apply_to(self, grm:GreenRetrofitModel) -> IDF:
+        
+        return IDF()
     
 class 의료시설GR이전체크리스트(현장조사체크리스트): ...
 
 class 의료시설GR이후체크리스트(현장조사체크리스트): ...
-
-
-
 
