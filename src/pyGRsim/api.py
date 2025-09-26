@@ -40,7 +40,7 @@ def run_grjson(
     output_filepath:str|None=None,
     *,
     save           :bool    =True,
-    ) -> None:
+    ) -> str:
     
     """ run grjson input file and write result
     
@@ -74,7 +74,7 @@ def run_grjson(
     if save:
         grr.write(output_filepath)
         print(f"[DEBUG] 결과 파일 저장 위치: {output_filepath}")
-        return
+        return output_filepath
     
     # else return the dictionarized data
     else:
@@ -85,7 +85,7 @@ def run_grexcel(
     output_filepath:str|None=None,
     *,
     save           :bool    =True,
-    ) -> None:
+    ) -> str:
     
     """ run grexcel input file and write result
     * note: this function has the identital structure with the 'run_grjson' func
@@ -109,7 +109,8 @@ def run_grexcel(
     
     # try to run grjson
     try:
-        return run_grjson(grjson_filepath, output_filepath, save=save)
+        output_filepath = run_grjson(grjson_filepath, output_filepath, save=save)
+        return output_filepath
     
     # and remove the temporal grjson file
     finally:
