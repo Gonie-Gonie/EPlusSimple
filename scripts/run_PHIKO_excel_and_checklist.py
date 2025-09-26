@@ -27,22 +27,11 @@ working_dir = r"B:\공유 드라이브\01 진행과제\(안전원) 시뮬레이�
 
 
 # ---------------------------------------------------------------------------- #
-#                                INITIALIZATION                                #
+#                                   CONSTANTS                                  #
 # ---------------------------------------------------------------------------- #
 
 # log
 LOGFILE_PATH = os.path.join(working_dir, datetime.now().strftime(r"%Y%m%d-%H%M%S.log"))
-
-def write_log(
-    category :str ,
-    success  :bool,
-    filename :str ,
-    exception:Exception|None=None
-    ) -> None:
-    
-    with open(LOGFILE_PATH, "a") as f:
-        if success: f.write(f"{category:10s}, success, {filename}\n")
-        else      : f.write(f"{category:10s}, fail   , {filename}, {exception}\n")
         
 # directory: on-site survey
 SURVEY_BEFORE_GR = os.path.join(working_dir, "checklist_beforeGR")
@@ -57,6 +46,48 @@ PROCESSED_EXCEL_FILES_AFTER_GR  = os.path.join(working_dir, "excel_preprocessed_
 # directory: result
 
 
+# ---------------------------------------------------------------------------- #
+#                                   FUNCTIONS                                  #
+# ---------------------------------------------------------------------------- #
+
+def write_log(
+    category :str ,
+    success  :bool,
+    filename :str ,
+    exception:Exception|None=None
+    ) -> None:
+    
+    with open(LOGFILE_PATH, "a") as f:
+        if success: f.write(f"{category:10s}, success, {filename}\n")
+        else      : f.write(f"{category:10s}, fail   , {filename}, {exception}\n")
+
+    return
+
+
+def preprocess(
+    dir_original :str,
+    dir_processed:str,
+    desc         :str,
+    ) -> None:
+    
+    LOG_CATEGORY = "PREPROCESSING"
+    
+    filelist = os.listdir(dir_original) 
+    for filename in tqdm(filelist, desc=desc, ncols=150):
+        output_filepath = os.path.join(dir_processed, filename)
+        
+        try:
+            _ = process_excel_file(
+                os.path.join(dir_original, filename),
+                output_filepath=output_filepath,
+                verbose=False
+            )
+            write_log(LOG_CATEGORY, True, filename)
+            
+        except Exception as e:
+            write_log(LOG_CATEGORY, False, filename, e)
+
+    return
 
 # ---------------------------------------------------------------------------- #
 #                                ON-SITE SURVEY                                #
@@ -79,18 +110,43 @@ aftersurvey보건소  = 보건소GR이후체크리스트.from_dataframe(
 )
 
 
-
 # ---------------------------------------------------------------------------- #
 #                                 PREPROCESSING                                #
 # ---------------------------------------------------------------------------- #
 
-LOG_CATEGORY = "PREPROCESSING"
+
 
 if PREPROCESSING_REQUIRED:=True:
     
     # before GR
-    beforeGR_filelist = os.listdir(ORIGINAL_EXCEL_FILES_BEFORE_GR) 
-    for filename in tqdm(beforeGR_filelist, desc=f"Preprocessing before-GR excel files"):
+    preprocess(
+        ORIGINAL_EXCEL_FILES_BEFORE_GR ,
+        PROCESSED_EXCEL_FILES_BEFORE_GR,
+        "Preprocessing before-GR excel files",
+    )
+    
+    # after GR
+    preprocess(
+        ORIGINAL_EXCEL_FILES_AFTER_GR ,
+        PROCESSED_EXCEL_FILES_AFTER_GR,
+        "Preprocessing after-GR excel files",
+    )            
+    
+# ---------------------------------------------------------------------------- #
+#                              STANDARD CONDITION                              #
+# ---------------------------------------------------------------------------- #
+
+if STANDARD_RUNNING_REQUIRED:=True:
+    
+    # before GR
+    beforeGR_filelist = os.listdir(PROCESSED_EXCEL_FILES_BEFORE_GR) 
+    for filename in tqdm(beforeGR_filelist, desc=f"Running before-GR excel files w. std. condition", ncols=150):
+        
+        
+        
+        
+        
+        
         output_filepath = os.path.join(PROCESSED_EXCEL_FILES_BEFORE_GR, filename)
         
         try:
@@ -111,11 +167,6 @@ if PREPROCESSING_REQUIRED:=True:
             
         except Exception as e:
             write_log(LOG_CATEGORY, False, filename, e)
-            
-    
-# ---------------------------------------------------------------------------- #
-#                              STANDARD CONDITION                              #
-# ---------------------------------------------------------------------------- #
 
 # ---------------------------------------------------------------------------- #
 #                          BEFORE-GR SURVEY CONDITION                          #
