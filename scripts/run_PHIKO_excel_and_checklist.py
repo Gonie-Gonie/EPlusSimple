@@ -26,7 +26,7 @@ from pyGRsim.reb.postprocess import (
 
 # settings
 working_dir = r"B:\공유 드라이브\01 진행과제\(안전원) 시뮬레이터\12 개발\scripts\run_PHIKO_excel_and_checklist"
-workers = 6
+num_workers = 6
 
 # ---------------------------------------------------------------------------- #
 #                                   CONSTANTS                                  #
@@ -113,7 +113,7 @@ def preprocess(
         dir_processed=dir_processed,
         log_category =LOG_CATEGORY,
     )
-    process_map(worker, filelist, max_workers=workers, desc=desc, ncols=150)     
+    process_map(worker, filelist, max_workers=num_workers, desc=desc, ncols=150)     
 
     return
 
@@ -157,7 +157,7 @@ def run_standard_condition(
         dir_result = dir_result      ,
         log_category=LOG_CATEGORY    ,
     )
-    process_map(worker, filelist, max_workers=workers, desc=desc, ncols=150)
+    process_map(worker, filelist, max_workers=num_workers, desc=desc, ncols=150)
     
     return
 
