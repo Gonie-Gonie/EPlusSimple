@@ -4,11 +4,13 @@
 
 # built-in modules
 import os
+from datetime  import datetime
+from functools import partial
 
 # third-party modules
 import pandas as pd
 from tqdm     import tqdm
-from datetime import datetime
+from tqdm.contrib.concurrent import process_map
 
 # local modules
 from pyGRsim import run_grexcel
@@ -24,7 +26,7 @@ from pyGRsim.reb.postprocess import (
 
 # settings
 working_dir = r"B:\공유 드라이브\01 진행과제\(안전원) 시뮬레이터\12 개발\scripts\run_PHIKO_excel_and_checklist"
-
+multithread = 6
 
 # ---------------------------------------------------------------------------- #
 #                                   CONSTANTS                                  #
@@ -44,7 +46,12 @@ ORIGINAL_EXCEL_FILES_AFTER_GR   = os.path.join(working_dir, "excel_original_afte
 PROCESSED_EXCEL_FILES_AFTER_GR  = os.path.join(working_dir, "excel_preprocessed_afterGR")
 
 # directory: result
-
+STANDARD_CONDITION_BEFORE_GR = os.path.join(working_dir, "result_standard_beforeGR")
+STANDARD_CONDITION_AFTER_GR  = os.path.join(working_dir, "result_standard_afterGR")
+PRIORSURVEY_CONDITION_BEFORE_GR = os.path.join(working_dir, "result_priorsurvey_beforeGR")
+PRIORSURVEY_CONDITION_AFTER_GR  = os.path.join(working_dir, "result_priorsurvey_afterGR")
+POSTERIORSURVEY_CONDITION_BEFORE_GR = os.path.join(working_dir, "result_posteriorsurvey_beforeGR")
+POSTERIORSURVEY_CONDITION_AFTER_GR  = os.path.join(working_dir, "result_posteriorsurvey_afterGR")
 
 # ---------------------------------------------------------------------------- #
 #                                   FUNCTIONS                                  #
@@ -89,6 +96,26 @@ def preprocess(
 
     return
 
+
+def run_standard_condition(
+    dir_processed:str,
+    dir_result   :str,
+    desc         :str,
+    ) -> None:
+    
+    LOG_CATEGORY = "RUNNING_STANDRAD"
+    
+    filelist = os.listdir(dir_processed)
+    for filename in tqdm(filelist, desc=desc, ncols=150):
+        output_filepath = os.path.join(dir_result, filename).replace(r".xlsx",r".grr")
+        
+        try:
+            _ = run_grexcel(os.path.join(dir_processed,filename), output_filepath)
+            write_log(LOG_CATEGORY, True, filename)
+            
+        except Exception as e:
+            write_log(LOG_CATEGORY, False, filename, e)
+
 # ---------------------------------------------------------------------------- #
 #                                ON-SITE SURVEY                                #
 # ---------------------------------------------------------------------------- #
@@ -116,7 +143,7 @@ aftersurvey보건소  = 보건소GR이후체크리스트.from_dataframe(
 
 
 
-if PREPROCESSING_REQUIRED:=True:
+if PREPROCESSING_REQUIRED:=False:
     
     # before GR
     preprocess(
@@ -138,36 +165,21 @@ if PREPROCESSING_REQUIRED:=True:
 
 if STANDARD_RUNNING_REQUIRED:=True:
     
-    # before GR
-    beforeGR_filelist = os.listdir(PROCESSED_EXCEL_FILES_BEFORE_GR) 
-    for filename in tqdm(beforeGR_filelist, desc=f"Running before-GR excel files w. std. condition", ncols=150):
-        
-        
-        
-        
-        
-        
-        output_filepath = os.path.join(PROCESSED_EXCEL_FILES_BEFORE_GR, filename)
-        
-        try:
-            _ = process_excel_file(os.path.join(ORIGINAL_EXCEL_FILES_BEFORE_GR, filename), output_filepath=output_filepath, verbose=False)
-            write_log(LOG_CATEGORY, True, filename)
-            
-        except Exception as e:
-            write_log(LOG_CATEGORY, False, filename, e)
-    
-    # after GR    
-    afterGR_filelist = os.listdir(ORIGINAL_EXCEL_FILES_AFTER_GR) 
-    for filename in tqdm(afterGR_filelist, desc=f"Preprocessing after-GR  excel files"):
-        output_filepath = os.path.join(PROCESSED_EXCEL_FILES_AFTER_GR, filename)
-        
-        try:
-            _ = process_excel_file(os.path.join(ORIGINAL_EXCEL_FILES_AFTER_GR, filename), output_filepath=output_filepath, verbose=False)
-            write_log(LOG_CATEGORY, True, filename)
-            
-        except Exception as e:
-            write_log(LOG_CATEGORY, False, filename, e)
+    # before-GR
+    run_standard_condition(
+        PROCESSED_EXCEL_FILES_BEFORE_GR,
+        STANDARD_CONDITION_BEFORE_GR,
+        "Running before-GR excel files w/ standard condition",        
+    )
 
+    # after GR
+    run_standard_condition(
+        PROCESSED_EXCEL_FILES_AFTER_GR,
+        STANDARD_CONDITION_AFTER_GR,
+        "Running after-GR  excel files w/ standard condition",        
+    )
+    
+    
 # ---------------------------------------------------------------------------- #
 #                          BEFORE-GR SURVEY CONDITION                          #
 # ---------------------------------------------------------------------------- #
