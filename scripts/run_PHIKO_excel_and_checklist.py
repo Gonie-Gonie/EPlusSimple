@@ -93,6 +93,8 @@ def preprocess_single(
     # log if failed
     except Exception as e:
         write_log(log_category, False, filename, e)
+        
+    return
 
 def preprocess(
     dir_original :str,
@@ -116,27 +118,48 @@ def preprocess(
     return
 
 
+def run_standard_condition_single(
+    filename:str,
+    *,
+    dir_processed:str,
+    dir_result   :str,
+    log_category :str,
+    ) -> None:
+    
+    # define output path
+    output_filepath = os.path.join(dir_result, filename).replace(r".xlsx",r".grr")
+    
+    # try to preprocess and log if succeed
+    try:
+        _ = run_grexcel(os.path.join(dir_processed,filename), output_filepath)
+        write_log(log_category, True, filename)
+    
+    # log if failed
+    except Exception as e:
+        write_log(log_category, False, filename, e)
+        
+    return
+
 def run_standard_condition(
     dir_processed:str,
     dir_result   :str,
     desc         :str,
     ) -> None:
     
+    # settings
     LOG_CATEGORY = "RUNNING_STANDRAD"
-    
     filelist = os.listdir(dir_processed)
-    for filename in tqdm(filelist, desc=desc, ncols=150):
-        output_filepath = os.path.join(dir_result, filename).replace(r".xlsx",r".grr")
-        
-        try:
-            _ = run_grexcel(os.path.join(dir_processed,filename), output_filepath)
-            write_log(LOG_CATEGORY, True, filename)
-            
-        except Exception as e:
-            write_log(LOG_CATEGORY, False, filename, e)
-
-
-
+    
+    # multiprocessing
+    worker = partial(
+        run_standard_condition_single,
+        dir_processed=dir_processed  ,
+        dir_result = dir_result      ,
+        log_category=LOG_CATEGORY    ,
+    )
+    process_map(worker, filelist, max_workers=workers, desc=desc, ncols=150)
+    
+    return
 
 
 
@@ -167,9 +190,7 @@ if __name__ == "__main__":
     #                                 PREPROCESSING                                #
     # ---------------------------------------------------------------------------- #
 
-
-
-    if PREPROCESSING_REQUIRED:=True:
+    if PREPROCESSING_REQUIRED:=False:
         
         # before GR
         preprocess(
