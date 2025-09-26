@@ -26,7 +26,7 @@ from pyGRsim.reb.postprocess import (
 
 # settings
 working_dir = r"B:\공유 드라이브\01 진행과제\(안전원) 시뮬레이터\12 개발\scripts\run_PHIKO_excel_and_checklist"
-multithread = 6
+workers = 6
 
 # ---------------------------------------------------------------------------- #
 #                                   CONSTANTS                                  #
@@ -70,6 +70,29 @@ def write_log(
 
     return
 
+def preprocess_single(
+    filename:str,
+    *,
+    dir_original :str,
+    dir_processed:str,
+    log_category :str,
+    ) -> None:
+    
+    # define output path
+    output_filepath = os.path.join(dir_processed, filename)
+    
+    # try to preprocess and log if succeed
+    try:
+        _ = process_excel_file(
+            os.path.join(dir_original, filename),
+            output_filepath=output_filepath,
+            verbose=False
+        )
+        write_log(log_category, True, filename)
+    
+    # log if failed
+    except Exception as e:
+        write_log(log_category, False, filename, e)
 
 def preprocess(
     dir_original :str,
@@ -77,22 +100,18 @@ def preprocess(
     desc         :str,
     ) -> None:
     
+    # settings
     LOG_CATEGORY = "PREPROCESSING"
+    filelist = os.listdir(dir_original)
     
-    filelist = os.listdir(dir_original) 
-    for filename in tqdm(filelist, desc=desc, ncols=150):
-        output_filepath = os.path.join(dir_processed, filename)
-        
-        try:
-            _ = process_excel_file(
-                os.path.join(dir_original, filename),
-                output_filepath=output_filepath,
-                verbose=False
-            )
-            write_log(LOG_CATEGORY, True, filename)
-            
-        except Exception as e:
-            write_log(LOG_CATEGORY, False, filename, e)
+    # multiprocessing
+    worker = partial(
+        preprocess_single,
+        dir_original =dir_original,
+        dir_processed=dir_processed,
+        log_category =LOG_CATEGORY,
+    )
+    process_map(worker, filelist, max_workers=workers, desc=desc, ncols=150)     
 
     return
 
@@ -116,74 +135,81 @@ def run_standard_condition(
         except Exception as e:
             write_log(LOG_CATEGORY, False, filename, e)
 
-# ---------------------------------------------------------------------------- #
-#                                ON-SITE SURVEY                                #
-# ---------------------------------------------------------------------------- #
-
-# 어린이집
-beforesurvey어린이집 = 어린이집GR이전체크리스트.from_dataframe(
-    pd.read_csv(os.path.join(SURVEY_BEFORE_GR, "어린이집.csv"))
-)
-aftersurvey어린이집  = 어린이집GR이후체크리스트.from_dataframe(
-    pd.read_csv(os.path.join(SURVEY_AFTER_GR, "어린이집.csv"))
-)
-
-# 보건소
-beforesurvey보건소 = 보건소GR이전체크리스트.from_dataframe(
-    pd.read_csv(os.path.join(SURVEY_BEFORE_GR, "보건소.csv"))
-)
-aftersurvey보건소  = 보건소GR이후체크리스트.from_dataframe(
-    pd.read_csv(os.path.join(SURVEY_AFTER_GR, "보건소.csv"))
-)
-
-
-# ---------------------------------------------------------------------------- #
-#                                 PREPROCESSING                                #
-# ---------------------------------------------------------------------------- #
 
 
 
-if PREPROCESSING_REQUIRED:=False:
-    
-    # before GR
-    preprocess(
-        ORIGINAL_EXCEL_FILES_BEFORE_GR ,
-        PROCESSED_EXCEL_FILES_BEFORE_GR,
-        "Preprocessing before-GR excel files",
+
+
+if __name__ == "__main__":
+
+    # ---------------------------------------------------------------------------- #
+    #                                ON-SITE SURVEY                                #
+    # ---------------------------------------------------------------------------- #
+
+    # 어린이집
+    beforesurvey어린이집 = 어린이집GR이전체크리스트.from_dataframe(
+        pd.read_csv(os.path.join(SURVEY_BEFORE_GR, "어린이집.csv"))
     )
-    
-    # after GR
-    preprocess(
-        ORIGINAL_EXCEL_FILES_AFTER_GR ,
-        PROCESSED_EXCEL_FILES_AFTER_GR,
-        "Preprocessing after-GR excel files",
-    )            
-    
-# ---------------------------------------------------------------------------- #
-#                              STANDARD CONDITION                              #
-# ---------------------------------------------------------------------------- #
-
-if STANDARD_RUNNING_REQUIRED:=True:
-    
-    # before-GR
-    run_standard_condition(
-        PROCESSED_EXCEL_FILES_BEFORE_GR,
-        STANDARD_CONDITION_BEFORE_GR,
-        "Running before-GR excel files w/ standard condition",        
+    aftersurvey어린이집  = 어린이집GR이후체크리스트.from_dataframe(
+        pd.read_csv(os.path.join(SURVEY_AFTER_GR, "어린이집.csv"))
     )
 
-    # after GR
-    run_standard_condition(
-        PROCESSED_EXCEL_FILES_AFTER_GR,
-        STANDARD_CONDITION_AFTER_GR,
-        "Running after-GR  excel files w/ standard condition",        
+    # 보건소
+    beforesurvey보건소 = 보건소GR이전체크리스트.from_dataframe(
+        pd.read_csv(os.path.join(SURVEY_BEFORE_GR, "보건소.csv"))
     )
-    
-    
-# ---------------------------------------------------------------------------- #
-#                          BEFORE-GR SURVEY CONDITION                          #
-# ---------------------------------------------------------------------------- #
+    aftersurvey보건소  = 보건소GR이후체크리스트.from_dataframe(
+        pd.read_csv(os.path.join(SURVEY_AFTER_GR, "보건소.csv"))
+    )
 
-# ---------------------------------------------------------------------------- #
-#                           AFTER-GR SURVEY CONDITION                          #
-# ---------------------------------------------------------------------------- #
+
+    # ---------------------------------------------------------------------------- #
+    #                                 PREPROCESSING                                #
+    # ---------------------------------------------------------------------------- #
+
+
+
+    if PREPROCESSING_REQUIRED:=True:
+        
+        # before GR
+        preprocess(
+            ORIGINAL_EXCEL_FILES_BEFORE_GR ,
+            PROCESSED_EXCEL_FILES_BEFORE_GR,
+            "Preprocessing before-GR excel files",
+        )
+        
+        # after GR
+        preprocess(
+            ORIGINAL_EXCEL_FILES_AFTER_GR ,
+            PROCESSED_EXCEL_FILES_AFTER_GR,
+            "Preprocessing after-GR excel files",
+        )            
+        
+    # ---------------------------------------------------------------------------- #
+    #                              STANDARD CONDITION                              #
+    # ---------------------------------------------------------------------------- #
+
+    if STANDARD_RUNNING_REQUIRED:=True:
+        
+        # before-GR
+        run_standard_condition(
+            PROCESSED_EXCEL_FILES_BEFORE_GR,
+            STANDARD_CONDITION_BEFORE_GR,
+            "Running before-GR excel files w/ standard condition",        
+        )
+
+        # after GR
+        run_standard_condition(
+            PROCESSED_EXCEL_FILES_AFTER_GR,
+            STANDARD_CONDITION_AFTER_GR,
+            "Running after-GR  excel files w/ standard condition",        
+        )
+        
+        
+    # ---------------------------------------------------------------------------- #
+    #                          BEFORE-GR SURVEY CONDITION                          #
+    # ---------------------------------------------------------------------------- #
+
+    # ---------------------------------------------------------------------------- #
+    #                           AFTER-GR SURVEY CONDITION                          #
+    # ---------------------------------------------------------------------------- #
