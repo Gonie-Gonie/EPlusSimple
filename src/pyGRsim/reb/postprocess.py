@@ -60,6 +60,7 @@ class 설비운영:
     설정온도:int|str
     사용여부:str
 
+
 @dataclass
 class 보건소일반존:
     # zone
@@ -213,35 +214,44 @@ class 현장조사체크리스트(ABC):
         
 class 어린이집GR이전체크리스트(현장조사체크리스트):
     
+    def __init__(self,
+        raw_input:pd.Series,
+        metadata :MetaData,
+        ) -> None:
+        
+        # common
+        super().__init__(raw_input, metadata)
+    
     @classmethod
     def from_row(cls, row:pd.Series) -> 보건소GR이전체크리스트:
         
-        # create obj
-        obj = cls()
-        obj.raw = row
-        
-        # metadata
-        obj.meta = MetaData.from_row(row)
-        
-        return obj
+        return cls(
+            row,
+            MetaData.from_row(row),
+        )
         
     def apply_to(self, grm:GreenRetrofitModel) -> IDF:
         
         return IDF()
 
+
 class 어린이집GR이후체크리스트(현장조사체크리스트):
+    
+    def __init__(self,
+        raw_input:pd.Series,
+        metadata :MetaData,
+        ) -> None:
+        
+        # common
+        super().__init__(raw_input, metadata)
     
     @classmethod
     def from_row(cls, row:pd.Series) -> 보건소GR이전체크리스트:
         
-        # create obj
-        obj = cls()
-        obj.raw = row
-        
-        # metadata
-        obj.meta = MetaData.from_row(row)
-        
-        return obj
+        return cls(
+            row,
+            MetaData.from_row(row),
+        )
         
     def apply_to(self, grm:GreenRetrofitModel) -> IDF:
         
@@ -280,7 +290,10 @@ class 보건소GR이전체크리스트(현장조사체크리스트):
     def apply_to(self, grm:GreenRetrofitModel, exceldata:dict[str,pd.DataFrame]) -> IDF:
         
         zoneID_category = {
-            category: [zone.ID for zone in grm.zone if zone.name in list(exceldata["실"].query("현장조사프로필 == @category" )["이름"].values)]
+            category: [
+                zone.ID for zone in grm.zone
+                if zone.name in list(exceldata["실"].query("현장조사프로필 == @category" )["이름"].values)
+            ]
             for category in ["일반존","특화존1","특화존2"]
         }
         
@@ -334,7 +347,10 @@ class 보건소GR이후체크리스트(현장조사체크리스트):
     def apply_to(self, grm:GreenRetrofitModel, exceldata:dict[str,pd.DataFrame]) -> IDF:
         
         zoneID_category = {
-            category: [zone.ID for zone in grm.zone if zone.name in list(exceldata["실"].query("현장조사프로필 == @category" )["이름"].values)]
+            category: [
+                zone.ID for zone in grm.zone
+                if zone.name in list(exceldata["실"].query("현장조사프로필 == @category" )["이름"].values)
+            ]
             for category in ["일반존","특화존1","특화존2"]
         }
         
