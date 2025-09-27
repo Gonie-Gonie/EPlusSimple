@@ -59,6 +59,40 @@ class 설비운영:
     사용기간:str
     설정온도:int|str
     사용여부:str
+    
+    def get_hvac_availability_schedule(self, name:str) -> dragon.Schedule:
+        
+        # 미사용 -> ALL OFF
+        if pd.isna(self.사용여부) or (self.사용여부 == "미사용"):
+            return dragon.Schedule.from_compact(
+                name,
+                [
+                    ("0101","1231", dragon.RuleSet(
+                        f"ALLOFF_ruleset:for:{name}",
+                        dragon.DaySchedule(
+                            f"ALLOFF_dayschedule:for:{name}", [0]*dragon.DaySchedule.DATA_INTERVAL * 24
+                        )
+                    ))
+                ]
+            )
+        
+        # 사용 -> 기간과 시간으로 만들기..
+        elif self.사용여부 == "사용":
+            
+            # 기본 운영시간도 반영해야 함...
+            
+            return dragon.Schedule.from_compact(
+                name,
+                ()
+            )
+            
+        else:
+            raise ValueError(
+                f"TO PHIKO: 설비 {self.이름} '사용여부' 속성에 {self.사용여부} 넣어놓음 ('사용', '미사용', 또는 빈칸이어야 함)"
+            )
+    
+    def get_setpoint_temperature(self, name:str) -> dragon.Schedule:
+        pass
 
 
 @dataclass
@@ -102,8 +136,22 @@ class 보건소일반존:
                 설비운영(row["B61"],row["B61"],row["B64"],row["B65"],row["BA3"]),
                 설비운영(row["B66"],row["B67"],row["B69"],row["B70"],row["BA4"]),
             )
+            
+    def get_occupant_schedule(self) -> dragon.Schedule:
+        
+        
+        
+        return
 
-    def apply_to(self, zone:list[dragon.Zone]) -> None:
+    def apply_to(self, zones:list[dragon.Zone]) -> None:
+        
+        total_area = sum(zone.floor_area for zone in zones)
+        
+        for zone in zones:
+            zone.profile = dragon.Profile(
+                f"{zone.name}_일반존체크리스트",
+            )
+            
         pass
     
 @dataclass
@@ -140,7 +188,7 @@ class 보건소특화존1:
                 설비운영(row["B100"],row["B101"],row["B103"],row["B104"],row["BA9"]),
             )
 
-    def apply_to(self, zone:list[dragon.Zone]) -> None:
+    def apply_to(self, zones:list[dragon.Zone]) -> None:
         pass
     
 @dataclass
@@ -179,7 +227,7 @@ class 보건소특화존2:
                 설비운영(row["B136"],row["B137"],row["B139"],row["B140"],row["BA14"]),
             )
 
-    def apply_to(self, zone:list[dragon.Zone]) -> None:
+    def apply_to(self, zones:list[dragon.Zone]) -> None:
         pass
 # ---------------------------------------------------------------------------- #
 #                                     MAIN                                     #
