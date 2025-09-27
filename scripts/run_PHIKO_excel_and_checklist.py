@@ -303,18 +303,18 @@ if __name__ == "__main__":
     )
 
     priorsurveymap = {
-        survey.기본정보.건물명: survey
+        survey.meta.건물명: survey
         for survey in priorsurvey어린이집
     }|{
-        survey.기본정보.건물명: survey
+        survey.meta.건물명: survey
         for survey in priorsurvey보건소
     }
     
     posteriorsurveymap = {
-        survey.기본정보.건물명: survey
+        survey.meta.건물명: survey
         for survey in posteriorsurvey어린이집
     }|{
-        survey.기본정보.건물명: survey
+        survey.meta.건물명: survey
         for survey in posteriorsurvey보건소
     }
 

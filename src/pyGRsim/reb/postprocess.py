@@ -36,44 +36,18 @@ class MetaData:
     department: str
     updatedAt : str
     version   : str
+    건물명       :str 
+    GR준공일     :str 
+    조사일       :str 
+    응답자근무기간:str 
     
     @classmethod
     def from_row(cls, row:pd.Series):
         
         return cls(
-            row["userId"], row["userName"], row["name"], row["department"], row["updatedAt"], row["version"]
-        )
-    
-@dataclass
-class 기본정보:
-    건물명       :str 
-    GR준공일     :str 
-    조사일       :str 
-    응답자근무기간:str 
-    유형         :str
-    
-
-@dataclass
-class 보건소운영현황:
-    운영시간:str
-    직원   :str
-    외근횟수:int
-    외근시간:str
-    외근직원:int
-    집중진료요일:str
-    집중진료시간:str
-    집중진료오전방문객:str
-    집중진료오후방문객:str
-    집중진료오전체류시간:int
-    집중진료오후체류시간:int
-    
-    @classmethod
-    def from_row(cls, row:pd.Series, is_priorGR:bool):
-        
-        return cls(
-            row["B1"], row["B2"], row["B3"], row["B4"], row["B5"],
-            row["B6"], row["B7"], row["B8"], row["B9"], row["B10"], row["B11"],
-        )
+            row["userId"], row["userName"], row["name"], row["department"], row["updatedAt"], row["version"],
+            row["A1"],row["A2"],row["A3"],row["A4"],
+        )    
 
 @dataclass
 class 설비운영:
@@ -85,6 +59,19 @@ class 설비운영:
 
 @dataclass
 class 보건소일반존:
+    # zone
+    운영시간:str
+    직원   :str
+    외근횟수:int
+    외근시간:str
+    외근직원:int
+    집중진료요일:str
+    집중진료시간:str
+    집중진료오전방문객:str
+    집중진료오후방문객:str
+    집중진료오전체류시간:int
+    집중진료오후체류시간:int
+    # hvac
     난방설비1:설비운영
     난방설비2:설비운영
     냉방설비1:설비운영
@@ -95,6 +82,8 @@ class 보건소일반존:
         
         if is_priorGR:
             return cls(
+                row["B1"], row["B2"], row["B3"], row["B4"], row["B5"],
+                row["B6"], row["B7"], row["B8"], row["B9"], row["B10"], row["B11"],
                 설비운영(row["B55"],row["B56"],row["B58"],row["B59"],row["BA1"]),
                 설비운영(row["B60"],row["B61"],row["B63"],row["B64"],row["BA2"]),
                 설비운영(row["B65"],row["B66"],row["B68"],row["B69"],row["BA3"]),
@@ -102,6 +91,8 @@ class 보건소일반존:
             )
         else:
             return cls(
+                row["B1"], row["B2"], row["B3"], row["B4"], row["B5"],
+                row["B6"], row["B7"], row["B8"], row["B9"], row["B10"], row["B11"],
                 설비운영(row["B51"],row["B52"],row["B54"],row["B55"],row["BA1"]),
                 설비운영(row["B56"],row["B57"],row["B59"],row["B60"],row["BA2"]),
                 설비운영(row["B61"],row["B61"],row["B64"],row["B65"],row["BA3"]),
@@ -212,8 +203,7 @@ class 어린이집GR이전체크리스트(현장조사체크리스트):
         obj.raw = row
         
         # metadata
-        obj.metadata = MetaData.from_row(row)
-        obj.기본정보 = 기본정보(row["A1"],row["A2"],row["A3"],row["A4"],None)
+        obj.meta = MetaData.from_row(row)
         
         return obj
         
@@ -231,8 +221,7 @@ class 어린이집GR이후체크리스트(현장조사체크리스트):
         obj.raw = row
         
         # metadata
-        obj.metadata = MetaData.from_row(row)
-        obj.기본정보 = 기본정보(row["A1"],row["A2"],row["A3"],row["A4"],row["A5"])
+        obj.meta = MetaData.from_row(row)
         
         return obj
         
@@ -250,11 +239,9 @@ class 보건소GR이전체크리스트(현장조사체크리스트):
         obj.raw = row
         
         # metadata
-        obj.metadata = MetaData.from_row(row)
-        obj.기본정보 = 기본정보(row["A1"],row["A2"],row["A3"],row["A4"],row["A5"])
+        obj.meta = MetaData.from_row(row)
         
         # operational data
-        obj.운영 = 보건소운영현황.from_row(row, True)
         obj.일반존 = 보건소일반존.from_row(row, True)
         obj.특화존1 = 보건소특화존1.from_row(row, True)
         obj.특화존2 = 보건소특화존2.from_row(row, True)
@@ -262,6 +249,15 @@ class 보건소GR이전체크리스트(현장조사체크리스트):
         return obj
     
     def apply_to(self, grm:GreenRetrofitModel, exceldata:dict[str,pd.DataFrame]) -> IDF:
+        
+        zoneID_category = {
+            category: [zone.ID for zone in grm.zone if zone.name in list(exceldata["실"].query("현장조사프로필 == @category" )["이름"].values)]
+            for category in ["일반존","특화존1","특화존2"]
+        }
+        
+        em = grm.to_dragon()
+        
+        
         
         return IDF()
     
@@ -275,14 +271,12 @@ class 보건소GR이후체크리스트(현장조사체크리스트):
         obj.raw = row
         
         # metadata
-        obj.metadata = MetaData.from_row(row)
-        obj.기본정보 = 기본정보(row["A1"],row["A2"],row["A3"],row["A4"],row["A5"])
+        obj.meta = MetaData.from_row(row)
         
         # operational data
-        obj.운영 = 보건소운영현황.from_row(row, False)
-        obj.일반존 = 보건소일반존.from_row(row, True)
-        obj.특화존1 = 보건소특화존1.from_row(row, True)
-        obj.특화존2 = 보건소특화존2.from_row(row, True)
+        obj.일반존 = 보건소일반존.from_row(row, False)
+        obj.특화존1 = 보건소특화존1.from_row(row, False)
+        obj.특화존2 = 보건소특화존2.from_row(row, False)
         
         return obj
         
