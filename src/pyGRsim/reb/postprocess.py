@@ -260,7 +260,7 @@ class 보건소GR이전체크리스트(현장조사체크리스트):
         
         return obj
     
-    def apply_to(self, grm:GreenRetrofitModel) -> IDF:
+    def apply_to(self, grm:GreenRetrofitModel, exceldata:dict[str,pd.DataFrame]) -> IDF:
         
         return IDF()
     
@@ -287,7 +287,7 @@ class 보건소GR이후체크리스트(현장조사체크리스트):
         
         return obj
         
-    def apply_to(self, grm:GreenRetrofitModel) -> IDF:
+    def apply_to(self, grm:GreenRetrofitModel, exceldata:dict[str,pd.DataFrame]) -> IDF:
         
         return IDF()
     

@@ -186,7 +186,7 @@ def run_priorgr_condition_single(
     # try to preprocess and log if succeed
     try:
         grm = GreenRetrofitModel.from_excel(os.path.join(dir_processed, filename))
-        idf = survey.apply_to(grm)
+        idf = survey.apply_to(grm, pd.read_excel(os.path.join(dir_processed, filename), sheet_name=None))
         grr = GreenRetrofitResult(grm, idf.run(grm.weather_filepath))
         grr.write(output_filepath)
         
@@ -244,7 +244,7 @@ def run_posteriorgr_condition_single(
     # try to preprocess and log if succeed
     try:
         grm = GreenRetrofitModel.from_excel(os.path.join(dir_processed, filename))
-        idf = survey.apply_to(grm)
+        idf = survey.apply_to(grm, pd.read_excel(os.path.join(dir_processed, filename), sheet_name=None))
         grr = GreenRetrofitResult(grm, idf.run(grm.weather_filepath))
         grr.write(output_filepath)
         
