@@ -179,6 +179,7 @@ def run_priorgr_condition_single(
     # survey info
     buildingname = re.search(r"(?P<code>^\d+)_(?P<name>[^_]+)_(?P<tag>[^_]+)\.xlsx", filename).group("name")
     if buildingname not in surveymap.keys():
+        write_log(log_category, False, filename, "NO SURVEY FOUND")
         return
     survey = surveymap[buildingname]
     
@@ -236,6 +237,7 @@ def run_posteriorgr_condition_single(
     # survey info
     buildingname = re.search(r"(?<=^\d+_)\w+(?=_)", filename).group(0)
     if buildingname not in surveymap.keys():
+        write_log(log_category, False, filename, "NO SURVEY FOUND")
         return
     survey = surveymap[buildingname]
     
