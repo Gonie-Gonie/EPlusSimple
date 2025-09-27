@@ -37,6 +37,13 @@ class MetaData:
     updatedAt : str
     version   : str
     
+    @classmethod
+    def from_row(cls, row:pd.Series):
+        
+        return cls(
+            row["userId"], row["userName"], row["name"], row["department"], row["updatedAt"], row["version"]
+        )
+    
 @dataclass
 class 기본정보:
     건물명       :str 
@@ -205,9 +212,7 @@ class 어린이집GR이전체크리스트(현장조사체크리스트):
         obj.raw = row
         
         # metadata
-        obj.metadata = MetaData(
-            row["userId"], row["userName"], row["name"], row["department"], row["updatedAt"], row["version"]
-        )
+        obj.metadata = MetaData.from_row(row)
         obj.기본정보 = 기본정보(row["A1"],row["A2"],row["A3"],row["A4"],None)
         
         return obj
@@ -226,9 +231,7 @@ class 어린이집GR이후체크리스트(현장조사체크리스트):
         obj.raw = row
         
         # metadata
-        obj.metadata = MetaData(
-            row["userId"], row["userName"], row["name"], row["department"], row["updatedAt"], row["version"]
-        )
+        obj.metadata = MetaData.from_row(row)
         obj.기본정보 = 기본정보(row["A1"],row["A2"],row["A3"],row["A4"],row["A5"])
         
         return obj
@@ -247,9 +250,7 @@ class 보건소GR이전체크리스트(현장조사체크리스트):
         obj.raw = row
         
         # metadata
-        obj.metadata = MetaData(
-            row["userId"], row["userName"], row["name"], row["department"], row["updatedAt"], row["version"]
-        )
+        obj.metadata = MetaData.from_row(row)
         obj.기본정보 = 기본정보(row["A1"],row["A2"],row["A3"],row["A4"],row["A5"])
         
         # operational data
@@ -274,9 +275,7 @@ class 보건소GR이후체크리스트(현장조사체크리스트):
         obj.raw = row
         
         # metadata
-        obj.metadata = MetaData(
-            row["userId"], row["userName"], row["name"], row["department"], row["updatedAt"], row["version"]
-        )
+        obj.metadata = MetaData.from_row(row)
         obj.기본정보 = 기본정보(row["A1"],row["A2"],row["A3"],row["A4"],row["A5"])
         
         # operational data
