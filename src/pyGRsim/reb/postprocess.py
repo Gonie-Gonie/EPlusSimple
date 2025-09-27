@@ -21,7 +21,10 @@ import pandas as pd
 
 # local modules
 from pyGRsim import GreenRetrofitModel
-from idragon import IDF
+from idragon import (
+    dragon     ,
+    IDF        ,
+)
 
 
 # ---------------------------------------------------------------------------- #
@@ -99,6 +102,9 @@ class 보건소일반존:
                 설비운영(row["B66"],row["B67"],row["B69"],row["B70"],row["BA4"]),
             )
 
+    def apply_to(self, zone:list[dragon.Zone]) -> None:
+        pass
+    
 @dataclass
 class 보건소특화존1:
     # zone
@@ -133,6 +139,9 @@ class 보건소특화존1:
                 설비운영(row["B100"],row["B101"],row["B103"],row["B104"],row["BA9"]),
             )
 
+    def apply_to(self, zone:list[dragon.Zone]) -> None:
+        pass
+    
 @dataclass
 class 보건소특화존2:
     #zone
@@ -169,18 +178,27 @@ class 보건소특화존2:
                 설비운영(row["B136"],row["B137"],row["B139"],row["B140"],row["BA14"]),
             )
 
+    def apply_to(self, zone:list[dragon.Zone]) -> None:
+        pass
 # ---------------------------------------------------------------------------- #
 #                                     MAIN                                     #
 # ---------------------------------------------------------------------------- #
 
 class 현장조사체크리스트(ABC):
     
+    def __init__(self,
+        raw_input:pd.Series,
+        metadata :MetaData,
+        ) -> None:
+        
+        self.raw  = raw_input
+        self.meta = metadata
+    
     """ input
     """
     
     @classmethod
-    def from_row(cls, row:pd.Series) -> 현장조사체크리스트:
-        ...
+    def from_row(cls, row:pd.Series) -> 현장조사체크리스트: ...
     
     @classmethod
     def from_dataframe(cls, df:pd.DataFrame) -> list[현장조사체크리스트]:
@@ -190,8 +208,8 @@ class 현장조사체크리스트(ABC):
     """
     
     @abstractmethod
-    def apply_to(self, grm:GreenRetrofitModel) -> IDF:
-        ...
+    def apply_to(self, grm:GreenRetrofitModel) -> IDF: ...
+        
         
 class 어린이집GR이전체크리스트(현장조사체크리스트):
     
@@ -229,24 +247,35 @@ class 어린이집GR이후체크리스트(현장조사체크리스트):
         
         return IDF()
     
-class 보건소GR이전체크리스트(현장조사체크리스트): 
+    
+class 보건소GR이전체크리스트(현장조사체크리스트):
+    
+    def __init__(self,
+        raw_input:pd.Series,
+        metadata :MetaData,
+        일반존 : 보건소일반존 ,
+        특화존1: 보건소특화존1,
+        특화존2: 보건소특화존2,
+        ) -> None:
+        
+        # common
+        super().__init__(raw_input, metadata)
+        
+        # zone survey
+        self.일반존  = 일반존
+        self.특화존1 = 특화존1
+        self.특화존2 = 특화존2
     
     @classmethod
     def from_row(cls, row:pd.Series) -> 보건소GR이전체크리스트:
         
-        # create obj
-        obj = cls()
-        obj.raw = row
-        
-        # metadata
-        obj.meta = MetaData.from_row(row)
-        
-        # operational data
-        obj.일반존 = 보건소일반존.from_row(row, True)
-        obj.특화존1 = 보건소특화존1.from_row(row, True)
-        obj.특화존2 = 보건소특화존2.from_row(row, True)
-        
-        return obj
+        return cls(
+            row,
+            MetaData.from_row(row),
+            보건소일반존.from_row(row, True),
+            보건소특화존1.from_row(row, True),
+            보건소특화존2.from_row(row, True),
+        )
     
     def apply_to(self, grm:GreenRetrofitModel, exceldata:dict[str,pd.DataFrame]) -> IDF:
         
@@ -257,32 +286,75 @@ class 보건소GR이전체크리스트(현장조사체크리스트):
         
         em = grm.to_dragon()
         
+        self.일반존.apply_to([
+                zone for zone in em.zone
+                if zone.name in zoneID_category["일반존"]
+        ])
+        self.특화존1.apply_to([
+                zone for zone in em.zone
+                if zone.name in zoneID_category["특화존1"]
+        ])
+        self.특화존2.apply_to([
+                zone for zone in em.zone
+                if zone.name in zoneID_category["특화존2"]
+        ])
         
-        
-        return IDF()
+        return em.to_idf()
+    
     
 class 보건소GR이후체크리스트(현장조사체크리스트):
 
+    def __init__(self,
+        raw_input:pd.Series,
+        metadata :MetaData,
+        일반존 : 보건소일반존 ,
+        특화존1: 보건소특화존1,
+        특화존2: 보건소특화존2,
+        ) -> None:
+        
+        # common
+        super().__init__(raw_input, metadata)
+        
+        # zone survey
+        self.일반존  = 일반존
+        self.특화존1 = 특화존1
+        self.특화존2 = 특화존2
+    
     @classmethod
     def from_row(cls, row:pd.Series) -> 보건소GR이전체크리스트:
         
-        # create obj
-        obj = cls()
-        obj.raw = row
-        
-        # metadata
-        obj.meta = MetaData.from_row(row)
-        
-        # operational data
-        obj.일반존 = 보건소일반존.from_row(row, False)
-        obj.특화존1 = 보건소특화존1.from_row(row, False)
-        obj.특화존2 = 보건소특화존2.from_row(row, False)
-        
-        return obj
+        return cls(
+            row,
+            MetaData.from_row(row),
+            보건소일반존.from_row(row, False),
+            보건소특화존1.from_row(row, False),
+            보건소특화존2.from_row(row, False),
+        )
         
     def apply_to(self, grm:GreenRetrofitModel, exceldata:dict[str,pd.DataFrame]) -> IDF:
         
-        return IDF()
+        zoneID_category = {
+            category: [zone.ID for zone in grm.zone if zone.name in list(exceldata["실"].query("현장조사프로필 == @category" )["이름"].values)]
+            for category in ["일반존","특화존1","특화존2"]
+        }
+        
+        em = grm.to_dragon()
+        
+        self.일반존.apply_to([
+                zone for zone in em.zone
+                if zone.name in zoneID_category["일반존"]
+        ])
+        self.특화존1.apply_to([
+                zone for zone in em.zone
+                if zone.name in zoneID_category["특화존1"]
+        ])
+        self.특화존2.apply_to([
+                zone for zone in em.zone
+                if zone.name in zoneID_category["특화존2"]
+        ])
+        
+        return em.to_idf()
+    
     
 class 의료시설GR이전체크리스트(현장조사체크리스트): ...
 

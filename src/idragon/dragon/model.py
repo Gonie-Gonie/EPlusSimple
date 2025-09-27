@@ -155,7 +155,7 @@ class EnergyModel:
 
         return
     
-    def to_idf(self):
+    def to_idf(self) -> IDF:
         
         # create default objects
         idf = EnergyModel.create_default_idf()
