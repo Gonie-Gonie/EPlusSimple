@@ -841,6 +841,149 @@ class Schedule(UserList):
     """ algebraric operation
     """
     
+    def __mul__(self, value:int|float) -> Schedule:
+        return Schedule.from_compact(
+            f"{self.name}:MUL:{value:.6f}",
+            [
+                (start_date, end_date, ruleset.__mul__(value))
+                for start_date, end_date, ruleset in self.compactize()
+            ]
+        )
+        
+    def __rmul__(self, value:int|float) -> Schedule:
+        return self.__mul__(value)
+    
+    def __truediv__(self, value:int|float) -> Schedule:
+        return Schedule.from_compact(
+            f"{self.name}:TRUEDIV:{value:.6f}",
+            [
+                (start_date, end_date, ruleset.__truediv__(value))
+                for start_date, end_date, ruleset in self.compactize()
+            ]
+        )
+        
+    def __add__(self, other:Schedule) -> RuleSet:
+        
+        if self.type != other.type:
+            raise TypeError(
+                f"Cannot add {self.type}-type Schedule to {other.type}-type Schedule."
+            )
+            
+        unified_compactized_self, unified_compactized_other = Schedule.unify_compactized_schedules(
+            self.compactize(), other.compactize(),
+        )
+        
+        return Schedule.from_compact(
+            f"{self.name}:ADD:{other.name}",
+            [
+                (start_date, end_date, ruleset_self.__add__(ruleset_other))
+                for (start_date, end_date, ruleset_self), (start_date, end_date, ruleset_other) in zip(unified_compactized_self, unified_compactized_other)
+            ]
+        )
+    
+    def __radd__(self, other:Schedule) -> Schedule:
+        return self.__add__(other)
+    
+    def __sub__(self, other:Schedule) -> Schedule:
+        
+        if self.type != other.type:
+            raise TypeError(
+                f"Cannot sub {self.type}-type Schedule to {other.type}-type Schedule."
+            )
+            
+        unified_compactized_self, unified_compactized_other = Schedule.unify_compactized_schedules(
+            self.compactize(), other.compactize(),
+        )
+        
+        return Schedule.from_compact(
+            f"{self.name}:SUB:{other.name}",
+            [
+                (start_date, end_date, ruleset_self.__sub__(ruleset_other))
+                for (start_date, end_date, ruleset_self), (start_date, end_date, ruleset_other) in zip(unified_compactized_self, unified_compactized_other)
+            ]
+        )
+        
+    def __and__(self, other:Schedule) -> Schedule:
+        
+        if (self.type is not ScheduleType.ONOFF) or (other.type is not ScheduleType.ONOFF):
+            raise TypeError(
+                f"Cannot 'AND' operate for non-ONOFF typed Schedules (get: {self.type} and {other.type})."
+            )
+            
+        unified_compactized_self, unified_compactized_other = Schedule.unify_compactized_schedules(
+            self.compactize(), other.compactize(),
+        )
+
+        return Schedule.from_compact(
+            f"{self.name}:AND:{other.name}",
+            [
+                (start_date, end_date, ruleset_self.__and__(ruleset_other))
+                for (start_date, end_date, ruleset_self), (start_date, end_date, ruleset_other) in zip(unified_compactized_self, unified_compactized_other)
+            ]
+        )
+    
+    def __or__(self, other:Schedule) -> Schedule:
+        
+        if (self.type is not ScheduleType.ONOFF) or (other.type is not ScheduleType.ONOFF):
+            raise TypeError(
+                f"Cannot 'OR' operate for non-ONOFF typed Schedules (get: {self.type} and {other.type})."
+            )
+            
+        unified_compactized_self, unified_compactized_other = Schedule.unify_compactized_schedules(
+            self.compactize(), other.compactize(),
+        )
+
+        return Schedule.from_compact(
+            f"{self.name}:OR:{other.name}",
+            [
+                (start_date, end_date, ruleset_self.__or__(ruleset_other))
+                for (start_date, end_date, ruleset_self), (start_date, end_date, ruleset_other) in zip(unified_compactized_self, unified_compactized_other)
+            ]
+        )
+        
+    def __invert__(self) -> Schedule:
+        
+        if self.type is not ScheduleType.ONOFF:
+            raise TypeError(
+                f"Cannot 'invert' operate for non-ONOFF typed Schedule (get: {self.type})."
+            )
+            
+        return Schedule.from_compact(
+            f"{self.name}:INVERTED",
+            [
+                (start_date, end_date, ruleset.__invert__())
+                for start_date, end_date, ruleset in self.compactize()
+            ]
+        )
+        
+    def element_min(self, other:Schedule) -> Schedule:
+        
+        unified_compactized_self, unified_compactized_other = Schedule.unify_compactized_schedules(
+            self.compactize(), other.compactize(),
+        )
+
+        return Schedule.from_compact(
+            f"{self.name}:MIN:{other.name}",
+            [
+                (start_date, end_date, ruleset_self.element_min(ruleset_other))
+                for (start_date, end_date, ruleset_self), (start_date, end_date, ruleset_other) in zip(unified_compactized_self, unified_compactized_other)
+            ]
+        )
+    
+    def element_min(self, other:Schedule) -> Schedule:
+        
+        unified_compactized_self, unified_compactized_other = Schedule.unify_compactized_schedules(
+            self.compactize(), other.compactize(),
+        )
+
+        return Schedule.from_compact(
+            f"{self.name}:MAX:{other.name}",
+            [
+                (start_date, end_date, ruleset_self.element_max(ruleset_other))
+                for (start_date, end_date, ruleset_self), (start_date, end_date, ruleset_other) in zip(unified_compactized_self, unified_compactized_other)
+            ]
+        )
+    
     @property
     def min(self) -> int|float:
         return min([ruleset.min for ruleset in self.data])
@@ -853,16 +996,13 @@ class Schedule(UserList):
         
         if new_name is None:
             new_name = self.name + "_normalized"
-            
-        compactized_schedule = self.compactize()
-        normalized_compactized_schedule = [
-            (start_date, end_date, ruleset.normalize_by_max())
-            for start_date, end_date, ruleset in compactized_schedule
-        ]
         
         return Schedule.from_compact(
             new_name                       ,
-            normalized_compactized_schedule,
+            [
+                (start_date, end_date, ruleset.normalize_by_max())
+                for start_date, end_date, ruleset in self.compactize()
+            ]
         )
     
     """ prohibited methods
@@ -920,8 +1060,8 @@ class Schedule(UserList):
     
     @classmethod
     def from_compact(cls,
-        name    :str        ,
-        rulesets:list[tuple],
+        name    :str,
+        rulesets:list[tuple[datetime.date, datetime.date, RuleSet]],
         ) -> Schedule:
         
         schedule = cls(name)
@@ -929,6 +1069,40 @@ class Schedule(UserList):
             schedule.apply(ruleset, start=start, end=end)
         
         return schedule
+    
+    @staticmethod
+    def unify_compactized_schedules(
+        compactized1:list[tuple[datetime.date, datetime.date, RuleSet]],
+        compactized2:list[tuple[datetime.date, datetime.date, RuleSet]],
+        ) -> tuple[
+            list[tuple[datetime.date, datetime.date, RuleSet]],
+            list[tuple[datetime.date, datetime.date, RuleSet]],
+        ]:
+            
+        boundaries = set()
+        for start_date, end_date, _ in compactized1 + compactized2:
+            boundaries.add(start_date)
+            boundaries.add(end_date + datetime.timedelta(days=1))
+        boundaries = sorted(boundaries)
+        
+        def find_ruleset(compact_list, d):
+            for s, e, rs in compact_list:
+                if s <= d <= e:
+                    return rs
+        
+        new_list1, new_list2 = [], []
+        for i in range(len(boundaries) - 1):
+            seg_start = boundaries[i]
+            seg_end_excl = boundaries[i + 1]
+            seg_end_incl = seg_end_excl - datetime.timedelta(days=1)
+
+            r1 = find_ruleset(compactized1, seg_start)
+            r2 = find_ruleset(compactized2, seg_start)
+
+            new_list1.append((seg_start, seg_end_incl, r1))
+            new_list2.append((seg_start, seg_end_incl, r2))
+        
+        return new_list1, new_list2
     
     def to_idf_object(self) -> IdfObject:
         
