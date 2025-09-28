@@ -195,6 +195,20 @@ class DaySchedule(UserList):
             f"{self.name}:INVERTED",
             [int(not bool(value)) for value in self.data]
         )
+        
+    def element_min(self, other:DaySchedule) -> DaySchedule:
+        
+        return DaySchedule(
+            f"{self.name}:MIN:{other.name}",
+            [min(a,b) for a,b in zip(self.data, other.data)]
+        )
+        
+    def element_max(self, other:DaySchedule) -> DaySchedule:
+        
+        return DaySchedule(
+            f"{self.name}:MAX:{other.name}",
+            [max(a,b) for a,b in zip(self.data, other.data)]
+        )
     
     @property
     def min(self) -> int|float:
@@ -629,6 +643,64 @@ class RuleSet:
                 k: dayschedule.__invert__()
                 for k,dayschedule in self.to_dict()
                 if isinstance(dayschedule, DaySchedule)
+            },
+            type=self.type
+        )
+        
+    def element_min(self, other:RuleSet) -> RuleSet:
+        
+        return RuleSet(
+            f"{self.name}:MIN:{other.name}",
+            **{
+                k: RuleSet.__operate_dayschedule_with_default(
+                    lambda a, b: a.element_min(b),
+                    self_day    , other_day    ,
+                    self_default, other_default,
+                )
+                for k, self_day, other_day, self_default, other_default
+                in zip(
+                    self.to_dict.keys(),
+                    self.to_dict().values(), other.to_dict().values(),
+                    [
+                        "weekdays","weekends",
+                        "weekdays","weekdays","weekdays","weekdays","weekdays",
+                        "weekends","weekends","weekends"
+                    ],
+                    [
+                        "weekdays","weekends",
+                        "weekdays","weekdays","weekdays","weekdays","weekdays",
+                        "weekends","weekends","weekends"
+                    ],
+                )
+            },
+            type=self.type
+        )
+        
+    def element_max(self, other:RuleSet) -> RuleSet:
+        
+        return RuleSet(
+            f"{self.name}:MAX:{other.name}",
+            **{
+                k: RuleSet.__operate_dayschedule_with_default(
+                    lambda a, b: a.element_max(b),
+                    self_day    , other_day    ,
+                    self_default, other_default,
+                )
+                for k, self_day, other_day, self_default, other_default
+                in zip(
+                    self.to_dict.keys(),
+                    self.to_dict().values(), other.to_dict().values(),
+                    [
+                        "weekdays","weekends",
+                        "weekdays","weekdays","weekdays","weekdays","weekdays",
+                        "weekends","weekends","weekends"
+                    ],
+                    [
+                        "weekdays","weekends",
+                        "weekdays","weekdays","weekdays","weekdays","weekdays",
+                        "weekends","weekends","weekends"
+                    ],
+                )
             },
             type=self.type
         )
