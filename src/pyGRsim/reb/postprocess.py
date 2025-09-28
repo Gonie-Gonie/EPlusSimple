@@ -174,6 +174,7 @@ class 설비운영:
             ))]
         )
         
+        # 시간
         starth, startm, endh, endm = parse_duration_hours(self.사용시간)
         availability_ruleset = dragon.RuleSet(
             None,
@@ -196,6 +197,8 @@ class 설비운영:
                 dragon.ScheduleType.ONOFF         
             ),
         )
+        
+        # 기간
         duration1, duration2 = parse_duration_month(self.사용기간) 
         availability_schedule = alloff_schedule.apply(
             availability_ruleset,
@@ -549,18 +552,21 @@ class 보건소일반존:
 
     def apply_to(self, zones:list[dragon.Zone]) -> None:
         
-        total_area = sum(zone.floor_area for zone in zones)
+        total_area = max(sum(zone.floor_area for zone in zones), 1E-6)
         occupant_schedule = self.get_occupant_schedule()/total_area
+        heating_setpoint_schedule = self.get_heating_setpoint_schedule(zone.profile.heating_setpoint) 
+        cooling_setpoint_schedule = self.get_cooling_setpoint_schedule(zone.profile.cooling_setpoint)
+        hvac_availability_schedule = self.get_hvac_availability_schedule()
         
         for zone in zones:
             zone.profile = dragon.Profile(
                 f"{zone.name}_일반존체크리스트",
-                self.get_heating_setpoint_schedule(zone.profile.heating_setpoint), 
-                self.get_cooling_setpoint_schedule(zone.profile.cooling_setpoint), 
-                self.get_hvac_availability_schedule(),
-                occupant_schedule,
-                zone.profile.lighting,
-                zone.profile.equipment,
+                heating_setpoint_schedule , 
+                cooling_setpoint_schedule , 
+                hvac_availability_schedule,
+                occupant_schedule         ,
+                zone.profile.lighting     ,
+                zone.profile.equipment    ,
             )
             
         pass
