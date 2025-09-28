@@ -142,6 +142,18 @@ class 보건소일반존:
         
         
         return
+    
+    def get_heating_setpoint_schedule(self) -> dragon.Schedule:
+        
+        return
+    
+    def get_cooling_setpoint_schedule(self) -> dragon.Schedule:
+        
+        return
+    
+    def get_hvac_availability_schedule(self) -> dragon.Schedule:
+        
+        return
 
     def apply_to(self, zones:list[dragon.Zone]) -> None:
         
@@ -150,6 +162,12 @@ class 보건소일반존:
         for zone in zones:
             zone.profile = dragon.Profile(
                 f"{zone.name}_일반존체크리스트",
+                self.get_heating_setpoint_schedule(), 
+                self.get_cooling_setpoint_schedule(), 
+                self.get_hvac_availability_schedule(),
+                self.get_occupant_schedule(),
+                zone.profile.lighting,
+                zone.profile.equipment,
             )
             
         pass
@@ -188,7 +206,39 @@ class 보건소특화존1:
                 설비운영(row["B100"],row["B101"],row["B103"],row["B104"],row["BA9"]),
             )
 
+    def get_occupant_schedule(self) -> dragon.Schedule:
+        
+        
+        
+        return
+    
+    def get_heating_setpoint_schedule(self) -> dragon.Schedule:
+        
+        return
+    
+    def get_cooling_setpoint_schedule(self) -> dragon.Schedule:
+        
+        return
+    
+    def get_hvac_availability_schedule(self) -> dragon.Schedule:
+        
+        return
+
     def apply_to(self, zones:list[dragon.Zone]) -> None:
+        
+        total_area = sum(zone.floor_area for zone in zones)
+        
+        for zone in zones:
+            zone.profile = dragon.Profile(
+                f"{zone.name}_특화존1체크리스트",
+                self.get_heating_setpoint_schedule(), 
+                self.get_cooling_setpoint_schedule(), 
+                self.get_hvac_availability_schedule(),
+                self.get_occupant_schedule(),
+                zone.profile.lighting,
+                zone.profile.equipment,
+            )
+            
         pass
     
 @dataclass
@@ -227,7 +277,39 @@ class 보건소특화존2:
                 설비운영(row["B136"],row["B137"],row["B139"],row["B140"],row["BA14"]),
             )
 
+    def get_occupant_schedule(self) -> dragon.Schedule:
+        
+        
+        
+        return
+    
+    def get_heating_setpoint_schedule(self) -> dragon.Schedule:
+        
+        return
+    
+    def get_cooling_setpoint_schedule(self) -> dragon.Schedule:
+        
+        return
+    
+    def get_hvac_availability_schedule(self) -> dragon.Schedule:
+        
+        return
+
     def apply_to(self, zones:list[dragon.Zone]) -> None:
+        
+        total_area = sum(zone.floor_area for zone in zones)
+        
+        for zone in zones:
+            zone.profile = dragon.Profile(
+                f"{zone.name}_특화존2체크리스트",
+                self.get_heating_setpoint_schedule(), 
+                self.get_cooling_setpoint_schedule(), 
+                self.get_hvac_availability_schedule(),
+                self.get_occupant_schedule(),
+                zone.profile.lighting,
+                zone.profile.equipment,
+            )
+            
         pass
 # ---------------------------------------------------------------------------- #
 #                                     MAIN                                     #
