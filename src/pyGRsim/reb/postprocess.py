@@ -288,7 +288,7 @@ class 보건소일반존:
                 row["B6"], row["B7"], row["B8"], row["B9"], row["B10"], row["B11"],
                 설비운영(row["B51"],row["B52"],row["B54"],row["B55"],row["BA1"]),
                 설비운영(row["B56"],row["B57"],row["B59"],row["B60"],row["BA2"]),
-                설비운영(row["B61"],row["B61"],row["B64"],row["B65"],row["BA3"]),
+                설비운영(row["B61"],row["B62"],row["B64"],row["B65"],row["BA3"]),
                 설비운영(row["B66"],row["B67"],row["B69"],row["B70"],row["BA4"]),
             )
             
@@ -431,7 +431,7 @@ class 보건소일반존:
         
         # 설비 가동스케줄 (or조건으로 개별 설비 결합)
         hvac_availability = operation_schedules[0]
-        for schedule in operation_schedules[2:]:
+        for schedule in operation_schedules[1:]:
             hvac_availability |= schedule
         
         # 최종 스케줄 = 운영중이면서, 설비 가동 중

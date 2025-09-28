@@ -172,7 +172,8 @@ class DaySchedule(UserList):
             
         return DaySchedule(
             f"{self.name}:AND:{other.name}",
-            [int(bool(a) and bool(b)) for a,b in zip(self.data, other.data)]
+            [int(bool(a) and bool(b)) for a,b in zip(self.data, other.data)],
+            type=ScheduleType.ONOFF
         )
         
     def __or__(self, other:DaySchedule) -> DaySchedule:
@@ -184,7 +185,8 @@ class DaySchedule(UserList):
             
         return DaySchedule(
             f"{self.name}:OR:{other.name}",
-            [int(bool(a) or bool(b)) for a,b in zip(self.data, other.data)]
+            [int(bool(a) or bool(b)) for a,b in zip(self.data, other.data)],
+            type=ScheduleType.ONOFF
         )
         
     def __invert__(self) -> DaySchedule:
@@ -619,7 +621,7 @@ class RuleSet:
                 )
                 for k, self_day, other_day, self_default, other_default
                 in zip(
-                    self.to_dict.keys(),
+                    self.to_dict().keys(),
                     self.to_dict().values(), other.to_dict().values(),
                     [
                         self.weekdays, self.weekends,
@@ -663,7 +665,7 @@ class RuleSet:
                 )
                 for k, self_day, other_day, self_default, other_default
                 in zip(
-                    self.to_dict.keys(),
+                    self.to_dict().keys(),
                     self.to_dict().values(), other.to_dict().values(),
                     [
                         self.weekdays, self.weekends,
@@ -691,7 +693,7 @@ class RuleSet:
                 )
                 for k, self_day, other_day, self_default, other_default
                 in zip(
-                    self.to_dict.keys(),
+                    self.to_dict().keys(),
                     self.to_dict().values(), other.to_dict().values(),
                     [
                         self.weekdays, self.weekends,
@@ -1104,8 +1106,18 @@ class Schedule(UserList):
         rulesets:list[tuple[datetime.date, datetime.date, RuleSet]],
         ) -> Schedule:
         
+        # type check
+        given_types = [ruleset.type for _, _, ruleset in rulesets]
+        if len(set(given_types)) > 1:
+            raise ValueError(
+                f"Cannot create a schedule with rulesets of different types"
+            )
+        
+        # create a default schedule with given type
         schedule = cls(name)
         schedule._Schedule__type = rulesets[0][2].type
+        
+        # apply rulesets for certain datetimes
         for start, end, ruleset in rulesets:
             schedule.apply(ruleset, start=start, end=end)
         

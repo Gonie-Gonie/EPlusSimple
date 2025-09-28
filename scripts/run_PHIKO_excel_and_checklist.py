@@ -28,7 +28,7 @@ from pyGRsim.reb.postprocess import (
 
 # settings
 working_dir = r"B:\공유 드라이브\01 진행과제\(안전원) 시뮬레이터\12 개발\scripts\run_PHIKO_excel_and_checklist"
-num_workers = 1
+num_workers = 6
 
 # ---------------------------------------------------------------------------- #
 #                                   CONSTANTS                                  #
@@ -237,7 +237,7 @@ def run_posteriorgr_condition_single(
     output_filepath = os.path.join(dir_result, filename).replace(r".xlsx",r".grr")
     
     # survey info
-    buildingname = re.search(r"(?<=^\d+_)\w+(?=_)", filename).group(0)
+    buildingname = re.search(r"(?P<code>^\d+)_(?P<name>[^_]+)_(?P<tag>[^_]+)\.xlsx", filename).group("name")
     if buildingname not in surveymap.keys():
         write_log(log_category, False, filename, "NO SURVEY FOUND")
         return
@@ -246,7 +246,7 @@ def run_posteriorgr_condition_single(
     # try to preprocess and log if succeed
     try:
         grm = GreenRetrofitModel.from_excel(os.path.join(dir_processed, filename))
-        idf = survey.apply_to(os.path.join(dir_processed, filename))
+        idf = survey.apply_to(grm, pd.read_excel(os.path.join(dir_processed, filename), sheet_name=None))
         if len(idf) < 3:
             return
         grr = GreenRetrofitResult(grm, idf.run(grm.weather_filepath))
@@ -366,7 +366,7 @@ if __name__ == "__main__":
     #                           PRIOR-GR SURVEY CONDITION                          #
     # ---------------------------------------------------------------------------- #
 
-    if PRIORGR_RUNNING_REQUIRED:=True:
+    if PRIORGR_RUNNING_REQUIRED:=False:
         
         # before-GR
         run_priorgr_condition(
@@ -395,7 +395,7 @@ if __name__ == "__main__":
             PROCESSED_EXCEL_FILES_BEFORE_GR,
             POSTERIORSURVEY_CONDITION_BEFORE_GR,
             posteriorsurveymap,
-            "Running before-GR excel files w/ prior-GR condition",   
+            "Running before-GR excel files w/ posterior-GR condition",   
         )
         
         # after-GR
@@ -403,7 +403,7 @@ if __name__ == "__main__":
             PROCESSED_EXCEL_FILES_AFTER_GR,
             POSTERIORSURVEY_CONDITION_AFTER_GR,
             posteriorsurveymap,
-            "Running before-GR excel files w/ prior-GR condition",   
+            "Running before-GR excel files w/ posterior-GR condition",   
         )
     
     
