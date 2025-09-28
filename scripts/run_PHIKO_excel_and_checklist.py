@@ -191,6 +191,7 @@ def run_priorgr_condition_single(
             return
         grr = GreenRetrofitResult(grm, idf.run(grm.weather_filepath, verbose=False))
         grr.write(output_filepath)
+        idf.write(output_filepath.replace(r".grr",r".idf"))
         
         write_log(log_category, True, filename)
     
@@ -251,6 +252,7 @@ def run_posteriorgr_condition_single(
             return
         grr = GreenRetrofitResult(grm, idf.run(grm.weather_filepath, verbose=False))
         grr.write(output_filepath)
+        idf.write(output_filepath.replace(r".grr",r".idf"))
         
         write_log(log_category, True, filename)
     
