@@ -1939,7 +1939,7 @@ class PackagedAirConditioner(SupplySystem):
                 "Name": f"CoolingCoil_for_{self.idf_get_objname(zone)}",
                 "Availability Schedule Name": zone.profile.hvac_availability.name,
                 "Gross Rated Total Cooling Capacity": self.capacity if self.capacity is not None else "autosize",
-                "Gross Rated Sensible Heat Ratio":"autosize",
+                "Gross Rated Sensible Heat Ratio":0.7,
                 "Gross Rated Cooling COP": self.cop,
                 "Rated Air Flow Rate": 0.00005034, # IO ref 참고. 허용되는 값 범위의 중간값.                
                 "Air Inlet Node Name" : f"{self.idf_get_objname(zone)} Fan2CoolingCoil Air MiddleNode",

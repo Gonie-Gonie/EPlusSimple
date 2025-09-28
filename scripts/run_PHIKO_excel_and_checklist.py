@@ -189,8 +189,9 @@ def run_priorgr_condition_single(
         idf = survey.apply_to(grm, pd.read_excel(os.path.join(dir_processed, filename), sheet_name=None))
         if len(idf) < 3:
             return
-        grr = GreenRetrofitResult(grm, idf.run(grm.weather_filepath))
+        grr = GreenRetrofitResult(grm, idf.run(grm.weather_filepath, verbose=False))
         grr.write(output_filepath)
+        idf.write(output_filepath.replace(r".grr",r".idf"))
         
         write_log(log_category, True, filename)
     
@@ -249,8 +250,9 @@ def run_posteriorgr_condition_single(
         idf = survey.apply_to(grm, pd.read_excel(os.path.join(dir_processed, filename), sheet_name=None))
         if len(idf) < 3:
             return
-        grr = GreenRetrofitResult(grm, idf.run(grm.weather_filepath))
+        grr = GreenRetrofitResult(grm, idf.run(grm.weather_filepath, verbose=False))
         grr.write(output_filepath)
+        idf.write(output_filepath.replace(r".grr",r".idf"))
         
         write_log(log_category, True, filename)
     

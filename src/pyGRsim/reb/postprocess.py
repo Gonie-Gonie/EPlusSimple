@@ -566,8 +566,6 @@ class 보건소특화존2:
 
     def get_occupant_schedule(self) -> dragon.Schedule:
         
-        
-        
         return
     
     def get_heating_setpoint_schedule(self) -> dragon.Schedule:
