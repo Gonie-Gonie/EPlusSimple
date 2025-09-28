@@ -8,17 +8,12 @@ from __future__ import annotations
 import re
 import math
 import random
+from typing      import Literal
+from dataclasses import dataclass
 from abc import (
     ABC           ,
     abstractmethod,
 )
-from dataclasses import (
-    field    ,
-    dataclass,
-)
-from enum import Enum
-from typing import Literal
-
 
 # third-party modules
 import pandas as pd
