@@ -67,7 +67,7 @@ class DaySchedule(UserList):
         unit:str=None
         ) -> None:
         
-        if self.name is None:
+        if name is None:
             name = hex(id(self))
         self.name = name
         
@@ -365,7 +365,7 @@ class RuleSet:
                 f"Unmatched typed schedule is included (expected weekdays': {weekdays.type})"
             )
         
-        if self.name is None:
+        if name is None:
             name = hex(id(self))
         self.name = name
         self.__type = weekdays.type
@@ -800,7 +800,7 @@ class Schedule(UserList):
         rulesets:list[RuleSet]|None=None,
         ) -> None:
         
-        if self.name is None:
+        if name is None:
             name = hex(id(self))
         self.name = name
         
