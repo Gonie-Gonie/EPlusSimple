@@ -247,6 +247,8 @@ def run_posteriorgr_condition_single(
     try:
         grm = GreenRetrofitModel.from_excel(os.path.join(dir_processed, filename))
         idf = survey.apply_to(os.path.join(dir_processed, filename))
+        if len(idf) < 3:
+            return
         grr = GreenRetrofitResult(grm, idf.run(grm.weather_filepath))
         grr.write(output_filepath)
         

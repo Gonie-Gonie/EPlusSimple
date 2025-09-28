@@ -767,22 +767,10 @@ class RuleSet:
     
     def to_idf_compactexpr(self) -> list[str]:
         result = []
-        mapping = {
-            "weekdays": "Weekdays",
-            "weekends": "Weekends",
-            "monday": "Monday",
-            "tuesday": "Tuesday",
-            "wednesday": "Wednesday",
-            "thursday": "Thursday",
-            "friday": "Friday",
-            "saturday": "Saturday",
-            "sunday": "Sunday",
-            "holiday": "Holiday",
-        }
         for key, schedule in self.to_dict().items():
             if schedule is None:
                 continue
-            result.append(f"For: {mapping[key]}")
+            result.append(f"For: {key}")
             result += schedule.to_idf_compactexpr()
         
         result.append("For: AllOtherDays")
