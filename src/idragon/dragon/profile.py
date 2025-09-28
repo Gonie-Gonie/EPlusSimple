@@ -159,6 +159,30 @@ class DaySchedule(UserList):
             
         return self.__add__(other.__mul__(-1))
     
+    def __and__(self, other:DaySchedule) -> DaySchedule:
+        
+        if self.type != other.type:
+            raise TypeError(
+                f"Cannot 'AND' operate {self.type}-type DaySchedule to {other.type}-type DaySchedule."
+            )
+            
+        return DaySchedule(
+            f"{self.name}:AND:{other.name}",
+            [bool(a) and bool(b) for a,b in zip(self.data, other.data)]
+        )
+        
+    def __or__(self, other:DaySchedule) -> DaySchedule:
+        
+        if self.type != other.type:
+            raise TypeError(
+                f"Cannot 'OR' operate {self.type}-type DaySchedule to {other.type}-type DaySchedule."
+            )
+            
+        return DaySchedule(
+            f"{self.name}:OR:{other.name}",
+            [bool(a) or bool(b) for a,b in zip(self.data, other.data)]
+        )
+    
     @property
     def min(self) -> int|float:
         return min(self.data)
