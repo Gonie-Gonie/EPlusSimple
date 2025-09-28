@@ -370,11 +370,11 @@ class 보건소일반존:
     def get_heating_setpoint_schedule(self, original_schedule:dragon.Schedule) -> dragon.Schedule:
         
         # 난방설비 1
-        first_equipment_setpoint = self.난방설비1.get_hvac_availability_schedule(original_schedule, "heating")
+        first_equipment_setpoint = self.난방설비1.get_setpoint_schedule(original_schedule, "heating")
         
         # 난방설비 2
         if self.난방설비2.is_valid:
-            second_equipment_setpoint = self.난방설비2.get_hvac_availability_schedule(original_schedule, "heating")
+            second_equipment_setpoint = self.난방설비2.get_setpoint_schedule(original_schedule, "heating")
             
             # 둘 다 고려 (최댓값으로)
             final_schedule = first_equipment_setpoint.element_max(second_equipment_setpoint)
@@ -387,11 +387,11 @@ class 보건소일반존:
     def get_cooling_setpoint_schedule(self, original_schedule:dragon.Schedule) -> dragon.Schedule:
         
         # 냉방설비 1
-        first_equipment_setpoint = self.냉방설비1.get_hvac_availability_schedule(original_schedule, "cooling")
+        first_equipment_setpoint = self.냉방설비1.get_setpoint_schedule(original_schedule, "cooling")
         
         # 냉방설비 2
         if self.난방설비2.is_valid:
-            second_equipment_setpoint = self.냉방설비2.get_hvac_availability_schedule(original_schedule, "cooling")
+            second_equipment_setpoint = self.냉방설비2.get_setpoint_schedule(original_schedule, "cooling")
             
             # 둘 다 고려 (최솟값으로)
             final_schedule = first_equipment_setpoint.element_min(second_equipment_setpoint)
