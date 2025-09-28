@@ -53,6 +53,9 @@ class EnergyPlusResult:
         self.tbl   = None
         self.eso   = None
         
+        if len(args) == 0:
+            pass
+        
         # parse results
         for file in args:
             if not os.path.exists(file):
