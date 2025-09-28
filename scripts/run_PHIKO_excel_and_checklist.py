@@ -220,6 +220,8 @@ def run_priorgr_condition(
     LOG_CATEGORY = "RUNNING_PRIOR"
     filelist = os.listdir(dir_processed)
     
+    filelist = [file for file in [r"054_상남보건지소_GR이전.xlsx",r"054_상남보건지소_GR이후.xlsx"] if file in filelist]
+    
     # multiprocessing
     worker = partial(
         run_priorgr_condition_single,
@@ -228,8 +230,12 @@ def run_priorgr_condition(
         surveymap  = surveymap       ,
         log_category=LOG_CATEGORY    ,
     )
-    process_map(worker, filelist, max_workers=num_workers, desc=desc, ncols=150)
     
+    if num_workers > 1:
+        process_map(worker, filelist, max_workers=num_workers, desc=desc, ncols=150)
+    else:
+        for file in tqdm(filelist, desc=desc, ncols=150):
+            worker(file)
     return
 
 
@@ -280,6 +286,8 @@ def run_posteriorgr_condition(
     # settings
     LOG_CATEGORY = "RUNNING_POSTERIOR"
     filelist = os.listdir(dir_processed)
+    
+    filelist = [file for file in [r"054_상남보건지소_GR이전.xlsx",r"054_상남보건지소_GR이후.xlsx"] if file in filelist]
     
     # multiprocessing
     worker = partial(
