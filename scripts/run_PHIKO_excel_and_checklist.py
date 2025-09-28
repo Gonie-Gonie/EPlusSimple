@@ -28,7 +28,7 @@ from pyGRsim.reb.postprocess import (
 
 # settings
 working_dir = r"B:\공유 드라이브\01 진행과제\(안전원) 시뮬레이터\12 개발\scripts\run_PHIKO_excel_and_checklist"
-num_workers = 6
+num_workers = 1
 
 # ---------------------------------------------------------------------------- #
 #                                   CONSTANTS                                  #

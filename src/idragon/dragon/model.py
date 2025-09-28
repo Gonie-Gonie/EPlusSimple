@@ -99,7 +99,7 @@ class EnergyModel:
     def create_default_idf() -> IDF:
         
         # default runnable idf and settings
-        idf = IDF()
+        idf = IDF(ensure_validity=False)
         idf["SimulationControl"].append(["Yes","Yes","Yes","No","Yes","No"])
         idf["SizingPeriod:WeatherFileDays"].append(["Design",1,15,8,15])
         idf["Timestep"].append({"Number of Timesteps per Hour": 4})

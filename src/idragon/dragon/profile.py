@@ -767,12 +767,37 @@ class RuleSet:
     
     def to_idf_compactexpr(self) -> list[str]:
         result = []
-        for key, schedule in self.to_dict().items():
-            if schedule is None:
-                continue
-            result.append(f"For: {key}")
-            result += schedule.to_idf_compactexpr()
-        
+
+        # 평일: override 여부 확인
+        weekday_keys = ["monday", "tuesday", "wednesday", "thursday", "friday"]
+        if any(getattr(self, k) for k in weekday_keys):
+            for k in weekday_keys:
+                day = getattr(self, k)
+                if day:
+                    result.append(f"For: {k.capitalize()}")
+                    result += day.to_idf_compactexpr()
+        else:
+            result.append("For: Weekdays")
+            result += self.weekdays.to_idf_compactexpr()
+
+        # 주말: override 여부 확인
+        weekend_keys = ["saturday", "sunday"]
+        if any(getattr(self, k) for k in weekend_keys):
+            for k in weekend_keys:
+                day = getattr(self, k)
+                if day:
+                    result.append(f"For: {k.capitalize()}")
+                    result += day.to_idf_compactexpr()
+        else:
+            result.append("For: Weekends")
+            result += self.weekends.to_idf_compactexpr()
+
+        # 휴일
+        if self.holiday:
+            result.append("For: Holiday")
+            result += self.holiday.to_idf_compactexpr()
+
+        # fallback (AllOtherDays → weekends 스케줄 사용)
         result.append("For: AllOtherDays")
         result += self.weekends.to_idf_compactexpr()
         
