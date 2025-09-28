@@ -143,7 +143,7 @@ class DaySchedule(UserList):
             )
         
         return DaySchedule(
-            self.name + other.name,
+            f"{self.name}:ADD:{other.name}",
             [self_item+other_item for self_item, other_item in zip(self.data, other.data)],
             type=self.type
         )
@@ -300,7 +300,7 @@ class DaySchedule(UserList):
         return compact_tuples
     
     @classmethod
-    def from_compact(cls, name, values:list[tuple], schedule_type=ScheduleType.REAL) -> DaySchedule:
+    def from_compact(cls, name, values:list[tuple], type=ScheduleType.REAL) -> DaySchedule:
         
         if values[-1][:2] != (24,0):
             raise ValueError(
@@ -318,7 +318,7 @@ class DaySchedule(UserList):
                 values.pop(0)
                 schedule_values.append(values[0][2])
          
-        return cls(name, schedule_values, schedule_type=schedule_type)
+        return cls(name, schedule_values, type=type)
     
     """ representation
     """
@@ -476,10 +476,9 @@ class RuleSet:
             self.name,
             **{
                 k: dayschedule.__mul__(value)
-                for k,dayschedule in self.to_dict()
+                for k,dayschedule in self.to_dict().items()
                 if isinstance(dayschedule, DaySchedule)
-            },
-            type = self.type
+            }
         )
         
     def __rmul__(self, value:int|float) -> RuleSet:
@@ -490,10 +489,9 @@ class RuleSet:
             self.name,
             **{
                 k: dayschedule.__truediv__(value)
-                for k,dayschedule in self.to_dict()
+                for k,dayschedule in self.to_dict().items()
                 if isinstance(dayschedule, DaySchedule)
-            },
-            type=self.type
+            }
         )
     
     @staticmethod
@@ -533,21 +531,20 @@ class RuleSet:
                 )
                 for k, self_day, other_day, self_default, other_default
                 in zip(
-                    self.to_dict.keys(),
+                    self.to_dict().keys(),
                     self.to_dict().values(), other.to_dict().values(),
                     [
-                        "weekdays","weekends",
-                        "weekdays","weekdays","weekdays","weekdays","weekdays",
-                        "weekends","weekends","weekends"
+                        self.weekdays, self.weekends,
+                        self.weekdays, self.weekdays, self.weekdays, self.weekdays, self.weekdays,
+                        self.weekends, self.weekends, self.weekends,
                     ],
                     [
-                        "weekdays","weekends",
-                        "weekdays","weekdays","weekdays","weekdays","weekdays",
-                        "weekends","weekends","weekends"
+                        other.weekdays, other.weekends,
+                        other.weekdays, other.weekdays, other.weekdays, other.weekdays, other.weekdays,
+                        other.weekends, other.weekends, other.weekends,
                     ],
                 )
-            },
-            type=self.type
+            }
         )
     
     def __radd__(self, other:RuleSet) -> RuleSet:
@@ -582,18 +579,17 @@ class RuleSet:
                     self.to_dict.keys(),
                     self.to_dict().values(), other.to_dict().values(),
                     [
-                        "weekdays","weekends",
-                        "weekdays","weekdays","weekdays","weekdays","weekdays",
-                        "weekends","weekends","weekends"
+                        self.weekdays, self.weekends,
+                        self.weekdays, self.weekdays, self.weekdays, self.weekdays, self.weekdays,
+                        self.weekends, self.weekends, self.weekends,
                     ],
                     [
-                        "weekdays","weekends",
-                        "weekdays","weekdays","weekdays","weekdays","weekdays",
-                        "weekends","weekends","weekends"
+                        other.weekdays, other.weekends,
+                        other.weekdays, other.weekdays, other.weekdays, other.weekdays, other.weekdays,
+                        other.weekends, other.weekends, other.weekends,
                     ],
                 )
-            },
-            type=self.type
+            }
         )
         
     def __or__(self, other:RuleSet) -> RuleSet:
@@ -616,18 +612,17 @@ class RuleSet:
                     self.to_dict.keys(),
                     self.to_dict().values(), other.to_dict().values(),
                     [
-                        "weekdays","weekends",
-                        "weekdays","weekdays","weekdays","weekdays","weekdays",
-                        "weekends","weekends","weekends"
+                        self.weekdays, self.weekends,
+                        self.weekdays, self.weekdays, self.weekdays, self.weekdays, self.weekdays,
+                        self.weekends, self.weekends, self.weekends,
                     ],
                     [
-                        "weekdays","weekends",
-                        "weekdays","weekdays","weekdays","weekdays","weekdays",
-                        "weekends","weekends","weekends"
+                        other.weekdays, other.weekends,
+                        other.weekdays, other.weekdays, other.weekdays, other.weekdays, other.weekdays,
+                        other.weekends, other.weekends, other.weekends,
                     ],
                 )
-            },
-            type=self.type
+            }
         )
         
     def __invert__(self) -> RuleSet:
@@ -641,10 +636,9 @@ class RuleSet:
             self.name,
             **{
                 k: dayschedule.__invert__()
-                for k,dayschedule in self.to_dict()
+                for k,dayschedule in self.to_dict().items()
                 if isinstance(dayschedule, DaySchedule)
-            },
-            type=self.type
+            }
         )
         
     def element_min(self, other:RuleSet) -> RuleSet:
@@ -662,18 +656,17 @@ class RuleSet:
                     self.to_dict.keys(),
                     self.to_dict().values(), other.to_dict().values(),
                     [
-                        "weekdays","weekends",
-                        "weekdays","weekdays","weekdays","weekdays","weekdays",
-                        "weekends","weekends","weekends"
+                        self.weekdays, self.weekends,
+                        self.weekdays, self.weekdays, self.weekdays, self.weekdays, self.weekdays,
+                        self.weekends, self.weekends, self.weekends,
                     ],
                     [
-                        "weekdays","weekends",
-                        "weekdays","weekdays","weekdays","weekdays","weekdays",
-                        "weekends","weekends","weekends"
+                        other.weekdays, other.weekends,
+                        other.weekdays, other.weekdays, other.weekdays, other.weekdays, other.weekdays,
+                        other.weekends, other.weekends, other.weekends,
                     ],
                 )
-            },
-            type=self.type
+            }
         )
         
     def element_max(self, other:RuleSet) -> RuleSet:
@@ -691,18 +684,17 @@ class RuleSet:
                     self.to_dict.keys(),
                     self.to_dict().values(), other.to_dict().values(),
                     [
-                        "weekdays","weekends",
-                        "weekdays","weekdays","weekdays","weekdays","weekdays",
-                        "weekends","weekends","weekends"
+                        self.weekdays, self.weekends,
+                        self.weekdays, self.weekdays, self.weekdays, self.weekdays, self.weekdays,
+                        self.weekends, self.weekends, self.weekends,
                     ],
                     [
-                        "weekdays","weekends",
-                        "weekdays","weekdays","weekdays","weekdays","weekdays",
-                        "weekends","weekends","weekends"
+                        other.weekdays, other.weekends,
+                        other.weekdays, other.weekdays, other.weekdays, other.weekdays, other.weekdays,
+                        other.weekends, other.weekends, other.weekends,
                     ],
                 )
-            },
-            type=self.type
+            }
         )
     
     @property
@@ -746,7 +738,7 @@ class RuleSet:
     def to_dict(self) -> dict[str, DaySchedule]:
         return {
             "weekdays" : self.weekdays ,
-            "weekdends": self.weekends ,
+            "weekends": self.weekends ,
             "monday"   : self.monday   ,
             "tuesday"  : self.tuesday  ,
             "wednesday": self.wednesday,

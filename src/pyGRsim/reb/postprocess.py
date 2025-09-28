@@ -5,6 +5,9 @@
 
 # built-in modules
 from __future__ import annotations
+import re
+import math
+import random
 from abc import (
     ABC           ,
     abstractmethod,
@@ -26,9 +29,81 @@ from idragon import (
     IDF        ,
 )
 
+# settings
+random.seed(hash("REB-PHIKO-SNU"))
 
 # ---------------------------------------------------------------------------- #
-#                                      SUB                                     #
+#                                 SUBFUNCTIONS                                 #
+# ---------------------------------------------------------------------------- #
+
+def parse_duration_hours(operation_str:str) -> tuple[int,int,int,int]:
+    
+    pattern = re.compile(r"(?P<starth>\d{2}):(?P<startm>\d{2}) ?(-|~) ?(?P<endh>\d{2}):(?P<endm>\d{2})")
+    matched = re.search(pattern, operation_str)
+    
+    return int(matched.group("starth")), int(matched.group("startm")), int(matched.group("endh")), int(matched.group("endm"))
+
+def translate_dayofweek(korean_dow:str) -> str:
+    
+    dow_dict = {
+        "월": "monday"   ,
+        "화": "tuesday"  ,
+        "수": "wednesday",
+        "목": "thursday" ,
+        "금": "friday"   ,
+    }
+    
+    return dow_dict[korean_dow]
+    
+
+def make_집중진료_schedule(starth, startm, endh, endm,
+                  x1, t1, x2, t2,
+                  mode="random") -> list[int]:
+    
+    slots = [0] * 144  # 하루 전체
+
+    # 운영시간을 슬롯 인덱스로 변환
+    start_idx = (starth * 60 + startm) // 10
+    end_idx   = (endh   * 60 + endm) // 10
+    if end_idx > 144: end_idx = 144
+
+    # 오전/오후 범위
+    am_start, am_end = 0, 72
+    pm_start, pm_end = 72, 144
+
+    def assign_people(n, stay_min, seg_start, seg_end):
+        stay_slots = math.ceil(stay_min / 10)
+        # 운영시간과 교집합으로 제한
+        seg_start = max(seg_start, start_idx)
+        seg_end   = min(seg_end, end_idx)
+        available = seg_end - seg_start
+        if n == 0 or stay_slots <= 0 or available <= 0:
+            return [], 0
+        if mode == "random":
+            start_points = sorted(random.sample(
+                range(seg_start, seg_end - stay_slots + 1), n
+            ))
+        else:  # 균등 배치
+            interval = (available - stay_slots) // (n - 1) if n > 1 else 0
+            start_points = [seg_start + i * interval for i in range(n)]
+        return start_points, stay_slots
+
+    # 오전 배정
+    am_points, am_stay = assign_people(x1, t1, am_start, am_end)
+    for s in am_points:
+        for i in range(am_stay):
+            slots[s+i] += 1
+
+    # 오후 배정
+    pm_points, pm_stay = assign_people(x2, t2, pm_start, pm_end)
+    for s in pm_points:
+        for i in range(pm_stay):
+            slots[s+i] += 1
+
+    return slots
+
+# ---------------------------------------------------------------------------- #
+#                                 SURVEY ITEMS                                 #
 # ---------------------------------------------------------------------------- #
 
 @dataclass
@@ -139,9 +214,78 @@ class 보건소일반존:
             
     def get_occupant_schedule(self) -> dragon.Schedule:
         
+        # 기본 운영시간
+        starth, startm, endh, endm = parse_duration_hours(self.운영시간)
+        기본운영_직원_ruleset = dragon.RuleSet(
+            None,
+            dragon.DaySchedule.from_compact(
+                None,
+                [
+                    (starth, startm,        0),
+                    (endh  , endm  , self.직원),
+                    (24    , 0     ,        0),
+                ],
+                dragon.ScheduleType.REAL,
+            ),
+            dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,)
+        )
         
+        # 집중진료
+        # 요일 parsing
+        집중진료_dayofweeks = [translate_dayofweek(s.strip()) for s in self.집중진료요일.split(",")]
+        # 시간 정하기 (random 배정)
+        starth, startm, endh, endm = parse_duration_hours(self.집중진료시간)
+        schedule_values = make_집중진료_schedule(
+            starth, startm, endh, endm,
+            self.집중진료오전방문객, self.집중진료오전체류시간, self.집중진료오후방문객, self.집중진료오후체류시간
+        )
+        # ruleset 만들기
+        집중진료_방문객_ruleset = dragon.RuleSet(
+            None,
+            dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,),
+            dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,),
+            **{
+                k: dragon.DaySchedule(None, schedule_values, type=dragon.ScheduleType.REAL)
+                for k in 집중진료_dayofweeks
+            }
+        )
         
-        return
+        # 외근
+        # 요일 정하기
+        non_집중진료_dayofweeks = {"monday","tuesday","wednesday","thursday","friday"} - set(집중진료_dayofweeks)
+        if len(non_집중진료_dayofweeks) >= self.외근횟수:
+            외근_dayofweeks = random.sample(sorted(non_집중진료_dayofweeks), self.외근횟수)
+        else:
+            외근_dayofweeks = list(non_집중진료_dayofweeks) + random.sample(sorted(집중진료_dayofweeks), self.외근횟수-len(non_집중진료_dayofweeks))
+
+        # 시간 정하기
+        starth, startm, endh, endm = parse_duration_hours(self.외근시간)
+        # ruleset 만들기
+        외근_직원_ruleset = dragon.RuleSet(
+            None,
+            dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,),
+            dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,),
+            **{
+                k: dragon.DaySchedule.from_compact(
+                    None,
+                    [
+                        (starth, startm,           0),
+                        (endh  , endm  , self.외근직원),
+                        (24    , 0     ,           0),
+                    ],
+                    dragon.ScheduleType.REAL,
+                )
+                for k in 외근_dayofweeks
+            }
+        )
+        
+        final_occupant_ruleset = 기본운영_직원_ruleset + 집중진료_방문객_ruleset - 외근_직원_ruleset
+        occupant_schedule = dragon.Schedule(
+            None,
+            [final_occupant_ruleset] * 365
+        )
+        
+        return occupant_schedule
     
     def get_heating_setpoint_schedule(self) -> dragon.Schedule:
         
@@ -158,6 +302,7 @@ class 보건소일반존:
     def apply_to(self, zones:list[dragon.Zone]) -> None:
         
         total_area = sum(zone.floor_area for zone in zones)
+        occupant_schedule = self.get_occupant_schedule()/total_area
         
         for zone in zones:
             zone.profile = dragon.Profile(
@@ -165,7 +310,7 @@ class 보건소일반존:
                 self.get_heating_setpoint_schedule(), 
                 self.get_cooling_setpoint_schedule(), 
                 self.get_hvac_availability_schedule(),
-                self.get_occupant_schedule(),
+                occupant_schedule,
                 zone.profile.lighting,
                 zone.profile.equipment,
             )
@@ -360,7 +505,7 @@ class 어린이집GR이전체크리스트(현장조사체크리스트):
             MetaData.from_row(row),
         )
         
-    def apply_to(self, grm:GreenRetrofitModel) -> IDF:
+    def apply_to(self, grm:GreenRetrofitModel, exceldata:dict[str,pd.DataFrame]) -> IDF:
         
         return IDF()
 
@@ -383,7 +528,7 @@ class 어린이집GR이후체크리스트(현장조사체크리스트):
             MetaData.from_row(row),
         )
         
-    def apply_to(self, grm:GreenRetrofitModel) -> IDF:
+    def apply_to(self, grm:GreenRetrofitModel, exceldata:dict[str,pd.DataFrame]) -> IDF:
         
         return IDF()
     
