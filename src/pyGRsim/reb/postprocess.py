@@ -429,7 +429,7 @@ class 보건소일반존:
             if 설비.is_valid:
                 operation_schedules.append(설비.get_hvac_availability_schedule())
         
-        # 설비 가동스케줄 (or조건으로 개별 설비 결합)
+        # 설비 가동스케줄 (or조건으로 개별 설비 결합: 모종의 설비가 가동중)
         hvac_availability = operation_schedules[0]
         for schedule in operation_schedules[1:]:
             hvac_availability |= schedule
