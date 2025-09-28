@@ -11,6 +11,7 @@ import math
 import datetime
 from typing import (
     Any     ,
+    Callable,
 )
 from enum import Enum
 from copy import deepcopy
@@ -187,7 +188,7 @@ class DaySchedule(UserList):
         
         if self.type is not ScheduleType.ONOFF:
             raise TypeError(
-                f"Cannot 'invert' operate for non-ONOFF typed DaySchedules (get: {self.type})."
+                f"Cannot 'invert' operate for non-ONOFF typed DaySchedule (get: {self.type})."
             )
             
         return DaySchedule(
@@ -455,6 +456,182 @@ class RuleSet:
     
     """ algebraric methods
     """
+    
+    def __mul__(self, value:int|float) -> RuleSet:
+        return RuleSet(
+            self.name,
+            **{
+                k: dayschedule.__mul__(value)
+                for k,dayschedule in self.to_dict()
+                if isinstance(dayschedule, DaySchedule)
+            },
+            type = self.type
+        )
+        
+    def __rmul__(self, value:int|float) -> RuleSet:
+        return self.__mul__(value)
+    
+    def __truediv__(self, value:int|float) -> RuleSet:
+        return RuleSet(
+            self.name,
+            **{
+                k: dayschedule.__truediv__(value)
+                for k,dayschedule in self.to_dict()
+                if isinstance(dayschedule, DaySchedule)
+            },
+            type=self.type
+        )
+    
+    @staticmethod
+    def __operate_dayschedule_with_default(
+        operator     :Callable   ,
+        self_day     :DaySchedule,
+        other_day    :DaySchedule,
+        self_default :DaySchedule,
+        other_default:DaySchedule,
+        ) -> DaySchedule:
+        
+        if (self_day is None) and (other_day is None):
+            return None
+        
+        else:
+            if self_day is None:
+                self_day = self_default
+            if other_day is None:
+                other_day = other_default
+            
+            return operator(self_day, other_day)        
+        
+    def __add__(self, other:RuleSet) -> RuleSet:
+        
+        if self.type != other.type:
+            raise TypeError(
+                f"Cannot add {self.type}-type RuleSet to {other.type}-type RuleSet."
+            )
+            
+        return RuleSet(
+            f"{self.name}:ADD:{other.name}",
+            **{
+                k: RuleSet.__operate_dayschedule_with_default(
+                    lambda a, b: a + b,
+                    self_day    , other_day    ,
+                    self_default, other_default,
+                )
+                for k, self_day, other_day, self_default, other_default
+                in zip(
+                    self.to_dict.keys(),
+                    self.to_dict().values(), other.to_dict().values(),
+                    [
+                        "weekdays","weekends",
+                        "weekdays","weekdays","weekdays","weekdays","weekdays",
+                        "weekends","weekends","weekends"
+                    ],
+                    [
+                        "weekdays","weekends",
+                        "weekdays","weekdays","weekdays","weekdays","weekdays",
+                        "weekends","weekends","weekends"
+                    ],
+                )
+            },
+            type=self.type
+        )
+    
+    def __radd__(self, other:RuleSet) -> RuleSet:
+        return self.__add__(other)
+    
+    def __sub__(self, other:RuleSet) -> RuleSet:
+        
+        if self.type != other.type:
+            raise TypeError(
+                f"Cannot substract {self.type}-type RuleSet to {other.type}-type RuleSet."
+            )
+            
+        return self.__add__(other.__mul__(-1))
+    
+    def __and__(self, other:RuleSet) -> RuleSet:
+        
+        if (self.type is not ScheduleType.ONOFF) or (other.type is not ScheduleType.ONOFF):
+            raise TypeError(
+                f"Cannot 'AND' operate for non-ONOFF typed RuleSets (get: {self.type} and {other.type})."
+            )
+            
+        return RuleSet(
+            f"{self.name}:AND:{other.name}",
+            **{
+                k: RuleSet.__operate_dayschedule_with_default(
+                    lambda a, b: a.__and__(b),
+                    self_day    , other_day    ,
+                    self_default, other_default,
+                )
+                for k, self_day, other_day, self_default, other_default
+                in zip(
+                    self.to_dict.keys(),
+                    self.to_dict().values(), other.to_dict().values(),
+                    [
+                        "weekdays","weekends",
+                        "weekdays","weekdays","weekdays","weekdays","weekdays",
+                        "weekends","weekends","weekends"
+                    ],
+                    [
+                        "weekdays","weekends",
+                        "weekdays","weekdays","weekdays","weekdays","weekdays",
+                        "weekends","weekends","weekends"
+                    ],
+                )
+            },
+            type=self.type
+        )
+        
+    def __or__(self, other:RuleSet) -> RuleSet:
+        
+        if (self.type is not ScheduleType.ONOFF) or (other.type is not ScheduleType.ONOFF):
+            raise TypeError(
+                f"Cannot 'AND' operate for non-ONOFF typed RuleSets (get: {self.type} and {other.type})."
+            )
+            
+        return RuleSet(
+            f"{self.name}:AND:{other.name}",
+            **{
+                k: RuleSet.__operate_dayschedule_with_default(
+                    lambda a, b: a.__or__(b),
+                    self_day    , other_day    ,
+                    self_default, other_default,
+                )
+                for k, self_day, other_day, self_default, other_default
+                in zip(
+                    self.to_dict.keys(),
+                    self.to_dict().values(), other.to_dict().values(),
+                    [
+                        "weekdays","weekends",
+                        "weekdays","weekdays","weekdays","weekdays","weekdays",
+                        "weekends","weekends","weekends"
+                    ],
+                    [
+                        "weekdays","weekends",
+                        "weekdays","weekdays","weekdays","weekdays","weekdays",
+                        "weekends","weekends","weekends"
+                    ],
+                )
+            },
+            type=self.type
+        )
+        
+    def __invert__(self) -> RuleSet:
+        
+        if self.type is not ScheduleType.ONOFF:
+            raise TypeError(
+                f"Cannot 'invert' operate for non-ONOFF typed RuleSet (get: {self.type})."
+            )
+            
+        return RuleSet(
+            self.name,
+            **{
+                k: dayschedule.__invert__()
+                for k,dayschedule in self.to_dict()
+                if isinstance(dayschedule, DaySchedule)
+            },
+            type=self.type
+        )
     
     @property
     def min(self) -> int|float:
