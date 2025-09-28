@@ -161,26 +161,38 @@ class DaySchedule(UserList):
     
     def __and__(self, other:DaySchedule) -> DaySchedule:
         
-        if self.type != other.type:
+        if (self.type is not ScheduleType.ONOFF) or (other.type is not ScheduleType.ONOFF):
             raise TypeError(
-                f"Cannot 'AND' operate {self.type}-type DaySchedule to {other.type}-type DaySchedule."
+                f"Cannot 'AND' operate for non-ONOFF typed DaySchedules (get: {self.type} and {other.type})."
             )
             
         return DaySchedule(
             f"{self.name}:AND:{other.name}",
-            [bool(a) and bool(b) for a,b in zip(self.data, other.data)]
+            [int(bool(a) and bool(b)) for a,b in zip(self.data, other.data)]
         )
         
     def __or__(self, other:DaySchedule) -> DaySchedule:
         
-        if self.type != other.type:
+        if (self.type is not ScheduleType.ONOFF) or (other.type is not ScheduleType.ONOFF):
             raise TypeError(
-                f"Cannot 'OR' operate {self.type}-type DaySchedule to {other.type}-type DaySchedule."
+                f"Cannot 'OR' operate for non-ONOFF typed DaySchedules (get: {self.type} and {other.type})."
             )
             
         return DaySchedule(
             f"{self.name}:OR:{other.name}",
-            [bool(a) or bool(b) for a,b in zip(self.data, other.data)]
+            [int(bool(a) or bool(b)) for a,b in zip(self.data, other.data)]
+        )
+        
+    def __invert__(self) -> DaySchedule:
+        
+        if self.type is not ScheduleType.ONOFF:
+            raise TypeError(
+                f"Cannot 'invert' operate for non-ONOFF typed DaySchedules (get: {self.type})."
+            )
+            
+        return DaySchedule(
+            f"{self.name}:INVERTED",
+            [int(not bool(value)) for value in self.data]
         )
     
     @property
