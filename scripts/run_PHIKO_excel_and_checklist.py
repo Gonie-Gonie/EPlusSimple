@@ -187,6 +187,8 @@ def run_priorgr_condition_single(
     try:
         grm = GreenRetrofitModel.from_excel(os.path.join(dir_processed, filename))
         idf = survey.apply_to(grm, pd.read_excel(os.path.join(dir_processed, filename), sheet_name=None))
+        if len(idf) < 3:
+            return
         grr = GreenRetrofitResult(grm, idf.run(grm.weather_filepath))
         grr.write(output_filepath)
         

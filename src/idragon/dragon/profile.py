@@ -586,7 +586,7 @@ class RuleSet:
                 )
                 for k, self_day, other_day, self_default, other_default
                 in zip(
-                    self.to_dict.keys(),
+                    self.to_dict().keys(),
                     self.to_dict().values(), other.to_dict().values(),
                     [
                         self.weekdays, self.weekends,
@@ -1092,6 +1092,7 @@ class Schedule(UserList):
         ) -> Schedule:
         
         schedule = cls(name)
+        schedule._Schedule__type = rulesets[0][2].type
         for start, end, ruleset in rulesets:
             schedule.apply(ruleset, start=start, end=end)
         

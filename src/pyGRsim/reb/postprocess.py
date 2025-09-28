@@ -553,16 +553,14 @@ class 보건소일반존:
     def apply_to(self, zones:list[dragon.Zone]) -> None:
         
         total_area = max(sum(zone.floor_area for zone in zones), 1E-6)
-        occupant_schedule = self.get_occupant_schedule()/total_area
-        heating_setpoint_schedule = self.get_heating_setpoint_schedule(zone.profile.heating_setpoint) 
-        cooling_setpoint_schedule = self.get_cooling_setpoint_schedule(zone.profile.cooling_setpoint)
+        occupant_schedule = self.get_occupant_schedule()/total_area 
         hvac_availability_schedule = self.get_hvac_availability_schedule()
         
         for zone in zones:
             zone.profile = dragon.Profile(
                 f"{zone.name}_일반존체크리스트",
-                heating_setpoint_schedule , 
-                cooling_setpoint_schedule , 
+                self.get_heating_setpoint_schedule(zone.profile.heating_setpoint), 
+                self.get_cooling_setpoint_schedule(zone.profile.cooling_setpoint) , 
                 hvac_availability_schedule,
                 occupant_schedule         ,
                 zone.profile.lighting     ,
@@ -630,10 +628,10 @@ class 보건소특화존1:
         for zone in zones:
             zone.profile = dragon.Profile(
                 f"{zone.name}_특화존1체크리스트",
-                self.get_heating_setpoint_schedule(), 
-                self.get_cooling_setpoint_schedule(), 
-                self.get_hvac_availability_schedule(),
-                self.get_occupant_schedule(),
+                zone.profile.heating_setpoint, 
+                zone.profile.cooling_setpoint, 
+                zone.profile.hvac_availability,
+                zone.profile.occupant,
                 zone.profile.lighting,
                 zone.profile.equipment,
             )
@@ -701,10 +699,10 @@ class 보건소특화존2:
         for zone in zones:
             zone.profile = dragon.Profile(
                 f"{zone.name}_특화존2체크리스트",
-                self.get_heating_setpoint_schedule(), 
-                self.get_cooling_setpoint_schedule(), 
-                self.get_hvac_availability_schedule(),
-                self.get_occupant_schedule(),
+                zone.profile.heating_setpoint, 
+                zone.profile.cooling_setpoint, 
+                zone.profile.hvac_availability,
+                zone.profile.occupant,
                 zone.profile.lighting,
                 zone.profile.equipment,
             )
