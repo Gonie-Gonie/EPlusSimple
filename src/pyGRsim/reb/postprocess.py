@@ -390,7 +390,7 @@ class 보건소일반존:
         first_equipment_setpoint = self.냉방설비1.get_setpoint_schedule(original_schedule, "cooling")
         
         # 냉방설비 2
-        if self.난방설비2.is_valid:
+        if self.냉방설비2.is_valid:
             second_equipment_setpoint = self.냉방설비2.get_setpoint_schedule(original_schedule, "cooling")
             
             # 둘 다 고려 (최솟값으로)

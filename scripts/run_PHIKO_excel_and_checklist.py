@@ -366,7 +366,7 @@ if __name__ == "__main__":
     #                           PRIOR-GR SURVEY CONDITION                          #
     # ---------------------------------------------------------------------------- #
 
-    if PRIORGR_RUNNING_REQUIRED:=False:
+    if PRIORGR_RUNNING_REQUIRED:=True:
         
         # before-GR
         run_priorgr_condition(
@@ -381,7 +381,7 @@ if __name__ == "__main__":
             PROCESSED_EXCEL_FILES_AFTER_GR,
             PRIORSURVEY_CONDITION_AFTER_GR,
             priorsurveymap,
-            "Running before-GR excel files w/ prior-GR condition",   
+            "Running after-GR excel files w/ prior-GR condition",   
         )
     
     # ---------------------------------------------------------------------------- #
@@ -403,7 +403,7 @@ if __name__ == "__main__":
             PROCESSED_EXCEL_FILES_AFTER_GR,
             POSTERIORSURVEY_CONDITION_AFTER_GR,
             posteriorsurveymap,
-            "Running before-GR excel files w/ posterior-GR condition",   
+            "Running after-GR excel files w/ posterior-GR condition",   
         )
     
     
