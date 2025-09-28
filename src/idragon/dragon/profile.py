@@ -11,6 +11,7 @@ import math
 import datetime
 from typing import (
     Any     ,
+    Callable,
 )
 from enum import Enum
 from copy import deepcopy
@@ -158,6 +159,56 @@ class DaySchedule(UserList):
             )
             
         return self.__add__(other.__mul__(-1))
+    
+    def __and__(self, other:DaySchedule) -> DaySchedule:
+        
+        if (self.type is not ScheduleType.ONOFF) or (other.type is not ScheduleType.ONOFF):
+            raise TypeError(
+                f"Cannot 'AND' operate for non-ONOFF typed DaySchedules (get: {self.type} and {other.type})."
+            )
+            
+        return DaySchedule(
+            f"{self.name}:AND:{other.name}",
+            [int(bool(a) and bool(b)) for a,b in zip(self.data, other.data)]
+        )
+        
+    def __or__(self, other:DaySchedule) -> DaySchedule:
+        
+        if (self.type is not ScheduleType.ONOFF) or (other.type is not ScheduleType.ONOFF):
+            raise TypeError(
+                f"Cannot 'OR' operate for non-ONOFF typed DaySchedules (get: {self.type} and {other.type})."
+            )
+            
+        return DaySchedule(
+            f"{self.name}:OR:{other.name}",
+            [int(bool(a) or bool(b)) for a,b in zip(self.data, other.data)]
+        )
+        
+    def __invert__(self) -> DaySchedule:
+        
+        if self.type is not ScheduleType.ONOFF:
+            raise TypeError(
+                f"Cannot 'invert' operate for non-ONOFF typed DaySchedule (get: {self.type})."
+            )
+            
+        return DaySchedule(
+            f"{self.name}:INVERTED",
+            [int(not bool(value)) for value in self.data]
+        )
+        
+    def element_min(self, other:DaySchedule) -> DaySchedule:
+        
+        return DaySchedule(
+            f"{self.name}:MIN:{other.name}",
+            [min(a,b) for a,b in zip(self.data, other.data)]
+        )
+        
+    def element_max(self, other:DaySchedule) -> DaySchedule:
+        
+        return DaySchedule(
+            f"{self.name}:MAX:{other.name}",
+            [max(a,b) for a,b in zip(self.data, other.data)]
+        )
     
     @property
     def min(self) -> int|float:
@@ -420,6 +471,240 @@ class RuleSet:
     """ algebraric methods
     """
     
+    def __mul__(self, value:int|float) -> RuleSet:
+        return RuleSet(
+            self.name,
+            **{
+                k: dayschedule.__mul__(value)
+                for k,dayschedule in self.to_dict()
+                if isinstance(dayschedule, DaySchedule)
+            },
+            type = self.type
+        )
+        
+    def __rmul__(self, value:int|float) -> RuleSet:
+        return self.__mul__(value)
+    
+    def __truediv__(self, value:int|float) -> RuleSet:
+        return RuleSet(
+            self.name,
+            **{
+                k: dayschedule.__truediv__(value)
+                for k,dayschedule in self.to_dict()
+                if isinstance(dayschedule, DaySchedule)
+            },
+            type=self.type
+        )
+    
+    @staticmethod
+    def __operate_dayschedule_with_default(
+        operator     :Callable   ,
+        self_day     :DaySchedule,
+        other_day    :DaySchedule,
+        self_default :DaySchedule,
+        other_default:DaySchedule,
+        ) -> DaySchedule:
+        
+        if (self_day is None) and (other_day is None):
+            return None
+        
+        else:
+            if self_day is None:
+                self_day = self_default
+            if other_day is None:
+                other_day = other_default
+            
+            return operator(self_day, other_day)        
+        
+    def __add__(self, other:RuleSet) -> RuleSet:
+        
+        if self.type != other.type:
+            raise TypeError(
+                f"Cannot add {self.type}-type RuleSet to {other.type}-type RuleSet."
+            )
+            
+        return RuleSet(
+            f"{self.name}:ADD:{other.name}",
+            **{
+                k: RuleSet.__operate_dayschedule_with_default(
+                    lambda a, b: a + b,
+                    self_day    , other_day    ,
+                    self_default, other_default,
+                )
+                for k, self_day, other_day, self_default, other_default
+                in zip(
+                    self.to_dict.keys(),
+                    self.to_dict().values(), other.to_dict().values(),
+                    [
+                        "weekdays","weekends",
+                        "weekdays","weekdays","weekdays","weekdays","weekdays",
+                        "weekends","weekends","weekends"
+                    ],
+                    [
+                        "weekdays","weekends",
+                        "weekdays","weekdays","weekdays","weekdays","weekdays",
+                        "weekends","weekends","weekends"
+                    ],
+                )
+            },
+            type=self.type
+        )
+    
+    def __radd__(self, other:RuleSet) -> RuleSet:
+        return self.__add__(other)
+    
+    def __sub__(self, other:RuleSet) -> RuleSet:
+        
+        if self.type != other.type:
+            raise TypeError(
+                f"Cannot substract {self.type}-type RuleSet to {other.type}-type RuleSet."
+            )
+            
+        return self.__add__(other.__mul__(-1))
+    
+    def __and__(self, other:RuleSet) -> RuleSet:
+        
+        if (self.type is not ScheduleType.ONOFF) or (other.type is not ScheduleType.ONOFF):
+            raise TypeError(
+                f"Cannot 'AND' operate for non-ONOFF typed RuleSets (get: {self.type} and {other.type})."
+            )
+            
+        return RuleSet(
+            f"{self.name}:AND:{other.name}",
+            **{
+                k: RuleSet.__operate_dayschedule_with_default(
+                    lambda a, b: a.__and__(b),
+                    self_day    , other_day    ,
+                    self_default, other_default,
+                )
+                for k, self_day, other_day, self_default, other_default
+                in zip(
+                    self.to_dict.keys(),
+                    self.to_dict().values(), other.to_dict().values(),
+                    [
+                        "weekdays","weekends",
+                        "weekdays","weekdays","weekdays","weekdays","weekdays",
+                        "weekends","weekends","weekends"
+                    ],
+                    [
+                        "weekdays","weekends",
+                        "weekdays","weekdays","weekdays","weekdays","weekdays",
+                        "weekends","weekends","weekends"
+                    ],
+                )
+            },
+            type=self.type
+        )
+        
+    def __or__(self, other:RuleSet) -> RuleSet:
+        
+        if (self.type is not ScheduleType.ONOFF) or (other.type is not ScheduleType.ONOFF):
+            raise TypeError(
+                f"Cannot 'AND' operate for non-ONOFF typed RuleSets (get: {self.type} and {other.type})."
+            )
+            
+        return RuleSet(
+            f"{self.name}:AND:{other.name}",
+            **{
+                k: RuleSet.__operate_dayschedule_with_default(
+                    lambda a, b: a.__or__(b),
+                    self_day    , other_day    ,
+                    self_default, other_default,
+                )
+                for k, self_day, other_day, self_default, other_default
+                in zip(
+                    self.to_dict.keys(),
+                    self.to_dict().values(), other.to_dict().values(),
+                    [
+                        "weekdays","weekends",
+                        "weekdays","weekdays","weekdays","weekdays","weekdays",
+                        "weekends","weekends","weekends"
+                    ],
+                    [
+                        "weekdays","weekends",
+                        "weekdays","weekdays","weekdays","weekdays","weekdays",
+                        "weekends","weekends","weekends"
+                    ],
+                )
+            },
+            type=self.type
+        )
+        
+    def __invert__(self) -> RuleSet:
+        
+        if self.type is not ScheduleType.ONOFF:
+            raise TypeError(
+                f"Cannot 'invert' operate for non-ONOFF typed RuleSet (get: {self.type})."
+            )
+            
+        return RuleSet(
+            self.name,
+            **{
+                k: dayschedule.__invert__()
+                for k,dayschedule in self.to_dict()
+                if isinstance(dayschedule, DaySchedule)
+            },
+            type=self.type
+        )
+        
+    def element_min(self, other:RuleSet) -> RuleSet:
+        
+        return RuleSet(
+            f"{self.name}:MIN:{other.name}",
+            **{
+                k: RuleSet.__operate_dayschedule_with_default(
+                    lambda a, b: a.element_min(b),
+                    self_day    , other_day    ,
+                    self_default, other_default,
+                )
+                for k, self_day, other_day, self_default, other_default
+                in zip(
+                    self.to_dict.keys(),
+                    self.to_dict().values(), other.to_dict().values(),
+                    [
+                        "weekdays","weekends",
+                        "weekdays","weekdays","weekdays","weekdays","weekdays",
+                        "weekends","weekends","weekends"
+                    ],
+                    [
+                        "weekdays","weekends",
+                        "weekdays","weekdays","weekdays","weekdays","weekdays",
+                        "weekends","weekends","weekends"
+                    ],
+                )
+            },
+            type=self.type
+        )
+        
+    def element_max(self, other:RuleSet) -> RuleSet:
+        
+        return RuleSet(
+            f"{self.name}:MAX:{other.name}",
+            **{
+                k: RuleSet.__operate_dayschedule_with_default(
+                    lambda a, b: a.element_max(b),
+                    self_day    , other_day    ,
+                    self_default, other_default,
+                )
+                for k, self_day, other_day, self_default, other_default
+                in zip(
+                    self.to_dict.keys(),
+                    self.to_dict().values(), other.to_dict().values(),
+                    [
+                        "weekdays","weekends",
+                        "weekdays","weekdays","weekdays","weekdays","weekdays",
+                        "weekends","weekends","weekends"
+                    ],
+                    [
+                        "weekdays","weekends",
+                        "weekdays","weekdays","weekdays","weekdays","weekdays",
+                        "weekends","weekends","weekends"
+                    ],
+                )
+            },
+            type=self.type
+        )
+    
     @property
     def min(self) -> int|float:
         return min([
@@ -556,6 +841,149 @@ class Schedule(UserList):
     """ algebraric operation
     """
     
+    def __mul__(self, value:int|float) -> Schedule:
+        return Schedule.from_compact(
+            f"{self.name}:MUL:{value:.6f}",
+            [
+                (start_date, end_date, ruleset.__mul__(value))
+                for start_date, end_date, ruleset in self.compactize()
+            ]
+        )
+        
+    def __rmul__(self, value:int|float) -> Schedule:
+        return self.__mul__(value)
+    
+    def __truediv__(self, value:int|float) -> Schedule:
+        return Schedule.from_compact(
+            f"{self.name}:TRUEDIV:{value:.6f}",
+            [
+                (start_date, end_date, ruleset.__truediv__(value))
+                for start_date, end_date, ruleset in self.compactize()
+            ]
+        )
+        
+    def __add__(self, other:Schedule) -> RuleSet:
+        
+        if self.type != other.type:
+            raise TypeError(
+                f"Cannot add {self.type}-type Schedule to {other.type}-type Schedule."
+            )
+            
+        unified_compactized_self, unified_compactized_other = Schedule.unify_compactized_schedules(
+            self.compactize(), other.compactize(),
+        )
+        
+        return Schedule.from_compact(
+            f"{self.name}:ADD:{other.name}",
+            [
+                (start_date, end_date, ruleset_self.__add__(ruleset_other))
+                for (start_date, end_date, ruleset_self), (start_date, end_date, ruleset_other) in zip(unified_compactized_self, unified_compactized_other)
+            ]
+        )
+    
+    def __radd__(self, other:Schedule) -> Schedule:
+        return self.__add__(other)
+    
+    def __sub__(self, other:Schedule) -> Schedule:
+        
+        if self.type != other.type:
+            raise TypeError(
+                f"Cannot sub {self.type}-type Schedule to {other.type}-type Schedule."
+            )
+            
+        unified_compactized_self, unified_compactized_other = Schedule.unify_compactized_schedules(
+            self.compactize(), other.compactize(),
+        )
+        
+        return Schedule.from_compact(
+            f"{self.name}:SUB:{other.name}",
+            [
+                (start_date, end_date, ruleset_self.__sub__(ruleset_other))
+                for (start_date, end_date, ruleset_self), (start_date, end_date, ruleset_other) in zip(unified_compactized_self, unified_compactized_other)
+            ]
+        )
+        
+    def __and__(self, other:Schedule) -> Schedule:
+        
+        if (self.type is not ScheduleType.ONOFF) or (other.type is not ScheduleType.ONOFF):
+            raise TypeError(
+                f"Cannot 'AND' operate for non-ONOFF typed Schedules (get: {self.type} and {other.type})."
+            )
+            
+        unified_compactized_self, unified_compactized_other = Schedule.unify_compactized_schedules(
+            self.compactize(), other.compactize(),
+        )
+
+        return Schedule.from_compact(
+            f"{self.name}:AND:{other.name}",
+            [
+                (start_date, end_date, ruleset_self.__and__(ruleset_other))
+                for (start_date, end_date, ruleset_self), (start_date, end_date, ruleset_other) in zip(unified_compactized_self, unified_compactized_other)
+            ]
+        )
+    
+    def __or__(self, other:Schedule) -> Schedule:
+        
+        if (self.type is not ScheduleType.ONOFF) or (other.type is not ScheduleType.ONOFF):
+            raise TypeError(
+                f"Cannot 'OR' operate for non-ONOFF typed Schedules (get: {self.type} and {other.type})."
+            )
+            
+        unified_compactized_self, unified_compactized_other = Schedule.unify_compactized_schedules(
+            self.compactize(), other.compactize(),
+        )
+
+        return Schedule.from_compact(
+            f"{self.name}:OR:{other.name}",
+            [
+                (start_date, end_date, ruleset_self.__or__(ruleset_other))
+                for (start_date, end_date, ruleset_self), (start_date, end_date, ruleset_other) in zip(unified_compactized_self, unified_compactized_other)
+            ]
+        )
+        
+    def __invert__(self) -> Schedule:
+        
+        if self.type is not ScheduleType.ONOFF:
+            raise TypeError(
+                f"Cannot 'invert' operate for non-ONOFF typed Schedule (get: {self.type})."
+            )
+            
+        return Schedule.from_compact(
+            f"{self.name}:INVERTED",
+            [
+                (start_date, end_date, ruleset.__invert__())
+                for start_date, end_date, ruleset in self.compactize()
+            ]
+        )
+        
+    def element_min(self, other:Schedule) -> Schedule:
+        
+        unified_compactized_self, unified_compactized_other = Schedule.unify_compactized_schedules(
+            self.compactize(), other.compactize(),
+        )
+
+        return Schedule.from_compact(
+            f"{self.name}:MIN:{other.name}",
+            [
+                (start_date, end_date, ruleset_self.element_min(ruleset_other))
+                for (start_date, end_date, ruleset_self), (start_date, end_date, ruleset_other) in zip(unified_compactized_self, unified_compactized_other)
+            ]
+        )
+    
+    def element_min(self, other:Schedule) -> Schedule:
+        
+        unified_compactized_self, unified_compactized_other = Schedule.unify_compactized_schedules(
+            self.compactize(), other.compactize(),
+        )
+
+        return Schedule.from_compact(
+            f"{self.name}:MAX:{other.name}",
+            [
+                (start_date, end_date, ruleset_self.element_max(ruleset_other))
+                for (start_date, end_date, ruleset_self), (start_date, end_date, ruleset_other) in zip(unified_compactized_self, unified_compactized_other)
+            ]
+        )
+    
     @property
     def min(self) -> int|float:
         return min([ruleset.min for ruleset in self.data])
@@ -568,16 +996,13 @@ class Schedule(UserList):
         
         if new_name is None:
             new_name = self.name + "_normalized"
-            
-        compactized_schedule = self.compactize()
-        normalized_compactized_schedule = [
-            (start_date, end_date, ruleset.normalize_by_max())
-            for start_date, end_date, ruleset in compactized_schedule
-        ]
         
         return Schedule.from_compact(
             new_name                       ,
-            normalized_compactized_schedule,
+            [
+                (start_date, end_date, ruleset.normalize_by_max())
+                for start_date, end_date, ruleset in self.compactize()
+            ]
         )
     
     """ prohibited methods
@@ -635,8 +1060,8 @@ class Schedule(UserList):
     
     @classmethod
     def from_compact(cls,
-        name    :str        ,
-        rulesets:list[tuple],
+        name    :str,
+        rulesets:list[tuple[datetime.date, datetime.date, RuleSet]],
         ) -> Schedule:
         
         schedule = cls(name)
@@ -644,6 +1069,40 @@ class Schedule(UserList):
             schedule.apply(ruleset, start=start, end=end)
         
         return schedule
+    
+    @staticmethod
+    def unify_compactized_schedules(
+        compactized1:list[tuple[datetime.date, datetime.date, RuleSet]],
+        compactized2:list[tuple[datetime.date, datetime.date, RuleSet]],
+        ) -> tuple[
+            list[tuple[datetime.date, datetime.date, RuleSet]],
+            list[tuple[datetime.date, datetime.date, RuleSet]],
+        ]:
+            
+        boundaries = set()
+        for start_date, end_date, _ in compactized1 + compactized2:
+            boundaries.add(start_date)
+            boundaries.add(end_date + datetime.timedelta(days=1))
+        boundaries = sorted(boundaries)
+        
+        def find_ruleset(compact_list, d):
+            for s, e, rs in compact_list:
+                if s <= d <= e:
+                    return rs
+        
+        new_list1, new_list2 = [], []
+        for i in range(len(boundaries) - 1):
+            seg_start = boundaries[i]
+            seg_end_excl = boundaries[i + 1]
+            seg_end_incl = seg_end_excl - datetime.timedelta(days=1)
+
+            r1 = find_ruleset(compactized1, seg_start)
+            r2 = find_ruleset(compactized2, seg_start)
+
+            new_list1.append((seg_start, seg_end_incl, r1))
+            new_list2.append((seg_start, seg_end_incl, r2))
+        
+        return new_list1, new_list2
     
     def to_idf_object(self) -> IdfObject:
         
