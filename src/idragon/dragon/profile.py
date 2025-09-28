@@ -990,7 +990,7 @@ class Schedule(UserList):
             ]
         )
     
-    def element_min(self, other:Schedule) -> Schedule:
+    def element_max(self, other:Schedule) -> Schedule:
         
         unified_compactized_self, unified_compactized_other = Schedule.unify_compactized_schedules(
             self.compactize(), other.compactize(),
