@@ -115,7 +115,11 @@ def preprocess(
         dir_processed=dir_processed,
         log_category =LOG_CATEGORY,
     )
-    process_map(worker, filelist, max_workers=num_workers, desc=desc, ncols=150)     
+    if num_workers > 1:
+        process_map(worker, filelist, max_workers=num_workers, desc=desc, ncols=150)     
+    else:
+        for file in tqdm(filelist, desc=desc, ncols=150):
+            worker(file)
 
     return
 
@@ -159,7 +163,11 @@ def run_standard_condition(
         dir_result = dir_result      ,
         log_category=LOG_CATEGORY    ,
     )
-    process_map(worker, filelist, max_workers=num_workers, desc=desc, ncols=150)
+    if num_workers > 1:
+        process_map(worker, filelist, max_workers=num_workers, desc=desc, ncols=150)
+    else:
+        for file in tqdm(filelist, desc=desc, ncols=150):
+            worker(file)
     
     return
 
@@ -281,8 +289,12 @@ def run_posteriorgr_condition(
         surveymap  = surveymap       ,
         log_category=LOG_CATEGORY    ,
     )
-    process_map(worker, filelist, max_workers=num_workers, desc=desc, ncols=150)
     
+    if num_workers > 1:
+        process_map(worker, filelist, max_workers=num_workers, desc=desc, ncols=150)
+    else:
+        for file in tqdm(filelist, desc=desc, ncols=150):
+            worker(file)
     return
 
 
