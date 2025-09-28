@@ -523,9 +523,9 @@ class 보건소일반존:
                     (endh  , endm  , 1),
                     (24    , 0     , 0),
                 ],
-                dragon.ScheduleType.REAL,
+                dragon.ScheduleType.ONOFF,
             ),
-            dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,)
+            dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.ONOFF,)
         )
         기본운영_schedule = dragon.Schedule.from_compact(
             None,
