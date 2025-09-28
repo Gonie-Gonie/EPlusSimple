@@ -205,7 +205,7 @@ class 설비운영:
         
         return availability_schedule
 
-    def get_setpoint_shcedule(self,
+    def get_setpoint_schedule(self,
         original_schedule:dragon.Schedule             ,
         mode             :Literal["heating","cooling"],
         ) -> dragon.Schedule:
