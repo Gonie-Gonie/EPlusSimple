@@ -331,7 +331,12 @@ class DaySchedule(UserList):
     def __repr__(self) -> str:
         return f"<DaySchedule {self.name} at {hex(id(self))}>"
 
-
+    def to_idf_compactexpr(self) -> list[str]:
+        return sum([
+            [f"Until: {hh:02d}:{mm:02d}", str(v)]
+            for hh, mm, v in self.compactize()
+        ], start=[])
+    
 class RuleSet:
     
     def __init__(self,
@@ -755,7 +760,30 @@ class RuleSet:
     def __repr__(self) -> str:
         return f"<RuleSet {self.name} at {hex(id(self))}>"
     
-    
+    def to_idf_compactexpr(self) -> list[str]:
+        result = []
+        mapping = {
+            "weekdays": "Weekdays",
+            "weekends": "Weekends",
+            "monday": "Monday",
+            "tuesday": "Tuesday",
+            "wednesday": "Wednesday",
+            "thursday": "Thursday",
+            "friday": "Friday",
+            "saturday": "Saturday",
+            "sunday": "Sunday",
+            "holiday": "Holiday",
+        }
+        for key, schedule in self.to_dict().items():
+            if schedule is None:
+                continue
+            result.append(f"For: {mapping[key]}")
+            result += schedule.to_idf_compactexpr()
+        
+        result.append("For: AllOtherDays")
+        result += self.weekends.to_idf_compactexpr()
+        
+        return result
     
 class Schedule(UserList):
     
@@ -1104,21 +1132,7 @@ class Schedule(UserList):
             *sum([
                 [
                     f"Through: {end_date.month}/{end_date.day}",
-                    *sum([  
-                        [
-                            f"For: {condition}",
-                            *sum([
-                                [f"Until: {time_tuple[0]:02d}:{time_tuple[1]:02d}", str(time_tuple[2])]
-                                for time_tuple in day_schedule.compactize()
-                            ], start=[])
-                        ]
-                        for day_schedule, condition  in zip([
-                            ruleset.weekdays, ruleset.weekends, ruleset.weekdays,
-                        ],[
-                            "Weekdays", "Weekends", "AllOtherDays",
-                        ])
-                        if day_schedule is not None
-                    ], start=[])
+                    *ruleset.to_idf_compactexpr()
                 ]
                 for start_date, end_date, ruleset in self.compactize()  
             ],start=[])
