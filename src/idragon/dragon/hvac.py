@@ -1691,7 +1691,6 @@ class DemandBranchAppender(SupplySystemToIdfPostProcessor):
         return
 
 
-
 class EquipmentListAppender(SupplySystemToIdfPostProcessor):
     
     @staticmethod
@@ -1720,6 +1719,7 @@ class EquipmentListAppender(SupplySystemToIdfPostProcessor):
         })
         
         return
+
 
 class ZoneAirNodeAppender(SupplySystemToIdfPostProcessor):
     

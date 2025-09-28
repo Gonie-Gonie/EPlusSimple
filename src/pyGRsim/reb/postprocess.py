@@ -17,6 +17,7 @@ from dataclasses import (
     dataclass,
 )
 from enum import Enum
+from typing import Literal
 
 
 # third-party modules
@@ -78,7 +79,7 @@ def get_end_of_the_month(mth:int) -> int:
     
     return endofthemonth_dict[mth]
 
-def make_집중진료_schedule(starth, startm, endh, endm,
+def make_집중진료_dayschedule_values(starth, startm, endh, endm,
                   x1, t1, x2, t2,
                   mode="random") -> list[int]:
     
@@ -176,26 +177,19 @@ class 설비운영:
         
         # 시간
         starth, startm, endh, endm = parse_duration_hours(self.사용시간)
+        availability_dayschedule = dragon.DaySchedule.from_compact(
+            None,
+            [
+                (starth, startm, 0),
+                (endh  , endm  , 1),
+                (24    , 0     , 0),
+            ],
+            dragon.ScheduleType.ONOFF         
+        )
         availability_ruleset = dragon.RuleSet(
             None,
-            dragon.DaySchedule.from_compact(
-                None,
-                [
-                    (starth, startm, 0),
-                    (endh  , endm  , 1),
-                    (24    , 0     , 0),
-                ],
-                dragon.ScheduleType.ONOFF         
-            ),
-            dragon.DaySchedule.from_compact(
-                None,
-                [
-                    (starth, startm, 0),
-                    (endh  , endm  , 1),
-                    (24    , 0     , 0),
-                ],
-                dragon.ScheduleType.ONOFF         
-            ),
+            availability_dayschedule,
+            availability_dayschedule,
         )
         
         # 기간
@@ -216,6 +210,51 @@ class 설비운영:
         
         return availability_schedule
 
+    def get_setpoint_shcedule(self,
+        original_schedule:dragon.Schedule             ,
+        mode             :Literal["heating","cooling"],
+        ) -> dragon.Schedule:
+        
+        # uncontrolled temperature
+        match mode:
+            case "heating": default_temperature = -30
+            case "cooling": default_temperature =  50
+        
+         # 시간
+        starth, startm, endh, endm = parse_duration_hours(self.사용시간)
+        temperature_dayschedule = dragon.DaySchedule.from_compact(
+            None,
+            [
+                (starth, startm, default_temperature),
+                (endh  , endm  , self.설정온도       ),
+                (24    , 0     , default_temperature),
+            ],
+            dragon.ScheduleType.TEMPERATURE         
+        )
+        temperature_ruleset = dragon.RuleSet(
+            None,
+            temperature_dayschedule,
+            temperature_dayschedule,
+        )
+        
+        # 기간
+        duration1, duration2 = parse_duration_month(self.사용기간) 
+        temperature_schedule = original_schedule.apply(
+            temperature_ruleset,
+            start = f"{duration1[0]:02d}01",
+            end   = f"{duration1[1]:02d}{get_end_of_the_month(duration1[1]):02d}",
+            inplace=False
+        )
+        if duration2 is not None:
+            temperature_schedule.apply(
+                temperature_ruleset,
+                start = f"{duration2[0]:02d}01",
+                end   = f"{duration2[1]:02d}{get_end_of_the_month(duration2[1]):02d}",
+                inplace=True
+            )  
+        
+        return temperature_schedule
+    
 @dataclass
 class 보건소일반존:
     # zone
@@ -281,7 +320,7 @@ class 보건소일반존:
         집중진료_dayofweeks = [translate_dayofweek(s.strip()) for s in self.집중진료요일.split(",")]
         # 시간 정하기 (random 배정)
         starth, startm, endh, endm = parse_duration_hours(self.집중진료시간)
-        schedule_values = make_집중진료_schedule(
+        schedule_values = make_집중진료_dayschedule_values(
             starth, startm, endh, endm,
             self.집중진료오전방문객, self.집중진료오전체류시간, self.집중진료오후방문객, self.집중진료오후체류시간
         )
@@ -335,181 +374,35 @@ class 보건소일반존:
     
     def get_heating_setpoint_schedule(self, original_schedule:dragon.Schedule) -> dragon.Schedule:
         
-        # 난방설비 1: 시간
-        starth, startm, endh, endm = parse_duration_hours(self.난방설비1.사용시간)
-        난방설비1_ruleset = dragon.RuleSet(
-            None,
-            dragon.DaySchedule.from_compact(
-                None,
-                [
-                    (starth, startm, -30                 ),
-                    (endh  , endm  , self.난방설비1.설정온도),
-                    (24    , 0     , -30                 ),
-                ],
-                dragon.ScheduleType.TEMPERATURE         
-            ),
-            dragon.DaySchedule.from_compact(
-                None,
-                [
-                    (starth, startm, -30                 ),
-                    (endh  , endm  , self.난방설비1.설정온도),
-                    (24    , 0     , -30                 ),
-                ],
-                dragon.ScheduleType.TEMPERATURE         
-            ),
-        )
-        # 난방설비 1: 기간
-        duration1, duration2 = parse_duration_month(self.난방설비1.사용기간) 
-        난방설비설정온도1_schedule = original_schedule.apply(
-            난방설비1_ruleset,
-            start = f"{duration1[0]:02d}01",
-            end   = f"{duration1[1]:02d}{get_end_of_the_month(duration1[1]):02d}",
-            inplace=False
-        )
-        if duration2 is not None:
-            난방설비설정온도1_schedule.apply(
-                난방설비1_ruleset,
-                start = f"{duration2[0]:02d}01",
-                end   = f"{duration2[1]:02d}{get_end_of_the_month(duration2[1]):02d}",
-                inplace=True
-            )    
+        # 난방설비 1
+        first_equipment_setpoint = self.난방설비1.get_hvac_availability_schedule(original_schedule, "heating")
         
         # 난방설비 2
         if self.난방설비2.is_valid:
-            # 난방설비 2: 시간
-            starth, startm, endh, endm = parse_duration_hours(self.난방설비2.사용시간)
-            난방설비2_ruleset = dragon.RuleSet(
-                None,
-                dragon.DaySchedule.from_compact(
-                    None,
-                    [
-                        (starth, startm, -30                 ),
-                        (endh  , endm  , self.난방설비2.설정온도),
-                        (24    , 0     , -30                 ),
-                    ],
-                    dragon.ScheduleType.TEMPERATURE         
-                ),
-                dragon.DaySchedule.from_compact(
-                    None,
-                    [
-                        (starth, startm, -30                 ),
-                        (endh  , endm  , self.난방설비2.설정온도),
-                        (24    , 0     , -30                 ),
-                    ],
-                    dragon.ScheduleType.TEMPERATURE         
-                ),
-            )
-            # 난방설비 2: 기간
-            duration1, duration2 = parse_duration_month(self.난방설비2.사용기간) 
-            난방설비설정온도2_schedule = original_schedule.apply(
-                난방설비2_ruleset,
-                start = f"{duration1[0]:02d}01",
-                end   = f"{duration1[1]:02d}{get_end_of_the_month(duration1[1]):02d}",
-                inplace=False
-            )
-            if duration2 is not None:
-                난방설비설정온도2_schedule.apply(
-                    난방설비2_ruleset,
-                    start = f"{duration2[0]:02d}01",
-                    end   = f"{duration2[1]:02d}{get_end_of_the_month(duration2[1]):02d}",
-                    inplace=True
-            )   
+            second_equipment_setpoint = self.난방설비2.get_hvac_availability_schedule(original_schedule, "heating")
             
-            # 합하기
-            final_schedule = 난방설비설정온도1_schedule.element_max(난방설비설정온도2_schedule)
+            # 둘 다 고려 (최댓값으로)
+            final_schedule = first_equipment_setpoint.element_max(second_equipment_setpoint)
             
         else:
-            final_schedule = 난방설비설정온도1_schedule
+            final_schedule = first_equipment_setpoint
         
         return final_schedule
     
     def get_cooling_setpoint_schedule(self, original_schedule:dragon.Schedule) -> dragon.Schedule:
         
-        # 냉방설비 1: 시간
-        starth, startm, endh, endm = parse_duration_hours(self.냉방설비1.사용시간)
-        냉방설비1_ruleset = dragon.RuleSet(
-            None,
-            dragon.DaySchedule.from_compact(
-                None,
-                [
-                    (starth, startm, 50                 ),
-                    (endh  , endm  , self.냉방설비1.설정온도),
-                    (24    , 0     , 50                 ),
-                ],
-                dragon.ScheduleType.TEMPERATURE         
-            ),
-            dragon.DaySchedule.from_compact(
-                None,
-                [
-                    (starth, startm, -30                 ),
-                    (endh  , endm  , self.냉방설비1.설정온도),
-                    (24    , 0     , -30                 ),
-                ],
-                dragon.ScheduleType.TEMPERATURE         
-            ),
-        )
-        # 냉방설비 1: 기간
-        duration1, duration2 = parse_duration_month(self.냉방설비1.사용기간) 
-        냉방설비설정온도1_schedule = original_schedule.apply(
-            냉방설비1_ruleset,
-            start = f"{duration1[0]:02d}01",
-            end   = f"{duration1[1]:02d}{get_end_of_the_month(duration1[1]):02d}",
-            inplace=False
-        )
-        if duration2 is not None:
-            냉방설비설정온도1_schedule.apply(
-                냉방설비1_ruleset,
-                start = f"{duration2[0]:02d}01",
-                end   = f"{duration2[1]:02d}{get_end_of_the_month(duration2[1]):02d}",
-                inplace=True
-            )    
+        # 냉방설비 1
+        first_equipment_setpoint = self.냉방설비1.get_hvac_availability_schedule(original_schedule, "cooling")
         
         # 냉방설비 2
-        if self.냉방설비2.is_valid:
-            # 냉방설비 2: 시간
-            starth, startm, endh, endm = parse_duration_hours(self.냉방설비2.사용시간)
-            냉방설비2_ruleset = dragon.RuleSet(
-                None,
-                dragon.DaySchedule.from_compact(
-                    None,
-                    [
-                        (starth, startm, 50                 ),
-                        (endh  , endm  , self.냉방설비2.설정온도),
-                        (24    , 0     , 50                 ),
-                    ],
-                    dragon.ScheduleType.TEMPERATURE         
-                ),
-                dragon.DaySchedule.from_compact(
-                    None,
-                    [
-                        (starth, startm, -30                 ),
-                        (endh  , endm  , self.냉방설비2.설정온도),
-                        (24    , 0     , -30                 ),
-                    ],
-                    dragon.ScheduleType.TEMPERATURE         
-                ),
-            )
-            # 냉방설비 2: 기간
-            duration1, duration2 = parse_duration_month(self.냉방설비2.사용기간) 
-            냉방설비설정온도2_schedule = original_schedule.apply(
-                냉방설비2_ruleset,
-                start = f"{duration1[0]:02d}01",
-                end   = f"{duration1[1]:02d}{get_end_of_the_month(duration1[1]):02d}",
-                inplace=False
-            )
-            if duration2 is not None:
-                냉방설비설정온도2_schedule.apply(
-                    냉방설비2_ruleset,
-                    start = f"{duration2[0]:02d}01",
-                    end   = f"{duration2[1]:02d}{get_end_of_the_month(duration2[1]):02d}",
-                    inplace=True
-            )   
+        if self.난방설비2.is_valid:
+            second_equipment_setpoint = self.냉방설비2.get_hvac_availability_schedule(original_schedule, "cooling")
             
-            # 합하기
-            final_schedule = 냉방설비설정온도1_schedule.element_min(냉방설비설정온도2_schedule)
+            # 둘 다 고려 (최솟값으로)
+            final_schedule = first_equipment_setpoint.element_min(second_equipment_setpoint)
             
         else:
-            final_schedule = 냉방설비설정온도1_schedule
+            final_schedule = first_equipment_setpoint
         
         return final_schedule
     
@@ -535,16 +428,18 @@ class 보건소일반존:
             [("0101","1231", 기본운영_ruleset)]
         )
         
-        # 설비 가동스케줄
+        # 설비 가동스케줄 (개별)
         operation_schedules = []
         for 설비 in [self.난방설비1, self.난방설비2, self.냉방설비1, self.냉방설비2]:
             if 설비.is_valid:
                 operation_schedules.append(설비.get_hvac_availability_schedule())
+        
+        # 설비 가동스케줄 (or조건으로 개별 설비 결합)
         hvac_availability = operation_schedules[0]
         for schedule in operation_schedules[2:]:
             hvac_availability |= schedule
         
-        # 최종 스케줄
+        # 최종 스케줄 = 운영중이면서, 설비 가동 중
         hvac_availability &= 기본운영_schedule
         
         return hvac_availability
@@ -553,7 +448,7 @@ class 보건소일반존:
     def apply_to(self, zones:list[dragon.Zone]) -> None:
         
         total_area = max(sum(zone.floor_area for zone in zones), 1E-6)
-        occupant_schedule = self.get_occupant_schedule()/total_area 
+        occupant_schedule          = self.get_occupant_schedule()/total_area 
         hvac_availability_schedule = self.get_hvac_availability_schedule()
         
         for zone in zones:
