@@ -413,7 +413,7 @@ if __name__ == "__main__":
     #                           AFTER-GR SURVEY CONDITION                          #
     # ---------------------------------------------------------------------------- #
 
-    if POSTERIORGR_RUNNING_REQUIRED:=False:
+    if POSTERIORGR_RUNNING_REQUIRED:=True:
         
         # before-GR
         run_posteriorgr_condition(

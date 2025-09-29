@@ -758,8 +758,6 @@ class 보건소특화존2:
     def apply_to(self, zones:list[dragon.Zone]) -> None:
         
         total_area = max(sum(zone.floor_area for zone in zones), 1E-6)
-        occupant_schedule          = self.get_occupant_schedule()/total_area 
-        hvac_availability_schedule = self.get_hvac_availability_schedule()
         
         for zone in zones:
             zone.profile = dragon.Profile(
