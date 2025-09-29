@@ -287,7 +287,7 @@ def run_posteriorgr_condition(
     # settings
     LOG_CATEGORY = "RUNNING_POSTERIOR"
     filelist = os.listdir(dir_processed)
-
+    
     # multiprocessing
     worker = partial(
         run_posteriorgr_condition_single,
@@ -330,11 +330,17 @@ if __name__ == "__main__":
     priorsurveymap = {
         survey.meta.건물명: survey
         for survey in priorsurvey어린이집
+    }|{
+        survey.meta.건물명: survey
+        for survey in priorsurvey보건소
     }
     
     posteriorsurveymap = {
         survey.meta.건물명: survey
         for survey in posteriorsurvey어린이집
+    }|{
+        survey.meta.건물명: survey
+        for survey in posteriorsurvey보건소
     }
 
     # ---------------------------------------------------------------------------- #
