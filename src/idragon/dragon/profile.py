@@ -778,6 +778,9 @@ class RuleSet:
                 if day:
                     result.append(f"For: {k.capitalize()}")
                     result += day.to_idf_compactexpr()
+                else:
+                    result.append(f"For: {k.capitalize()}")
+                    result += self.weekdays.to_idf_compactexpr()
         else:
             result.append("For: Weekdays")
             result += self.weekdays.to_idf_compactexpr()
@@ -790,6 +793,9 @@ class RuleSet:
                 if day:
                     result.append(f"For: {k.capitalize()}")
                     result += day.to_idf_compactexpr()
+                else:
+                    result.append(f"For: {k.capitalize()}")
+                    result += self.weekends.to_idf_compactexpr()
         else:
             result.append("For: Weekends")
             result += self.weekends.to_idf_compactexpr()
