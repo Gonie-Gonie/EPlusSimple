@@ -102,7 +102,7 @@ class EnergyModel:
         idf = IDF(ensure_validity=False)
         idf["SimulationControl"].append(["Yes","Yes","Yes","No","Yes","No"])
         idf["SizingPeriod:WeatherFileDays"].append(["Design",1,15,8,15])
-        idf["Timestep"].append({"Number of Timesteps per Hour": 4})
+        idf["Timestep"].append({"Number of Timesteps per Hour": 6})
         idf["RunPeriod"].append(["Year-Round", 1, 1, Setting.DEFAULT_YEAR, 12, 31, Setting.DEFAULT_YEAR])
         idf["GlobalGeometryRules"][0] =IdfObject("GlobalGeometryRules", ["UpperLeftCorner", "CounterClockwise", "World"])
         
