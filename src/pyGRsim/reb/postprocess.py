@@ -665,7 +665,7 @@ class 보건소특화존1:
         
         for zone in zones:
             zone.profile = dragon.Profile(
-                f"{zone.name}_일반존체크리스트",
+                f"{zone.name}_특화존1체크리스트",
                 self.get_heating_setpoint_schedule(zone.profile.heating_setpoint), 
                 self.get_cooling_setpoint_schedule(zone.profile.cooling_setpoint), 
                 hvac_availability_schedule,
@@ -717,13 +717,39 @@ class 보건소특화존2:
         
         return
     
-    def get_heating_setpoint_schedule(self) -> dragon.Schedule:
+    def get_heating_setpoint_schedule(self, original_schedule:dragon.Schedule) -> dragon.Schedule:
         
-        return
+        # 난방설비 1
+        first_equipment_setpoint = self.난방설비1.get_setpoint_schedule(original_schedule, "heating")
+        
+        # 난방설비 2
+        if self.난방설비2.is_valid:
+            second_equipment_setpoint = self.난방설비2.get_setpoint_schedule(original_schedule, "heating")
+            
+            # 둘 다 고려 (최댓값으로)
+            final_schedule = first_equipment_setpoint.element_max(second_equipment_setpoint)
+            
+        else:
+            final_schedule = first_equipment_setpoint
+        
+        return final_schedule
     
-    def get_cooling_setpoint_schedule(self) -> dragon.Schedule:
+    def get_cooling_setpoint_schedule(self, original_schedule:dragon.Schedule) -> dragon.Schedule:
         
-        return
+        # 냉방설비 1
+        first_equipment_setpoint = self.냉방설비1.get_setpoint_schedule(original_schedule, "cooling")
+        
+        # 냉방설비 2
+        if self.냉방설비2.is_valid:
+            second_equipment_setpoint = self.냉방설비2.get_setpoint_schedule(original_schedule, "cooling")
+            
+            # 둘 다 고려 (최솟값으로)
+            final_schedule = first_equipment_setpoint.element_min(second_equipment_setpoint)
+            
+        else:
+            final_schedule = first_equipment_setpoint
+        
+        return final_schedule
     
     def get_hvac_availability_schedule(self) -> dragon.Schedule:
         
@@ -731,7 +757,9 @@ class 보건소특화존2:
 
     def apply_to(self, zones:list[dragon.Zone]) -> None:
         
-        total_area = sum(zone.floor_area for zone in zones)
+        total_area = max(sum(zone.floor_area for zone in zones), 1E-6)
+        occupant_schedule          = self.get_occupant_schedule()/total_area 
+        hvac_availability_schedule = self.get_hvac_availability_schedule()
         
         for zone in zones:
             zone.profile = dragon.Profile(
@@ -740,11 +768,11 @@ class 보건소특화존2:
                 zone.profile.cooling_setpoint, 
                 zone.profile.hvac_availability,
                 zone.profile.occupant,
-                zone.profile.lighting,
-                zone.profile.equipment,
+                zone.profile.lighting     ,
+                zone.profile.equipment    ,
             )
             
-        pass
+        return
 # ---------------------------------------------------------------------------- #
 #                                     MAIN                                     #
 # ---------------------------------------------------------------------------- #
