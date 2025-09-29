@@ -66,6 +66,9 @@ def write_log(
     exception:Exception|None=None,
     ) -> None:
     
+    if IDONTWANTALOG:=True:
+        return
+    
     with open(LOGFILE_PATH, "a") as f:
         if success: f.write(f"{category:10s}, success, {filename}\n")
         else      : f.write(f"{category:10s}, fail   , {filename}, {exception}\n")
