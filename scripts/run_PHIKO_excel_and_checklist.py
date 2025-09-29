@@ -28,7 +28,7 @@ from pyGRsim.reb.postprocess import (
 
 # settings
 working_dir = r"B:\공유 드라이브\01 진행과제\(안전원) 시뮬레이터\12 개발\scripts\run_PHIKO_excel_and_checklist"
-num_workers = 1
+num_workers = 12
 
 # ---------------------------------------------------------------------------- #
 #                                   CONSTANTS                                  #
@@ -66,7 +66,7 @@ def write_log(
     exception:Exception|None=None,
     ) -> None:
     
-    if IDONTWANTALOG:=True:
+    if IDONTWANTALOG:=False:
         return
     
     with open(LOGFILE_PATH, "a") as f:
