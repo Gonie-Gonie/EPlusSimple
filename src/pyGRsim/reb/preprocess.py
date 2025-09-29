@@ -48,8 +48,10 @@ def drop_rows_inplace(
     col_name: str,
     values: List[Any],
     header_row: int = 1,
-    normalize: bool = True
-):
+    normalize: bool = True,
+    *,
+    verbose:bool=True,
+    ):
     """
     주어진 워크북(wb)에서, sheet_name 시트의 col_name 컬럼이
     values 목록과 일치하는 행들을 '서식 유지'한 채로 삭제 (메모리에서만 변경).
@@ -78,7 +80,8 @@ def drop_rows_inplace(
     for r in rows_to_delete:
         ws.delete_rows(r, 1)
 
-    print(f"[삭제] 시트='{sheet_name}', 컬럼='{col_name}', 삭제행수={len(rows_to_delete)}")
+    if verbose:
+        print(f"[삭제] 시트='{sheet_name}', 컬럼='{col_name}', 삭제행수={len(rows_to_delete)}")
 
 def multiply_column_inplace(
     wb,
@@ -87,7 +90,9 @@ def multiply_column_inplace(
     factor: float = 1000.0,
     header_row: int = 1,
     coerce_numeric: bool = True,  
-    skip_formula: bool = True
+    skip_formula: bool = True,
+    *,
+    verbose:bool=True,
 ) -> int:
     """
     시트 `sheet_name`의 컬럼 `col_name` 전체 값을 factor 배로 곱하여 덮어씀.
@@ -132,7 +137,8 @@ def multiply_column_inplace(
             cell.value = int(num * factor) if s.isdigit() and float(s).is_integer() else (num * factor)
             changed += 1
 
-    print(f"[곱셈] 시트='{sheet_name}', 컬럼='{col_name}', factor={factor}, 변경셀수={changed}")
+    if verbose:
+        print(f"[곱셈] 시트='{sheet_name}', 컬럼='{col_name}', factor={factor}, 변경셀수={changed}")
     return changed
 
 def convert_formulas_in_column_to_values(
@@ -140,7 +146,9 @@ def convert_formulas_in_column_to_values(
     wb_values,
     sheet_name: str,
     col_name: str,
-    header_row: int = 1
+    header_row: int = 1,
+    *,
+    verbose:bool=True,
 ):
     """
     특정 '컬럼(col_name)'에 포함된 모든 수식을 계산된 값으로 덮어씁니다.
@@ -175,12 +183,10 @@ def convert_formulas_in_column_to_values(
             cell_main.value = cell_with_value.value
             converted_count += 1
     
-    if converted_count > 0:
+    if verbose and converted_count > 0:
         print(f"[변환] 시트='{sheet_name}', 컬럼='{col_name}'의 수식 {converted_count}개를 값으로 변경했습니다.")
-    else:
-        print(f"[정보] 시트='{sheet_name}', 컬럼='{col_name}'에 변환할 수식이 없습니다.")
-
-def convert_이전레이어(wb) -> None:
+        
+def convert_이전레이어(wb, verbose:bool=True) -> None:
     
     sheet = wb["구조체_면"]
     
@@ -238,7 +244,7 @@ def convert_이전레이어(wb) -> None:
                     for idx2, value in enumerate(원래값들):
                         sheet.cell(현재구조체개수+2, 2*(idx+1)+2+idx2).value = value
                     
-    drop_rows_inplace(wb, sheet_name="구조체_면", col_name="레이어1_재료", values=['&SPECIAL&이전레이어&'])        
+    drop_rows_inplace(wb, sheet_name="구조체_면", col_name="레이어1_재료", values=['&SPECIAL&이전레이어&'], verbose=verbose)        
 
 
 def replace_typo(wb) -> None:
@@ -254,10 +260,11 @@ def replace_typo(wb) -> None:
     
 def save_excel(
     wb,
-    output_path: Optional[str] = None,
+    output_filepath: Optional[str] = None,
     *,
-    original_path: Optional[str] = None,
-    suffix: str = "_preprocess"
+    original_filepath: Optional[str] = None,
+    suffix: str = "_preprocess",
+    verbose:bool = True
 ):
     """
     워크북 저장만 담당.
@@ -265,101 +272,97 @@ def save_excel(
     - 없으면 original_path의 파일명에 '{suffix}'를 붙여 저장  <- 여기만 변경
       (예: foo.xlsx -> foo_preprocess.xlsx)
     """
-    if output_path is None and original_path is None:
+    if output_filepath is None and original_filepath is None:
         raise ValueError("output_path 또는 original_path 중 하나는 지정해야 합니다.")
 
-    if output_path is None:
-        p = Path(original_path)                                  # <- 여기만 변경
-        output_path = str(p.with_name(f"{p.stem}{suffix}{p.suffix}"))  # <- 여기만 변경
+    if output_filepath is None:
+        p = Path(original_filepath)                                  # <- 여기만 변경
+        output_filepath = str(p.with_name(f"{p.stem}{suffix}{p.suffix}"))  # <- 여기만 변경
 
-    wb.save(output_path)
-    print(f"[저장] {output_path}")
+    wb.save(output_filepath)
+    if verbose:
+        print(f"[저장] {output_filepath}")
     
-    return output_path
-
-# ---------------- 실행 ---------------- #
-# file_path = r"Z:\01 진행과제\(안전원) 시뮬레이터\11 개발\_docs\InputOutput\example (엑셀전처리)\구립 화송어린이집_GR이후.xlsx"
-# wb = load_excel(file_path)
-
-# # 여러 번 ‘삭제만’ 수행 (메모리에서만 변경됨)
-# drop_rows_inplace(wb, sheet_name="구조체_면" , col_name="이름", values=["open","GR이후_외벽"])
-# drop_rows_inplace(wb, sheet_name="재료",      col_name="이름", values=["공기층"])
-# multiply_column_inplace(wb, sheet_name="재료", col_name="비열 [J/kg·K]", factor=1000)  # <- 여기만 변경
-
-# # 최종에 ‘저장만’ 수행
-# save_excel(wb, original_path=file_path)
+    return output_filepath
 
 
-
-def process_excel_file(file_path: str, *, suffix="preprocess") -> str:
+def process_excel_file(
+    file_path:str,
+    *,
+    suffix         :str="preprocess",
+    output_filepath:str=None        ,
+    verbose:bool=True,
+    ) -> str:
+    
         """하나의 엑셀 파일에 대한 전체 전처리 작업을 수행합니다."""
     # try:
         # 1. 엑셀 파일 로드
         wb = load_excel(file_path)
         wb_values = load_excel(file_path, data_only=True)
         # 2. 행 삭제 작업
-        drop_rows_inplace(wb, sheet_name="구조체_면", col_name="이름", values=["open"])
-        drop_rows_inplace(wb, sheet_name="재료", col_name="이름", values=["공기층", r"&SPECIAL&이전레이어&"])
+        drop_rows_inplace(wb, sheet_name="구조체_면", col_name="이름", values=["open"], verbose=verbose)
+        drop_rows_inplace(wb, sheet_name="재료", col_name="이름", values=["공기층", r"&SPECIAL&이전레이어&"], verbose=verbose)
         
         # 3. 수식을 숫자로 변경
         convert_formulas_in_column_to_values( 
             wb_main=wb,
             wb_values=wb_values,
             sheet_name="건물정보",
-            col_name="north_axis [°]" # 예시: 이 컬럼에 있는 모든 수식을 값으로 변경
-        )
+            col_name="north_axis [°]",
+            verbose = verbose,
+        ) # 예시: 이 컬럼에 있는 모든 수식을 값으로 변경
         convert_formulas_in_column_to_values(
             wb_main=wb,
             wb_values=wb_values,
             sheet_name="면",
-            col_name="면적 [m2]" # 예시: 이 컬럼에 있는 모든 수식을 값으로 변경
-        )
+            col_name="면적 [m2]",
+            verbose = verbose,
+        ) # 예시: 이 컬럼에 있는 모든 수식을 값으로 변경
         convert_formulas_in_column_to_values(
             wb_main=wb,
             wb_values=wb_values,
             sheet_name="개구부",
-            col_name="면적 [m2]" # 예시: 이 컬럼에 있는 모든 수식을 값으로 변경
-        )
+            col_name="면적 [m2]",
+            verbose = verbose, 
+        ) # 예시: 이 컬럼에 있는 모든 수식을 값으로 변경
         convert_formulas_in_column_to_values(
             wb_main=wb,
             wb_values=wb_values,
             sheet_name="생산설비",
-            col_name="냉방COP [W/W]" # 예시: 이 컬럼에 있는 모든 수식을 값으로 변경
-        )
+            col_name="냉방COP [W/W]",
+            verbose = verbose, 
+        ) # 예시: 이 컬럼에 있는 모든 수식을 값으로 변경
         convert_formulas_in_column_to_values(
             wb_main=wb,
             wb_values=wb_values,
             sheet_name="생산설비",
-            col_name="난방COP [W/W]" # 예시: 이 컬럼에 있는 모든 수식을 값으로 변경
-        )
+            col_name="난방COP [W/W]",
+            verbose = verbose, 
+        ) # 예시: 이 컬럼에 있는 모든 수식을 값으로 변경
         
         # 4. 특정 열 값 일괄 곱셈
-        multiply_column_inplace(wb, sheet_name="재료", col_name="비열 [J/kg·K]", factor=1000)
+        multiply_column_inplace(
+            wb,
+            sheet_name="재료",
+            col_name="비열 [J/kg·K]",
+            factor=1000,
+            verbose=False)
 
         # 오타 수정
         replace_typo(wb)
         
         # 이전레이어 처리
-        convert_이전레이어(wb)
+        convert_이전레이어(
+            wb,
+            verbose=verbose
+        )
         
         # 5. 결과 저장
-        output_filepath = save_excel(wb, original_path=file_path, suffix=suffix)
+        if output_filepath is None:
+            output_filepath = save_excel(wb, original_filepath=file_path, suffix=suffix)
+        else:
+            output_filepath = save_excel(wb, output_filepath, verbose=verbose)
         
         return output_filepath
-
-    # except Exception as e:
-    #     # 특정 파일 처리 중 에러가 발생해도 전체 스크립트가 멈추지 않도록 예외 처리
-    #     print(f"[오류] 파일 '{Path(file_path).name}' 처리 중 문제가 발생했습니다: {e}")
-
-    #     return
-
-
-
-
-
-
-
-
-
 
 
