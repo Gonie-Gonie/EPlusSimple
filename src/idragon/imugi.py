@@ -1318,6 +1318,14 @@ class IdfObject(StaticIndexedDict):
             for key, value in item.items():
                 self[key] = value
         
+        # extensible 처리 로직: 나중에 똑바로 수정해줘야함
+        # __str__이랑 연동되어있음
+        if isinstance(item, list):
+            self.__extended_input = item[len(self.allowed_keys):]
+        elif isinstance(item, dict):
+            self.__extended_input = list(item.values())[len(self.allowed_keys):]
+        
+        return
         
     """ immutable fundamental properties, parent management
     """
@@ -1722,8 +1730,12 @@ class IdfObject(StaticIndexedDict):
         #     value2, !- field2
         #     value3; !- field3
         
+        # extensible 처리 로직: 나중에 똑바로 수정해줘야함
+        # __init__이랑 연동되어있음.
+        item_for_write = self.data|{f"EXTENDEDDD {idx}":v for idx, v in enumerate(self.__extended_input)}
+        
         text = f"{self.idd.name},\n" +\
-            "\n".join(["  " + f"{str(value)+',' if (value not in [None, [], ""]) else ',':30} !- {key}" for key, value in self.items()])
+            "\n".join(["  " + f"{str(value)+',' if (value not in [None, [], ""]) else ',':30} !- {key}" for key, value in item_for_write.items()])
         
         # erase empty fields in last
         text = re.sub(r"(  ,\s+!-[^\n]+(\n|$))+$",r"", text)
