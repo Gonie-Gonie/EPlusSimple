@@ -28,7 +28,7 @@ from pyGRsim.reb.postprocess import (
 
 # settings
 working_dir = r"B:\공유 드라이브\01 진행과제\(안전원) 시뮬레이터\12 개발\scripts\run_PHIKO_excel_and_checklist"
-num_workers = 12
+num_workers = 1
 
 # ---------------------------------------------------------------------------- #
 #                                   CONSTANTS                                  #
@@ -330,17 +330,11 @@ if __name__ == "__main__":
     priorsurveymap = {
         survey.meta.건물명: survey
         for survey in priorsurvey어린이집
-    }|{
-        survey.meta.건물명: survey
-        for survey in priorsurvey보건소
     }
     
     posteriorsurveymap = {
         survey.meta.건물명: survey
         for survey in posteriorsurvey어린이집
-    }|{
-        survey.meta.건물명: survey
-        for survey in posteriorsurvey보건소
     }
 
     # ---------------------------------------------------------------------------- #
