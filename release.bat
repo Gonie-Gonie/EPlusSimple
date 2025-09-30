@@ -1,6 +1,6 @@
 @echo off
 set VERSION=0.4.5
-set PROJECT_NAME=GRSimulator
+set PROJECT_NAME=EPlusSimple
 set RELEASE_DIR=dist\%PROJECT_NAME%_v%VERSION%
 set OUTPUT_ZIP=%~dp0dist\%PROJECT_NAME%_v%VERSION%.zip
 

@@ -33,8 +33,8 @@ class Directory:
 
 class PackageInfo:
     
-    NAME    = "pyGRsim"
-    VERSION = (0,4,3)
+    NAME    = "epsimple"
+    VERSION = (0,4,5)
     REQUIRED_PYTHON = (3,12)
     
     

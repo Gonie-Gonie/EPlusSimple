@@ -14,10 +14,10 @@ from tqdm     import tqdm
 from tqdm.contrib.concurrent import process_map
 
 # local modules
-from pyGRsim import run_grexcel, GreenRetrofitModel, GreenRetrofitResult
-from pyGRsim.debug import debug_excel, report_result
-from pyGRsim.reb.preprocess  import process_excel_file
-from pyGRsim.reb.postprocess import (
+from epsimple import run_grexcel, GreenRetrofitModel, GreenRetrofitResult
+from epsimple.debug import debug_excel, report_result
+from reb.preprocess  import process_excel_file
+from reb.postprocess import (
     현장조사체크리스트,
     어린이집GR이전체크리스트,
     어린이집GR이후체크리스트,

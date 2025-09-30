@@ -16,12 +16,12 @@ from datetime import datetime
 # third-party modules
 
 # local modules
-from ..core.construction import (
+from epsimple.core.construction import (
     SurfaceConstruction     ,
     SurfaceType             ,
     SurfaceBoundaryCondition,
 )
-from ..core.model import address_to_weather
+from epsimple.core.model import address_to_weather
 
 # ---------------------------------------------------------------------------- #
 #                           PHIKO EXCEL PREPROCESSING                          #

@@ -1,9 +1,9 @@
 
 import os
 
-from pyGRsim import run_grexcel
-from pyGRsim.reb.preprocess import process_excel_file
-from pyGRsim.debug import debug_excel, report_result
+from epsimple import run_grexcel
+from reb.preprocess import process_excel_file
+from epsimple.debug import debug_excel, report_result
 
 target_dir   = r"B:\공유 드라이브\01 진행과제\(안전원) 시뮬레이터\12 개발\tests\250920 PHIKO excel test"
 
