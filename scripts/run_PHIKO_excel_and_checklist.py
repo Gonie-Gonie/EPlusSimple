@@ -16,8 +16,8 @@ from tqdm.contrib.concurrent import process_map
 # local modules
 from epsimple import run_grexcel, GreenRetrofitModel, GreenRetrofitResult
 from epsimple.debug import debug_excel, report_result
-from epsimple.reb.preprocess  import process_excel_file
-from epsimple.reb.postprocess import (
+from reb.preprocess  import process_excel_file
+from reb.postprocess import (
     현장조사체크리스트,
     어린이집GR이전체크리스트,
     어린이집GR이후체크리스트,
