@@ -19,7 +19,7 @@ from abc import (
 import pandas as pd
 
 # local modules
-from pyGRsim import GreenRetrofitModel
+from epsimple import GreenRetrofitModel
 from idragon import (
     dragon     ,
     IDF        ,

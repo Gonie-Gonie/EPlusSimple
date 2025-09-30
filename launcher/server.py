@@ -13,9 +13,9 @@ from flask import Flask, render_template, request
 from werkzeug.datastructures import FileStorage
 
 # local modules
-from pyGRsim import check_grexcel, run_grexcel
-from pyGRsim.reb.preprocess import process_excel_file
-from pyGRsim.debug import debug_excel, report_result, ReportCode
+from epsimple import check_grexcel, run_grexcel
+from epsimple.reb.preprocess import process_excel_file
+from epsimple.debug import debug_excel, report_result, ReportCode
 
 # ==============================================================================
 # 2. Flask 앱 및 환경 설정
