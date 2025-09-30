@@ -28,7 +28,7 @@ from pyGRsim.reb.postprocess import (
 
 # settings
 working_dir = r"B:\공유 드라이브\01 진행과제\(안전원) 시뮬레이터\12 개발\scripts\run_PHIKO_excel_and_checklist"
-num_workers = 6
+num_workers = 1
 
 # ---------------------------------------------------------------------------- #
 #                                   CONSTANTS                                  #
@@ -65,6 +65,9 @@ def write_log(
     filename :str ,
     exception:Exception|None=None,
     ) -> None:
+    
+    if IDONTWANTALOG:=False:
+        return
     
     with open(LOGFILE_PATH, "a") as f:
         if success: f.write(f"{category:10s}, success, {filename}\n")
@@ -220,8 +223,6 @@ def run_priorgr_condition(
     LOG_CATEGORY = "RUNNING_PRIOR"
     filelist = os.listdir(dir_processed)
     
-    filelist = [file for file in [r"700_왕흥보건진료소_GR이전.xlsx", r"700_왕흥보건진료소_GR이후.xlsx"] if file in filelist]
-    
     # multiprocessing
     worker = partial(
         run_priorgr_condition_single,
@@ -286,8 +287,6 @@ def run_posteriorgr_condition(
     # settings
     LOG_CATEGORY = "RUNNING_POSTERIOR"
     filelist = os.listdir(dir_processed)
-    
-    filelist = [file for file in [r"700_왕흥보건진료소_GR이전.xlsx", r"700_왕흥보건진료소_GR이후.xlsx"] if file in filelist]
     
     # multiprocessing
     worker = partial(
@@ -410,7 +409,7 @@ if __name__ == "__main__":
     #                           AFTER-GR SURVEY CONDITION                          #
     # ---------------------------------------------------------------------------- #
 
-    if POSTERIORGR_RUNNING_REQUIRED:=False:
+    if POSTERIORGR_RUNNING_REQUIRED:=True:
         
         # before-GR
         run_posteriorgr_condition(
