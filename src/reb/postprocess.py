@@ -301,7 +301,42 @@ class 보건소일반존:
                 설비운영(row["B61"],row["B62"],row["B64"],row["B65"],row["BA3"]),
                 설비운영(row["B66"],row["B67"],row["B69"],row["B70"],row["BA4"]),
             )
-            
+    
+    @classmethod
+    def from_excel(cls, filepath:str):
+        
+        # components
+        재실 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=5, nrows=5, usecols=[3,4,5], index_col=0)
+        운영시간 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=11, nrows=4, usecols=[3,4,5,6,7], index_col=0)
+        운영요일 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=16, nrows=3, usecols=[3,4,5,6,7,8], index_col=0)
+        설비 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=21, nrows=5, usecols=[3,4,5,6,7,8,9,10], index_col=0)
+        설비.columns = ["시작시","시작분","종료시","종료분","시작월","종료월","설정온도"]
+        
+        return cls(
+            f"{운영시간.at["기본운영","시작시"]:02d}:{운영시간.at["기본운영","시작분"]:02d}~{운영시간.at["기본운영","종료시"]:02d}:{운영시간.at["기본운영","종료분"]:02d}",
+            재실.at["직원","인원수"],
+            int(운영요일.loc["외근"].sum()),
+            f"{운영시간.at["외근","시작시"]:02d}:{운영시간.at["외근","시작분"]:02d}~{운영시간.at["외근","종료시"]:02d}:{운영시간.at["외근","종료분"]:02d}",
+            재실.at["외근직원","인원수"],
+            ", ".join([dayofweek for dayofweek, condition in 운영요일.loc["집중진료"].to_dict().items() if condition]),
+            f"{운영시간.at["집중진료","시작시"]:02d}:{운영시간.at["집중진료","시작분"]:02d}~{운영시간.at["집중진료","종료시"]:02d}:{운영시간.at["집중진료","종료분"]:02d}",
+            재실.at["집중진료-오전","인원수"],
+            재실.at["집중진료-오후","인원수"],
+            재실.at["집중진료-오전","체류시간"],
+            재실.at["집중진료-오후","체류시간"],
+            *[
+                설비운영(
+                    "",
+                    f"{int(row.at["시작시"]):02d}:{int(row.at["시작분"]):02d}~{int(row.at["종료시"]):02d}:{int(row.at["종료분"]):02d}",
+                    f"{int(row["시작월"]):02d}~{int(row["종료월"]):02d}",
+                    row["설정온도"],
+                    "사용" if not pd.isna(row).any() else "미사용"
+                )
+                for _, row in 설비.iterrows()
+                if not pd.isna(row).any()
+            ]
+        )
+    
     def get_occupant_schedule(self) -> dragon.Schedule:
         
         # 기본 운영시간
@@ -511,6 +546,13 @@ class 보건소특화존1:
                 설비운영(row["B100"],row["B101"],row["B103"],row["B104"],row["BA9"]),
             )
 
+    @classmethod
+    def from_excel(cls, filepath:str):
+        
+        return cls(
+            
+        )
+    
     def get_occupant_schedule(self) -> dragon.Schedule:
         
         # 기본 스케줄 (0명)
@@ -739,6 +781,13 @@ class 보건소특화존2:
                 설비운영(row["B136"],row["B137"],row["B139"],row["B140"],row["BA14"]),
             )
 
+    @classmethod
+    def from_excel(cls, filepath:str):
+        
+        return cls(
+            
+        )
+    
     def get_occupant_schedule(self) -> dragon.Schedule:
         
         return
@@ -1214,9 +1263,13 @@ class 현장조사체크리스트(ABC):
         filepath:str,
         ) -> None:
         
+        building_type = pd.read_excel(filepath, sheet_name="현장조사", nrows=1, usecols=[0]).at[0,"현장조사유형"]
         
-        
-        return
+        match building_type:
+            case "보건소":
+                return 보건소체크리스트.from_excel(filepath)
+            case "어린이집":
+                return 어린이집체크리스트.from_excel(filepath)
     
     """ output
     """

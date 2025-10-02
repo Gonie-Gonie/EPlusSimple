@@ -21,5 +21,5 @@ filelist = [file for file in os.listdir(working_dir) if file.endswith(".xlsx")]
 if __name__ == "__main__":
     
     for file in filelist:
-        run_rebexcel(file)
+        run_rebexcel(os.path.join(working_dir,file))
 
