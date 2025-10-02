@@ -1209,13 +1209,75 @@ class 현장조사체크리스트(ABC):
     def from_dataframe(cls, df:pd.DataFrame) -> list[현장조사체크리스트]:
         return [cls.from_row(row) for _, row in df.iterrows()]
     
+    @staticmethod
+    def from_excel(
+        filepath:str,
+        ) -> None:
+        
+        
+        
+        return
+    
     """ output
     """
     
     @abstractmethod
     def apply_to(self, grm:GreenRetrofitModel) -> IDF: ...
         
+
+class 어린이집체크리스트:
+    ...
+    
+class 보건소체크리스트:
+    
+    def __init__(self,
+        일반존 : 보건소일반존 ,
+        특화존1: 보건소특화존1,
+        특화존2: 보건소특화존2,
+        ) -> None:
         
+        # zone survey
+        self.일반존  = 일반존
+        self.특화존1 = 특화존1
+        self.특화존2 = 특화존2
+    
+    @classmethod
+    def from_excel(cls, filepath:str) -> 보건소GR이전체크리스트:
+        
+        return cls(
+            보건소일반존.from_excel(filepath),
+            보건소특화존1.from_excel(filepath),
+            보건소특화존2.from_excel(filepath),
+        )
+        
+    def apply_to(self, grm:GreenRetrofitModel, exceldata:dict[str,pd.DataFrame]) -> IDF:
+        
+        zoneID_category = {
+            category: [
+                zone.ID for zone in grm.zone
+                if zone.name in list(exceldata["실"].query("현장조사프로필 == @category" )["이름"].values)
+            ]
+            for category in ["일반존","특화존1","특화존2"]
+        }
+        
+        em = grm.to_dragon()
+        
+        self.일반존.apply_to([
+                zone for zone in em.zone
+                if zone.name in zoneID_category["일반존"]
+        ])
+        self.특화존1.apply_to([
+                zone for zone in em.zone
+                if zone.name in zoneID_category["특화존1"]
+        ])
+        self.특화존2.apply_to([
+                zone for zone in em.zone
+                if zone.name in zoneID_category["특화존2"]
+        ])
+        
+        return em.to_idf()
+
+
 class 어린이집GR이전체크리스트(현장조사체크리스트):
     
     def __init__(self,

@@ -3,6 +3,6 @@
 #                               INTERNAL IMPORTS                               #
 # ---------------------------------------------------------------------------- #
 
-from .api import run_rebexcel
+from .core import run_rebexcel
 
 
