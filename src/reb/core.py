@@ -21,15 +21,18 @@ from .postprocess import 현장조사체크리스트
 
 def run_rebexcel(
     input_filepath :str,
-    output_filepath:str|None=None,
+    output_grr_filepath:str|None=None,
+    output_idf_filepath:str|None=None,
     *,
-    save_result:bool=True,
-    save_idf   :bool=True
-    ) -> str:
+    save_grr:bool=True,
+    save_idf:bool=True,
+    ) -> tuple[GreenRetrofitResult, IDF]:
     
     # define output path
-    if output_filepath is None:
-        output_filepath = input_filepath.replace(r".xlsx",r".grr")
+    if output_grr_filepath is None:
+        output_grr_filepath = input_filepath.replace(r".xlsx",r".grr")
+    if output_idf_filepath is None:
+        output_idf_filepath = input_filepath.replace(r".xlsx",r".idf")
     
     # preprocess
     processed_filepath = process_excel_file(input_filepath)
@@ -48,13 +51,13 @@ def run_rebexcel(
     grr = GreenRetrofitResult(grm, idf.run(grm.weather_filepath))
         
     # save if required
-    if save_result:
-        grr.write(output_filepath)
+    if save_grr:
+        grr.write(output_grr_filepath)
         
     if save_idf:
-        idf.write(input_filepath.replace(r".xlsx",r".idf"))
+        idf.write(output_idf_filepath)
     
     # remove unused files
     os.remove(processed_filepath)
     
-    return grr
+    return grr, idf
