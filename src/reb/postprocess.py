@@ -44,7 +44,7 @@ def row_to_timestring(row:pd.Series) -> None|str:
     
 def row_to_dayofweek(row:pd.Series) -> str:
     
-    return ", ".join([dayofweek for dayofweek, condition in row.to_dict().items() if condition and (dayofweek in ["월","화","수","목","금"])])
+    return ", ".join([dayofweek for dayofweek, condition in row.to_dict().items() if condition and (dayofweek in ["월","화","수","목","금","토","일"])])
 
 
 def row_to_설비운영(row:pd.Series) -> None|설비운영:
@@ -304,6 +304,49 @@ class hvac존:
     난방설비2:설비운영
     냉방설비1:설비운영
     냉방설비2:설비운영
+    
+    def get_heating_setpoint_schedule(self, original_schedule:dragon.Schedule) -> dragon.Schedule:
+        
+        # 난방설비 1
+        if self.난방설비1 is not None:
+            first_equipment_setpoint = self.난방설비1.get_setpoint_schedule(original_schedule, "heating")
+        
+            # 난방설비 2
+            if self.난방설비2 is not None:
+                second_equipment_setpoint = self.난방설비2.get_setpoint_schedule(original_schedule, "heating")
+                
+                # 둘 다 고려 (최댓값으로)
+                final_schedule = first_equipment_setpoint.element_max(second_equipment_setpoint)
+                
+            else:
+                final_schedule = first_equipment_setpoint
+        
+        else:
+            final_schedule = original_schedule
+        
+        return final_schedule
+    
+    def get_cooling_setpoint_schedule(self, original_schedule:dragon.Schedule) -> dragon.Schedule:
+        
+        # 냉방설비 1
+        if self.냉방설비1 is not None:
+            first_equipment_setpoint = self.냉방설비1.get_setpoint_schedule(original_schedule, "cooling")
+            
+            # 냉방설비 2
+            if self.냉방설비2 is not None:
+                second_equipment_setpoint = self.냉방설비2.get_setpoint_schedule(original_schedule, "cooling")
+                
+                # 둘 다 고려 (최솟값으로)
+                final_schedule = first_equipment_setpoint.element_min(second_equipment_setpoint)
+                
+            else:
+                final_schedule = first_equipment_setpoint
+        
+        else:
+            final_schedule = original_schedule
+        
+        return final_schedule
+    
 
 @dataclass
 class 보건소일반존(hvac존):
@@ -319,11 +362,6 @@ class 보건소일반존(hvac존):
     집중진료오후방문객:str
     집중진료오전체류시간:int
     집중진료오후체류시간:int
-    # hvac
-    난방설비1:설비운영
-    난방설비2:설비운영
-    냉방설비1:설비운영
-    냉방설비2:설비운영
     
     @classmethod
     def from_excel(cls, filepath:str):
@@ -336,6 +374,10 @@ class 보건소일반존(hvac존):
         설비.columns = ["시작시","시작분","종료시","종료분","시작월","종료월","설정온도"]
         
         return cls(
+            *[
+                row_to_설비운영(row)
+                for _, row in 설비.iterrows()
+            ],
             row_to_timestring(운영시간.loc["기본운영"]),
             int(재실.at["직원","인원수"]),
             int(운영요일.loc["외근"].sum()),
@@ -347,10 +389,6 @@ class 보건소일반존(hvac존):
             int(재실.at["집중진료-오후","인원수"]),
             재실.at["집중진료-오전","체류시간"],
             재실.at["집중진료-오후","체류시간"],
-            *[
-                row_to_설비운영(row)
-                for _, row in 설비.iterrows()
-            ]
         )
     
     def get_occupant_schedule(self) -> dragon.Schedule:
@@ -428,40 +466,6 @@ class 보건소일반존(hvac존):
         
         return occupant_schedule
     
-    def get_heating_setpoint_schedule(self, original_schedule:dragon.Schedule) -> dragon.Schedule:
-        
-        # 난방설비 1
-        first_equipment_setpoint = self.난방설비1.get_setpoint_schedule(original_schedule, "heating")
-        
-        # 난방설비 2
-        if self.난방설비2.is_valid:
-            second_equipment_setpoint = self.난방설비2.get_setpoint_schedule(original_schedule, "heating")
-            
-            # 둘 다 고려 (최댓값으로)
-            final_schedule = first_equipment_setpoint.element_max(second_equipment_setpoint)
-            
-        else:
-            final_schedule = first_equipment_setpoint
-        
-        return final_schedule
-    
-    def get_cooling_setpoint_schedule(self, original_schedule:dragon.Schedule) -> dragon.Schedule:
-        
-        # 냉방설비 1
-        first_equipment_setpoint = self.냉방설비1.get_setpoint_schedule(original_schedule, "cooling")
-        
-        # 냉방설비 2
-        if self.냉방설비2.is_valid:
-            second_equipment_setpoint = self.냉방설비2.get_setpoint_schedule(original_schedule, "cooling")
-            
-            # 둘 다 고려 (최솟값으로)
-            final_schedule = first_equipment_setpoint.element_min(second_equipment_setpoint)
-            
-        else:
-            final_schedule = first_equipment_setpoint
-        
-        return final_schedule
-    
     def get_hvac_availability_schedule(self) -> dragon.Schedule:
         
         # 기본 운영시간
@@ -529,18 +533,13 @@ class 보건소일반존(hvac존):
         return
     
 @dataclass
-class 보건소특화존1:
+class 보건소특화존1(hvac존):
     # zone
     운영요일:str
     오전운영시간:str
     오후운영시간:str
     오전재실인원:int
     오후재실인원:int
-    # hvac
-    난방설비1:설비운영
-    난방설비2:설비운영
-    냉방설비1:설비운영
-    냉방설비2:설비운영
     
     @classmethod
     def from_excel(cls, filepath:str):
@@ -553,15 +552,15 @@ class 보건소특화존1:
         설비.columns = ["시작시","시작분","종료시","종료분","시작월","종료월","설정온도"]
         
         return cls(
+            *[
+                row_to_설비운영(row)
+                for _, row in 설비.iterrows()
+            ],
            row_to_dayofweek(운영요일.loc["운영요일"]),
             row_to_timestring(운영시간.loc["오전"]),
             row_to_timestring(운영시간.loc["오후"]),
             int(v) if not pd.isna(v:=재실.at["오전","인원수"]) else pd.NA,
             int(v) if not pd.isna(v:=재실.at["오후","인원수"]) else pd.NA,
-            *[
-                row_to_설비운영(row)
-                for _, row in 설비.iterrows()
-            ]
         )
     
     def get_occupant_schedule(self) -> dragon.Schedule:
@@ -626,40 +625,6 @@ class 보건소특화존1:
         )
         
         return occupant_schedule
-    
-    def get_heating_setpoint_schedule(self, original_schedule:dragon.Schedule) -> dragon.Schedule:
-        
-        # 난방설비 1
-        first_equipment_setpoint = self.난방설비1.get_setpoint_schedule(original_schedule, "heating")
-        
-        # 난방설비 2
-        if self.난방설비2.is_valid:
-            second_equipment_setpoint = self.난방설비2.get_setpoint_schedule(original_schedule, "heating")
-            
-            # 둘 다 고려 (최댓값으로)
-            final_schedule = first_equipment_setpoint.element_max(second_equipment_setpoint)
-            
-        else:
-            final_schedule = first_equipment_setpoint
-        
-        return final_schedule
-    
-    def get_cooling_setpoint_schedule(self, original_schedule:dragon.Schedule) -> dragon.Schedule:
-        
-        # 냉방설비 1
-        first_equipment_setpoint = self.냉방설비1.get_setpoint_schedule(original_schedule, "cooling")
-        
-        # 냉방설비 2
-        if self.냉방설비2.is_valid:
-            second_equipment_setpoint = self.냉방설비2.get_setpoint_schedule(original_schedule, "cooling")
-            
-            # 둘 다 고려 (최솟값으로)
-            final_schedule = first_equipment_setpoint.element_min(second_equipment_setpoint)
-            
-        else:
-            final_schedule = first_equipment_setpoint
-        
-        return final_schedule
     
     def get_hvac_availability_schedule(self) -> dragon.Schedule:
         
@@ -757,74 +722,34 @@ class 보건소특화존1:
     
     
 @dataclass
-class 보건소특화존2:
+class 보건소특화존2(hvac존):
     #zone
     사용관사수:str
     동거인수:int
     운영요일:int
-
-    # hvac
-    난방설비1:설비운영
-    난방설비2:설비운영
-    냉방설비1:설비운영
-    냉방설비2:설비운영
 
     @classmethod
     def from_excel(cls, filepath:str):
         
         # components
         재실 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=49, nrows=3, usecols=[3,4], index_col=0)
-        운영요일 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=53, nrows=2, usecols=[3,4,5,6,7,8], index_col=0)
+        운영요일 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=53, nrows=2, usecols=[3,4,5,6,7,8,9,10], index_col=0)
         설비 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=57, nrows=5, usecols=[3,4,5,6,7,8,9,10], index_col=0)
         설비.columns = ["시작시","시작분","종료시","종료분","시작월","종료월","설정온도"]
         
         return cls(
-            int(재실.at["사용관사수","인원수"]),
-            int(재실.at["동거인수","인원수"]),
-            row_to_dayofweek(운영요일.loc["운영요일"]),
             *[
                 row_to_설비운영(row)
                 for _, row in 설비.iterrows()
-            ]
+            ],
+            int(재실.at["사용관사수","인원수"]),
+            int(재실.at["동거인수","인원수"]),
+            row_to_dayofweek(운영요일.loc["운영요일"]),   
         )
     
     def get_occupant_schedule(self) -> dragon.Schedule:
         
         return
-    
-    def get_heating_setpoint_schedule(self, original_schedule:dragon.Schedule) -> dragon.Schedule:
-        
-        # 난방설비 1
-        first_equipment_setpoint = self.난방설비1.get_setpoint_schedule(original_schedule, "heating")
-        
-        # 난방설비 2
-        if self.난방설비2.is_valid:
-            second_equipment_setpoint = self.난방설비2.get_setpoint_schedule(original_schedule, "heating")
-            
-            # 둘 다 고려 (최댓값으로)
-            final_schedule = first_equipment_setpoint.element_max(second_equipment_setpoint)
-            
-        else:
-            final_schedule = first_equipment_setpoint
-        
-        return final_schedule
-    
-    def get_cooling_setpoint_schedule(self, original_schedule:dragon.Schedule) -> dragon.Schedule:
-        
-        # 냉방설비 1
-        first_equipment_setpoint = self.냉방설비1.get_setpoint_schedule(original_schedule, "cooling")
-        
-        # 냉방설비 2
-        if self.냉방설비2.is_valid:
-            second_equipment_setpoint = self.냉방설비2.get_setpoint_schedule(original_schedule, "cooling")
-            
-            # 둘 다 고려 (최솟값으로)
-            final_schedule = first_equipment_setpoint.element_min(second_equipment_setpoint)
-            
-        else:
-            final_schedule = first_equipment_setpoint
-        
-        return final_schedule
     
     def get_hvac_availability_schedule(self) -> dragon.Schedule:
         
@@ -849,7 +774,7 @@ class 보건소특화존2:
     
 
 @dataclass
-class 어린이집일반존:
+class 어린이집일반존(hvac존):
     # zone
     기본보육교사:int
     기본보육원생:int
@@ -862,11 +787,6 @@ class 어린이집일반존:
     주말보육시간:str
     주말보육교사:int
     주말보육원생:int
-    # hvac
-    난방설비1:설비운영
-    난방설비2:설비운영
-    냉방설비1:설비운영
-    냉방설비2:설비운영
             
     @classmethod
     def from_excel(cls, filepath:str):
@@ -877,6 +797,10 @@ class 어린이집일반존:
         설비.columns = ["시작시","시작분","종료시","종료분","시작월","종료월","설정온도"]
         
         return cls(
+            *[
+                row_to_설비운영(row)
+                for _, row in 설비.iterrows()
+            ],
             int(재실.at["기본보육","교사"]),
             int(재실.at["기본보육","원생"]),
             int(재실.at["연장보육A","교사"]),
@@ -888,10 +812,6 @@ class 어린이집일반존:
             row_to_timestring(주말보육시간.loc["주말보육"]),
             int(v) if not pd.isna(v:=재실.at["주말보육","교사"]) else pd.NA,
             int(v) if not pd.isna(v:=재실.at["주말보육","원생"]) else pd.NA,
-            *[
-                row_to_설비운영(row)
-                for _, row in 설비.iterrows()
-            ]
         )
     
     def get_occupant_schedule(self) -> dragon.Schedule:
@@ -941,40 +861,6 @@ class 어린이집일반존:
         )
         
         return occupant_schedule
-    
-    def get_heating_setpoint_schedule(self, original_schedule:dragon.Schedule) -> dragon.Schedule:
-        
-        # 난방설비 1
-        first_equipment_setpoint = self.난방설비1.get_setpoint_schedule(original_schedule, "heating")
-        
-        # 난방설비 2
-        if self.난방설비2.is_valid:
-            second_equipment_setpoint = self.난방설비2.get_setpoint_schedule(original_schedule, "heating")
-            
-            # 둘 다 고려 (최댓값으로)
-            final_schedule = first_equipment_setpoint.element_max(second_equipment_setpoint)
-            
-        else:
-            final_schedule = first_equipment_setpoint
-        
-        return final_schedule
-    
-    def get_cooling_setpoint_schedule(self, original_schedule:dragon.Schedule) -> dragon.Schedule:
-        
-        # 냉방설비 1
-        first_equipment_setpoint = self.냉방설비1.get_setpoint_schedule(original_schedule, "cooling")
-        
-        # 냉방설비 2
-        if self.냉방설비2.is_valid:
-            second_equipment_setpoint = self.냉방설비2.get_setpoint_schedule(original_schedule, "cooling")
-            
-            # 둘 다 고려 (최솟값으로)
-            final_schedule = first_equipment_setpoint.element_min(second_equipment_setpoint)
-            
-        else:
-            final_schedule = first_equipment_setpoint
-        
-        return final_schedule
     
     def get_hvac_availability_schedule(self) -> dragon.Schedule:
         
@@ -1064,18 +950,13 @@ class 어린이집일반존:
         return
 
 @dataclass
-class 어린이집특화존:
+class 어린이집특화존(hvac존):
     # zone
     오전운영시간:str
     오후운영시간:str
     오전인원:int
     오후인원:int
-    # hvac
-    난방설비1:설비운영
-    난방설비2:설비운영
-    냉방설비1:설비운영
-    냉방설비2:설비운영
-    
+        
     @classmethod
     def from_excel(cls, filepath:str):
         
@@ -1085,14 +966,14 @@ class 어린이집특화존:
         설비.columns = ["시작시","시작분","종료시","종료분","시작월","종료월","설정온도"]
         
         return cls(
+            *[
+                row_to_설비운영(row)
+                for _, row in 설비.iterrows()
+            ],
             row_to_timestring(운영시간.loc["오전"]),
             row_to_timestring(운영시간.loc["오후"]),
             int(v) if not pd.isna(v:=재실.at["오전","인원"]) else pd.NA,
             int(v) if not pd.isna(v:=재실.at["오후","인원"]) else pd.NA,
-            *[
-                row_to_설비운영(row)
-                for _, row in 설비.iterrows()
-            ]
         )
     
     def get_occupant_schedule(self) -> dragon.Schedule:
@@ -1125,47 +1006,6 @@ class 어린이집특화존:
         )
         
         return occupant_schedule
-    
-    def get_heating_setpoint_schedule(self, original_schedule:dragon.Schedule) -> dragon.Schedule:
-
-        # 난방설비 1
-        if self.난방설비1 is not None:
-            first_equipment_setpoint = self.난방설비1.get_setpoint_schedule(original_schedule, "heating")
-            
-            # 난방설비 2
-            if self.난방설비2 is not None:
-                second_equipment_setpoint = self.난방설비2.get_setpoint_schedule(original_schedule, "heating")
-                
-                # 둘 다 고려 (최댓값으로)
-                final_schedule = first_equipment_setpoint.element_max(second_equipment_setpoint)
-                
-            else:
-                final_schedule = first_equipment_setpoint
-        
-        else:
-            final_schedule = original_schedule
-        
-        return final_schedule
-    
-    def get_cooling_setpoint_schedule(self, original_schedule:dragon.Schedule) -> dragon.Schedule:
-        
-        # 냉방설비 1
-        if self.냉방설비1.is_valid:
-            first_equipment_setpoint = self.냉방설비1.get_setpoint_schedule(original_schedule, "cooling")
-        
-            # 냉방설비 2
-            if self.냉방설비2.is_valid:
-                second_equipment_setpoint = self.냉방설비2.get_setpoint_schedule(original_schedule, "cooling")
-                
-                # 둘 다 고려 (최솟값으로)
-                final_schedule = first_equipment_setpoint.element_min(second_equipment_setpoint)
-                
-            else:
-                final_schedule = first_equipment_setpoint
-        else:
-            final_schedule = original_schedule
-            
-        return final_schedule
     
     def get_hvac_availability_schedule(self) -> dragon.Schedule:
         
