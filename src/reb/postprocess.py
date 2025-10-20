@@ -285,7 +285,7 @@ class 보건소일반존:
                 설비운영(
                     "",
                     f"{int(row.at["시작시"]):02d}:{int(row.at["시작분"]):02d}~{int(row.at["종료시"]):02d}:{int(row.at["종료분"]):02d}",
-                    f"{int(row["시작월"]):02d}~{int(row["종료월"]):02d}",
+                    f"{int(row["시작월"]):02d}~{int(row["종료월"]):02d}월",
                     float(row["설정온도"]),
                     "사용" if not pd.isna(row).any() else "미사용"
                 )
@@ -803,14 +803,14 @@ class 어린이집일반존:
             int(재실.at["연장보육B","원생"]),
             int(재실.at["야간보육","교사"]),
             int(재실.at["야간보육","원생"]),
-            f"{주말보육시간.at["주말보육","시작시"]:02d}:{주말보육시간.at["주말보육","시작분"]:02d}~{주말보육시간.at["주말","종료시"]:02d}:{주말보육시간.at["주말","종료분"]:02d}" if not pd.isna(주말보육시간.loc["주말보육"]).any() else "",
+            f"{주말보육시간.at["주말보육","시작시"]:02d}:{주말보육시간.at["주말보육","시작분"]:02d}~{주말보육시간.at["주말","종료시"]:02d}:{주말보육시간.at["주말","종료분"]:02d}" if not pd.isna(주말보육시간.loc["주말보육"]).any() else pd.NA,
             int(v) if not pd.isna(v:=재실.at["주말보육","교사"]) else pd.NA,
             int(v) if not pd.isna(v:=재실.at["주말보육","원생"]) else pd.NA,
             *[
                 설비운영(
                     "",
                     f"{int(row.at["시작시"]):02d}:{int(row.at["시작분"]):02d}~{int(row.at["종료시"]):02d}:{int(row.at["종료분"]):02d}",
-                    f"{int(row["시작월"]):02d}~{int(row["종료월"]):02d}",
+                    f"{int(row["시작월"]):02d}~{int(row["종료월"]):02d}월",
                     float(row["설정온도"]),
                     "사용" if not pd.isna(row).any() else "미사용"
                 )
@@ -1011,15 +1011,15 @@ class 어린이집특화존:
         설비.columns = ["시작시","시작분","종료시","종료분","시작월","종료월","설정온도"]
         
         return cls(
-            f"{운영시간.at["오전","시작시"]:02d}:{운영시간.at["오전","시작분"]:02d}~{운영시간.at["오전","종료시"]:02d}:{운영시간.at["오전","종료분"]:02d}" if not pd.isna(운영시간.loc["오전"]).any() else "",
-            f"{운영시간.at["오후","시작시"]:02d}:{운영시간.at["오후","시작분"]:02d}~{운영시간.at["오후","종료시"]:02d}:{운영시간.at["오후","종료분"]:02d}" if not pd.isna(운영시간.loc["오후"]).any() else "",
+            f"{운영시간.at["오전","시작시"]:02d}:{운영시간.at["오전","시작분"]:02d}~{운영시간.at["오전","종료시"]:02d}:{운영시간.at["오전","종료분"]:02d}" if not pd.isna(운영시간.loc["오전"]).any() else pd.NA,
+            f"{운영시간.at["오후","시작시"]:02d}:{운영시간.at["오후","시작분"]:02d}~{운영시간.at["오후","종료시"]:02d}:{운영시간.at["오후","종료분"]:02d}" if not pd.isna(운영시간.loc["오후"]).any() else pd.NA,
             int(v) if not pd.isna(v:=재실.at["오전","인원"]) else pd.NA,
             int(v) if not pd.isna(v:=재실.at["오후","인원"]) else pd.NA,
             *[
                 설비운영(
                     "",
                     f"{int(row.at["시작시"]):02d}:{int(row.at["시작분"]):02d}~{int(row.at["종료시"]):02d}:{int(row.at["종료분"]):02d}",
-                    f"{int(row["시작월"]):02d}~{int(row["종료월"]):02d}",
+                    f"{int(row["시작월"]):02d}~{int(row["종료월"]):02d}월",
                     float(row["설정온도"]),
                     "사용" if not pd.isna(row).any() else "미사용"
                 )
