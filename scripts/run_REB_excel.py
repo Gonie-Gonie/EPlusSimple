@@ -23,7 +23,7 @@ result_idf_dir  = os.path.join(working_dir, "result_idf")
 
 # main
 
-filelist = [file for file in input_excel_dir]
+filelist = [file for file in os.listdir(input_excel_dir)]
 if __name__ == "__main__":
     
     for file in filelist:

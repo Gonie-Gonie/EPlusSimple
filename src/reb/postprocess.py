@@ -329,11 +329,12 @@ class 보건소일반존:
                     "",
                     f"{int(row.at["시작시"]):02d}:{int(row.at["시작분"]):02d}~{int(row.at["종료시"]):02d}:{int(row.at["종료분"]):02d}",
                     f"{int(row["시작월"]):02d}~{int(row["종료월"]):02d}",
-                    row["설정온도"],
+                    float(row["설정온도"]),
                     "사용" if not pd.isna(row).any() else "미사용"
                 )
-                for _, row in 설비.iterrows()
                 if not pd.isna(row).any()
+                else 설비운영("","","",pd.NA,"미사용")
+                for _, row in 설비.iterrows()
             ]
         )
     
@@ -888,6 +889,40 @@ class 어린이집일반존:
                 설비운영(row["B69"],row["B70"],row["B72"],row["B73"],row["BA3"]),
                 설비운영(row["B74"],row["B75"],row["B77"],row["B78"],row["BA4"]),
             )
+            
+    @classmethod
+    def from_excel(cls, filepath:str):
+        
+        재실 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=5, nrows=6, usecols=[3,4,5], index_col=0)
+        주말보육시간 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=12, nrows=2, usecols=[3,4,5,6,7], index_col=0)
+        설비 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=16, nrows=5, usecols=[3,4,5,6,7,8,9,10], index_col=0)
+        설비.columns = ["시작시","시작분","종료시","종료분","시작월","종료월","설정온도"]
+        
+        return cls(
+            int(재실.at["기본보육","교사"]),
+            int(재실.at["기본보육","원생"]),
+            int(재실.at["연장보육A","교사"]),
+            int(재실.at["연장보육A","원생"]),
+            int(재실.at["연장보육B","교사"]),
+            int(재실.at["연장보육B","원생"]),
+            int(재실.at["야간보육","교사"]),
+            int(재실.at["야간보육","원생"]),
+            f"{주말보육시간.at["주말보육","시작시"]:02d}:{주말보육시간.at["주말보육","시작분"]:02d}~{주말보육시간.at["주말","종료시"]:02d}:{주말보육시간.at["주말","종료분"]:02d}" if not pd.isna(주말보육시간.loc["주말보육"]).any() else "",
+            int(v) if not pd.isna(v:=재실.at["주말보육","교사"]) else pd.NA,
+            int(v) if not pd.isna(v:=재실.at["주말보육","원생"]) else pd.NA,
+            *[
+                설비운영(
+                    "",
+                    f"{int(row.at["시작시"]):02d}:{int(row.at["시작분"]):02d}~{int(row.at["종료시"]):02d}:{int(row.at["종료분"]):02d}",
+                    f"{int(row["시작월"]):02d}~{int(row["종료월"]):02d}",
+                    float(row["설정온도"]),
+                    "사용" if not pd.isna(row).any() else "미사용"
+                )
+                if not pd.isna(row).any()
+                else 설비운영("","","",pd.NA,"미사용")
+                for _, row in 설비.iterrows()
+            ]
+        )
     
     def get_occupant_schedule(self) -> dragon.Schedule:
         
@@ -1090,6 +1125,33 @@ class 어린이집특화존:
                 설비운영(row["B107"],row["B108"],row["B110"],row["B111"],row["BA9"]),
             )
     
+    @classmethod
+    def from_excel(cls, filepath:str):
+        
+        재실 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=24, nrows=3, usecols=[3,4], index_col=0)
+        운영시간 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=28, nrows=3, usecols=[3,4,5,6,7], index_col=0)
+        설비 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=33, nrows=5, usecols=[3,4,5,6,7,8,9,10], index_col=0)
+        설비.columns = ["시작시","시작분","종료시","종료분","시작월","종료월","설정온도"]
+        
+        return cls(
+            f"{운영시간.at["오전","시작시"]:02d}:{운영시간.at["오전","시작분"]:02d}~{운영시간.at["오전","종료시"]:02d}:{운영시간.at["오전","종료분"]:02d}" if not pd.isna(운영시간.loc["오전"]).any() else "",
+            f"{운영시간.at["오후","시작시"]:02d}:{운영시간.at["오후","시작분"]:02d}~{운영시간.at["오후","종료시"]:02d}:{운영시간.at["오후","종료분"]:02d}" if not pd.isna(운영시간.loc["오후"]).any() else "",
+            int(v) if not pd.isna(v:=재실.at["오전","인원"]) else pd.NA,
+            int(v) if not pd.isna(v:=재실.at["오후","인원"]) else pd.NA,
+            *[
+                설비운영(
+                    "",
+                    f"{int(row.at["시작시"]):02d}:{int(row.at["시작분"]):02d}~{int(row.at["종료시"]):02d}:{int(row.at["종료분"]):02d}",
+                    f"{int(row["시작월"]):02d}~{int(row["종료월"]):02d}",
+                    float(row["설정온도"]),
+                    "사용" if not pd.isna(row).any() else "미사용"
+                )
+                if not pd.isna(row).any()
+                else 설비운영("","","",pd.NA,"미사용")
+                for _, row in 설비.iterrows()
+            ]
+        )
+    
     def get_occupant_schedule(self) -> dragon.Schedule:
         
         오전starth, 오전startm, 오전endh, 오전endm = parse_duration_hours(self.오전운영시간)
@@ -1279,7 +1341,46 @@ class 현장조사체크리스트(ABC):
         
 
 class 어린이집체크리스트:
-    ...
+    
+    def __init__(self,
+        일반존: 어린이집일반존 ,
+        특화존: 어린이집특화존,
+        ) -> None:
+        
+        # zone survey
+        self.일반존 = 일반존
+        self.특화존 = 특화존
+    
+    @classmethod
+    def from_excel(cls, filepath:str) -> 어린이집체크리스트:
+        
+        return cls(
+            어린이집일반존.from_excel(filepath),
+            어린이집특화존.from_excel(filepath),
+        )
+        
+    def apply_to(self, grm:GreenRetrofitModel, exceldata:dict[str,pd.DataFrame]) -> IDF:
+        
+        zoneID_category = {
+            category: [
+                zone.ID for zone in grm.zone
+                if zone.name in list(exceldata["실"].query("현장조사프로필 == @category" )["이름"].values)
+            ]
+            for category in ["일반존","특화존"]
+        }
+        
+        em = grm.to_dragon()
+        
+        self.일반존.apply_to([
+                zone for zone in em.zone
+                if zone.name in zoneID_category["일반존"]
+        ])
+        self.특화존.apply_to([
+                zone for zone in em.zone
+                if zone.name in zoneID_category["특화존"]
+        ])
+        
+        return em.to_idf()
     
 class 보건소체크리스트:
     
@@ -1295,7 +1396,7 @@ class 보건소체크리스트:
         self.특화존2 = 특화존2
     
     @classmethod
-    def from_excel(cls, filepath:str) -> 보건소GR이전체크리스트:
+    def from_excel(cls, filepath:str) -> 보건소체크리스트:
         
         return cls(
             보건소일반존.from_excel(filepath),
