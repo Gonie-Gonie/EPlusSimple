@@ -135,27 +135,6 @@ def make_집중진료_dayschedule_values(starth, startm, endh, endm,
 # ---------------------------------------------------------------------------- #
 
 @dataclass
-class MetaData:
-    userId    : str 
-    userName  : str
-    name      : str
-    department: str
-    updatedAt : str
-    version   : str
-    건물명       :str 
-    GR준공일     :str 
-    조사일       :str 
-    응답자근무기간:str 
-    
-    @classmethod
-    def from_row(cls, row:pd.Series):
-        
-        return cls(
-            row["userId"], row["userName"], row["name"], row["department"], row["updatedAt"], row["version"],
-            row["A1"],row["A2"],row["A3"],row["A4"],
-        )    
-
-@dataclass
 class 설비운영:
     이름:str
     사용시간:str
@@ -1301,14 +1280,6 @@ class 어린이집특화존:
 # ---------------------------------------------------------------------------- #
 
 class 현장조사체크리스트(ABC):
-    
-    def __init__(self,
-        raw_input:pd.Series,
-        metadata :MetaData,
-        ) -> None:
-        
-        self.raw  = raw_input
-        self.meta = metadata
     
     """ input
     """
