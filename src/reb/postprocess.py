@@ -204,17 +204,28 @@ class 설비운영:
             case "heating": default_temperature = -30
             case "cooling": default_temperature =  50
         
-         # 시간
-        starth, startm, endh, endm = parse_duration_hours(self.사용시간)
-        temperature_dayschedule = dragon.DaySchedule.from_compact(
+        # for invalid case: return default setpoint temperature
+        if not self.is_valid:
+            temperature_dayschedule =  dragon.DaySchedule.from_compact(
             None,
             [
-                (starth, startm, default_temperature),
-                (endh  , endm  , int(self.설정온도)       ),
                 (24    , 0     , default_temperature),
             ],
             dragon.ScheduleType.TEMPERATURE         
         )
+        else:     
+            starth, startm, endh, endm = parse_duration_hours(self.사용시간)
+            temperature_dayschedule = dragon.DaySchedule.from_compact(
+                None,
+                [
+                    (starth, startm, default_temperature),
+                    (endh  , endm  , int(self.설정온도)       ),
+                    (24    , 0     , default_temperature),
+                ],
+                dragon.ScheduleType.TEMPERATURE         
+            )
+        
+        # ruleset:
         temperature_ruleset = dragon.RuleSet(
             None,
             temperature_dayschedule,
@@ -222,21 +233,29 @@ class 설비운영:
         )
         
         # 기간
-        duration1, duration2 = parse_duration_month(self.사용기간) 
-        temperature_schedule = original_schedule.apply(
-            temperature_ruleset,
-            start = f"{duration1[0]:02d}01",
-            end   = f"{duration1[1]:02d}{get_end_of_the_month(duration1[1]):02d}",
-            inplace=False
-        )
-        if duration2 is not None:
-            temperature_schedule.apply(
+        if self.is_valid:
+            duration1, duration2 = parse_duration_month(self.사용기간) 
+            temperature_schedule = original_schedule.apply(
                 temperature_ruleset,
-                start = f"{duration2[0]:02d}01",
-                end   = f"{duration2[1]:02d}{get_end_of_the_month(duration2[1]):02d}",
-                inplace=True
-            )  
-        
+                start = f"{duration1[0]:02d}01",
+                end   = f"{duration1[1]:02d}{get_end_of_the_month(duration1[1]):02d}",
+                inplace=False
+            )
+            if duration2 is not None:
+                temperature_schedule.apply(
+                    temperature_ruleset,
+                    start = f"{duration2[0]:02d}01",
+                    end   = f"{duration2[1]:02d}{get_end_of_the_month(duration2[1]):02d}",
+                    inplace=True
+                )
+        else:
+            temperature_schedule = dragon.Schedule.from_compact(
+                None,
+                [
+                    ("0101","1231", temperature_ruleset)
+                ]
+            )                
+            
         return temperature_schedule
     
 @dataclass
@@ -271,14 +290,14 @@ class 보건소일반존:
         
         return cls(
             f"{운영시간.at["기본운영","시작시"]:02d}:{운영시간.at["기본운영","시작분"]:02d}~{운영시간.at["기본운영","종료시"]:02d}:{운영시간.at["기본운영","종료분"]:02d}",
-            재실.at["직원","인원수"],
+            int(재실.at["직원","인원수"]),
             int(운영요일.loc["외근"].sum()),
             f"{운영시간.at["외근","시작시"]:02d}:{운영시간.at["외근","시작분"]:02d}~{운영시간.at["외근","종료시"]:02d}:{운영시간.at["외근","종료분"]:02d}",
-            재실.at["외근직원","인원수"],
+            int(재실.at["외근직원","인원수"]),
             ", ".join([dayofweek for dayofweek, condition in 운영요일.loc["집중진료"].to_dict().items() if condition]),
             f"{운영시간.at["집중진료","시작시"]:02d}:{운영시간.at["집중진료","시작분"]:02d}~{운영시간.at["집중진료","종료시"]:02d}:{운영시간.at["집중진료","종료분"]:02d}",
-            재실.at["집중진료-오전","인원수"],
-            재실.at["집중진료-오후","인원수"],
+            int(재실.at["집중진료-오전","인원수"]),
+            int(재실.at["집중진료-오후","인원수"]),
             재실.at["집중진료-오전","체류시간"],
             재실.at["집중진료-오후","체류시간"],
             *[
@@ -473,7 +492,7 @@ class 보건소일반존:
 @dataclass
 class 보건소특화존1:
     # zone
-    사용요일:str
+    운영요일:str
     오전운영시간:str
     오후운영시간:str
     오전재실인원:int
@@ -487,8 +506,31 @@ class 보건소특화존1:
     @classmethod
     def from_excel(cls, filepath:str):
         
+        # components
+        재실 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=29, nrows=3, usecols=[3,4], index_col=0)
+        운영시간 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=33, nrows=3, usecols=[3,4,5,6,7], index_col=0)
+        운영요일 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=37, nrows=2, usecols=[3,4,5,6,7,8], index_col=0)
+        설비 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=41, nrows=5, usecols=[3,4,5,6,7,8,9,10], index_col=0)
+        설비.columns = ["시작시","시작분","종료시","종료분","시작월","종료월","설정온도"]
+        
         return cls(
-            
+            ", ".join([dayofweek for dayofweek, condition in 운영요일.loc["운영요일"].to_dict().items() if condition]),
+            f"{운영시간.at["오전","시작시"]:02d}:{운영시간.at["오전","시작분"]:02d}~{운영시간.at["오전","종료시"]:02d}:{운영시간.at["오전","종료분"]:02d}" if not pd.isna(운영시간.loc["오전"]).any() else pd.NA,
+            f"{운영시간.at["오후","시작시"]:02d}:{운영시간.at["오후","시작분"]:02d}~{운영시간.at["오후","종료시"]:02d}:{운영시간.at["오후","종료분"]:02d}" if not pd.isna(운영시간.loc["오후"]).any() else pd.NA,
+            int(v) if not pd.isna(v:=재실.at["오전","인원수"]) else pd.NA,
+            int(v) if not pd.isna(v:=재실.at["오후","인원수"]) else pd.NA,
+            *[
+                설비운영(
+                    "",
+                    f"{int(row.at["시작시"]):02d}:{int(row.at["시작분"]):02d}~{int(row.at["종료시"]):02d}:{int(row.at["종료분"]):02d}",
+                    f"{int(row["시작월"]):02d}~{int(row["종료월"]):02d}월",
+                    float(row["설정온도"]),
+                    "사용" if not pd.isna(row).any() else "미사용"
+                )
+                if not pd.isna(row).any()
+                else 설비운영("","","",pd.NA,"미사용")
+                for _, row in 설비.iterrows()
+            ]
         )
     
     def get_occupant_schedule(self) -> dragon.Schedule:
@@ -503,7 +545,7 @@ class 보건소특화존1:
         # 오전 재실
         if not pd.isna(self.오전운영시간):
             starth, startm, endh, endm = parse_duration_hours(self.오전운영시간)
-            dayofweeks = [translate_dayofweek(s.strip()) for s in self.사용요일.split(",")]
+            dayofweeks = [translate_dayofweek(s.strip()) for s in self.운영요일.split(",")]
             오전_ruleset = dragon.RuleSet(
                 None,
                 dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,),
@@ -526,7 +568,7 @@ class 보건소특화존1:
         # 오후 재실
         if not pd.isna(self.오후운영시간):
             starth, startm, endh, endm = parse_duration_hours(self.오후운영시간)
-            dayofweeks = [translate_dayofweek(s.strip()) for s in self.사용요일.split(",")]
+            dayofweeks = [translate_dayofweek(s.strip()) for s in self.운영요일.split(",")]
             오후_ruleset = dragon.RuleSet(
                 None,
                 dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,),
@@ -686,13 +728,10 @@ class 보건소특화존1:
 @dataclass
 class 보건소특화존2:
     #zone
-    관사여부:str
-    관사수  :int
     사용관사수:str
-    평일사용일수:int
-    주말사용일수:int
-    동거인여부:str
     동거인수:int
+    운영요일:int
+
     # hvac
     난방설비1:설비운영
     난방설비2:설비운영
@@ -702,8 +741,28 @@ class 보건소특화존2:
     @classmethod
     def from_excel(cls, filepath:str):
         
+        # components
+        재실 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=49, nrows=3, usecols=[3,4], index_col=0)
+        운영요일 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=53, nrows=2, usecols=[3,4,5,6,7,8], index_col=0)
+        설비 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=57, nrows=5, usecols=[3,4,5,6,7,8,9,10], index_col=0)
+        설비.columns = ["시작시","시작분","종료시","종료분","시작월","종료월","설정온도"]
+        
         return cls(
-            
+            int(재실.at["사용관사수","인원수"]),
+            int(재실.at["동거인수","인원수"]),
+            ", ".join([dayofweek for dayofweek, condition in 운영요일.loc["운영요일"].to_dict().items() if condition]),
+            *[
+                설비운영(
+                    "",
+                    f"{int(row.at["시작시"]):02d}:{int(row.at["시작분"]):02d}~{int(row.at["종료시"]):02d}:{int(row.at["종료분"]):02d}",
+                    f"{int(row["시작월"]):02d}~{int(row["종료월"]):02d}월",
+                    float(row["설정온도"]),
+                    "사용" if not pd.isna(row).any() else "미사용"
+                )
+                if not pd.isna(row).any()
+                else 설비운영("","","",pd.NA,"미사용")
+                for _, row in 설비.iterrows()
+            ]
         )
     
     def get_occupant_schedule(self) -> dragon.Schedule:

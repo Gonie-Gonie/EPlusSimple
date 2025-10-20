@@ -35,29 +35,31 @@ def run_rebexcel(
         output_idf_filepath = input_filepath.replace(r".xlsx",r".idf")
     
     # preprocess
-    processed_filepath = process_excel_file(input_filepath)
+    processed_filepath = process_excel_file(input_filepath, verbose=False)
     
-    # read excel to model
-    grm = GreenRetrofitModel.from_excel(processed_filepath)
-    
-    # read excel to survey
-    survey = 현장조사체크리스트.from_excel(input_filepath)
-    
-    # convert
-    exceldata = pd.read_excel(input_filepath, sheet_name=None)
-    idf = survey.apply_to(grm, exceldata)
-    
-    # run
-    grr = GreenRetrofitResult(grm, idf.run(grm.weather_filepath))
+    try:
+        # read excel to model
+        grm = GreenRetrofitModel.from_excel(processed_filepath)
         
-    # save if required
-    if save_grr:
-        grr.write(output_grr_filepath)
+        # read excel to survey
+        survey = 현장조사체크리스트.from_excel(input_filepath)
         
-    if save_idf:
-        idf.write(output_idf_filepath)
+        # convert
+        exceldata = pd.read_excel(input_filepath, sheet_name=None)
+        idf = survey.apply_to(grm, exceldata)
+        
+        # run
+        grr = GreenRetrofitResult(grm, idf.run(grm.weather_filepath))
+            
+        # save if required
+        if save_grr:
+            grr.write(output_grr_filepath)
+            
+        if save_idf:
+            idf.write(output_idf_filepath)
     
-    # remove unused files
-    os.remove(processed_filepath)
-    
+    finally:
+        # remove unused files
+        os.remove(processed_filepath)
+        
     return grr, idf
