@@ -13,7 +13,7 @@ from flask import Flask, render_template, request
 from werkzeug.datastructures import FileStorage
 
 # local modules
-from epsimple import check_grexcel, run_grexcel
+from epsimple import run_grexcel
 from reb.preprocess import process_excel_file
 from epsimple.debug import debug_excel, report_result, ReportCode
 
@@ -75,27 +75,6 @@ def handle_file_processing(
 # ==============================================================================
 # 4. 라우트 (웹페이지 기능)
 # ==============================================================================
-
-@app.route("/check", methods=["GET", "POST"])
-def check_file_validity() -> str:
-    """
-    '유효성 검증' 페이지를 렌더링하고, POST 요청 시 업로드된 엑셀 파일의
-    포맷을 검증하여 결과를 표시합니다.
-    """
-    result: Optional[Dict[str, Any]] = None
-    if request.method == "POST":
-        uploaded_file = request.files.get("file")
-        
-        # 파일이 업로드되지 않았을 때의 기본 응답
-        fail_dict = {
-            "step1": False, "step2": False, "step3": False, "step4": False,
-            "err": "파일이 업로드되지 않았습니다.",
-        }
-        
-        result = handle_file_processing(uploaded_file, check_grexcel, fail_dict)
-        
-    return render_template("check.html", result=result)
-
 
 @app.route("/run", methods=["GET", "POST"])
 def run_simulation_comparison() -> str:
@@ -286,23 +265,7 @@ def _run_simulation_phase(
 # 5. 메인 실행부
 # ==============================================================================
 if __name__ == "__main__":
-    # 실행 모드(check/run)에 따라 기본 URL('/')이 다른 기능을 수행하도록 설정
-    parser = argparse.ArgumentParser(
-        description="Flask web server for pyGRsim."
-    )
-    parser.add_argument(
-        "--mode", 
-        choices=["check", "run"], 
-        default="run",
-        help="Set the application's operating mode ('check' or 'run')."
-    )
-    args = parser.parse_args()
 
-    # mode 값에 따라 루트 URL('/')에 라우트 함수를 동적으로 연결
-    if args.mode == "check":
-        app.add_url_rule("/", "check", check_file_validity, methods=["GET", "POST"])
-    else: # 'run'이 기본값이므로 else로 처리
-        app.add_url_rule("/", "run", run_simulation_comparison, methods=["GET", "POST"])
-
-    # 디버그 모드로 Flask 앱 실행
+    app.add_url_rule("/", "run", run_simulation_comparison, methods=["GET", "POST"])
     app.run(debug=True, host="0.0.0.0", port=5000)
+    
