@@ -12,6 +12,7 @@ import os
 # local modules
 from reb import run_rebexcel
 from reb.core import rebexcel_to_idf_and_grm
+from epsimple.core.model import EnergyPlusError
 
 
 # setting
@@ -27,7 +28,7 @@ result_idf_dir  = os.path.join(working_dir, "result_idf")
 filelist = [file for file in os.listdir(input_excel_dir)]
 if __name__ == "__main__":
     
-    for file in filelist:
+    for file in filelist[15:]:
         
         grr_path = os.path.join(result_grr_dir, file.replace(r".xlsx",r".grr"))
         idf_path = os.path.join(result_idf_dir, file.replace(r".xlsx",r".idf"))
@@ -35,8 +36,8 @@ if __name__ == "__main__":
         try:    
             grr, idf = run_rebexcel(os.path.join(input_excel_dir,file), grr_path, idf_path)
             
-        except Exception as e:
-            print(f"!!!!!!!!!!!!!!!실패: {file}")
+        except EnergyPlusError:
+            print(f"!!!!!!!!!!!!!!!EP에러로 실패: {file}")
             idf, grm = rebexcel_to_idf_and_grm(os.path.join(input_excel_dir,file))
             idf.write(idf_path)
             

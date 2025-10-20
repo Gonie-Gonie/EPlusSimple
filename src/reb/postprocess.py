@@ -28,8 +28,39 @@ from idragon import (
 # settings
 random.seed(hash("REB-PHIKO-SNU"))
 
+
 # ---------------------------------------------------------------------------- #
-#                                 SUBFUNCTIONS                                 #
+#                          SUBFUNCTIONS: EXCEL TO DATA                         #
+# ---------------------------------------------------------------------------- #
+
+def row_to_timestring(row:pd.Series) -> None|str:
+    
+    if pd.isna(row).any():
+        return None
+    
+    else:
+        return f"{row["시작시"]:02d}:{row["시작분"]:02d}~{row["종료시"]:02d}:{row["종료분"]:02d}"
+    
+    
+def row_to_dayofweek(row:pd.Series) -> str:
+    
+    return ", ".join([dayofweek for dayofweek, condition in row.to_dict().items() if condition and (dayofweek in ["월","화","수","목","금"])])
+
+
+def row_to_설비운영(row:pd.Series) -> None|설비운영:
+    
+    if pd.isna(row).any():
+        return None
+    
+    else:
+        return 설비운영(
+            row_to_timestring(row[["시작시","시작분","종료시","종료분"]]),
+            f"{int(row["시작월"]):02d}~{int(row["종료월"]):02d}월",
+            float(v) if not isinstance(v:=row["설정온도"], str) else v,
+        )
+
+# ---------------------------------------------------------------------------- #
+#                         SUBFUNCTINOS: DATA TO DRAGON                         #
 # ---------------------------------------------------------------------------- #
 
 def parse_duration_hours(operation_str:str) -> tuple[int,int,int,int]:
@@ -136,11 +167,9 @@ def make_집중진료_dayschedule_values(starth, startm, endh, endm,
 
 @dataclass
 class 설비운영:
-    이름:str
     사용시간:str
     사용기간:str
     설정온도:int
-    사용여부:str
     
     @property
     def is_valid(self) -> bool:
@@ -213,13 +242,21 @@ class 설비운영:
             ],
             dragon.ScheduleType.TEMPERATURE         
         )
-        else:     
+        else:
+            
+            if self.설정온도 == "확인불가":
+                match mode:
+                    case "heating": setpoint = original_schedule.max
+                    case "cooling": setpoint = original_schedule.min
+            else:
+                setpoint = self.설정온도
+                    
             starth, startm, endh, endm = parse_duration_hours(self.사용시간)
             temperature_dayschedule = dragon.DaySchedule.from_compact(
                 None,
                 [
                     (starth, startm, default_temperature),
-                    (endh  , endm  , int(self.설정온도)       ),
+                    (endh  , endm  , int(setpoint)      ),
                     (24    , 0     , default_temperature),
                 ],
                 dragon.ScheduleType.TEMPERATURE         
@@ -257,9 +294,19 @@ class 설비운영:
             )                
             
         return temperature_schedule
-    
+
+
 @dataclass
-class 보건소일반존:
+class hvac존:
+    
+    # hvac
+    난방설비1:설비운영
+    난방설비2:설비운영
+    냉방설비1:설비운영
+    냉방설비2:설비운영
+
+@dataclass
+class 보건소일반존(hvac존):
     # zone
     운영시간:str
     직원   :str
@@ -289,27 +336,19 @@ class 보건소일반존:
         설비.columns = ["시작시","시작분","종료시","종료분","시작월","종료월","설정온도"]
         
         return cls(
-            f"{운영시간.at["기본운영","시작시"]:02d}:{운영시간.at["기본운영","시작분"]:02d}~{운영시간.at["기본운영","종료시"]:02d}:{운영시간.at["기본운영","종료분"]:02d}",
+            row_to_timestring(운영시간.loc["기본운영"]),
             int(재실.at["직원","인원수"]),
             int(운영요일.loc["외근"].sum()),
-            f"{운영시간.at["외근","시작시"]:02d}:{운영시간.at["외근","시작분"]:02d}~{운영시간.at["외근","종료시"]:02d}:{운영시간.at["외근","종료분"]:02d}",
+            row_to_timestring(운영시간.loc["외근"]),
             int(재실.at["외근직원","인원수"]),
-            ", ".join([dayofweek for dayofweek, condition in 운영요일.loc["집중진료"].to_dict().items() if condition]),
-            f"{운영시간.at["집중진료","시작시"]:02d}:{운영시간.at["집중진료","시작분"]:02d}~{운영시간.at["집중진료","종료시"]:02d}:{운영시간.at["집중진료","종료분"]:02d}",
+            row_to_dayofweek(운영요일.loc["집중진료"]),
+            row_to_timestring(운영시간.loc["집중진료"]),
             int(재실.at["집중진료-오전","인원수"]),
             int(재실.at["집중진료-오후","인원수"]),
             재실.at["집중진료-오전","체류시간"],
             재실.at["집중진료-오후","체류시간"],
             *[
-                설비운영(
-                    "",
-                    f"{int(row.at["시작시"]):02d}:{int(row.at["시작분"]):02d}~{int(row.at["종료시"]):02d}:{int(row.at["종료분"]):02d}",
-                    f"{int(row["시작월"]):02d}~{int(row["종료월"]):02d}월",
-                    float(row["설정온도"]),
-                    "사용" if not pd.isna(row).any() else "미사용"
-                )
-                if not pd.isna(row).any()
-                else 설비운영("","","",pd.NA,"미사용")
+                row_to_설비운영(row)
                 for _, row in 설비.iterrows()
             ]
         )
@@ -514,21 +553,13 @@ class 보건소특화존1:
         설비.columns = ["시작시","시작분","종료시","종료분","시작월","종료월","설정온도"]
         
         return cls(
-            ", ".join([dayofweek for dayofweek, condition in 운영요일.loc["운영요일"].to_dict().items() if condition]),
-            f"{운영시간.at["오전","시작시"]:02d}:{운영시간.at["오전","시작분"]:02d}~{운영시간.at["오전","종료시"]:02d}:{운영시간.at["오전","종료분"]:02d}" if not pd.isna(운영시간.loc["오전"]).any() else pd.NA,
-            f"{운영시간.at["오후","시작시"]:02d}:{운영시간.at["오후","시작분"]:02d}~{운영시간.at["오후","종료시"]:02d}:{운영시간.at["오후","종료분"]:02d}" if not pd.isna(운영시간.loc["오후"]).any() else pd.NA,
+           row_to_dayofweek(운영요일.loc["운영요일"]),
+            row_to_timestring(운영시간.loc["오전"]),
+            row_to_timestring(운영시간.loc["오후"]),
             int(v) if not pd.isna(v:=재실.at["오전","인원수"]) else pd.NA,
             int(v) if not pd.isna(v:=재실.at["오후","인원수"]) else pd.NA,
             *[
-                설비운영(
-                    "",
-                    f"{int(row.at["시작시"]):02d}:{int(row.at["시작분"]):02d}~{int(row.at["종료시"]):02d}:{int(row.at["종료분"]):02d}",
-                    f"{int(row["시작월"]):02d}~{int(row["종료월"]):02d}월",
-                    float(row["설정온도"]),
-                    "사용" if not pd.isna(row).any() else "미사용"
-                )
-                if not pd.isna(row).any()
-                else 설비운영("","","",pd.NA,"미사용")
+                row_to_설비운영(row)
                 for _, row in 설비.iterrows()
             ]
         )
@@ -750,17 +781,9 @@ class 보건소특화존2:
         return cls(
             int(재실.at["사용관사수","인원수"]),
             int(재실.at["동거인수","인원수"]),
-            ", ".join([dayofweek for dayofweek, condition in 운영요일.loc["운영요일"].to_dict().items() if condition]),
+            row_to_dayofweek(운영요일.loc["운영요일"]),
             *[
-                설비운영(
-                    "",
-                    f"{int(row.at["시작시"]):02d}:{int(row.at["시작분"]):02d}~{int(row.at["종료시"]):02d}:{int(row.at["종료분"]):02d}",
-                    f"{int(row["시작월"]):02d}~{int(row["종료월"]):02d}월",
-                    float(row["설정온도"]),
-                    "사용" if not pd.isna(row).any() else "미사용"
-                )
-                if not pd.isna(row).any()
-                else 설비운영("","","",pd.NA,"미사용")
+                row_to_설비운영(row)
                 for _, row in 설비.iterrows()
             ]
         )
@@ -862,19 +885,11 @@ class 어린이집일반존:
             int(재실.at["연장보육B","원생"]),
             int(재실.at["야간보육","교사"]),
             int(재실.at["야간보육","원생"]),
-            f"{주말보육시간.at["주말보육","시작시"]:02d}:{주말보육시간.at["주말보육","시작분"]:02d}~{주말보육시간.at["주말","종료시"]:02d}:{주말보육시간.at["주말","종료분"]:02d}" if not pd.isna(주말보육시간.loc["주말보육"]).any() else pd.NA,
+            row_to_timestring(주말보육시간.loc["주말보육"]),
             int(v) if not pd.isna(v:=재실.at["주말보육","교사"]) else pd.NA,
             int(v) if not pd.isna(v:=재실.at["주말보육","원생"]) else pd.NA,
             *[
-                설비운영(
-                    "",
-                    f"{int(row.at["시작시"]):02d}:{int(row.at["시작분"]):02d}~{int(row.at["종료시"]):02d}:{int(row.at["종료분"]):02d}",
-                    f"{int(row["시작월"]):02d}~{int(row["종료월"]):02d}월",
-                    float(row["설정온도"]),
-                    "사용" if not pd.isna(row).any() else "미사용"
-                )
-                if not pd.isna(row).any()
-                else 설비운영("","","",pd.NA,"미사용")
+                row_to_설비운영(row)
                 for _, row in 설비.iterrows()
             ]
         )
@@ -1070,20 +1085,12 @@ class 어린이집특화존:
         설비.columns = ["시작시","시작분","종료시","종료분","시작월","종료월","설정온도"]
         
         return cls(
-            f"{운영시간.at["오전","시작시"]:02d}:{운영시간.at["오전","시작분"]:02d}~{운영시간.at["오전","종료시"]:02d}:{운영시간.at["오전","종료분"]:02d}" if not pd.isna(운영시간.loc["오전"]).any() else pd.NA,
-            f"{운영시간.at["오후","시작시"]:02d}:{운영시간.at["오후","시작분"]:02d}~{운영시간.at["오후","종료시"]:02d}:{운영시간.at["오후","종료분"]:02d}" if not pd.isna(운영시간.loc["오후"]).any() else pd.NA,
+            row_to_timestring(운영시간.loc["오전"]),
+            row_to_timestring(운영시간.loc["오후"]),
             int(v) if not pd.isna(v:=재실.at["오전","인원"]) else pd.NA,
             int(v) if not pd.isna(v:=재실.at["오후","인원"]) else pd.NA,
             *[
-                설비운영(
-                    "",
-                    f"{int(row.at["시작시"]):02d}:{int(row.at["시작분"]):02d}~{int(row.at["종료시"]):02d}:{int(row.at["종료분"]):02d}",
-                    f"{int(row["시작월"]):02d}~{int(row["종료월"]):02d}월",
-                    float(row["설정온도"]),
-                    "사용" if not pd.isna(row).any() else "미사용"
-                )
-                if not pd.isna(row).any()
-                else 설비운영("","","",pd.NA,"미사용")
+                row_to_설비운영(row)
                 for _, row in 설비.iterrows()
             ]
         )
@@ -1122,11 +1129,11 @@ class 어린이집특화존:
     def get_heating_setpoint_schedule(self, original_schedule:dragon.Schedule) -> dragon.Schedule:
 
         # 난방설비 1
-        if self.난방설비1.is_valid:
+        if self.난방설비1 is not None:
             first_equipment_setpoint = self.난방설비1.get_setpoint_schedule(original_schedule, "heating")
             
             # 난방설비 2
-            if self.난방설비2.is_valid:
+            if self.난방설비2 is not None:
                 second_equipment_setpoint = self.난방설비2.get_setpoint_schedule(original_schedule, "heating")
                 
                 # 둘 다 고려 (최댓값으로)
