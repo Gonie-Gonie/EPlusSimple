@@ -43,7 +43,7 @@ def row_to_timestring(row:pd.Series) -> None|str:
         return f"{row["시작시"]:02d}:{row["시작분"]:02d}~{row["종료시"]:02d}:{row["종료분"]:02d}"
     
     
-def row_to_dayofweek(row:pd.Series) -> str:
+def row_to_dayofweekstr(row:pd.Series) -> str:
     
     return ", ".join([dayofweek for dayofweek, condition in row.to_dict().items() if condition and (dayofweek in ["월","화","수","목","금","토","일"])])
 
@@ -363,7 +363,7 @@ class 보건소일반존(hvac존):
             int(운영요일.loc["외근"].sum()),
             row_to_timestring(운영시간.loc["외근"]),
             int(재실.at["외근직원","인원수"]),
-            row_to_dayofweek(운영요일.loc["집중진료"]),
+            row_to_dayofweekstr(운영요일.loc["집중진료"]),
             row_to_timestring(운영시간.loc["집중진료"]),
             int(재실.at["집중진료-오전","인원수"]),
             int(재실.at["집중진료-오후","인원수"]),
@@ -391,7 +391,7 @@ class 보건소일반존(hvac존):
         
         # 집중진료
         # 요일 parsing
-        집중진료_dayofweeks = [translate_dayofweek(s.strip()) for s in self.집중진료요일.split(",")]
+        집중진료_dayofweeks = [translate_dayofweek(s.strip()) for s in self.집중진료요일.split(",") if not s==""]
         # 시간 정하기 (random 배정)
         starth, startm, endh, endm = parse_duration_hours(self.집중진료시간)
         schedule_values = make_집중진료_dayschedule_values(
@@ -539,7 +539,7 @@ class 보건소특화존1(hvac존):
                 row_to_설비운영(row)
                 for _, row in 설비.iterrows()
             ],
-            row_to_dayofweek(운영요일.loc["운영요일"]),
+            row_to_dayofweekstr(운영요일.loc["운영요일"]),
             row_to_timestring(운영시간.loc["오전"]) if has_valid_dayofweek else None,
             row_to_timestring(운영시간.loc["오후"]) if has_valid_dayofweek else None,
             int(v) if not pd.isna(v:=재실.at["오전","인원수"]) else pd.NA,
@@ -558,7 +558,7 @@ class 보건소특화존1(hvac존):
         # 오전 재실
         if not pd.isna(self.오전운영시간):
             starth, startm, endh, endm = parse_duration_hours(self.오전운영시간)
-            dayofweeks = [translate_dayofweek(s.strip()) for s in self.운영요일.split(",")]
+            dayofweeks = [translate_dayofweek(s.strip()) for s in self.운영요일.split(",") if not s==""]
             오전_ruleset = dragon.RuleSet(
                 None,
                 dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,),
@@ -581,7 +581,7 @@ class 보건소특화존1(hvac존):
         # 오후 재실
         if not pd.isna(self.오후운영시간):
             starth, startm, endh, endm = parse_duration_hours(self.오후운영시간)
-            dayofweeks = [translate_dayofweek(s.strip()) for s in self.운영요일.split(",")]
+            dayofweeks = [translate_dayofweek(s.strip()) for s in self.운영요일.split(",") if not s==""]
             오후_ruleset = dragon.RuleSet(
                 None,
                 dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,),
@@ -727,7 +727,7 @@ class 보건소특화존2(hvac존):
             ],
             int(재실.at["사용관사수","인원수"]),
             int(재실.at["동거인수","인원수"]),
-            row_to_dayofweek(운영요일.loc["운영요일"]),   
+            row_to_dayofweekstr(운영요일.loc["운영요일"]),   
         )
     
     def get_occupant_schedule(self) -> dragon.Schedule:
