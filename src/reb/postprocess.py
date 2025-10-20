@@ -93,6 +93,8 @@ def translate_dayofweek(korean_dow:str) -> str:
         "수": "wednesday",
         "목": "thursday" ,
         "금": "friday"   ,
+        "토": "saturday" ,
+        "일": "sunday"   ,
     }
     
     return dow_dict[korean_dow]
@@ -529,14 +531,17 @@ class 보건소특화존1(hvac존):
         설비 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=41, nrows=5, usecols=[3,4,5,6,7,8,9,10], index_col=0)
         설비.columns = ["시작시","시작분","종료시","종료분","시작월","종료월","설정온도"]
         
+        # ensure validity by dayofweek
+        has_valid_dayofweek = bool(운영요일.loc["운영요일"].any())
+        
         return cls(
             *[
                 row_to_설비운영(row)
                 for _, row in 설비.iterrows()
             ],
-           row_to_dayofweek(운영요일.loc["운영요일"]),
-            row_to_timestring(운영시간.loc["오전"]),
-            row_to_timestring(운영시간.loc["오후"]),
+            row_to_dayofweek(운영요일.loc["운영요일"]),
+            row_to_timestring(운영시간.loc["오전"]) if has_valid_dayofweek else None,
+            row_to_timestring(운영시간.loc["오후"]) if has_valid_dayofweek else None,
             int(v) if not pd.isna(v:=재실.at["오전","인원수"]) else pd.NA,
             int(v) if not pd.isna(v:=재실.at["오후","인원수"]) else pd.NA,
         )

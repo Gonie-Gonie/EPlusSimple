@@ -28,7 +28,7 @@ result_idf_dir  = os.path.join(working_dir, "result_idf")
 filelist = [file for file in os.listdir(input_excel_dir)]
 if __name__ == "__main__":
     
-    for file in filelist[15:]:
+    for file in filelist[18:]:
         
         grr_path = os.path.join(result_grr_dir, file.replace(r".xlsx",r".grr"))
         idf_path = os.path.join(result_idf_dir, file.replace(r".xlsx",r".idf"))
