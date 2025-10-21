@@ -23,6 +23,7 @@ source = importlib.import_module(COREMODULE_NAME)
 def initizalize_app(
     *,
     upload_dirpath   = None,
+    static_dirname   = None,
     template_dirname = None,
     ) -> Flask:
     
@@ -31,14 +32,23 @@ def initizalize_app(
         upload_dirpath = Path(__file__).parent / "uploads"
     if not os.path.exists(upload_dirpath):
         os.mkdir(upload_dirpath)
-        
+    
+    # define static directory
+    if static_dirname is None:
+        static_dirname = "static"
+    static_dirpath = f"./{static_dirname}"
+    
     # define template directory
     if template_dirname is None:
         template_dirname = "templates"
-    template_dirpath = f"./{TEMPLATE_DIRNAME}"
+    template_dirpath = f"./{template_dirname}"
     
     # create a flask app 
-    app = Flask(__name__, template_folder=template_dirpath)
+    app = Flask(__name__,
+        static_folder  =static_dirpath  ,
+        template_folder=template_dirpath,
+    )
+    
     # and set default options
     app.config["UPLOAD_FOLDER"] = upload_dirpath
     app.config["JSON_AS_ASCII"] = False
