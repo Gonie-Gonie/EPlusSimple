@@ -91,13 +91,10 @@ def getpost() -> str:
     result: Optional[Dict[str, Any]] = None
     # 임시 저장된 원본 파일 경로들을 관리 (key: 원본 파일명, value: Path 객체)
     saved_filepaths: Dict[str, Path] = {}
-    # 전처리 후 생성된 파일 경로들을 관리 (정리용)
-    preprocessed_filepaths: List[Path] = []
 
     if request.method == "POST":
         try:
             # 1. 사용자 입력 및 파일 가져오기
-            preprocess_needed = request.form.get("preprocess") == "true"
             file_before = request.files.get("file_before")
             files_after = request.files.getlist("file_after")
 
@@ -116,16 +113,9 @@ def getpost() -> str:
             
             # 3. [수정] 전처리 옵션에 따라 디버깅 및 실행할 '대상 파일' 결정
             target_filepaths: Dict[str, Path] = {}
-            if preprocess_needed:
-                for filename, original_path in saved_filepaths.items():
-                    # 전처리를 실행하고 생성된 새 파일의 경로를 저장
-                    preprocessed_path_str = process_excel_file(str(original_path))
-                    preprocessed_path = Path(preprocessed_path_str)
-                    target_filepaths[filename] = preprocessed_path
-                    preprocessed_filepaths.append(preprocessed_path) # 정리 목록에 추가
-            else:
-                # 전처리가 필요 없으면 원본 파일을 대상으로 지정
-                target_filepaths = saved_filepaths
+
+            # 전처리가 필요 없으면 원본 파일을 대상으로 지정
+            target_filepaths = saved_filepaths
 
             # 4. [수정] 대상 파일(전처리됐거나 원본)에 대해 디버깅 실행
             debug_reports, has_severe_error, final_report_df = _run_debugging_phase(target_filepaths)
@@ -160,13 +150,12 @@ def getpost() -> str:
 
         finally:
             # 7. [수정] 모든 임시 파일(원본 + 전처리된 파일) 정리
-            all_files_to_delete = list(saved_filepaths.values()) + preprocessed_filepaths
+            all_files_to_delete = list(saved_filepaths.values())
             deleted_count = 0
             for path in all_files_to_delete:
                 if path.exists():
                     path.unlink()
                     deleted_count += 1
-            print(f"임시 파일 {deleted_count}개 정리 완료")
             
     return render_template("index.html", result=result)
 
