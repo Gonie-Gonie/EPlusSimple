@@ -76,8 +76,7 @@ def handle_file_processing(
 # 4. 라우트 (웹페이지 기능)
 # ==============================================================================
 
-@app.route("/run", methods=["GET", "POST"])
-def run_simulation_comparison() -> str:
+def getpost() -> str:
     """
     '비교 분석' 페이지를 렌더링하고, POST 요청 시 다음 로직에 따라 시뮬레이션을 실행합니다.
 
@@ -169,7 +168,7 @@ def run_simulation_comparison() -> str:
                     deleted_count += 1
             print(f"임시 파일 {deleted_count}개 정리 완료")
             
-    return render_template("run_reb.html", result=result)
+    return render_template("index.html", result=result)
 
 
 def _run_debugging_phase(
