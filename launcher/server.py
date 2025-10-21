@@ -1,11 +1,11 @@
-# ==============================================================================
-# 1. 모듈 임포트 및 전역 설정
-# ==============================================================================
+
+# ------------------------------------------------------------------------ #
+#                                  MODULES                                 #
+# ------------------------------------------------------------------------ #
 
 # built-in modules
 from pathlib import Path
 from typing import Dict, List, Any, Tuple, Optional
-import argparse
 
 # third-party modules
 import pandas as pd
@@ -169,7 +169,7 @@ def run_simulation_comparison() -> str:
                     deleted_count += 1
             print(f"임시 파일 {deleted_count}개 정리 완료")
             
-    return render_template("run.html", result=result)
+    return render_template("run_reb.html", result=result)
 
 
 def _run_debugging_phase(
@@ -260,12 +260,3 @@ def _run_simulation_phase(
         "before": result_before,
         "afters": results_after_list,
     }
-
-# ==============================================================================
-# 5. 메인 실행부
-# ==============================================================================
-if __name__ == "__main__":
-
-    app.add_url_rule("/", "run", run_simulation_comparison, methods=["GET", "POST"])
-    app.run(debug=True, host="0.0.0.0", port=5000)
-    
