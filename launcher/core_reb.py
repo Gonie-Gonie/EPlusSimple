@@ -97,14 +97,14 @@ def getpost() -> str:
     if request.method == "POST":
         try:
             # 1. 사용자 입력 및 파일 가져오기
-            preprocess_needed = request.form.get("preprocess") == "true"
             file_before = request.files.get("file_before")
-            files_after = request.files.getlist("file_after")
-
+            file_after  = request.files.get("file_after")
+            file_afterN = request.files.get("file_afterN")
+            
             if not file_before or not file_before.filename:
                 return render_template("run.html", result={"err": "'리모델링 전' 파일이 선택되지 않았습니다."})
             
-            all_files = [file_before] + [f for f in files_after if f.filename]
+            all_files = [file_before, file_after, file_afterN]
             
             # 2. 모든 원본 파일 임시 저장
             for file_obj in all_files:
@@ -116,16 +116,12 @@ def getpost() -> str:
             
             # 3. [수정] 전처리 옵션에 따라 디버깅 및 실행할 '대상 파일' 결정
             target_filepaths: Dict[str, Path] = {}
-            if preprocess_needed:
-                for filename, original_path in saved_filepaths.items():
-                    # 전처리를 실행하고 생성된 새 파일의 경로를 저장
-                    preprocessed_path_str = process_excel_file(str(original_path))
-                    preprocessed_path = Path(preprocessed_path_str)
-                    target_filepaths[filename] = preprocessed_path
-                    preprocessed_filepaths.append(preprocessed_path) # 정리 목록에 추가
-            else:
-                # 전처리가 필요 없으면 원본 파일을 대상으로 지정
-                target_filepaths = saved_filepaths
+            for filename, original_path in saved_filepaths.items():
+                # 전처리를 실행하고 생성된 새 파일의 경로를 저장
+                preprocessed_path_str = process_excel_file(str(original_path))
+                preprocessed_path = Path(preprocessed_path_str)
+                target_filepaths[filename] = preprocessed_path
+                preprocessed_filepaths.append(preprocessed_path) # 정리 목록에 추가
 
             # 4. [수정] 대상 파일(전처리됐거나 원본)에 대해 디버깅 실행
             debug_reports, has_severe_error, final_report_df = _run_debugging_phase(target_filepaths)
@@ -147,7 +143,7 @@ def getpost() -> str:
                 sim_data = _run_simulation_phase(
                     target_filepaths, # [수정]
                     file_before.filename,
-                    [f.filename for f in files_after if f.filename]
+                    file_after.filename ,
                 )
                 
                 result = {

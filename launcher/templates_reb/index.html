@@ -10,22 +10,22 @@
     <h1>GR 정성평가 3단계 시뮬레이션</h1>
     <form id="uploadForm" enctype="multipart/form-data" method="POST" autocomplete="off">
         <div class="form-row">
-            <label for="fileInputBefore" class="file-label">리모델링 전 파일 선택</label>
+            <label for="fileInputBefore" class="file-label">1: GR 이전 파일 선택</label>
             <div class="filename-box" id="filenameBoxBefore">파일이 선택되지 않았습니다.</div>
         </div>
         <div class="form-row">
-            <label for="fileInputAfter" class="file-label" style="background-color: #5b8cde;">리모델링 후 파일 선택</label>
-            <div class="filename-box" id="filenameBoxAfter">파일이 선택되지 않았습니다. (선택하지 않으면 리모델링 전만 실행, 여러개 선택 시 한번에 비교 가능)</div>
+            <label for="fileInputAfter" class="file-label" style="background-color: #5b8cde;">2: GR 직후 파일 선택</label>
+            <div class="filename-box" id="filenameBoxAfter">파일이 선택되지 않았습니다. (선택하지 않으면 리모델링 전만 실행)</div>
+        </div>
+        <div class="form-row">
+            <label for="fileInputAfterN" class="file-label" style="background-color: #5b8cde;">3: N년차 파일 선택</label>
+            <div class="filename-box" id="filenameBoxAfter">파일이 선택되지 않았습니다. (선택하지 않으면 리모델링 전만 실행)</div>
         </div>
         <input id="fileInputBefore" type="file" name="file_before" accept=".xlsx,.xls">
-        <input id="fileInputAfter" type="file" name="file_after" accept=".xlsx,.xls" multiple>
+        <input id="fileInputAfter" type="file" name="file_after" accept=".xlsx,.xls">
+        <input id="fileInputAfterN" type="file" name="file_afterN" accept=".xlsx,.xls">
 
-        <div class="form-row" style="margin-top: 1em; margin-bottom: 0;">
-            <input type="checkbox" id="preprocess" name="preprocess" value="true" style="width: 18px; height: 18px;">
-            <label for="preprocess" style="cursor: pointer; font-weight: bold; color: #d9534f; font-size: 0.95em;">엑셀 전처리 실행 (필요 시 체크)</label>
-        </div>
-
-        <div class="form-row" style="margin-top:1.5em;"><button class="btn" type="submit">비교 분석 Run</button></div>
+        <div class="form-row" style="margin-top:1.5em;"><button class="btn" type="submit">시뮬레이션</button></div>
         <div id="comparison-filenames" style="display: none;"></div>
     </form>
     
