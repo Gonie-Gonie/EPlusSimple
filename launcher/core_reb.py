@@ -14,8 +14,9 @@ from werkzeug.datastructures import FileStorage
 
 # local modules
 from epsimple import run_grexcel
-from reb.preprocess import process_excel_file
 from epsimple.debug import debug_excel, report_result, ReportCode
+from reb.preprocess import process_excel_file
+from reb import run_rebexcel
 
 # ==============================================================================
 # 2. Flask 앱 및 환경 설정
@@ -118,7 +119,7 @@ def getpost() -> str:
             target_filepaths: Dict[str, Path] = {}
             for filename, original_path in saved_filepaths.items():
                 # 전처리를 실행하고 생성된 새 파일의 경로를 저장
-                preprocessed_path_str = process_excel_file(str(original_path))
+                preprocessed_path_str = process_excel_file(str(original_path), verbose=False)
                 preprocessed_path = Path(preprocessed_path_str)
                 target_filepaths[filename] = preprocessed_path
                 preprocessed_filepaths.append(preprocessed_path) # 정리 목록에 추가
@@ -228,20 +229,17 @@ def _run_simulation_phase(
     Returns:
         시뮬레이션 결과를 템플릿에 전달할 형식으로 가공한 딕셔너리.
     """
-    def _execute_single_simulation(filepath: Path) -> Dict[str, Any]:
-        """[수정] 내부 함수: 단일 파일 시뮬레이션 실행 (전처리 로직 제거)"""
-        return run_grexcel(str(filepath), save=False)
-
+    
     # '리모델링 전' 시뮬레이션 실행
-    result_before = run_grexcel(str(filepaths[file_before_name]), save=False)
+    result_before, _ = run_rebexcel(str(filepaths[file_before_name]), save_grr=False, save_idf=False)
     # '리모델링 후' 시뮬레이션 실행
     if file_after_name:
-        result_after  = run_grexcel(str(filepaths[file_after_name]), save=False)
+        result_after, _  = run_rebexcel(str(filepaths[file_after_name]), save_grr=False, save_idf=False)
     else:
         result_after = result_before
     # N년차 시뮬레이션 실행
     if file_afterN_name:
-        result_afterN  = run_grexcel(str(filepaths[file_afterN_name]), save=False)
+        result_afterN, _  = run_rebexcel(str(filepaths[file_afterN_name]), save_grr=False, save_idf=False)
     else:
         result_afterN = result_after    
     
@@ -249,7 +247,7 @@ def _run_simulation_phase(
         "filename_before": file_before_name,
         "filename_after": file_after_name,
         "filename_afterN": file_afterN_name,
-        "before": result_before,
-        "after" : result_after ,
-        "afterN": result_afterN,
+        "before": result_before.to_dict(),
+        "after" : result_after.to_dict() ,
+        "afterN": result_afterN.to_dict(),
     }

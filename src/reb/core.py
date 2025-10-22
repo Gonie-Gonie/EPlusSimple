@@ -70,6 +70,5 @@ def run_rebexcel(
         
     if save_idf:
         idf.write(output_idf_filepath)
-
         
     return grr, idf

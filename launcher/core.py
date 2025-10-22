@@ -14,7 +14,6 @@ from werkzeug.datastructures import FileStorage
 
 # local modules
 from epsimple import run_grexcel
-from reb.preprocess import process_excel_file
 from epsimple.debug import debug_excel, report_result, ReportCode
 
 # ==============================================================================
