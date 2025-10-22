@@ -1,0 +1,81 @@
+\documentclass[a4paper,11pt]{article}
+
+% ======================
+% 한글 처리 (유일하게 필요한 패키지)
+% ======================
+\usepackage{kotex}   % ✅ UTF-8 + 한글 조합 + 폰트 자동 선택
+
+% ======================
+% 일반 설정
+% ======================
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+\usepackage{setspace}
+\usepackage{caption}
+\usepackage{titlesec}
+\setstretch{1.25}
+
+{% raw %}
+\graphicspath{{figures/}}
+{% endraw %}
+
+\titleformat{\section}{\large\bfseries}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{0.5em}{}
+
+% ======================
+% 문서 본문
+% ======================
+\title{건물 리모델링 성능 보고서}
+\author{자동 생성 시스템 (EplusSimple)}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{기상 데이터 비교}
+{{ weather_summary }}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.8\textwidth]{ {{ weather_fig }} }
+\caption{세 기간별 월평균 외기온도 비교.}
+\end{figure}
+
+\section{건물 성능 비교}
+\begin{table}[h]
+\centering
+\caption{단열 및 창호 성능 비교}
+\begin{tabular}{lccc}
+\toprule
+항목 & 리모델링 전 & 리모델링 후 & N년차 \\
+\midrule
+{% for row in performance %}
+{{ row.name }} & {{ row.before }} & {{ row.after }} & {{ row.nyear }} \\
+{% endfor %}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{에너지 시뮬레이션 결과}
+\begin{figure}[h]
+\centering
+\begin{subfigure}{0.48\textwidth}
+\includegraphics[width=\textwidth]{ {{ energy_fig1 }} }
+\caption{연간 에너지 사용량 비교}
+\end{subfigure}
+\begin{subfigure}{0.48\textwidth}
+\includegraphics[width=\textwidth]{ {{ energy_fig2 }} }
+\caption{월별 에너지 사용 경향}
+\end{subfigure}
+\end{figure}
+
+\section{결론}
+{{ conclusion_text }}
+
+\vfill
+\noindent\rule{\textwidth}{0.4pt}\\[-4pt]
+{\small 생성일: {{ today }}}
+\end{document}
