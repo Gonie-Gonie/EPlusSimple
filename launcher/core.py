@@ -1,11 +1,11 @@
-# ==============================================================================
-# 1. 모듈 임포트 및 전역 설정
-# ==============================================================================
+
+# ------------------------------------------------------------------------ #
+#                                  MODULES                                 #
+# ------------------------------------------------------------------------ #
 
 # built-in modules
 from pathlib import Path
 from typing import Dict, List, Any, Tuple, Optional
-import argparse
 
 # third-party modules
 import pandas as pd
@@ -13,8 +13,7 @@ from flask import Flask, render_template, request
 from werkzeug.datastructures import FileStorage
 
 # local modules
-from epsimple import check_grexcel, run_grexcel
-from reb.preprocess import process_excel_file
+from epsimple import run_grexcel
 from epsimple.debug import debug_excel, report_result, ReportCode
 
 # ==============================================================================
@@ -76,29 +75,7 @@ def handle_file_processing(
 # 4. 라우트 (웹페이지 기능)
 # ==============================================================================
 
-@app.route("/check", methods=["GET", "POST"])
-def check_file_validity() -> str:
-    """
-    '유효성 검증' 페이지를 렌더링하고, POST 요청 시 업로드된 엑셀 파일의
-    포맷을 검증하여 결과를 표시합니다.
-    """
-    result: Optional[Dict[str, Any]] = None
-    if request.method == "POST":
-        uploaded_file = request.files.get("file")
-        
-        # 파일이 업로드되지 않았을 때의 기본 응답
-        fail_dict = {
-            "step1": False, "step2": False, "step3": False, "step4": False,
-            "err": "파일이 업로드되지 않았습니다.",
-        }
-        
-        result = handle_file_processing(uploaded_file, check_grexcel, fail_dict)
-        
-    return render_template("check.html", result=result)
-
-
-@app.route("/run", methods=["GET", "POST"])
-def run_simulation_comparison() -> str:
+def getpost() -> str:
     """
     '비교 분석' 페이지를 렌더링하고, POST 요청 시 다음 로직에 따라 시뮬레이션을 실행합니다.
 
@@ -113,13 +90,10 @@ def run_simulation_comparison() -> str:
     result: Optional[Dict[str, Any]] = None
     # 임시 저장된 원본 파일 경로들을 관리 (key: 원본 파일명, value: Path 객체)
     saved_filepaths: Dict[str, Path] = {}
-    # 전처리 후 생성된 파일 경로들을 관리 (정리용)
-    preprocessed_filepaths: List[Path] = []
 
     if request.method == "POST":
         try:
             # 1. 사용자 입력 및 파일 가져오기
-            preprocess_needed = request.form.get("preprocess") == "true"
             file_before = request.files.get("file_before")
             files_after = request.files.getlist("file_after")
 
@@ -138,16 +112,9 @@ def run_simulation_comparison() -> str:
             
             # 3. [수정] 전처리 옵션에 따라 디버깅 및 실행할 '대상 파일' 결정
             target_filepaths: Dict[str, Path] = {}
-            if preprocess_needed:
-                for filename, original_path in saved_filepaths.items():
-                    # 전처리를 실행하고 생성된 새 파일의 경로를 저장
-                    preprocessed_path_str = process_excel_file(str(original_path))
-                    preprocessed_path = Path(preprocessed_path_str)
-                    target_filepaths[filename] = preprocessed_path
-                    preprocessed_filepaths.append(preprocessed_path) # 정리 목록에 추가
-            else:
-                # 전처리가 필요 없으면 원본 파일을 대상으로 지정
-                target_filepaths = saved_filepaths
+
+            # 전처리가 필요 없으면 원본 파일을 대상으로 지정
+            target_filepaths = saved_filepaths
 
             # 4. [수정] 대상 파일(전처리됐거나 원본)에 대해 디버깅 실행
             debug_reports, has_severe_error, final_report_df = _run_debugging_phase(target_filepaths)
@@ -182,15 +149,14 @@ def run_simulation_comparison() -> str:
 
         finally:
             # 7. [수정] 모든 임시 파일(원본 + 전처리된 파일) 정리
-            all_files_to_delete = list(saved_filepaths.values()) + preprocessed_filepaths
+            all_files_to_delete = list(saved_filepaths.values())
             deleted_count = 0
             for path in all_files_to_delete:
                 if path.exists():
                     path.unlink()
                     deleted_count += 1
-            print(f"임시 파일 {deleted_count}개 정리 완료")
             
-    return render_template("run.html", result=result)
+    return render_template("index.html", result=result)
 
 
 def _run_debugging_phase(
@@ -281,28 +247,3 @@ def _run_simulation_phase(
         "before": result_before,
         "afters": results_after_list,
     }
-
-# ==============================================================================
-# 5. 메인 실행부
-# ==============================================================================
-if __name__ == "__main__":
-    # 실행 모드(check/run)에 따라 기본 URL('/')이 다른 기능을 수행하도록 설정
-    parser = argparse.ArgumentParser(
-        description="Flask web server for pyGRsim."
-    )
-    parser.add_argument(
-        "--mode", 
-        choices=["check", "run"], 
-        default="run",
-        help="Set the application's operating mode ('check' or 'run')."
-    )
-    args = parser.parse_args()
-
-    # mode 값에 따라 루트 URL('/')에 라우트 함수를 동적으로 연결
-    if args.mode == "check":
-        app.add_url_rule("/", "check", check_file_validity, methods=["GET", "POST"])
-    else: # 'run'이 기본값이므로 else로 처리
-        app.add_url_rule("/", "run", run_simulation_comparison, methods=["GET", "POST"])
-
-    # 디버그 모드로 Flask 앱 실행
-    app.run(debug=True, host="0.0.0.0", port=5000)
