@@ -19,7 +19,7 @@
         </div>
         <div class="form-row">
             <label for="fileInputAfterN" class="file-label" style="background-color: #5b8cde;">3: N년차 파일 선택</label>
-            <div class="filename-box" id="filenameBoxAfter">파일이 선택되지 않았습니다. (선택하지 않으면 리모델링 전만 실행)</div>
+            <div class="filename-box" id="filenameBoxAfterN">파일이 선택되지 않았습니다. (선택하지 않으면 리모델링 전만 실행)</div>
         </div>
         <input id="fileInputBefore" type="file" name="file_before" accept=".xlsx,.xls">
         <input id="fileInputAfter" type="file" name="file_after" accept=".xlsx,.xls">
@@ -111,15 +111,12 @@
     });
     document.getElementById('fileInputAfter').addEventListener('change', function() {
         const box = document.getElementById('filenameBoxAfter');
-        if (this.files && this.files.length > 0) {
-            box.textContent = Array.from(this.files).map(f => f.name).join(', ');
-        } else {
-            box.textContent = '파일이 선택되지 않았습니다. (선택사항)';
-        }
+        box.textContent = (this.files && this.files[0]) ? this.files[0].name : '파일이 선택되지 않았습니다. (선택사항)';
     });
-    </script>
-
-    <script>
+    document.getElementById('fileInputAfterN').addEventListener('change', function() {
+        const box = document.getElementById('filenameBoxAfterN');
+        box.textContent = (this.files && this.files[0]) ? this.files[0].name : '파일이 선택되지 않았습니다. (선택사항)';
+    });
     // --- 차트 관련 전역 변수 및 설정 ---
     let chartInstances = {};
     const graphOrder = [ { key: "heating", name: "난방" }, { key: "cooling", name: "냉방" }, { key: "lighting", name: "조명" }, { key: "circulation", name: "팬/펌프/전열" }, { key: "hotwater", name: "급탕" }, { key: "generators", name: "발전량" } ];
@@ -161,38 +158,13 @@
             };
         });
     }
-
-    // --- '후' 케이스 번호 표시용 플러그인 ---
-    const caseNumberPlugin = {
-        id: 'caseNumber',
-        afterDatasetsDraw(chart, args, options) {
-            const { ctx, chartArea: { bottom }, scales: { x } } = chart;
-            ctx.save();
-            ctx.font = 'bold 9px sans-serif';
-            ctx.fillStyle = '#555';
-            ctx.textAlign = 'center';
-
-            chart.data.datasets.forEach((dataset, i) => {
-                if (dataset.stack && dataset.stack.startsWith('After_') && chart.isDatasetVisible(i)) {
-                    const caseIndex = parseInt(dataset.stack.split('_')[1], 10);
-                    const meta = chart.getDatasetMeta(i);
-                    meta.data.forEach((bar, index) => {
-                        if (dataset.label.includes("전기")) { 
-                            ctx.fillText((caseIndex + 1).toString(), bar.x, bottom + 12);
-                        }
-                    });
-                }
-            });
-            ctx.restore();
-        }
-    };
     
     // --- 차트 그리기 함수들 (이하 동일) ---
-    function drawGroupedStackedBar(canvasId, legendContainerId, dataBefore, dataAfters, yAxisLabel) {
+    function drawGroupedStackedBar(canvasId, legendContainerId, dataBefore, dataAfter, dataAfterN, yAxisLabel) {
         if (chartInstances[canvasId]) chartInstances[canvasId].destroy();
         const ctx = document.getElementById(canvasId).getContext('2d');
         const legendContainer = document.getElementById(legendContainerId);
-        if (!dataBefore || !dataAfters || dataAfters.length === 0) {
+        if (!dataBefore || !dataAfter || !dataAfterN) { 
             if(legendContainer) legendContainer.innerHTML = '';
             return;
         }
@@ -201,15 +173,15 @@
         energyTypes.forEach(et => {
             datasets.push({ label: et.label + ' (전)', data: dataBefore[et.key] || new Array(12).fill(0), backgroundColor: et.color, stack: 'Before' });
         });
-        dataAfters.forEach((dataAfter, index) => {
-            energyTypes.forEach(et => {
-                datasets.push({ label: et.label + ` (후 ${index+1})`, data: dataAfter[et.key] || new Array(12).fill(0), backgroundColor: et.light_color, stack: `After_${index}` });
-            });
+        energyTypes.forEach(et => {
+            datasets.push({ label: et.label + ` (후)`, data: dataAfter[et.key] || new Array(12).fill(0), backgroundColor: et.light_color, stack: `After` });
+        });
+        energyTypes.forEach(et => {
+            datasets.push({ label: et.label + ` (N)`, data: dataAfterN[et.key] || new Array(12).fill(0), backgroundColor: et.light_color, stack: `AfterN` });
         });
 
         const chart = new Chart(ctx, {
             type: 'bar',
-            plugins: [caseNumberPlugin],
             data: { labels: monthLabels, datasets: datasets },
             options: {
                 plugins: { legend: { display: false } },
@@ -232,12 +204,13 @@
 
         const datasets = [];
         energyTypes.forEach(et => {
-            datasets.push({ label: et.label + ' (전)', data: data.before[et.key], backgroundColor: et.color, stack: 'Before' });
+            datasets.push({ label: et.label + ' (전)', data: data.before[et.key], backgroundColor: et.color, stack: 'GR 이전' });
         });
-        data.afters.forEach((dataAfter, index) => {
-            energyTypes.forEach(et => {
-                datasets.push({ label: et.label + ` (후 ${index+1})`, data: dataAfter[et.key], backgroundColor: et.light_color, stack: `After_${index}` });
-            });
+        energyTypes.forEach(et => {
+            datasets.push({ label: et.label + ' (후)', data: data.after[et.key], backgroundColor: et.light_color, stack: 'GR 직후' });
+        });
+        energyTypes.forEach(et => {
+            datasets.push({ label: et.label + ' (N)', data: data.afterN[et.key], backgroundColor: et.light_color, stack: 'GR N년차' });
         });
         
         const chartLabels = graphOrder.map(g => g.name);
@@ -253,24 +226,27 @@
         });
     }
 
-    function drawDualLineChart(canvasId, valuesBefore, valuesAfters, yAxisLabel, baseName) {
+    function drawDualLineChart(canvasId, valuesBefore, valuesAfter, valuesAfterN, yAxisLabel, baseName) {
         if (chartInstances[canvasId]) chartInstances[canvasId].destroy();
         const ctx = document.getElementById(canvasId).getContext('2d');
-        if (!valuesBefore || !valuesAfters || valuesAfters.length === 0) return;
+        if (!valuesBefore || !valuesAfter || !valuesAfterN) return;
 
         const datasets = [{ 
-            label: `리모델링 전 ${baseName}`, data: valuesBefore, 
+            label: `GR 이전 ${baseName}`, data: valuesBefore, 
             borderColor: '#e76537', backgroundColor: 'rgba(230, 101, 55, 0.08)', 
             tension: 0.15, fill: true 
         }];
-
-        valuesAfters.forEach((valuesAfter, index) => {
-            datasets.push({
-                label: `리모델링 후 ${index + 1} ${baseName}`, data: valuesAfter,
-                borderColor: '#377be7', backgroundColor: 'rgba(55, 123, 231, 0.08)',
-                tension: 0.15, fill: true,
-                borderDash: index > 0 ? [5, 5] : [],
-            });
+        datasets.push({
+            label: `GR 직후 ${baseName}`, data: valuesAfter,
+            borderColor: '#377be7', backgroundColor: 'rgba(55, 123, 231, 0.08)',
+            tension: 0.15, fill: true,
+            borderDash: [], // '후 1'은 실선
+        });
+        datasets.push({
+            label: `GR N년차 ${baseName}`, data: valuesAfterN,
+            borderColor: '#377be7', backgroundColor: 'rgba(55, 123, 231, 0.08)', // '후 1'과 동일한 계열 색상 사용
+            tension: 0.15, fill: true,
+            borderDash: [5, 5], // '후 2' (N년차)는 점선으로 구분
         });
 
         chartInstances[canvasId] = new Chart(ctx, { 
@@ -280,30 +256,45 @@
         });
     }
     
-    function calculateAnnualData(allData, dataType) {
+function calculateAnnualData(allData, dataType) {
+        // [수정] 반환 객체 구조 변경 (afters: [] -> after: {}, afterN: {})
         const result = {
             before: {},
-            afters: []
+            after: {},
+            afterN: {}
         };
-        energyTypes.forEach(et => result.before[et.key] = []);
+
+        // 'before', 'after', 'afterN' 객체 초기화
+        energyTypes.forEach(et => {
+            result.before[et.key] = [];
+            result.after[et.key] = [];
+            result.afterN[et.key] = [];
+        });
+
+        // 'before' 계산 (기존과 동일)
         graphOrder.forEach(itemInfo => {
             energyTypes.forEach(et => {
                 const sumBefore = (allData.before[dataType]?.[itemInfo.key]?.[et.key] || []).reduce((s, v) => s + v, 0);
                 result.before[et.key].push(sumBefore);
             });
         });
-        
-        allData.afters.forEach(dataAfter => {
-            const afterResult = {};
-            energyTypes.forEach(et => afterResult[et.key] = []);
-            graphOrder.forEach(itemInfo => {
-                energyTypes.forEach(et => {
-                    const sumAfter = (dataAfter[dataType]?.[itemInfo.key]?.[et.key] || []).reduce((s, v) => s + v, 0);
-                    afterResult[et.key].push(sumAfter);
-                });
+
+        // [추가] 'after' (GR 직후) 계산
+        graphOrder.forEach(itemInfo => {
+            energyTypes.forEach(et => {
+                const sumAfter = (allData.after[dataType]?.[itemInfo.key]?.[et.key] || []).reduce((s, v) => s + v, 0);
+                result.after[et.key].push(sumAfter);
             });
-            result.afters.push(afterResult);
         });
+
+        // [추가] 'afterN' (GR N년차) 계산
+        graphOrder.forEach(itemInfo => {
+            energyTypes.forEach(et => {
+                const sumAfterN = (allData.afterN[dataType]?.[itemInfo.key]?.[et.key] || []).reduce((s, v) => s + v, 0);
+                result.afterN[et.key].push(sumAfterN);
+            });
+        });
+
         return result;
     }
 
@@ -315,9 +306,10 @@
             if (!labels) return;
             
             graphOrder.forEach(itemInfo => {
-                const dataAfters = allData.afters.map(d => d[dataType]?.[itemInfo.key]);
+                const dataAfter  = allData.after[dataType]?.[itemInfo.key];
+                const dataAfterN = allData.afterN[dataType]?.[itemInfo.key];
                 document.getElementById(`title-${itemInfo.key}`).textContent = `${itemInfo.name} ${labels.name} 비교 ${labels.unit}`;
-                drawGroupedStackedBar(`bar-${itemInfo.key}`, `legend-${itemInfo.key}`, allData.before[dataType]?.[itemInfo.key], dataAfters, labels.unit);
+                drawGroupedStackedBar(`bar-${itemInfo.key}`, `legend-${itemInfo.key}`, allData.before[dataType]?.[itemInfo.key], dataAfter, dataAfterN, labels.unit);
             });
             
             const annualData = calculateAnnualData(allData, dataType);
@@ -325,14 +317,14 @@
             drawAnnualByPurposeChart('bar-annual-by-purpose', annualData, labels.unit);
 
             const lineLabelBase = `월별 총 ${labels.name}`;
-            const valuesAfters = allData.afters.map(d => d.summary_per_area[dataType]?.total_monthly);
+            const valuesAfter = allData.after.summary_per_area[dataType]?.total_monthly;
+            const valuesAfterN = allData.afterN.summary_per_area[dataType]?.total_monthly;
             document.getElementById('title-total').textContent = `${lineLabelBase} 비교 ${labels.unit}`;
-            drawDualLineChart('line-total', allData.before.summary_per_area[dataType]?.total_monthly, valuesAfters, labels.unit, `총 ${labels.name}`);
+            drawDualLineChart('line-total', allData.before.summary_per_area[dataType]?.total_monthly, valuesAfter, valuesAfterN, labels.unit, `총 ${labels.name}`);
         {% endif %}
     }
-
-    // --- 연간 성능 요약 테이블 생성 함수 ---
-    function drawAnnualSummary(dataBefore, dataAfters, filenamesAfter) {
+// --- 연간 성능 요약 테이블 생성 함수 ---
+    function drawAnnualSummary(dataBefore, dataAfter, dataAfterN) {
         const container = document.getElementById('annualSummaryContainer');
         container.innerHTML = ''; 
         const summaryMetrics = [ 
@@ -342,36 +334,49 @@
             { key: 'cost', name: '에너지 요금', unit_per_area: '원/m²', unit_gross: '천 원' }, 
         ];
 
+        // [추가] 변화율 계산을 위한 헬퍼 함수
+        function calculateChangeHtml(beforeVal, afterVal) {
+            if (beforeVal > 0) {
+                const change = ((afterVal - beforeVal) / beforeVal * 100);
+                const isDown = change < 0;
+                return `<span class="${isDown ? 'summary-down' : 'summary-up'}">${isDown ? '▼' : '▲'} ${Math.abs(change).toFixed(1)}%</span>`;
+            }
+            return '-'; // beforeVal이 0이면 변화율 계산 불가
+        }
+
         let tableHtml = '<table class="summary-table">';
         
         summaryMetrics.forEach(metric => {
             tableHtml += `<thead><tr><th colspan="5" class="metric-title">${metric.name}</th></tr>`;
             tableHtml += `<tr><th>구분</th><th>값 (${metric.unit_per_area})</th><th>변화율</th><th>총량 (${metric.unit_gross})</th><th>변화율</th></tr></thead><tbody>`;
 
+            // --- "Before" 행 (기존과 동일) ---
             const valPerAreaBefore = dataBefore.summary_per_area[metric.key]?.total_annual || 0;
             const valGrossBefore = (dataBefore.summary_gross[metric.key]?.total_annual || 0) / 1000;
-            tableHtml += `<tr><td class="case-label">Before</td><td>${valPerAreaBefore.toLocaleString(undefined, {maximumFractionDigits: 1})}</td><td>-</td><td>${valGrossBefore.toLocaleString(undefined, {maximumFractionDigits: 1})}</td><td>-</td></tr>`;
+            tableHtml += `<tr><td class="case-label">[GR 이전]</td><td>${valPerAreaBefore.toLocaleString(undefined, {maximumFractionDigits: 1})}</td><td>-</td><td>${valGrossBefore.toLocaleString(undefined, {maximumFractionDigits: 1})}</td><td>-</td></tr>`;
             
-            dataAfters.forEach((dataAfter, index) => {
-                const valPerAreaAfter = dataAfter.summary_per_area[metric.key]?.total_annual || 0;
-                const valGrossAfter = (dataAfter.summary_gross[metric.key]?.total_annual || 0) / 1000;
-                
-                let changeHtmlPerArea = '-';
-                if (valPerAreaBefore > 0) {
-                    const change = ((valPerAreaAfter - valPerAreaBefore) / valPerAreaBefore * 100);
-                    const isDown = change < 0;
-                    changeHtmlPerArea = `<span class="${isDown ? 'summary-down' : 'summary-up'}">${isDown ? '▼' : '▲'} ${Math.abs(change).toFixed(1)}%</span>`;
-                }
-                
-                let changeHtmlGross = '-';
-                if (valGrossBefore > 0) {
-                    const change = ((valGrossAfter - valGrossBefore) / valGrossBefore * 100);
-                    const isDown = change < 0;
-                    changeHtmlGross = `<span class="${isDown ? 'summary-down' : 'summary-up'}">${isDown ? '▼' : '▲'} ${Math.abs(change).toFixed(1)}%</span>`;
-                }
+            // --- [수정] "After" (GR 직후) 행 ---
+            // dataAfters.forEach 루프를 제거하고 dataAfter 인자를 직접 사용
+            const valPerAreaAfter = dataAfter.summary_per_area[metric.key]?.total_annual || 0;
+            const valGrossAfter = (dataAfter.summary_gross[metric.key]?.total_annual || 0) / 1000;
+            
+            // 헬퍼 함수를 사용하여 변화율 계산 (Before와 비교)
+            const changeHtmlPerAreaAfter = calculateChangeHtml(valPerAreaBefore, valPerAreaAfter);
+            const changeHtmlGrossAfter = calculateChangeHtml(valGrossBefore, valGrossAfter);
 
-                tableHtml += `<tr><td class="case-label">After ${index + 1}</td><td>${valPerAreaAfter.toLocaleString(undefined, {maximumFractionDigits: 1})}</td><td>${changeHtmlPerArea}</td><td>${valGrossAfter.toLocaleString(undefined, {maximumFractionDigits: 1})}</td><td>${changeHtmlGross}</td></tr>`;
-            });
+            tableHtml += `<tr><td class="case-label">[GR 직후]</td><td>${valPerAreaAfter.toLocaleString(undefined, {maximumFractionDigits: 1})}</td><td>${changeHtmlPerAreaAfter}</td><td>${valGrossAfter.toLocaleString(undefined, {maximumFractionDigits: 1})}</td><td>${changeHtmlGrossAfter}</td></tr>`;
+            
+            // --- [추가] "After N" (GR N년차) 행 ---
+            // dataAfterN 인자를 직접 사용
+            const valPerAreaAfterN = dataAfterN.summary_per_area[metric.key]?.total_annual || 0;
+            const valGrossAfterN = (dataAfterN.summary_gross[metric.key]?.total_annual || 0) / 1000;
+
+            // 헬퍼 함수를 사용하여 변화율 계산 (Before와 비교)
+            const changeHtmlPerAreaAfterN = calculateChangeHtml(valPerAreaBefore, valPerAreaAfterN);
+            const changeHtmlGrossAfterN = calculateChangeHtml(valGrossBefore, valGrossAfterN);
+
+            tableHtml += `<tr><td class="case-label">[GR N년차]</td><td>${valPerAreaAfterN.toLocaleString(undefined, {maximumFractionDigits: 1})}</td><td>${changeHtmlPerAreaAfterN}</td><td>${valGrossAfterN.toLocaleString(undefined, {maximumFractionDigits: 1})}</td><td>${changeHtmlGrossAfterN}</td></tr>`;
+
             tableHtml += `</tbody>`;
         });
         tableHtml += '</table>';
@@ -384,15 +389,16 @@
             const allData = {{ result.sim_data | tojson }};
 
             const fnContainer = document.getElementById('comparison-filenames');
-            if(allData.filename_before && allData.filenames_after) {
-                let filesHtml = `<strong>비교 대상:</strong> [전] ${allData.filename_before}`;
-                if (allData.filenames_after.length > 0) {
-                    filesHtml += '<br><strong>리모델링 후 옵션:</strong><ol>';
-                    allData.filenames_after.forEach((name, i) => {
-                        filesHtml += `<li><strong>(${i + 1})</strong>: ${name}</li>`;
-                    });
-                    filesHtml += '</ol>';
-                }
+            // 세 개의 변수가 모두 존재하는지 확인합니다.
+            if(allData.filename_before && allData.filename_after && allData.filename_afterN) {
+                
+                // 세 파일명을 리스트 형태로 표시하도록 HTML을 구성합니다.
+                let filesHtml = '<strong>비교 대상:</strong><ul>'; // <ul> 태그로 리스트 시작
+                filesHtml += `<li><strong>[GR 이전]:</strong> ${allData.filename_before}</li>`;
+                filesHtml += `<li><strong>[GR 직후]:</strong> ${allData.filename_after}</li>`;
+                filesHtml += `<li><strong>[GR N년차]:</strong> ${allData.filename_afterN}</li>`;
+                filesHtml += '</ul>'; // <ul> 태그 닫기
+                
                 fnContainer.innerHTML = filesHtml;
                 fnContainer.style.display = 'block';
             }
@@ -400,30 +406,7 @@
             const selector = document.getElementById('dataTypeSelector');
             updateCharts(selector.value);
             selector.addEventListener('change', e => updateCharts(e.target.value));
-            drawAnnualSummary(allData.before, allData.afters, allData.filenames_after);
-        {% endif %}
-
-        {% if result and result.csv_data %}
-            const csvData = {{ result.csv_data | tojson }};
-            const downloadBtn = document.getElementById('downloadCsvBtn');
-
-            if (downloadBtn && csvData) {
-                downloadBtn.addEventListener('click', function(e) {
-                    e.preventDefault(); // a 태그의 기본 동작 방지
-
-                    const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8-sig;' });
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-
-                    link.setAttribute('href', url);
-                    link.setAttribute('download', 'debug_report.csv');
-                    link.style.visibility = 'hidden';
-
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                });
-            }
+            drawAnnualSummary(allData.before, allData.after, allData.afterN);
         {% endif %}
     });
     </script>

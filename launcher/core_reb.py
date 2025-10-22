@@ -125,18 +125,12 @@ def getpost() -> str:
 
             # 4. [수정] 대상 파일(전처리됐거나 원본)에 대해 디버깅 실행
             debug_reports, has_severe_error, final_report_df = _run_debugging_phase(target_filepaths)
-            
-            # 5. CSV 데이터 생성
-            csv_data = None
-            if final_report_df is not None and not final_report_df.empty:
-                csv_data = final_report_df.to_csv(index=False, encoding='utf-8-sig')
 
             # 6. 분기: SEVERE 오류 여부에 따라 시뮬레이션 실행 또는 중단
             if has_severe_error:
                 result = {
                     "err": "심각한 오류가 발견되어 시뮬레이션을 취소했습니다. 아래 보고서를 확인해주세요.",
                     "debug_reports": debug_reports,
-                    "csv_data": csv_data,
                 }
             else:
                 # SEVERE 오류가 없을 경우 시뮬레이션 실행 (디버깅을 통과한 대상 파일 사용)
@@ -144,13 +138,13 @@ def getpost() -> str:
                     target_filepaths, # [수정]
                     file_before.filename,
                     file_after.filename ,
+                    file_afterN.filename,
                 )
                 
                 result = {
                     "debug_reports": [
                         report for report in debug_reports if report.get("warning_html")
                     ],
-                    "csv_data": csv_data,
                     "sim_data": sim_data
                 }
 
@@ -163,7 +157,8 @@ def getpost() -> str:
                     path.unlink()
                     deleted_count += 1
             print(f"임시 파일 {deleted_count}개 정리 완료")
-            
+    
+    print(result) 
     return render_template("index.html", result=result)
 
 
@@ -193,7 +188,6 @@ def _run_debugging_phase(
             has_severe_error = True
             
         report_data: Dict[str, Any] = {"filename": filename, "code": code.name}
-        severe_html, warning_html = None, None
         
         if not report_df.empty:
             # CSV 다운로드를 위해 원본 DataFrame에 파일명 열 추가
@@ -219,7 +213,8 @@ def _run_debugging_phase(
 def _run_simulation_phase(
     filepaths: Dict[str, Path],
     file_before_name: str,
-    files_after_names: List[str]
+    file_after_name : str,
+    file_afterN_name: str,
 ) -> Dict[str, Any]:
     """
     [수정] 디버깅을 통과한 파일들에 대해 시뮬레이션을 실행합니다.
@@ -238,20 +233,23 @@ def _run_simulation_phase(
         return run_grexcel(str(filepath), save=False)
 
     # '리모델링 전' 시뮬레이션 실행
-    result_before = _execute_single_simulation(filepaths[file_before_name])
-    
+    result_before = run_grexcel(str(filepaths[file_before_name]), save=False)
     # '리모델링 후' 시뮬레이션 실행
-    results_after_list = []
-    if files_after_names:
-        for fname in files_after_names:
-            results_after_list.append(_execute_single_simulation(filepaths[fname]))
+    if file_after_name:
+        result_after  = run_grexcel(str(filepaths[file_after_name]), save=False)
     else:
-        results_after_list.append(result_before)
-        files_after_names.append(f"{file_before_name} (후 파일 미지정)")
-
+        result_after = result_before
+    # N년차 시뮬레이션 실행
+    if file_afterN_name:
+        result_afterN  = run_grexcel(str(filepaths[file_afterN_name]), save=False)
+    else:
+        result_afterN = result_after    
+    
     return {
         "filename_before": file_before_name,
-        "filenames_after": files_after_names,
+        "filename_after": file_after_name,
+        "filename_afterN": file_afterN_name,
         "before": result_before,
-        "afters": results_after_list,
+        "after" : result_after ,
+        "afterN": result_afterN,
     }
