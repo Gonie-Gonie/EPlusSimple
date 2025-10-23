@@ -1,99 +1,142 @@
+
+# ------------------------------------------------------------------------ #
+#                                  MODULES                                 #
+# ------------------------------------------------------------------------ #
+
+# built-in modules
+from __future__ import annotations
 import os
-import pandas as pd
-import matplotlib.pyplot as plt
-from jinja2 import Environment, FileSystemLoader
-from datetime import date
+import json
 import subprocess
+from pathlib  import Path
+from dataclasses import dataclass
 
-# ======================
-# 경로 설정
-# ======================
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))  # EPLUSSIMPLE/
-SRC_DIR = os.path.join(BASE_DIR, "src", "reb")
-DIST_DIR = os.path.join(BASE_DIR, "dist", "reb-report")
-FIG_DIR = os.path.join(DIST_DIR, "figures")
-os.makedirs(FIG_DIR, exist_ok=True)
+# third-party modules
+import pandas            as pd
+import matplotlib.pyplot as plt
+from jinja2 import Template
 
-# ======================
-# 그래프 예시 생성
-# ======================
-months = list(range(1, 13))
-temp_before = [5,6,9,14,20,24,28,29,25,19,11,6]
-temp_after  = [4,5,8,13,19,23,27,28,24,18,10,5]
-temp_yearn  = [4,5,9,13,21,24,27,28,25,19,11,6]
-
-plt.figure()
-plt.plot(months, temp_before, label="Before")
-plt.plot(months, temp_after, label="After")
-plt.plot(months, temp_yearn, label="Year-N")
-plt.xlabel("Month")
-plt.ylabel("Outdoor Temp (°C)")
-plt.legend()
-weather_fig = os.path.join(FIG_DIR, "weather.png")
-plt.savefig(weather_fig, bbox_inches="tight")
-plt.close()
-
-# 에너지 그래프 예시
-monthly_energy = pd.DataFrame({
-    "Month": months,
-    "Before": [100,90,80,70,60,55,60,65,70,80,90,95],
-    "After":  [90,80,70,60,55,50,52,55,60,70,80,85],
-    "YearN":  [91,82,72,63,56,51,53,56,61,71,82,86],
-})
-annual = monthly_energy[["Before","After","YearN"]].sum()
-plt.bar(annual.index, annual.values)
-plt.ylabel("Total Annual Energy (kWh/m²)")
-energy_fig1 = os.path.join(FIG_DIR, "annual_energy.png")
-plt.savefig(energy_fig1, bbox_inches="tight")
-plt.close()
-
-plt.figure()
-for col in ["Before", "After", "YearN"]:
-    plt.plot(monthly_energy["Month"], monthly_energy[col], label=col)
-plt.legend()
-plt.xlabel("Month")
-plt.ylabel("Energy (kWh/m²)")
-energy_fig2 = os.path.join(FIG_DIR, "monthly_energy.png")
-plt.savefig(energy_fig2, bbox_inches="tight")
-plt.close()
-
-# ======================
-# LaTeX 렌더링
-# ======================
-env = Environment(loader=FileSystemLoader(SRC_DIR))
-template = env.get_template("report_template.tex")
-
-performance_data = [
-    {"name": "U-value (W/m²K)", "before": 1.8, "after": 0.95, "nyear": 0.97},
-    {"name": "Infiltration (ACH)", "before": 0.9, "after": 0.4, "nyear": 0.45},
-    {"name": "Window SHGC", "before": 0.65, "after": 0.55, "nyear": 0.56},
-]
-
-context = {
-    "weather_fig": "weather.png",
-    "energy_fig1": "annual_energy.png",
-    "energy_fig2": "monthly_energy.png",
-    "performance": performance_data,
-    "weather_summary": "기상 데이터는 세 시나리오 간 유사한 월별 경향을 보였으나, 리모델링 이후 온도가 다소 낮게 나타났다.",
-    "conclusion_text": "리모델링 후 건물의 단열성능이 향상되어 연간 에너지 사용량이 약 15% 절감되었다.",
-    "today": date.today().strftime("%Y-%m-%d"),
-}
-
-rendered_tex = template.render(**context)
-
-tex_path = os.path.join(DIST_DIR, "report.tex")
-with open(tex_path, "w", encoding="utf-8") as f:
-    f.write(rendered_tex)
+# local modules
 
 
-def build_pdf_with_latexmk(tex_path, build_dir):
-    tex_name = os.path.basename(tex_path)
-    cmd = ["latexmk", "-xelatex", "-interaction=nonstopmode", "-halt-on-error", tex_name]
+# settings
+plt.rcParams['font.family'] = 'Malgun Gothic'
+plt.rcParams['axes.unicode_minus'] = False
 
-    subprocess.run(cmd, cwd=build_dir, check=True)
-    print(f"✅ latexmk build completed: {os.path.join(build_dir, tex_name.replace('.tex', '.pdf'))}")
+# ---------------------------------------------------------------------------- #
+#                                   VARIABLES                                  #
+# ---------------------------------------------------------------------------- #
+
+TEMPLATEPATH = Path(__file__).parent / "report_template.tex"
+BUILD_DIR    = Path(__file__).parents[2] / "dist" / "reb-report"
+FIG_DIR      = BUILD_DIR / "figures"
 
 
+# ---------------------------------------------------------------------------- #
+#                                   METADATA                                   #
+# ---------------------------------------------------------------------------- #
+
+@dataclass
+class MetaData:
+    name: str
+    area: str
+    addr: str
+    date: str
+
+# ---------------------------------------------------------------------------- #
+#                                 SUBFUNCTIONS                                 #
+# ---------------------------------------------------------------------------- #
+
+
+# ---------------------------------------------------------------------------- #
+#                               FIGURE FUNCTIONS                               #
+# ---------------------------------------------------------------------------- #
+
+def draw_weather_monthlycomparision() -> plt.Figure:
+    
+    return
+
+def draw_weather_degreedays() -> plt.Figure:
+    
+    return
+
+def draw_weather_figures() -> tuple[plt.Figure]:
+    
+    return
+
+
+def draw_3step_bargraph(
+    title : str,
+    values: list[int|float],
+    index : list[str],
+    *,
+    ylabel: str = "Value",
+    colors: tuple = ("tab:blue", "tab:orange", "tab:green"),
+    ) -> plt.Figure:
+    
+    fig, ax = plt.subplots(figsize=(4, 3))
+    
+    num_bars = len(values)
+    x_positions = range(num_bars) # [0, 1, 2]
+    width = 0.7  # 그룹이 아니므로 막대 폭을 넓게 설정
+
+    for n, (pos, val) in enumerate(zip(x_positions, values)):
+        # x축 0, 1, 2 위치에 막대 생성
+        # xticklabels를 사용하므로 'label=' 인자는 제거
+        bars = ax.bar(pos, val, width, color=colors[n])
+        
+        # 막대 위에 값 표시 (padding을 3 정도로 살짝 띄움)
+        ax.bar_label(bars, fmt="%.1f", padding=3, fontsize=9)
+
+    # --- 축 및 레이블 수정 ---
+    # x축 눈금 위치를 막대 위치(0, 1, 2)와 동일하게 설정
+    ax.set_xticks(x_positions)
+    # x축 눈금 레이블을 index 리스트로 설정
+    ax.set_xticklabels(index, fontsize=10)
+    
+    ax.set_ylabel(ylabel)
+    ax.set_title(title, fontsize=11, weight="bold")
+    ax.grid(axis="y", linestyle="--", alpha=0.4)
+    
+    # xlim을 막대 좌우로 0.5만큼 여유 있게 설정 (-0.5 ~ 2.5)
+    ax.set_xlim(-0.5, num_bars - 0.5)
+    
+    # bar_label이 잘 보이도록 y축 상단에 15% 여유 공간 추가
+    ax.set_ylim(top=max(values) * 1.15) 
+    
+    fig.tight_layout()
+    
+    return fig
+
+def draw_energysimulation_figures(
+    grrbefore:dict,
+    grrafter :dict,
+    grrafterN:dict,
+    ) -> tuple[plt.Figure]:
+    
+    fig_use = draw_3step_bargraph(
+        "에너지 사용량 비교",
+        [
+            grrbefore["summary_per_area"]["site_uses"]["total_annual"],
+            grrafter["summary_per_area"]["site_uses"]["total_annual"],
+            grrafterN["summary_per_area"]["site_uses"]["total_annual"],
+        ],
+        ["Before","GR이후","N년차"],
+        ylabel = "EUI [kWh/m2/year]",
+    )
+    
+    fig_co2 = draw_3step_bargraph(
+        "온실가스 배출량 비교",
+        [
+            grrbefore["summary_per_area"]["co2"]["total_annual"],
+            grrafter["summary_per_area"]["co2"]["total_annual"],
+            grrafterN["summary_per_area"]["co2"]["total_annual"],
+        ],
+        ["GR이전","GR이후","N년차"],
+        ylabel = "CO2-eq [kgCO2/m2/year]",
+    )
+    
+    return fig_use, fig_co2
 
 
 # ---------------------------------------------------------------------------- #
@@ -110,10 +153,47 @@ def build_report(
     pdfpath:str,
     ) -> None:
     
-    pass
-
-# ======================
-# PDF 빌드
-# ======================
-build_pdf_with_latexmk(tex_path, DIST_DIR)
-print(f"✅ PDF 생성 완료: {os.path.join(DIST_DIR, 'report.pdf')}")
+    # resultdata
+    with open(before_grrpath, "r") as f:
+        grrbefore = json.load(f)
+    with open(after_grrpath, "r") as f:
+        grrafter  = json.load(f)
+    with open(afterN_grrpath, "r") as f:
+        grrafterN = json.load(f)
+    
+    # metadata
+    building_info = pd.read_excel(before_rebexcelpath, sheet_name="건물정보", usecols=range(6), nrows=1).iloc[0]
+    metadata = MetaData(
+        building_info["건물명"]     ,
+        str(grrbefore["building"]["total_area"]),
+        building_info["주소"],
+        building_info["허가일자"]   , 
+    )
+    
+    # get figures
+    fig_use, fig_co2 = draw_energysimulation_figures(grrbefore, grrafter, grrafterN)
+    fig_use.savefig(FIG_DIR / "energy_summary_use.png")
+    fig_co2.savefig(FIG_DIR / "energy_summary_co2.png")
+    
+    # arrange the results
+    context = {
+        "metadata": metadata,
+        "EUIdiff" : [
+            round(grrbefore["summary_per_area"]["site_uses"]["total_annual"] - grrafter["summary_per_area"]["site_uses"]["total_annual"],2),
+            round(grrbefore["summary_per_area"]["site_uses"]["total_annual"] - grrafterN["summary_per_area"]["site_uses"]["total_annual"],2),
+            round(grrafterN["summary_per_area"]["site_uses"]["total_annual"] - grrafter["summary_per_area"]["site_uses"]["total_annual"],2),
+        ]
+    }
+    
+    # build
+    template = Template(TEMPLATEPATH.read_text(encoding="utf-8"))
+    rendered_tex = template.render(**context)
+    texpath = BUILD_DIR / "report.tex"
+    os.makedirs(BUILD_DIR, exist_ok=True)
+    with open(texpath, "w", encoding="utf-8") as f:
+        f.write(rendered_tex)
+    
+    cmd = ["latexmk", "-xelatex", "-interaction=nonstopmode", "-halt-on-error", texpath.name]
+    subprocess.run(cmd, cwd=str(BUILD_DIR), check=True)
+    
+    return

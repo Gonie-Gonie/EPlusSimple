@@ -8,10 +8,10 @@ import os
 import re
 
 # third-party modules
-
+import pandas as pd
 
 # local modules
-from reb.report import build_report
+from reb.report import build_report, MetaData
 
 
 # ---------------------------------------------------------------------------- #
@@ -83,7 +83,7 @@ def find_building_sets(
         if (t:=info.group("type")) not in buildingdict[n]["grr"].keys():
             raise ValueError(f"keyword '{t}'는 좀 이상한듯 ('{file}'을 parsing함)")
         
-        buildingdict[n]["grr"][t] = os.path.join(rebexcel_dir, file)
+        buildingdict[n]["grr"][t] = os.path.join(grr_dir, file)
     
     # validity
     for _, buildingdata in buildingdict.items():
@@ -98,7 +98,7 @@ def main(
     rebexcel_dir:str,
     grr_dir     :str,
     report_dir  :str,
-    ) -> None:
+    ) -> None:    
     
     validlist, invalidlist = find_building_sets(
         rebexcel_dir,
@@ -115,7 +115,7 @@ def main(
         pdfpath = os.path.join(report_dir, f"{d["name"]}.pdf")
         build_report(
             *d["excel"].values(),
-            *d["grr"].values(),
+            *d["grr"].values()  ,
             pdfpath
         )
 
