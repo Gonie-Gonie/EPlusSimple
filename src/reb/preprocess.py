@@ -289,7 +289,7 @@ def save_excel(
 def process_excel_file(
     file_path:str,
     *,
-    suffix         :str="preprocess",
+    suffix         :str="_preprocess",
     output_filepath:str=None        ,
     verbose:bool=True,
     ) -> str:

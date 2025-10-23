@@ -1,0 +1,41 @@
+
+# ------------------------------------------------------------------------ #
+#                                  MODULES                                 #
+# ------------------------------------------------------------------------ #
+
+# built-in modules
+import os
+from typing import Literal
+
+# third-party modules
+import pandas as pd
+
+# local modules
+
+
+# ---------------------------------------------------------------------------- #
+#                                   VARIABLES                                  #
+# ---------------------------------------------------------------------------- #
+
+WEATHTERDATA_DIR   = os.path.join(os.path.dirname(__file__), "data")
+WEATHERDATA_MAPPER = pd.read_csv(os.path.join(WEATHTERDATA_DIR, "weatherdata_mapping.csv"))
+
+
+# ---------------------------------------------------------------------------- #
+#                                   FUNCTIONS                                  #
+# ---------------------------------------------------------------------------- #
+
+def find_weatherdata(
+    loc    :str,
+    simtype:Literal["이전","직후","N년차"]
+    ) -> str:
+    
+    loc_idx = WEATHERDATA_MAPPER.index[WEATHERDATA_MAPPER["행정구역명"] == loc][0]
+    
+    weatherloc  = WEATHERDATA_MAPPER.at[loc_idx, "대충쓰는임의코드"]
+    weatheryear = WEATHERDATA_MAPPER.at[loc_idx, f"기준연도_{simtype}"]
+    
+    weatherdata_filename = f"{weatherloc}_{weatheryear}.epw"
+    weatherdata_filepath = os.path.join(WEATHTERDATA_DIR, weatherdata_filename)
+    
+    return weatherdata_filepath

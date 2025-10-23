@@ -125,7 +125,7 @@ def getpost() -> str:
                 preprocessed_filepaths.append(preprocessed_path) # 정리 목록에 추가
 
             # 4. [수정] 대상 파일(전처리됐거나 원본)에 대해 디버깅 실행
-            debug_reports, has_severe_error, final_report_df = _run_debugging_phase(target_filepaths)
+            debug_reports, has_severe_error, _ = _run_debugging_phase(target_filepaths)
 
             # 6. 분기: SEVERE 오류 여부에 따라 시뮬레이션 실행 또는 중단
             if has_severe_error:
@@ -157,9 +157,7 @@ def getpost() -> str:
                 if path.exists():
                     path.unlink()
                     deleted_count += 1
-            print(f"임시 파일 {deleted_count}개 정리 완료")
-    
-    print(result) 
+                    
     return render_template("index.html", result=result)
 
 
@@ -231,15 +229,15 @@ def _run_simulation_phase(
     """
     
     # '리모델링 전' 시뮬레이션 실행
-    result_before, _ = run_rebexcel(str(filepaths[file_before_name]), save_grr=False, save_idf=False)
+    result_before, _ = run_rebexcel(str(filepaths[file_before_name]), save_grr=False, save_idf=False, preprocess=False)
     # '리모델링 후' 시뮬레이션 실행
     if file_after_name:
-        result_after, _  = run_rebexcel(str(filepaths[file_after_name]), save_grr=False, save_idf=False)
+        result_after, _  = run_rebexcel(str(filepaths[file_after_name]), save_grr=False, save_idf=False,preprocess=False)
     else:
         result_after = result_before
     # N년차 시뮬레이션 실행
     if file_afterN_name:
-        result_afterN, _  = run_rebexcel(str(filepaths[file_afterN_name]), save_grr=False, save_idf=False)
+        result_afterN, _  = run_rebexcel(str(filepaths[file_afterN_name]), save_grr=False, save_idf=False,preprocess=False)
     else:
         result_afterN = result_after    
     

@@ -89,7 +89,7 @@ def getpost() -> str:
     """
     result: Optional[Dict[str, Any]] = None
     # 임시 저장된 원본 파일 경로들을 관리 (key: 원본 파일명, value: Path 객체)
-    saved_filepaths: Dict[str, Path] = {}
+    target_filepaths: Dict[str, Path] = {}
 
     if request.method == "POST":
         try:
@@ -108,13 +108,7 @@ def getpost() -> str:
                     filepath = UPLOAD_FOLDER / file_obj.filename
                     file_obj.save(filepath)
                     file_obj.seek(0)
-                    saved_filepaths[file_obj.filename] = filepath
-            
-            # 3. [수정] 전처리 옵션에 따라 디버깅 및 실행할 '대상 파일' 결정
-            target_filepaths: Dict[str, Path] = {}
-
-            # 전처리가 필요 없으면 원본 파일을 대상으로 지정
-            target_filepaths = saved_filepaths
+                    target_filepaths[file_obj.filename] = filepath
 
             # 4. [수정] 대상 파일(전처리됐거나 원본)에 대해 디버깅 실행
             debug_reports, has_severe_error, final_report_df = _run_debugging_phase(target_filepaths)
@@ -149,7 +143,7 @@ def getpost() -> str:
 
         finally:
             # 7. [수정] 모든 임시 파일(원본 + 전처리된 파일) 정리
-            all_files_to_delete = list(saved_filepaths.values())
+            all_files_to_delete = list(target_filepaths.values())
             deleted_count = 0
             for path in all_files_to_delete:
                 if path.exists():
