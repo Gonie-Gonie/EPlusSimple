@@ -94,6 +94,24 @@ def build_pdf_with_latexmk(tex_path, build_dir):
     print(f"✅ latexmk build completed: {os.path.join(build_dir, tex_name.replace('.tex', '.pdf'))}")
 
 
+
+
+# ---------------------------------------------------------------------------- #
+#                                   MAIN FUNC                                  #
+# ---------------------------------------------------------------------------- #
+
+def build_report(
+    before_rebexcelpath:str,
+    after_rebexcelpath :str,
+    afterN_rebexcelpath:str,
+    before_grrpath:str,
+    after_grrpath :str,
+    afterN_grrpath:str,
+    pdfpath:str,
+    ) -> None:
+    
+    pass
+
 # ======================
 # PDF 빌드
 # ======================
