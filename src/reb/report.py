@@ -7,6 +7,7 @@
 from __future__ import annotations
 import os
 import json
+import shutil
 import subprocess
 from pathlib  import Path
 from dataclasses import dataclass
@@ -165,7 +166,7 @@ def build_report(
     building_info = pd.read_excel(before_rebexcelpath, sheet_name="건물정보", usecols=range(6), nrows=1).iloc[0]
     metadata = MetaData(
         building_info["건물명"]     ,
-        str(grrbefore["building"]["total_area"]),
+        f"{grrbefore["building"]["total_area"]:1f}",
         building_info["주소"],
         building_info["허가일자"]   , 
     )
@@ -195,5 +196,7 @@ def build_report(
     
     cmd = ["latexmk", "-xelatex", "-interaction=nonstopmode", "-halt-on-error", texpath.name]
     subprocess.run(cmd, cwd=str(BUILD_DIR), check=True)
+    
+    shutil.copy(str(texpath).replace(".tex",".pdf"), pdfpath)
     
     return
