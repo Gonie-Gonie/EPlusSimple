@@ -18,7 +18,7 @@ import pandas as pd
 # ---------------------------------------------------------------------------- #
 
 WEATHTERDATA_DIR   = os.path.join(os.path.dirname(__file__), "data")
-WEATHERDATA_MAPPER = pd.read_csv(os.path.join(WEATHTERDATA_DIR, "weatherdata_mapping.csv"))
+WEATHERDATA_MAPPER = pd.read_csv(os.path.join(WEATHTERDATA_DIR, "weatherdata_mapping.csv"), encoding="cp949")
 
 
 # ---------------------------------------------------------------------------- #
@@ -30,9 +30,9 @@ def find_weatherdata(
     simtype:Literal["이전","직후","N년차"]
     ) -> str:
     
-    loc_idx = WEATHERDATA_MAPPER.index[WEATHERDATA_MAPPER["행정구역명"] == loc][0]
+    loc_idx = WEATHERDATA_MAPPER.index[WEATHERDATA_MAPPER["시·군·구"] == loc][0]
     
-    weatherloc  = WEATHERDATA_MAPPER.at[loc_idx, "대충쓰는임의코드"]
+    weatherloc  = WEATHERDATA_MAPPER.at[loc_idx, "Station_num"]
     weatheryear = WEATHERDATA_MAPPER.at[loc_idx, f"기준연도_{simtype}"]
     
     weatherdata_filename = f"{weatherloc}_{weatheryear}.epw"

@@ -205,6 +205,7 @@ def build_report(
     
     # get figures (by results)
     fig_use, fig_co2 = draw_energysimulation_figures(grrbefore, grrafter, grrafterN)
+    os.makedirs(FIG_DIR, exist_ok=True)
     fig_use.savefig(FIG_DIR / "energy_summary_use.png", dpi=400, format="png")
     fig_co2.savefig(FIG_DIR / "energy_summary_co2.png", dpi=400, format="png")
     
