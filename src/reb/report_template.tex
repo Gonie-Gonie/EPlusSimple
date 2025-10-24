@@ -86,7 +86,7 @@
                   left=4mm,right=4mm,top=2mm,bottom=2mm]
 \textbf{ {{metadata.name}} }은,
 
-① 성능 변화 및 기상데이터의 변화를 고려할 때, \textbf{\underline{${{EUIdiff[0]}}\,\mathrm{kWh/m^2}$}} 절감될 것으로 분석되었다.
+① 성능 변화 및 기상데이터의 변화를 고려할 때, \underline{${{EUIdiff[0]}}\,\mathrm{kWh/m^2}$} 절감될 것으로 분석되었다.
 
 ② 운영특성 및 추가적인 성능 변화를 고려할 때, 
 \underline{${{EUIdiff[1]}}\,\mathrm{kWh/m^2}$} 절감될 것으로 분석되었다. 
@@ -99,8 +99,14 @@
 
 \newpage
 \section{성능 변화 내역 (GR 이전 → GR 이후)}
-\begin{longtable}{l l l c c c}
-\caption{성능 비교 결과 요약} \\
+{\scriptsize
+\setlength{\tabcolsep}{8pt}
+\begin{longtable}{l!{\color{gray!60}\vrule width 0.3pt}
+                  l!{\color{gray!60}\vrule width 0.3pt}
+                  l!{\color{gray!60}\vrule width 0.3pt}
+                  c!{\color{gray!60}\vrule width 0.3pt}
+                  c!{\color{gray!60}\vrule width 0.3pt}
+                  c}
 \toprule
 존 이름 & 구분 & 항목 & 이전 값 & 이후 값 & 단위 \\
 \midrule
@@ -110,10 +116,14 @@
 \midrule
 \endhead
 {% for d in perf_diff12 %}
+{% if not loop.first and d.type != loop.previtem.type %}
+\arrayrulecolor[gray]{0.85}\midrule\arrayrulecolor{black}
+{% endif %}
 {{ d.zonename }} & {{ d.type }} & {{ d.prop }} & {{ d.before }} & {{ d.after }} & {{ d.unit }} \\
 {% endfor %}
 \bottomrule
 \end{longtable}
+}
 
 \section{기상 변화 내역 (GR 이전 → GR 이후)}
 

@@ -83,6 +83,7 @@ class WindowDifference(ExcelDifference):
         after : dict[str, pd.DataFrame]
         ) -> list[WindowDifference]: 
         
+        # data
         before_Udict = {
             row["이름"]: row["열관류율 [W/m2·K]"]
             for _, row in before["구조체_개구부"].iterrows()
@@ -91,7 +92,6 @@ class WindowDifference(ExcelDifference):
             row["이름"]: row["열관류율 [W/m2·K]"]
             for _, row in after["구조체_개구부"].iterrows()
         }
-        
         before_SHGCdict = {
             row["이름"]: row["태양열취득계수"]
             for _, row in before["구조체_개구부"].iterrows()
@@ -101,6 +101,7 @@ class WindowDifference(ExcelDifference):
             for _, row in after["구조체_개구부"].iterrows()
         }
         
+        # main
         diffs = []
         for _, row in before["실"].iterrows():
             
@@ -156,7 +157,7 @@ class WindowDifference(ExcelDifference):
 
 class LightDensityDifference(ExcelDifference):
     
-    KoreanNAME = "조명 밀도 변경"
+    KoreanNAME = "조명"
     
     @classmethod
     def compare(cls,
@@ -175,13 +176,13 @@ class LightDensityDifference(ExcelDifference):
             after_LPD =float(after["실"]["조명밀도 [W/m2]"][after["실"]["이름"] == row["이름"]].iloc[0])
             
             if abs(before_LPD - after_LPD) > 0.01:
-                diffs.append(cls(zonename, "조명밀도", before_LPD, after_LPD, "W/m2"))
+                diffs.append(cls(zonename, "교체", before_LPD, after_LPD, "W/m2"))
                 
         return diffs
     
 class InfiltrationDifference(ExcelDifference):
     
-    KoreanNAME = "침기율 변경"
+    KoreanNAME = "침기율"
     
     @classmethod
     def compare(cls,
@@ -200,10 +201,172 @@ class InfiltrationDifference(ExcelDifference):
             after_LPD =float(after["실"]["침기율 [ACH@50]"][after["실"]["이름"] == row["이름"]].iloc[0])
             
             if abs(before_LPD - after_LPD) > 0.01:
-                diffs.append(cls(zonename, "침기율", before_LPD, after_LPD, "ACH50"))
+                diffs.append(cls(zonename, "변화", before_LPD, after_LPD, "ACH50"))
                 
         return diffs
+
+class HeatingHVACDifference(ExcelDifference):
+    
+    KoreanNAME = "난방설비"
+    
+    @classmethod
+    def compare(cls,
+        before: dict[str, pd.DataFrame],
+        after : dict[str, pd.DataFrame]
+        ) -> list[HeatingHVACDifference]:
+        
+        # data
+        before_supplydict = {
+            row["이름"]: row
+            for _, row in before["공급설비"].iterrows()
+            if not pd.isna(row["이름"])
+        }
+        after_supplydict = {
+            row["이름"]: row
+            for _, row in after["공급설비"].iterrows()
+            if not pd.isna(row["이름"])
+        }
+        before_sourcedict = {
+            row["이름"]: row
+            for _, row in before["생산설비"].iterrows()
+            if not pd.isna(row["이름"])
+        }
+        after_sourcedict = {
+            row["이름"]: row
+            for _, row in after["생산설비"].iterrows()
+            if not pd.isna(row["이름"])
+        }
+        
+        # main
+        diffs = []
+        for _, row in before["실"].iterrows():
             
+            zonename = row["이름"]
+            if zonename not in after["실"]["이름"].values:
+                continue
+            else:
+                afterrow = after["실"][after["실"]["이름"] == zonename].iloc[0]
+            
+            # before 
+            if pd.isna(row["난방 공급 설비"]):
+                beforeheating = ""
+            else:
+                beforesupply = before_supplydict[row["난방 공급 설비"]]
+                beforesource = before_sourcedict.get(beforesupply["생산설비명"], None)
+                
+                match beforesupply["유형"]:
+                    case "공조기"   :
+                        beforeheating = f"공조기&{beforesource["유형"]}: COP {beforesource["난방COP [W/w]"]:.2f}, {beforesource["난방용량 [W]"]*1E-3:.2f}kW"
+                    case "팬코일유닛":
+                        beforeheating = f"팬코일유닛&{beforesource["유형"]}: 효율 {beforesource["효율 [%]"]:.21}%, {beforesource["난방용량 [W]"]*1E-3:.2f}kW"
+                    case "방열기"   :
+                        beforeheating = f"방열기&{beforesource["유형"]}: 효율 {beforesource["효율 [%]"]:.21}%, {beforesource["난방용량 [W]"]*1E-3:.2f}kW"
+                    case "전기방열기":
+                        beforeheating = f"전기방열기: {beforesupply["난방용량 [W]"]*1E-3:.2f}kW"
+                    case "바닥난방"  : 
+                        beforeheating = f"바닥난방&{beforesource["유형"]}: 효율 {beforesource["효율 [%]"]:.21}%, {beforesource["난방용량 [W]"]*1E-3:.2f}kW"
+            
+            # after
+            if pd.isna(afterrow["난방 공급 설비"]):
+                afterheating = ""
+            else:
+                aftersupply = after_supplydict[afterrow["난방 공급 설비"]]
+                aftersource = after_sourcedict.get(aftersupply["생산설비명"], None)
+                
+                match aftersupply["유형"]:
+                    case "공조기"   :
+                        afterheating = f"공조기&{aftersource["유형"]}: COP {aftersource["난방COP [W/w]"]:.2f}, {aftersource["난방용량 [W]"]*1E-3:.2f}kW"
+                    case "팬코일유닛":
+                        afterheating = f"팬코일유닛&{aftersource["유형"]}: 효율 {aftersource["효율 [%]"]:.21}%, {aftersource["난방용량 [W]"]*1E-3:.2f}kW"
+                    case "방열기"   :
+                        afterheating = f"방열기&{aftersource["유형"]}: 효율 {aftersource["효율 [%]"]:.21}%, {aftersource["난방용량 [W]"]*1E-3:.2f}kW"
+                    case "전기방열기":
+                        afterheating = f"전기방열기: {aftersupply["난방용량 [W]"]*1E-3:.2f}kW"
+                    case "바닥난방"  : 
+                        afterheating = f"바닥난방&{aftersource["유형"]}: 효율 {aftersource["효율 [%]"]:.21}%, {aftersource["난방용량 [W]"]*1E-3:.2f}kW"
+                
+                if beforeheating != afterheating:
+                    diffs.append(cls(zonename, "변경", beforeheating, afterheating, "-"))
+            
+        return diffs
+    
+class CoolingHVACDifference(ExcelDifference):
+    
+    KoreanNAME = "냉방설비"
+    
+    @classmethod
+    def compare(cls,
+        before: dict[str, pd.DataFrame],
+        after : dict[str, pd.DataFrame]
+        ) -> list[CoolingHVACDifference]:
+        
+        # data
+        before_supplydict = {
+            row["이름"]: row
+            for _, row in before["공급설비"].iterrows()
+            if not pd.isna(row["이름"])
+        }
+        after_supplydict = {
+            row["이름"]: row
+            for _, row in after["공급설비"].iterrows()
+            if not pd.isna(row["이름"])
+        }
+        before_sourcedict = {
+            row["이름"]: row
+            for _, row in before["생산설비"].iterrows()
+            if not pd.isna(row["이름"])
+        }
+        after_sourcedict = {
+            row["이름"]: row
+            for _, row in after["생산설비"].iterrows()
+            if not pd.isna(row["이름"])
+        }
+        
+        # main
+        diffs = []
+        for _, row in before["실"].iterrows():
+            
+            zonename = row["이름"]
+            if zonename not in after["실"]["이름"].values:
+                continue
+            else:
+                afterrow = after["실"][after["실"]["이름"] == zonename].iloc[0]
+            
+            # before
+            if pd.isna(row["냉방 공급 설비"]):
+                beforecooling = ""
+            else:
+                beforesupply = before_supplydict[row["냉방 공급 설비"]]
+                beforesource = before_sourcedict.get(beforesupply["생산설비명"], None)
+                
+                match beforesupply["유형"]:
+                    case "패키지에어컨":
+                        beforecooling = f"패키지에어컨: COP {beforesupply["냉방COP [W/W]"]:.2f}, {beforesupply["냉방용량 [W]"]*1E-3:.2f}kW"
+                    case "공조기"   :
+                        beforecooling = f"공조기&{beforesource["유형"]}: COP {beforesource["냉방COP [W/W]"]:.2f}, {beforesource["냉방용량 [W]"]*1E-3:.2f}kW"
+                    case "팬코일유닛":
+                        beforecooling = f"팬코일유닛&{beforesource["유형"]}: 효율 {beforesource["냉방COP [W/W]"]:.21}%, {beforesource["냉방용량 [W]"]*1E-3:.2f}kW"
+            
+            # after
+            if pd.isna(afterrow["냉방 공급 설비"]):
+                aftercooling = ""
+            else:
+                aftersupply = after_supplydict[afterrow["냉방 공급 설비"]]
+                aftersource = after_sourcedict.get(aftersupply["생산설비명"], None)
+                
+                match aftersupply["유형"]:
+                    case "패키지에어컨":
+                        beforecooling = f"패키지에어컨: COP {beforesupply["냉방COP [W/W]"]:.2f}, {beforesupply["냉방용량 [W]"]*1E-3:.2f}kW"
+                    case "공조기"   :
+                        aftercooling = f"공조기&{aftersource["유형"]}: COP {aftersource["냉방COP [W/W]"]:.2f}, {aftersource["냉방용량 [W]"]*1E-3:.2f}kW"
+                    case "팬코일유닛":
+                        aftercooling = f"팬코일유닛&{aftersource["유형"]}: 효율 {aftersource["냉방COP [W/W]"]:.21}%, {aftersource["냉방용량 [W]"]*1E-3:.2f}kW"
+            
+            # compare
+            if beforecooling != aftercooling:
+                diffs.append(cls(zonename, "변경", beforecooling, aftercooling, "-"))
+        
+        return diffs
 
 # ---------------------------------------------------------------------------- #
 #                                 SUBFUNCTIONS                                 #
@@ -213,6 +376,8 @@ PERFORMANCE_DIFFLIST = [
     WindowDifference      ,
     LightDensityDifference,
     InfiltrationDifference,
+    HeatingHVACDifference ,
+    CoolingHVACDifference ,
 ]
 
 OPERATION_DIFFLIST = [

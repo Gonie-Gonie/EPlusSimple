@@ -153,6 +153,8 @@ def preprocess_diff_dicts(
         
         if isinstance(v, str):
             v = v.replace(r"_",r"\_")
+            v = v.replace(r"&", r"\&")
+            v = v.replace(r"%", r"\%")
         
         if isinstance(v, int|float):
             v = f"{v:.10f}".rstrip("0").rstrip(".")
