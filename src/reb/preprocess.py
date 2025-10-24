@@ -359,9 +359,9 @@ def process_excel_file(
         
         # 5. 결과 저장
         if output_filepath is None:
-            output_filepath = save_excel(wb, original_filepath=file_path, suffix=suffix)
+            output_filepath = save_excel(wb, original_filepath=file_path, suffix=suffix, verbose=verbose)
         else:
-            output_filepath = save_excel(wb, output_filepath, verbose=verbose)
+            output_filepath = save_excel(wb, output_filepath, verbose=verbose, verbose=verbose)
         
         return output_filepath
 
