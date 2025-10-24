@@ -18,7 +18,8 @@ import matplotlib.pyplot as plt
 from jinja2 import Template
 
 # local modules
-
+from .preprocess import process_excel_file
+from .comparison import compare_rebexcel
 
 # settings
 plt.rcParams['font.family'] = 'Malgun Gothic'
@@ -171,10 +172,20 @@ def build_report(
         building_info["허가일자"]   , 
     )
     
-    # get figures
+    # get comparison result
+    perf_diff12, oper_diff12 = compare_rebexcel(
+        before_rebexcelpath,
+        after_rebexcelpath ,
+    )
+    perf_diff23, oper_diff23 = compare_rebexcel(
+        after_rebexcelpath,
+        afterN_rebexcelpath ,
+    )
+    
+    # get figures (by results)
     fig_use, fig_co2 = draw_energysimulation_figures(grrbefore, grrafter, grrafterN)
-    fig_use.savefig(FIG_DIR / "energy_summary_use.png")
-    fig_co2.savefig(FIG_DIR / "energy_summary_co2.png")
+    fig_use.savefig(FIG_DIR / "energy_summary_use.png", dpi=400)
+    fig_co2.savefig(FIG_DIR / "energy_summary_co2.png", dpi=400)
     
     # arrange the results
     context = {
