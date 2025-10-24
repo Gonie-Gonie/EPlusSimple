@@ -135,7 +135,7 @@ class WindowDifference(ExcelDifference):
                     )/after_winarea)
 
                 if abs(before_U - after_U) > 0.1:
-                    diffs.append(cls(zonename, "평균열관류율", before_U, after_U, "W/m2K"))
+                    diffs.append(cls(zonename, "평균열관류율", round(before_U,2), round(after_U,2), "W/m2K"))
                 
                 # SHGC comparison
                 before_SHGC = float(sum(
@@ -148,7 +148,7 @@ class WindowDifference(ExcelDifference):
                     )/after_winarea)
 
                 if abs(before_SHGC - after_SHGC) > 0.1:
-                    diffs.append(cls(zonename, "태양열취득계수", before_SHGC, after_SHGC, "-"))     
+                    diffs.append(cls(zonename, "태양열취득계수", round(before_SHGC,3), round(after_SHGC,3), "-"))     
         
         return diffs
 
@@ -200,7 +200,7 @@ class InfiltrationDifference(ExcelDifference):
             after_LPD =float(after["실"]["침기율 [ACH@50]"][after["실"]["이름"] == row["이름"]].iloc[0])
             
             if abs(before_LPD - after_LPD) > 0.01:
-                diffs.append(cls(zonename, "침기율", before_LPD, after_LPD, "ACH@50"))
+                diffs.append(cls(zonename, "침기율", before_LPD, after_LPD, "ACH50"))
                 
         return diffs
             
@@ -267,6 +267,9 @@ def compare_rebexcel(
     # compare
     performance_differences = compare_performance(excelbefore, excelafter)
     operation_differences   = compare_operation(excelbefore, excelafter)
+    
+    performance_differences = pd.DataFrame([diff.to_dict() for diff in performance_differences])
+    operation_differences   = pd.DataFrame([diff.to_dict() for diff in operation_differences])
     
     return performance_differences, operation_differences
     

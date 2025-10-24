@@ -145,6 +145,27 @@ def draw_energysimulation_figures(
 #                                   MAIN FUNC                                  #
 # ---------------------------------------------------------------------------- #
 
+def preprocess_diff_dicts(
+    diffs:list[dict]
+    ) -> list[dict]:
+    
+    def mapper(v):
+        
+        if isinstance(v, str):
+            v = v.replace(r"_",r"\_")
+        
+        if isinstance(v, int|float):
+            v = f"{v:.10f}".rstrip("0").rstrip(".")
+        
+        return v
+    
+    return [
+        {k:mapper(v) for k, v in d.items()
+        }
+        for d in diffs
+    ]
+    
+
 def build_report(
     before_rebexcelpath:str,
     after_rebexcelpath :str,
@@ -184,12 +205,15 @@ def build_report(
     
     # get figures (by results)
     fig_use, fig_co2 = draw_energysimulation_figures(grrbefore, grrafter, grrafterN)
-    fig_use.savefig(FIG_DIR / "energy_summary_use.png", dpi=400)
-    fig_co2.savefig(FIG_DIR / "energy_summary_co2.png", dpi=400)
+    fig_use.savefig(FIG_DIR / "energy_summary_use.png", dpi=400, format="png")
+    fig_co2.savefig(FIG_DIR / "energy_summary_co2.png", dpi=400, format="png")
     
     # arrange the results
     context = {
         "metadata": metadata,
+        "perf_diff12": preprocess_diff_dicts(list(perf_diff12.T.to_dict().values())),
+        "perf_diff23": preprocess_diff_dicts(list(perf_diff23.T.to_dict().values())),
+        "oper_diff23": preprocess_diff_dicts(list(oper_diff23.T.to_dict().values())),
         "EUIdiff" : [
             round(grrbefore["summary_per_area"]["site_uses"]["total_annual"] - grrafter["summary_per_area"]["site_uses"]["total_annual"],2),
             round(grrbefore["summary_per_area"]["site_uses"]["total_annual"] - grrafterN["summary_per_area"]["site_uses"]["total_annual"],2),

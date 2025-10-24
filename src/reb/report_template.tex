@@ -20,6 +20,7 @@
 \usepackage{colortbl}
 \setstretch{1.25}
 \usepackage[most]{tcolorbox}
+\usepackage{longtable}
 
 {% raw %}
 \graphicspath{{figures/}}
@@ -98,6 +99,21 @@
 
 \newpage
 \section{성능 변화 내역 (GR 이전 → GR 이후)}
+\begin{longtable}{l l l c c c}
+\caption{성능 비교 결과 요약} \\
+\toprule
+존 이름 & 구분 & 항목 & 이전 값 & 이후 값 & 단위 \\
+\midrule
+\endfirsthead
+\toprule
+존 이름 & 구분 & 항목 & 이전 값 & 이후 값 & 단위 \\
+\midrule
+\endhead
+{% for d in perf_diff12 %}
+{{ d.zonename }} & {{ d.type }} & {{ d.prop }} & {{ d.before }} & {{ d.after }} & {{ d.unit }} \\
+{% endfor %}
+\bottomrule
+\end{longtable}
 
 \section{기상 변화 내역 (GR 이전 → GR 이후)}
 
