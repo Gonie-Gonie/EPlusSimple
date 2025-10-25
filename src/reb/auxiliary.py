@@ -5,6 +5,7 @@
 
 # built-in modules
 import os
+import re
 from typing import Literal
 
 # third-party modules
@@ -30,6 +31,7 @@ def find_weatherdata(
     simtype:Literal["이전","직후","N년차"]
     ) -> str:
     
+    if loc not in WEATHERDATA_MAPPER["시·군·구"]: loc = re.search(r"[\w ]+(?= \w+)", loc).group()
     loc_idx = WEATHERDATA_MAPPER.index[WEATHERDATA_MAPPER["시·군·구"] == loc][0]
     
     weatherloc  = WEATHERDATA_MAPPER.at[loc_idx, "Station_num"]
