@@ -933,7 +933,7 @@ class 어린이집일반존(hvac존):
         return
 
 @dataclass
-class 어린이집특화존(hvac존):
+class 어린이집특화존1(hvac존):
     # zone
     오전운영시간:str
     오후운영시간:str
@@ -1101,20 +1101,20 @@ class 현장조사체크리스트(ABC):
 class 어린이집체크리스트:
     
     def __init__(self,
-        일반존: 어린이집일반존 ,
-        특화존: 어린이집특화존,
+        일반존 : 어린이집일반존 ,
+        특화존1: 어린이집특화존1,
         ) -> None:
         
         # zone survey
-        self.일반존 = 일반존
-        self.특화존 = 특화존
+        self.일반존  = 일반존
+        self.특화존1 = 특화존1
     
     @classmethod
     def from_excel(cls, filepath:str) -> 어린이집체크리스트:
         
         return cls(
             어린이집일반존.from_excel(filepath),
-            어린이집특화존.from_excel(filepath),
+            어린이집특화존1.from_excel(filepath),
         )
         
     def apply_to(self, grm:GreenRetrofitModel, exceldata:dict[str,pd.DataFrame]) -> IDF:
@@ -1124,7 +1124,7 @@ class 어린이집체크리스트:
                 zone.ID for zone in grm.zone
                 if zone.name in list(exceldata["실"].query("현장조사프로필 == @category" )["이름"].values)
             ]
-            for category in ["일반존","특화존"]
+            for category in ["일반존","특화존1"]
         }
         
         em = grm.to_dragon()
@@ -1133,9 +1133,9 @@ class 어린이집체크리스트:
                 zone for zone in em.zone
                 if zone.name in zoneID_category["일반존"]
         ])
-        self.특화존.apply_to([
+        self.특화존1.apply_to([
                 zone for zone in em.zone
-                if zone.name in zoneID_category["특화존"]
+                if zone.name in zoneID_category["특화존1"]
         ])
         
         return em.to_idf()

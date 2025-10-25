@@ -7,12 +7,18 @@
 from __future__ import annotations
 import os
 from abc import ABC, abstractmethod
+from typing import Literal
 
 # third-party modules
 import pandas as pd
 
 # local modules
 from .preprocess import process_excel_file
+from .postprocess import (
+    현장조사체크리스트,
+    어린이집체크리스트,
+    보건소체크리스트  ,
+)
 
 
 # ---------------------------------------------------------------------------- #
@@ -368,6 +374,40 @@ class CoolingHVACDifference(ExcelDifference):
         
         return diffs
 
+
+# ---------------------------------------------------------------------------- #
+#                         OPERATION DIFFERENCE CLASSES                         #
+# ---------------------------------------------------------------------------- #
+
+# 어린이집
+class PeopleDensityDifferenceKinderGarten(ExcelDifference):
+    
+    KoreanNAME = "재실패턴"
+    
+    @classmethod
+    def compare(cls,
+        before: dict[str, pd.DataFrame],
+        after : dict[str, pd.DataFrame],
+        checklistbefore: 어린이집체크리스트,
+        checklistafter : 어린이집체크리스트,
+        ) -> list[PeopleDensityDifferenceKinderGarten]:
+        
+        diffs = []
+        for _, row in before["실"].iterrows():
+            
+            zonename = row["이름"]
+            if zonename not in after["실"]["이름"].values:
+                continue
+            else:
+                afterrow = after["실"][after["실"]["이름"] == zonename].iloc[0]
+            
+            pass
+        
+        return diffs
+        
+        
+
+
 # ---------------------------------------------------------------------------- #
 #                                 SUBFUNCTIONS                                 #
 # ---------------------------------------------------------------------------- #
@@ -380,9 +420,14 @@ PERFORMANCE_DIFFLIST = [
     CoolingHVACDifference ,
 ]
 
-OPERATION_DIFFLIST = [
-    
-]
+OPERATION_DIFFLIST = {
+    "보건소": [
+        
+    ],
+    "어린이집": [
+        PeopleDensityDifferenceKinderGarten
+    ],
+}
 
 def compare_performance(
     excelbefore:dict[str, pd.DataFrame],
@@ -399,11 +444,19 @@ def compare_performance(
 def compare_operation(
     excelbefore:dict[str, pd.DataFrame],
     excelafter :dict[str, pd.DataFrame],
+    checklistbefore: 현장조사체크리스트,
+    checklistafter : 현장조사체크리스트,
+    buildingtype:Literal["보건소","어린이집"],
     ) -> list[ExcelDifference]:
     
     diffs = []
-    for diff in OPERATION_DIFFLIST:
-        diffs += diff.compare(excelbefore, excelafter)
+    for diff in OPERATION_DIFFLIST[buildingtype]:
+        diffs += diff.compare(
+            excelbefore    ,
+            excelafter     ,
+            checklistbefore,
+            checklistafter ,
+        )
     
     return diffs
 
@@ -411,13 +464,12 @@ def compare_operation(
 #                                   MAIN FUNC                                  #
 # ---------------------------------------------------------------------------- #
 
-def compare_weather():
-    pass
-
 def compare_rebexcel(
     excelbeforepath:dict[str, pd.DataFrame],
     excelafterpath :dict[str, pd.DataFrame],
     ) -> tuple[list[ExcelDifference]]:
+    
+    checklistclass = {"보건소": 보건소체크리스트, "어린이집": 어린이집체크리스트}
     
     # before data
     processedbeforepath = process_excel_file(excelbeforepath, verbose=False)
@@ -429,9 +481,14 @@ def compare_rebexcel(
     excelafter         = pd.read_excel(processedafterpath, sheet_name=None)
     os.remove(processedafterpath)
     
+    # checklist data
+    buldingtype = excelbefore["현장조사"].iloc[0,0]
+    checklistbefore = checklistclass[buldingtype].from_excel(excelbeforepath)
+    checklistafter  = checklistclass[buldingtype].from_excel(excelafterpath)
+    
     # compare
     performance_differences = compare_performance(excelbefore, excelafter)
-    operation_differences   = compare_operation(excelbefore, excelafter)
+    operation_differences   = compare_operation(excelbefore, excelafter, checklistbefore, checklistafter, buldingtype)
     
     performance_differences = pd.DataFrame([diff.to_dict() for diff in performance_differences])
     operation_differences   = pd.DataFrame([diff.to_dict() for diff in operation_differences])
