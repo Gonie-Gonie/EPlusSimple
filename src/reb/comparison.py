@@ -380,9 +380,9 @@ class CoolingHVACDifference(ExcelDifference):
 # ---------------------------------------------------------------------------- #
 
 # 어린이집
-class PeopleDensityDifferenceKinderGarten(ExcelDifference):
+class ProfileDifferenceKindergarten(ExcelDifference):
     
-    KoreanNAME = "재실패턴"
+    KoreanNAME = "프로필변동"
     
     @classmethod
     def compare(cls,
@@ -390,7 +390,7 @@ class PeopleDensityDifferenceKinderGarten(ExcelDifference):
         after : dict[str, pd.DataFrame],
         checklistbefore: 어린이집체크리스트,
         checklistafter : 어린이집체크리스트,
-        ) -> list[PeopleDensityDifferenceKinderGarten]:
+        ) -> list[ProfileDifferenceKindergarten]:
         
         diffs = []
         for _, row in before["실"].iterrows():
@@ -401,7 +401,61 @@ class PeopleDensityDifferenceKinderGarten(ExcelDifference):
             else:
                 afterrow = after["실"][after["실"]["이름"] == zonename].iloc[0]
             
-            pass
+            if row["현장조사프로필"] != afterrow["현장조사프로필"]:
+                diffs.append(cls(zonename, "프로필변경", row["현장조사프로필"], afterrow["현장조사프로필"], "-"))
+                
+            else:
+                match row["현장조사프로필"]:
+                    case "일반존":
+                        
+                        # 재실밀도
+                        peoplestr_before = f"평일: {checklistbefore.일반존.기본보육교사+checklistbefore.일반존.기본보육원생}→{checklistbefore.일반존.연장보육A교사+checklistbefore.일반존.연장보육A원생}→{checklistbefore.일반존.연장보육B교사+checklistbefore.일반존.연장보육B원생}→{checklistbefore.일반존.야간보육교사+checklistbefore.일반존.야간보육원생}, 주말: {checklistbefore.일반존.주말보육교사+checklistbefore.일반존.주말보육원생} (명)"
+                        peoplestr_after = f"평일: {checklistafter.일반존.기본보육교사+checklistafter.일반존.기본보육원생}→{checklistafter.일반존.연장보육A교사+checklistafter.일반존.연장보육A원생}→{checklistafter.일반존.연장보육B교사+checklistafter.일반존.연장보육B원생}→{checklistafter.일반존.야간보육교사+checklistafter.일반존.야간보육원생}, 주말: {checklistafter.일반존.주말보육교사+checklistafter.일반존.주말보육원생} (명)"
+                        if peoplestr_before != peoplestr_after:
+                            diffs.append(cls(zonename, "재실인원", peoplestr_before, peoplestr_after, "-"))
+                        
+                        # 설비 
+                        for targethvac in ["난방설비1", "난방설비2", "냉방설비1", "냉방설비2"]:
+                            hvac_before = getattr(checklistbefore.특화존1, targethvac)
+                            hvac_after = getattr(checklistafter.특화존1, targethvac)
+                            
+                            if hvac_before is None or hvac_after is None:
+                                continue
+                            
+                            hvacstr_before = f"{hvac_before.사용기간} {hvac_before.사용시간}: {hvac_before.설정온도:.1f}℃"
+                            hvacstr_after = f"{hvac_after.사용기간} {hvac_after.사용시간}: {hvac_after.설정온도:.1f}℃"
+                            if hvacstr_before != hvacstr_after:
+                                diffs.append(cls(zonename, targethvac.replace("설비",""), hvac_before, hvacstr_after, "-"))
+                                
+                    case "특화존1":
+                        
+                        # 운영시간
+                        operationstr_before = " & ".join([checklistbefore.특화존1.오전운영시간, checklistbefore.특화존1.오후운영시간])
+                        operationstr_after = " & ".join([checklistafter.특화존1.오전운영시간, checklistafter.특화존1.오후운영시간])
+                        if operationstr_before != operationstr_after:
+                            diffs.append(cls(zonename, "운영시간", operationstr_before, operationstr_after, "-"))
+                        
+                        # 재실밀도
+                        peoplestr_before = f"오전{checklistbefore.특화존1.오전인원}명, 오후{checklistbefore.특화존1.오후인원}명"
+                        peoplestr_after = f"오전{checklistafter.특화존1.오전인원}명, 오후{checklistafter.특화존1.오후인원}명"
+                        if peoplestr_before != peoplestr_after:
+                            diffs.append(cls(zonename, "재실인원", peoplestr_before, peoplestr_after, "-"))
+                            
+                        # 설비 
+                        for targethvac in ["난방설비1", "난방설비2", "냉방설비1", "냉방설비2"]:
+                            hvac_before = getattr(checklistbefore.특화존1, targethvac)
+                            hvac_after = getattr(checklistafter.특화존1, targethvac)
+                            
+                            if hvac_before is None or hvac_after is None:
+                                continue
+                            
+                            hvacstr_before = f"{hvac_before.사용기간} {hvac_before.사용시간}: {hvac_before.설정온도:.1f}℃"
+                            hvacstr_after = f"{hvac_after.사용기간} {hvac_after.사용시간}: {hvac_after.설정온도:.1f}℃"
+                            if hvacstr_before != hvacstr_after:
+                                diffs.append(cls(zonename, targethvac.replace("설비",""), hvac_before, hvacstr_after, "-"))
+                            
+                    case "특화존2":
+                        ...
         
         return diffs
         
@@ -425,7 +479,7 @@ OPERATION_DIFFLIST = {
         
     ],
     "어린이집": [
-        PeopleDensityDifferenceKinderGarten
+        ProfileDifferenceKindergarten
     ],
 }
 

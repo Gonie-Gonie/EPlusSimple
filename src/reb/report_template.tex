@@ -178,6 +178,35 @@
 }
 
 \section{운영특성 변화 내역 (GR 이후 → GR N년차)}
+{\scriptsize
+\setlength{\tabcolsep}{8pt}
+{% if oper_diff23 %}
+\begin{longtable}{l!{\color{gray!60}\vrule width 0.3pt}
+                  l!{\color{gray!60}\vrule width 0.3pt}
+                  l!{\color{gray!60}\vrule width 0.3pt}
+                  c!{\color{gray!60}\vrule width 0.3pt}
+                  c!{\color{gray!60}\vrule width 0.3pt}
+                  c}
+\toprule
+존 이름 & 구분 & 항목 & 이전 값 & 이후 값 & 단위 \\
+\midrule
+\endfirsthead
+\toprule
+존 이름 & 구분 & 항목 & 이전 값 & 이후 값 & 단위 \\
+\midrule
+\endhead
+{% for d in oper_diff23 %}
+{% if not loop.first and d.prop != loop.previtem.prop %}
+\arrayrulecolor[gray]{0.85}\midrule\arrayrulecolor{black}
+{% endif %}
+{{ d.zonename }} & {{ d.type }} & {{ d.prop }} & {{ d.before }} & {{ d.after }} & {{ d.unit }} \\
+{% endfor %}
+\bottomrule
+\end{longtable}
+{% else %}
+\textit{변경내역 없음.}
+{% endif %}
+}
 
 \section{시뮬레이션 결과 (상세)}
 

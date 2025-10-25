@@ -793,8 +793,8 @@ class 어린이집일반존(hvac존):
             int(v) if not pd.isna(v:= 재실.at["야간보육","교사"]) else v,
             int(v) if not pd.isna(v:= 재실.at["야간보육","원생"]) else v,
             row_to_timestring(주말보육시간.loc["주말보육"]),
-            int(v) if not pd.isna(v:=재실.at["주말보육","교사"]) else pd.NA,
-            int(v) if not pd.isna(v:=재실.at["주말보육","원생"]) else pd.NA,
+            int(v) if not pd.isna(v:=재실.at["주말보육","교사"]) else 0,
+            int(v) if not pd.isna(v:=재실.at["주말보육","원생"]) else 0,
         )
     
     def get_occupant_schedule(self) -> dragon.Schedule:
