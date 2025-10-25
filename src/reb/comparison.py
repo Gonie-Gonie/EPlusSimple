@@ -430,8 +430,8 @@ class ProfileDifferenceKindergarten(ExcelDifference):
                     case "특화존1":
                         
                         # 운영시간
-                        operationstr_before = " & ".join([checklistbefore.특화존1.오전운영시간, checklistbefore.특화존1.오후운영시간])
-                        operationstr_after = " & ".join([checklistafter.특화존1.오전운영시간, checklistafter.특화존1.오후운영시간])
+                        operationstr_before = " & ".join(s for s in [checklistbefore.특화존1.오전운영시간, checklistbefore.특화존1.오후운영시간] if s is not None)
+                        operationstr_after = " & ".join(s for s in [checklistafter.특화존1.오전운영시간, checklistafter.특화존1.오후운영시간] if s is not None)
                         if operationstr_before != operationstr_after:
                             diffs.append(cls(zonename, "운영시간", operationstr_before, operationstr_after, "-"))
                         
@@ -455,7 +455,31 @@ class ProfileDifferenceKindergarten(ExcelDifference):
                                 diffs.append(cls(zonename, targethvac.replace("설비",""), hvac_before, hvacstr_after, "-"))
                             
                     case "특화존2":
-                        ...
+                        
+                        # 운영시간
+                        operationstr_before = checklistbefore.특화존2.운영요일.replace(" ","") + " " + " & ".join(s for s in [checklistbefore.특화존2.오전운영시간, checklistbefore.특화존2.오후운영시간] if s is not None)
+                        operationstr_after = checklistafter.특화존2.운영요일.replace(" ","") + " " + " & ".join(s for s in [checklistafter.특화존2.오전운영시간, checklistafter.특화존2.오후운영시간] if s is not None)
+                        if operationstr_before != operationstr_after:
+                            diffs.append(cls(zonename, "운영시간", operationstr_before, operationstr_after, "-"))
+                        
+                        # 재실밀도
+                        peoplestr_before = f"오전{checklistbefore.특화존2.오전인원}명, 오후{checklistbefore.특화존2.오후인원}명"
+                        peoplestr_after = f"오전{checklistafter.특화존2.오전인원}명, 오후{checklistafter.특화존2.오후인원}명"
+                        if peoplestr_before != peoplestr_after:
+                            diffs.append(cls(zonename, "재실인원", peoplestr_before, peoplestr_after, "-"))
+                            
+                        # 설비 
+                        for targethvac in ["난방설비1", "난방설비2", "냉방설비1", "냉방설비2"]:
+                            hvac_before = getattr(checklistbefore.특화존2, targethvac)
+                            hvac_after = getattr(checklistafter.특화존2, targethvac)
+                            
+                            if hvac_before is None or hvac_after is None:
+                                continue
+                            
+                            hvacstr_before = f"{hvac_before.사용기간} {hvac_before.사용시간}: {hvac_before.설정온도:.1f}℃"
+                            hvacstr_after = f"{hvac_after.사용기간} {hvac_after.사용시간}: {hvac_after.설정온도:.1f}℃"
+                            if hvacstr_before != hvacstr_after:
+                                diffs.append(cls(zonename, targethvac.replace("설비",""), hvac_before, hvacstr_after, "-"))
         
         return diffs
         
