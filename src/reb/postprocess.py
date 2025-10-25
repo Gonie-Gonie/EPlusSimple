@@ -23,6 +23,7 @@ from epsimple import GreenRetrofitModel
 from idragon import (
     dragon     ,
     IDF        ,
+    EnergyModel,
 )
 
 # settings
@@ -1117,7 +1118,12 @@ class 어린이집체크리스트:
             어린이집특화존1.from_excel(filepath),
         )
         
-    def apply_to(self, grm:GreenRetrofitModel, exceldata:dict[str,pd.DataFrame]) -> IDF:
+    def apply_to(self,
+        grm      :GreenRetrofitModel,
+        exceldata:dict[str,pd.DataFrame],
+        *,
+        output:Literal["idf","em"] = "idf"
+        ) -> IDF|EnergyModel:
         
         zoneID_category = {
             category: [
@@ -1138,7 +1144,15 @@ class 어린이집체크리스트:
                 if zone.name in zoneID_category["특화존1"]
         ])
         
-        return em.to_idf()
+        match output:
+            case "idf":
+                return em.to_idf()
+            case "em":
+                return em
+            case _:
+                raise ValueError(
+                    f"{output}은 지원되지 않는 변환 결과물입니다.. idf나 em으로 하세요..."
+                )
     
 class 보건소체크리스트:
     
@@ -1162,7 +1176,12 @@ class 보건소체크리스트:
             보건소특화존2.from_excel(filepath),
         )
         
-    def apply_to(self, grm:GreenRetrofitModel, exceldata:dict[str,pd.DataFrame]) -> IDF:
+    def apply_to(self,
+        grm      :GreenRetrofitModel,
+        exceldata:dict[str,pd.DataFrame],
+        *,
+        output:Literal["idf","em"] = "idf"
+        ) -> IDF|EnergyModel:
         
         zoneID_category = {
             category: [
@@ -1187,7 +1206,15 @@ class 보건소체크리스트:
                 if zone.name in zoneID_category["특화존2"]
         ])
         
-        return em.to_idf()
+        match output:
+            case "idf":
+                return em.to_idf()
+            case "em":
+                return em
+            case _:
+                raise ValueError(
+                    f"{output}은 지원되지 않는 변환 결과물입니다.. idf나 em으로 하세요..."
+                )
 
 # ---------------------------------------------------------------------------- #
 #                                  APPLICATION                                 #
