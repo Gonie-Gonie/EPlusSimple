@@ -977,7 +977,7 @@ class 어린이집특화존1(hvac존):
                 None,
                 dragon.DaySchedule.from_compact(None, [
                     (starth, startm,              0),
-                    (endh  , endm  , self.오전재실인원),
+                    (endh  , endm  , self.오전인원),
                     (24    , 0     ,              0),
                 ],dragon.ScheduleType.REAL,),
                 dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,),
@@ -991,7 +991,7 @@ class 어린이집특화존1(hvac존):
                 None,
                 dragon.DaySchedule.from_compact(None, [
                     (starth, startm,              0),
-                    (endh  , endm  , self.오후재실인원),
+                    (endh  , endm  , self.오후인원),
                     (24    , 0     ,              0),
                 ],dragon.ScheduleType.REAL,),
                 dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,),
@@ -1153,7 +1153,7 @@ class 어린이집특화존2(hvac존):
                         None,
                         [
                             (starth, startm,              0),
-                            (endh  , endm  , self.오전재실인원),
+                            (endh  , endm  , self.오전인원),
                             (24    , 0     ,              0),
                         ],
                         dragon.ScheduleType.REAL,
@@ -1176,7 +1176,7 @@ class 어린이집특화존2(hvac존):
                         None,
                         [
                             (starth, startm,              0),
-                            (endh  , endm  , self.오후재실인원),
+                            (endh  , endm  , self.오후인원),
                             (24    , 0     ,              0),
                         ],
                         dragon.ScheduleType.REAL,
