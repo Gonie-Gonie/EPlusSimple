@@ -23,13 +23,46 @@ from epsimple import GreenRetrofitModel
 from idragon import (
     dragon     ,
     IDF        ,
+    EnergyModel,
 )
 
 # settings
 random.seed(hash("REB-PHIKO-SNU"))
 
+
 # ---------------------------------------------------------------------------- #
-#                                 SUBFUNCTIONS                                 #
+#                          SUBFUNCTIONS: EXCEL TO DATA                         #
+# ---------------------------------------------------------------------------- #
+
+def row_to_timestring(row:pd.Series) -> None|str:
+    
+    if pd.isna(row).any():
+        return None
+    
+    else:
+        row = row.astype(int)
+        return f"{row["시작시"]:02d}:{row["시작분"]:02d}~{row["종료시"]:02d}:{row["종료분"]:02d}"
+    
+    
+def row_to_dayofweekstr(row:pd.Series) -> str:
+    
+    return ", ".join([dayofweek for dayofweek, condition in row.to_dict().items() if condition and (dayofweek in ["월","화","수","목","금","토","일"])])
+
+
+def row_to_설비운영(row:pd.Series) -> None|설비운영:
+    
+    if pd.isna(row).any():
+        return None
+    
+    else:
+        return 설비운영(
+            row_to_timestring(row[["시작시","시작분","종료시","종료분"]]),
+            f"{int(row["시작월"]):02d}~{int(row["종료월"]):02d}월",
+            float(v) if not isinstance(v:=row["설정온도"], str) else v,
+        )
+
+# ---------------------------------------------------------------------------- #
+#                         SUBFUNCTINOS: DATA TO DRAGON                         #
 # ---------------------------------------------------------------------------- #
 
 def parse_duration_hours(operation_str:str) -> tuple[int,int,int,int]:
@@ -61,6 +94,8 @@ def translate_dayofweek(korean_dow:str) -> str:
         "수": "wednesday",
         "목": "thursday" ,
         "금": "friday"   ,
+        "토": "saturday" ,
+        "일": "sunday"   ,
     }
     
     return dow_dict[korean_dow]
@@ -135,38 +170,10 @@ def make_집중진료_dayschedule_values(starth, startm, endh, endm,
 # ---------------------------------------------------------------------------- #
 
 @dataclass
-class MetaData:
-    userId    : str 
-    userName  : str
-    name      : str
-    department: str
-    updatedAt : str
-    version   : str
-    건물명       :str 
-    GR준공일     :str 
-    조사일       :str 
-    응답자근무기간:str 
-    
-    @classmethod
-    def from_row(cls, row:pd.Series):
-        
-        return cls(
-            row["userId"], row["userName"], row["name"], row["department"], row["updatedAt"], row["version"],
-            row["A1"],row["A2"],row["A3"],row["A4"],
-        )    
-
-@dataclass
 class 설비운영:
-    이름:str
     사용시간:str
     사용기간:str
-    설정온도:int
-    사용여부:str
-    
-    @property
-    def is_valid(self) -> bool:
-        return self.사용여부 == "사용"
-    
+    설정온도:int    
     
     def get_hvac_availability_schedule(self) -> dragon.Schedule:
         
@@ -225,17 +232,26 @@ class 설비운영:
             case "heating": default_temperature = -30
             case "cooling": default_temperature =  50
         
-         # 시간
+        # for invalid case: return default setpoint temperature
+        if self.설정온도 == "확인불가":
+            match mode:
+                case "heating": setpoint = original_schedule.max
+                case "cooling": setpoint = original_schedule.min
+        else:
+            setpoint = self.설정온도
+                
         starth, startm, endh, endm = parse_duration_hours(self.사용시간)
         temperature_dayschedule = dragon.DaySchedule.from_compact(
             None,
             [
                 (starth, startm, default_temperature),
-                (endh  , endm  , int(self.설정온도)       ),
+                (endh  , endm  , int(setpoint)      ),
                 (24    , 0     , default_temperature),
             ],
             dragon.ScheduleType.TEMPERATURE         
         )
+        
+        # ruleset:
         temperature_ruleset = dragon.RuleSet(
             None,
             temperature_dayschedule,
@@ -256,12 +272,65 @@ class 설비운영:
                 start = f"{duration2[0]:02d}01",
                 end   = f"{duration2[1]:02d}{get_end_of_the_month(duration2[1]):02d}",
                 inplace=True
-            )  
-        
+            )        
+            
         return temperature_schedule
-    
+
+
 @dataclass
-class 보건소일반존:
+class hvac존:
+    
+    # hvac
+    난방설비1:설비운영
+    난방설비2:설비운영
+    냉방설비1:설비운영
+    냉방설비2:설비운영
+    
+    def get_heating_setpoint_schedule(self, original_schedule:dragon.Schedule) -> dragon.Schedule:
+        
+        # 난방설비 1
+        if self.난방설비1 is not None:
+            first_equipment_setpoint = self.난방설비1.get_setpoint_schedule(original_schedule, "heating")
+        
+            # 난방설비 2
+            if self.난방설비2 is not None:
+                second_equipment_setpoint = self.난방설비2.get_setpoint_schedule(original_schedule, "heating")
+                
+                # 둘 다 고려 (최댓값으로)
+                final_schedule = first_equipment_setpoint.element_max(second_equipment_setpoint)
+                
+            else:
+                final_schedule = first_equipment_setpoint
+        
+        else:
+            final_schedule = original_schedule
+        
+        return final_schedule
+    
+    def get_cooling_setpoint_schedule(self, original_schedule:dragon.Schedule) -> dragon.Schedule:
+        
+        # 냉방설비 1
+        if self.냉방설비1 is not None:
+            first_equipment_setpoint = self.냉방설비1.get_setpoint_schedule(original_schedule, "cooling")
+            
+            # 냉방설비 2
+            if self.냉방설비2 is not None:
+                second_equipment_setpoint = self.냉방설비2.get_setpoint_schedule(original_schedule, "cooling")
+                
+                # 둘 다 고려 (최솟값으로)
+                final_schedule = first_equipment_setpoint.element_min(second_equipment_setpoint)
+                
+            else:
+                final_schedule = first_equipment_setpoint
+        
+        else:
+            final_schedule = original_schedule
+        
+        return final_schedule
+    
+
+@dataclass
+class 보건소일반존(hvac존):
     # zone
     운영시간:str
     직원   :str
@@ -274,34 +343,35 @@ class 보건소일반존:
     집중진료오후방문객:str
     집중진료오전체류시간:int
     집중진료오후체류시간:int
-    # hvac
-    난방설비1:설비운영
-    난방설비2:설비운영
-    냉방설비1:설비운영
-    냉방설비2:설비운영
     
     @classmethod
-    def from_row(cls, row:pd.Series, is_priorGR:bool):
+    def from_excel(cls, filepath:str):
         
-        if is_priorGR:
-            return cls(
-                row["B1"], row["B2"], row["B3"], row["B4"], row["B5"],
-                row["B6"], row["B7"], row["B8"], row["B9"], row["B10"], row["B11"],
-                설비운영(row["B55"],row["B56"],row["B58"],row["B59"],row["BA1"]),
-                설비운영(row["B60"],row["B61"],row["B63"],row["B64"],row["BA2"]),
-                설비운영(row["B65"],row["B66"],row["B68"],row["B69"],row["BA3"]),
-                설비운영(row["B70"],row["B71"],row["B73"],row["B74"],row["BA4"]),
-            )
-        else:
-            return cls(
-                row["B1"], row["B2"], row["B3"], row["B4"], row["B5"],
-                row["B6"], row["B7"], row["B8"], row["B9"], row["B10"], row["B11"],
-                설비운영(row["B51"],row["B52"],row["B54"],row["B55"],row["BA1"]),
-                설비운영(row["B56"],row["B57"],row["B59"],row["B60"],row["BA2"]),
-                설비운영(row["B61"],row["B62"],row["B64"],row["B65"],row["BA3"]),
-                설비운영(row["B66"],row["B67"],row["B69"],row["B70"],row["BA4"]),
-            )
-            
+        # components
+        재실 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=5, nrows=5, usecols=[3,4,5], index_col=0)
+        운영시간 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=11, nrows=4, usecols=[3,4,5,6,7], index_col=0)
+        운영요일 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=16, nrows=3, usecols=[3,4,5,6,7,8], index_col=0)
+        설비 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=21, nrows=5, usecols=[3,4,5,6,7,8,9,10], index_col=0)
+        설비.columns = ["시작시","시작분","종료시","종료분","시작월","종료월","설정온도"]
+        
+        return cls(
+            *[
+                row_to_설비운영(row)
+                for _, row in 설비.iterrows()
+            ],
+            row_to_timestring(운영시간.loc["기본운영"]),
+            int(재실.at["직원","인원수"]),
+            int(운영요일.loc["외근"].sum()),
+            row_to_timestring(운영시간.loc["외근"]),
+            int(재실.at["외근직원","인원수"]),
+            row_to_dayofweekstr(운영요일.loc["집중진료"]),
+            row_to_timestring(운영시간.loc["집중진료"]),
+            int(재실.at["집중진료-오전","인원수"]),
+            int(재실.at["집중진료-오후","인원수"]),
+            재실.at["집중진료-오전","체류시간"],
+            재실.at["집중진료-오후","체류시간"],
+        )
+    
     def get_occupant_schedule(self) -> dragon.Schedule:
         
         # 기본 운영시간
@@ -322,7 +392,7 @@ class 보건소일반존:
         
         # 집중진료
         # 요일 parsing
-        집중진료_dayofweeks = [translate_dayofweek(s.strip()) for s in self.집중진료요일.split(",")]
+        집중진료_dayofweeks = [translate_dayofweek(s.strip()) for s in self.집중진료요일.split(",") if not s==""]
         # 시간 정하기 (random 배정)
         starth, startm, endh, endm = parse_duration_hours(self.집중진료시간)
         schedule_values = make_집중진료_dayschedule_values(
@@ -377,40 +447,6 @@ class 보건소일반존:
         
         return occupant_schedule
     
-    def get_heating_setpoint_schedule(self, original_schedule:dragon.Schedule) -> dragon.Schedule:
-        
-        # 난방설비 1
-        first_equipment_setpoint = self.난방설비1.get_setpoint_schedule(original_schedule, "heating")
-        
-        # 난방설비 2
-        if self.난방설비2.is_valid:
-            second_equipment_setpoint = self.난방설비2.get_setpoint_schedule(original_schedule, "heating")
-            
-            # 둘 다 고려 (최댓값으로)
-            final_schedule = first_equipment_setpoint.element_max(second_equipment_setpoint)
-            
-        else:
-            final_schedule = first_equipment_setpoint
-        
-        return final_schedule
-    
-    def get_cooling_setpoint_schedule(self, original_schedule:dragon.Schedule) -> dragon.Schedule:
-        
-        # 냉방설비 1
-        first_equipment_setpoint = self.냉방설비1.get_setpoint_schedule(original_schedule, "cooling")
-        
-        # 냉방설비 2
-        if self.냉방설비2.is_valid:
-            second_equipment_setpoint = self.냉방설비2.get_setpoint_schedule(original_schedule, "cooling")
-            
-            # 둘 다 고려 (최솟값으로)
-            final_schedule = first_equipment_setpoint.element_min(second_equipment_setpoint)
-            
-        else:
-            final_schedule = first_equipment_setpoint
-        
-        return final_schedule
-    
     def get_hvac_availability_schedule(self) -> dragon.Schedule:
         
         # 기본 운영시간
@@ -436,7 +472,7 @@ class 보건소일반존:
         # 설비 가동스케줄 (개별)
         operation_schedules = []
         for 설비 in [self.난방설비1, self.난방설비2, self.냉방설비1, self.냉방설비2]:
-            if 설비.is_valid:
+            if 설비 is not None:
                 operation_schedules.append(설비.get_hvac_availability_schedule())
             else:
                 operation_schedules.append(dragon.Schedule.from_compact(
@@ -478,39 +514,39 @@ class 보건소일반존:
         return
     
 @dataclass
-class 보건소특화존1:
+class 보건소특화존1(hvac존):
     # zone
-    사용요일:str
+    운영요일:str
     오전운영시간:str
     오후운영시간:str
     오전재실인원:int
     오후재실인원:int
-    # hvac
-    난방설비1:설비운영
-    난방설비2:설비운영
-    냉방설비1:설비운영
-    냉방설비2:설비운영
     
     @classmethod
-    def from_row(cls, row:pd.Series, is_prior_GR:bool):
+    def from_excel(cls, filepath:str):
         
-        if is_prior_GR:
-            return cls(
-                row["B84"],row["B85"],row["B86"],row["B87"],row["B88"],
-                설비운영(row["B89"],row["B90"],row["B92"],row["B93"],row["BA6"]),
-                설비운영(row["B94"],row["B95"],row["B97"],row["B98"],row["BA7"]),
-                설비운영(row["B99"],row["B100"],row["B102"],row["B103"],row["BA8"]),
-                설비운영(row["B104"],row["B105"],row["B107"],row["B108"],row["BA9"]),
-            )
-        else:
-            return cls(
-                row["B80"],row["B81"],row["B82"],row["B83"],row["B84"],
-                설비운영(row["B85"],row["B86"],row["B88"],row["B89"],row["BA6"]),
-                설비운영(row["B90"],row["B91"],row["B93"],row["B94"],row["BA7"]),
-                설비운영(row["B95"],row["B96"],row["B98"],row["B99"],row["BA8"]),
-                설비운영(row["B100"],row["B101"],row["B103"],row["B104"],row["BA9"]),
-            )
-
+        # components
+        재실 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=29, nrows=3, usecols=[3,4], index_col=0)
+        운영시간 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=33, nrows=3, usecols=[3,4,5,6,7], index_col=0)
+        운영요일 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=37, nrows=2, usecols=[3,4,5,6,7,8], index_col=0)
+        설비 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=41, nrows=5, usecols=[3,4,5,6,7,8,9,10], index_col=0)
+        설비.columns = ["시작시","시작분","종료시","종료분","시작월","종료월","설정온도"]
+        
+        # ensure validity by dayofweek
+        has_valid_dayofweek = bool(운영요일.loc["운영요일"].any())
+        
+        return cls(
+            *[
+                row_to_설비운영(row)
+                for _, row in 설비.iterrows()
+            ],
+            row_to_dayofweekstr(운영요일.loc["운영요일"]),
+            row_to_timestring(운영시간.loc["오전"]) if has_valid_dayofweek else None,
+            row_to_timestring(운영시간.loc["오후"]) if has_valid_dayofweek else None,
+            int(v) if not pd.isna(v:=재실.at["오전","인원수"]) else pd.NA,
+            int(v) if not pd.isna(v:=재실.at["오후","인원수"]) else pd.NA,
+        )
+    
     def get_occupant_schedule(self) -> dragon.Schedule:
         
         # 기본 스케줄 (0명)
@@ -523,7 +559,7 @@ class 보건소특화존1:
         # 오전 재실
         if not pd.isna(self.오전운영시간):
             starth, startm, endh, endm = parse_duration_hours(self.오전운영시간)
-            dayofweeks = [translate_dayofweek(s.strip()) for s in self.사용요일.split(",")]
+            dayofweeks = [translate_dayofweek(s.strip()) for s in self.운영요일.split(",") if not s==""]
             오전_ruleset = dragon.RuleSet(
                 None,
                 dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,),
@@ -546,7 +582,7 @@ class 보건소특화존1:
         # 오후 재실
         if not pd.isna(self.오후운영시간):
             starth, startm, endh, endm = parse_duration_hours(self.오후운영시간)
-            dayofweeks = [translate_dayofweek(s.strip()) for s in self.사용요일.split(",")]
+            dayofweeks = [translate_dayofweek(s.strip()) for s in self.운영요일.split(",") if not s==""]
             오후_ruleset = dragon.RuleSet(
                 None,
                 dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,),
@@ -573,40 +609,6 @@ class 보건소특화존1:
         )
         
         return occupant_schedule
-    
-    def get_heating_setpoint_schedule(self, original_schedule:dragon.Schedule) -> dragon.Schedule:
-        
-        # 난방설비 1
-        first_equipment_setpoint = self.난방설비1.get_setpoint_schedule(original_schedule, "heating")
-        
-        # 난방설비 2
-        if self.난방설비2.is_valid:
-            second_equipment_setpoint = self.난방설비2.get_setpoint_schedule(original_schedule, "heating")
-            
-            # 둘 다 고려 (최댓값으로)
-            final_schedule = first_equipment_setpoint.element_max(second_equipment_setpoint)
-            
-        else:
-            final_schedule = first_equipment_setpoint
-        
-        return final_schedule
-    
-    def get_cooling_setpoint_schedule(self, original_schedule:dragon.Schedule) -> dragon.Schedule:
-        
-        # 냉방설비 1
-        first_equipment_setpoint = self.냉방설비1.get_setpoint_schedule(original_schedule, "cooling")
-        
-        # 냉방설비 2
-        if self.냉방설비2.is_valid:
-            second_equipment_setpoint = self.냉방설비2.get_setpoint_schedule(original_schedule, "cooling")
-            
-            # 둘 다 고려 (최솟값으로)
-            final_schedule = first_equipment_setpoint.element_min(second_equipment_setpoint)
-            
-        else:
-            final_schedule = first_equipment_setpoint
-        
-        return final_schedule
     
     def get_hvac_availability_schedule(self) -> dragon.Schedule:
         
@@ -662,7 +664,7 @@ class 보건소특화존1:
         # 설비 가동스케줄 (개별)
         operation_schedules = []
         for 설비 in [self.난방설비1, self.난방설비2, self.냉방설비1, self.냉방설비2]:
-            if 설비.is_valid:
+            if 설비 is not None:
                 operation_schedules.append(설비.get_hvac_availability_schedule())
             else:
                 operation_schedules.append(dragon.Schedule.from_compact(
@@ -704,78 +706,34 @@ class 보건소특화존1:
     
     
 @dataclass
-class 보건소특화존2:
+class 보건소특화존2(hvac존):
     #zone
-    관사여부:str
-    관사수  :int
     사용관사수:str
-    평일사용일수:int
-    주말사용일수:int
-    동거인여부:str
     동거인수:int
-    # hvac
-    난방설비1:설비운영
-    난방설비2:설비운영
-    냉방설비1:설비운영
-    냉방설비2:설비운영
-    
-    @classmethod
-    def from_row(cls, row:pd.Series, is_prior_GR:bool):
-        
-        if is_prior_GR:
-            return cls(
-                row["B118"],row["B119"],row["B120"],row["B121"],row["B122"],row["B123"],row["B124"],
-                설비운영(row["B125"],row["B126"],row["B128"],row["B129"],row["BA11"]),
-                설비운영(row["B130"],row["B131"],row["B133"],row["B134"],row["BA12"]),
-                설비운영(row["B135"],row["B136"],row["B138"],row["B139"],row["BA13"]),
-                설비운영(row["B140"],row["B141"],row["B143"],row["B144"],row["BA14"]),
-            )
-        else:
-            return cls(
-                row["B114"],row["B115"],row["B116"],row["B117"],row["B118"],row["B119"],row["B120"],
-                설비운영(row["B121"],row["B122"],row["B124"],row["B125"],row["BA11"]),
-                설비운영(row["B126"],row["B127"],row["B129"],row["B130"],row["BA12"]),
-                설비운영(row["B131"],row["B132"],row["B134"],row["B135"],row["BA13"]),
-                설비운영(row["B136"],row["B137"],row["B139"],row["B140"],row["BA14"]),
-            )
+    운영요일:int
 
+    @classmethod
+    def from_excel(cls, filepath:str):
+        
+        # components
+        재실 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=49, nrows=3, usecols=[3,4], index_col=0)
+        운영요일 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=53, nrows=2, usecols=[3,4,5,6,7,8,9,10], index_col=0)
+        설비 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=57, nrows=5, usecols=[3,4,5,6,7,8,9,10], index_col=0)
+        설비.columns = ["시작시","시작분","종료시","종료분","시작월","종료월","설정온도"]
+        
+        return cls(
+            *[
+                row_to_설비운영(row)
+                for _, row in 설비.iterrows()
+            ],
+            int(재실.at["사용관사수","인원수"]),
+            int(재실.at["동거인수","인원수"]),
+            row_to_dayofweekstr(운영요일.loc["운영요일"]),   
+        )
+    
     def get_occupant_schedule(self) -> dragon.Schedule:
         
         return
-    
-    def get_heating_setpoint_schedule(self, original_schedule:dragon.Schedule) -> dragon.Schedule:
-        
-        # 난방설비 1
-        first_equipment_setpoint = self.난방설비1.get_setpoint_schedule(original_schedule, "heating")
-        
-        # 난방설비 2
-        if self.난방설비2.is_valid:
-            second_equipment_setpoint = self.난방설비2.get_setpoint_schedule(original_schedule, "heating")
-            
-            # 둘 다 고려 (최댓값으로)
-            final_schedule = first_equipment_setpoint.element_max(second_equipment_setpoint)
-            
-        else:
-            final_schedule = first_equipment_setpoint
-        
-        return final_schedule
-    
-    def get_cooling_setpoint_schedule(self, original_schedule:dragon.Schedule) -> dragon.Schedule:
-        
-        # 냉방설비 1
-        first_equipment_setpoint = self.냉방설비1.get_setpoint_schedule(original_schedule, "cooling")
-        
-        # 냉방설비 2
-        if self.냉방설비2.is_valid:
-            second_equipment_setpoint = self.냉방설비2.get_setpoint_schedule(original_schedule, "cooling")
-            
-            # 둘 다 고려 (최솟값으로)
-            final_schedule = first_equipment_setpoint.element_min(second_equipment_setpoint)
-            
-        else:
-            final_schedule = first_equipment_setpoint
-        
-        return final_schedule
     
     def get_hvac_availability_schedule(self) -> dragon.Schedule:
         
@@ -800,7 +758,7 @@ class 보건소특화존2:
     
 
 @dataclass
-class 어린이집일반존:
+class 어린이집일반존(hvac존):
     # zone
     기본보육교사:int
     기본보육원생:int
@@ -813,32 +771,32 @@ class 어린이집일반존:
     주말보육시간:str
     주말보육교사:int
     주말보육원생:int
-    # hvac
-    난방설비1:설비운영
-    난방설비2:설비운영
-    냉방설비1:설비운영
-    냉방설비2:설비운영
-    
+            
     @classmethod
-    def from_row(cls, row:pd.Series, is_priorGR:bool):
-        if is_priorGR:
-            return cls(
-                row["B5"] , row["B6"] , row["B8"] , row["B9"],
-                row["B11"], row["B12"], row["B14"], row["B15"], row["B16"], row["B17"], row["B18"],
-                설비운영(row["B63"],row["B64"],row["B66"],row["B67"],row["BA1"]),
-                설비운영(row["B68"],row["B69"],row["B71"],row["B72"],row["BA2"]),
-                설비운영(row["B73"],row["B74"],row["B76"],row["B77"],row["BA3"]),
-                설비운영(row["B78"],row["B79"],row["B81"],row["B82"],row["BA4"]),
-            )
-        else:
-            return cls(
-                row["B5"] , row["B6"] , row["B8"] , row["B9"],
-                row["B11"], row["B12"], row["B14"], row["B15"], row["B16"], row["B17"], row["B18"],
-                설비운영(row["B59"],row["B60"],row["B62"],row["B63"],row["BA1"]),
-                설비운영(row["B64"],row["B65"],row["B67"],row["B68"],row["BA2"]),
-                설비운영(row["B69"],row["B70"],row["B72"],row["B73"],row["BA3"]),
-                설비운영(row["B74"],row["B75"],row["B77"],row["B78"],row["BA4"]),
-            )
+    def from_excel(cls, filepath:str):
+        
+        재실 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=5, nrows=6, usecols=[3,4,5], index_col=0)
+        주말보육시간 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=12, nrows=2, usecols=[3,4,5,6,7], index_col=0)
+        설비 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=16, nrows=5, usecols=[3,4,5,6,7,8,9,10], index_col=0)
+        설비.columns = ["시작시","시작분","종료시","종료분","시작월","종료월","설정온도"]
+        
+        return cls(
+            *[
+                row_to_설비운영(row)
+                for _, row in 설비.iterrows()
+            ],
+            int(재실.at["기본보육","교사"]),
+            int(재실.at["기본보육","원생"]),
+            int(재실.at["연장보육A","교사"]),
+            int(재실.at["연장보육A","원생"]),
+            int(재실.at["연장보육B","교사"]),
+            int(재실.at["연장보육B","원생"]),
+            int(v) if not pd.isna(v:= 재실.at["야간보육","교사"]) else v,
+            int(v) if not pd.isna(v:= 재실.at["야간보육","원생"]) else v,
+            row_to_timestring(주말보육시간.loc["주말보육"]),
+            int(v) if not pd.isna(v:=재실.at["주말보육","교사"]) else 0,
+            int(v) if not pd.isna(v:=재실.at["주말보육","원생"]) else 0,
+        )
     
     def get_occupant_schedule(self) -> dragon.Schedule:
         
@@ -888,40 +846,6 @@ class 어린이집일반존:
         
         return occupant_schedule
     
-    def get_heating_setpoint_schedule(self, original_schedule:dragon.Schedule) -> dragon.Schedule:
-        
-        # 난방설비 1
-        first_equipment_setpoint = self.난방설비1.get_setpoint_schedule(original_schedule, "heating")
-        
-        # 난방설비 2
-        if self.난방설비2.is_valid:
-            second_equipment_setpoint = self.난방설비2.get_setpoint_schedule(original_schedule, "heating")
-            
-            # 둘 다 고려 (최댓값으로)
-            final_schedule = first_equipment_setpoint.element_max(second_equipment_setpoint)
-            
-        else:
-            final_schedule = first_equipment_setpoint
-        
-        return final_schedule
-    
-    def get_cooling_setpoint_schedule(self, original_schedule:dragon.Schedule) -> dragon.Schedule:
-        
-        # 냉방설비 1
-        first_equipment_setpoint = self.냉방설비1.get_setpoint_schedule(original_schedule, "cooling")
-        
-        # 냉방설비 2
-        if self.냉방설비2.is_valid:
-            second_equipment_setpoint = self.냉방설비2.get_setpoint_schedule(original_schedule, "cooling")
-            
-            # 둘 다 고려 (최솟값으로)
-            final_schedule = first_equipment_setpoint.element_min(second_equipment_setpoint)
-            
-        else:
-            final_schedule = first_equipment_setpoint
-        
-        return final_schedule
-    
     def get_hvac_availability_schedule(self) -> dragon.Schedule:
         
         # 평일
@@ -969,7 +893,7 @@ class 어린이집일반존:
         # 설비 가동스케줄 (개별)
         operation_schedules = []
         for 설비 in [self.난방설비1, self.난방설비2, self.냉방설비1, self.냉방설비2]:
-            if 설비.is_valid:
+            if 설비 is not None:
                 operation_schedules.append(설비.get_hvac_availability_schedule())
             else:
                 operation_schedules.append(dragon.Schedule.from_compact(
@@ -1010,36 +934,31 @@ class 어린이집일반존:
         return
 
 @dataclass
-class 어린이집특화존:
+class 어린이집특화존1(hvac존):
     # zone
     오전운영시간:str
     오후운영시간:str
     오전인원:int
     오후인원:int
-    # hvac
-    난방설비1:설비운영
-    난방설비2:설비운영
-    냉방설비1:설비운영
-    냉방설비2:설비운영
-    
+        
     @classmethod
-    def from_row(cls, row:pd.Series, is_priorGR:bool):
-        if is_priorGR:
-            return cls(
-                row["B92"] , row["B93"] , row["B94"] , row["B95"],
-                설비운영(row["B96"],row["B97"],row["B99"],row["B100"],row["BA6"]),
-                설비운영(row["B101"],row["B102"],row["B104"],row["B105"],row["BA7"]),
-                설비운영(row["B106"],row["B107"],row["B109"],row["B110"],row["BA8"]),
-                설비운영(row["B107"],row["B112"],row["B114"],row["B115"],row["BA9"]),
-            )
-        else:
-            return cls(
-                row["B88"] , row["B89"] , row["B90"] , row["B91"],
-                설비운영(row["B92"] ,row["B93"] ,row["B95"] ,row["B96"] ,row["BA6"]),
-                설비운영(row["B97"] ,row["B98"] ,row["B100"],row["B101"],row["BA7"]),
-                설비운영(row["B102"],row["B103"],row["B105"],row["B106"],row["BA8"]),
-                설비운영(row["B107"],row["B108"],row["B110"],row["B111"],row["BA9"]),
-            )
+    def from_excel(cls, filepath:str):
+        
+        재실 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=24, nrows=3, usecols=[3,4], index_col=0)
+        운영시간 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=28, nrows=3, usecols=[3,4,5,6,7], index_col=0)
+        설비 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=33, nrows=5, usecols=[3,4,5,6,7,8,9,10], index_col=0)
+        설비.columns = ["시작시","시작분","종료시","종료분","시작월","종료월","설정온도"]
+        
+        return cls(
+            *[
+                row_to_설비운영(row)
+                for _, row in 설비.iterrows()
+            ],
+            row_to_timestring(운영시간.loc["오전"]),
+            row_to_timestring(운영시간.loc["오후"]),
+            int(v) if not pd.isna(v:=재실.at["오전","인원"]) else pd.NA,
+            int(v) if not pd.isna(v:=재실.at["오후","인원"]) else pd.NA,
+        )
     
     def get_occupant_schedule(self) -> dragon.Schedule:
         
@@ -1071,47 +990,6 @@ class 어린이집특화존:
         )
         
         return occupant_schedule
-    
-    def get_heating_setpoint_schedule(self, original_schedule:dragon.Schedule) -> dragon.Schedule:
-
-        # 난방설비 1
-        if self.난방설비1.is_valid:
-            first_equipment_setpoint = self.난방설비1.get_setpoint_schedule(original_schedule, "heating")
-            
-            # 난방설비 2
-            if self.난방설비2.is_valid:
-                second_equipment_setpoint = self.난방설비2.get_setpoint_schedule(original_schedule, "heating")
-                
-                # 둘 다 고려 (최댓값으로)
-                final_schedule = first_equipment_setpoint.element_max(second_equipment_setpoint)
-                
-            else:
-                final_schedule = first_equipment_setpoint
-        
-        else:
-            final_schedule = original_schedule
-        
-        return final_schedule
-    
-    def get_cooling_setpoint_schedule(self, original_schedule:dragon.Schedule) -> dragon.Schedule:
-        
-        # 냉방설비 1
-        if self.냉방설비1.is_valid:
-            first_equipment_setpoint = self.냉방설비1.get_setpoint_schedule(original_schedule, "cooling")
-        
-            # 냉방설비 2
-            if self.냉방설비2.is_valid:
-                second_equipment_setpoint = self.냉방설비2.get_setpoint_schedule(original_schedule, "cooling")
-                
-                # 둘 다 고려 (최솟값으로)
-                final_schedule = first_equipment_setpoint.element_min(second_equipment_setpoint)
-                
-            else:
-                final_schedule = first_equipment_setpoint
-        else:
-            final_schedule = original_schedule
-            
-        return final_schedule
     
     def get_hvac_availability_schedule(self) -> dragon.Schedule:
         
@@ -1145,7 +1023,7 @@ class 어린이집특화존:
         # 설비 가동스케줄 (개별)
         operation_schedules = []
         for 설비 in [self.난방설비1, self.난방설비2, self.냉방설비1, self.냉방설비2]:
-            if 설비.is_valid:
+            if 설비 is not None:
                 operation_schedules.append(설비.get_hvac_availability_schedule())
             else:
                 operation_schedules.append(dragon.Schedule.from_compact(
@@ -1174,7 +1052,141 @@ class 어린이집특화존:
         
         for zone in zones:
             zone.profile = dragon.Profile(
-                f"{zone.name}_특화존체크리스트",
+                f"{zone.name}_특화존1체크리스트",
+                self.get_heating_setpoint_schedule(zone.profile.heating_setpoint), 
+                self.get_cooling_setpoint_schedule(zone.profile.cooling_setpoint), 
+                hvac_availability_schedule,
+                occupant_schedule         ,
+                zone.profile.lighting     ,
+                zone.profile.equipment    ,
+            )
+            
+        return
+    
+
+@dataclass
+class 어린이집특화존2(hvac존):
+    # zone
+    오전운영시간:str
+    오후운영시간:str
+    운영요일:str
+    오전인원:int
+    오후인원:int
+        
+    @classmethod
+    def from_excel(cls, filepath:str):
+        
+        재실 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=41, nrows=3, usecols=[3,4], index_col=0)
+        운영시간 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=45, nrows=3, usecols=[3,4,5,6,7], index_col=0)
+        운영요일 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=49, nrows=2, usecols=[3,4,5,6,7,8], index_col=0)
+        설비 = pd.read_excel(filepath, sheet_name="현장조사", skiprows=53, nrows=5, usecols=[3,4,5,6,7,8,9,10], index_col=0)
+        설비.columns = ["시작시","시작분","종료시","종료분","시작월","종료월","설정온도"]
+        
+        return cls(
+            *[
+                row_to_설비운영(row)
+                for _, row in 설비.iterrows()
+            ],
+            row_to_timestring(운영시간.loc["오전"]),
+            row_to_timestring(운영시간.loc["오후"]),
+            row_to_dayofweekstr(운영요일.loc["운영요일"]),
+            int(v) if not pd.isna(v:=재실.at["오전","인원"]) else pd.NA,
+            int(v) if not pd.isna(v:=재실.at["오후","인원"]) else pd.NA,
+        )
+    
+    def get_occupant_schedule(self) -> dragon.Schedule:
+        
+        오전starth, 오전startm, 오전endh, 오전endm = parse_duration_hours(self.오전운영시간)
+        오후starth, 오후startm, 오후endh, 오후endm = parse_duration_hours(self.오후운영시간)
+        
+        if 오전endh == 오후starth and 오전endm == 오후startm:
+            dayschedule_values = [
+                (오전starth, 오전startm, 0),
+                (오후starth, 오후startm, self.오전인원),
+                (오후endh  , 오전endm  , self.오후인원),
+                (24        , 0        , 0),
+            ]
+        else:
+            dayschedule_values = [
+                (오전starth, 오전startm, 0),
+                (오전endh  , 오전endm  , self.오전인원),
+                (오후starth, 오후startm, 0),
+                (오후endh  , 오전endm  , self.오후인원),
+                (24        , 0        , 0),
+            ]
+            
+        occupant_schedule = dragon.Schedule.from_compact(
+            None, [("0101","1231", dragon.RuleSet(
+                None,
+                dragon.DaySchedule.from_compact(None, dayschedule_values, dragon.ScheduleType.REAL),
+                dragon.DaySchedule.from_compact(None, [(24,0,0)], dragon.ScheduleType.REAL)
+            ))]
+        )
+        
+        return occupant_schedule
+    
+    def get_hvac_availability_schedule(self) -> dragon.Schedule:
+        
+        오전starth, 오전startm, 오전endh, 오전endm = parse_duration_hours(self.오전운영시간)
+        오후starth, 오후startm, 오후endh, 오후endm = parse_duration_hours(self.오후운영시간)
+        
+        if 오전endh == 오후starth and 오전endm == 오후startm:
+            dayschedule_values = [
+                (오전starth, 오전startm, 0),
+                (오후starth, 오후startm, 1),
+                (오후endh  , 오전endm  , 1),
+                (24        , 0        , 0),
+            ]
+        else:
+            dayschedule_values = [
+                (오전starth, 오전startm, 0),
+                (오전endh  , 오전endm  , 1),
+                (오후starth, 오후startm, 0),
+                (오후endh  , 오전endm  , 1),
+                (24        , 0        , 0),
+            ]
+            
+        기본운영_schedule = dragon.Schedule.from_compact(
+            None, [("0101","1231", dragon.RuleSet(
+                None,
+                dragon.DaySchedule.from_compact(None, dayschedule_values, dragon.ScheduleType.ONOFF),
+                dragon.DaySchedule.from_compact(None, [(24,0,0)], dragon.ScheduleType.ONOFF)
+            ))]
+        )
+        
+        # 설비 가동스케줄 (개별)
+        operation_schedules = []
+        for 설비 in [self.난방설비1, self.난방설비2, self.냉방설비1, self.냉방설비2]:
+            if 설비 is not None:
+                operation_schedules.append(설비.get_hvac_availability_schedule())
+            else:
+                operation_schedules.append(dragon.Schedule.from_compact(
+                    None, [("0101","1231", dragon.RuleSet(
+                        None,
+                        dragon.DaySchedule.from_compact(None, [(24,0,0)], dragon.ScheduleType.ONOFF),
+                        dragon.DaySchedule.from_compact(None, [(24,0,0)], dragon.ScheduleType.ONOFF),
+                    ))]
+                ))
+                
+        # 설비 가동스케줄 (or조건으로 개별 설비 결합: 모종의 설비가 가동중)
+        hvac_availability = operation_schedules[0]
+        for schedule in operation_schedules[1:]:
+            hvac_availability |= schedule
+        
+        # 최종 스케줄 = 운영중이면서, 설비 가동 중
+        hvac_availability &= 기본운영_schedule
+        
+        return hvac_availability
+
+    def apply_to(self, zones:list[dragon.Zone]) -> None:
+        
+        total_area = max(sum(zone.floor_area for zone in zones), 1E-6)
+        occupant_schedule          = self.get_occupant_schedule()/total_area 
+        hvac_availability_schedule = self.get_hvac_availability_schedule()
+        
+        for zone in zones:
+            zone.profile = dragon.Profile(
+                f"{zone.name}_특화존2체크리스트",
                 self.get_heating_setpoint_schedule(zone.profile.heating_setpoint), 
                 self.get_cooling_setpoint_schedule(zone.profile.cooling_setpoint), 
                 hvac_availability_schedule,
@@ -1191,14 +1203,6 @@ class 어린이집특화존:
 
 class 현장조사체크리스트(ABC):
     
-    def __init__(self,
-        raw_input:pd.Series,
-        metadata :MetaData,
-        ) -> None:
-        
-        self.raw  = raw_input
-        self.meta = metadata
-    
     """ input
     """
     
@@ -1209,125 +1213,33 @@ class 현장조사체크리스트(ABC):
     def from_dataframe(cls, df:pd.DataFrame) -> list[현장조사체크리스트]:
         return [cls.from_row(row) for _, row in df.iterrows()]
     
+    @staticmethod
+    def from_excel(
+        filepath:str,
+        ) -> None:
+        
+        building_type = pd.read_excel(filepath, sheet_name="현장조사", nrows=1, usecols=[0]).at[0,"현장조사유형"]
+        
+        match building_type:
+            case "보건소":
+                return 보건소체크리스트.from_excel(filepath)
+            case "어린이집":
+                return 어린이집체크리스트.from_excel(filepath)
+    
     """ output
     """
     
     @abstractmethod
     def apply_to(self, grm:GreenRetrofitModel) -> IDF: ...
         
-        
-class 어린이집GR이전체크리스트(현장조사체크리스트):
-    
-    def __init__(self,
-        raw_input:pd.Series,
-        metadata :MetaData,
-        일반존: 어린이집일반존 ,
-        특화존: 어린이집특화존,
-        ) -> None:
-        
-        # common
-        super().__init__(raw_input, metadata)
-        
-        # zone survey
-        self.일반존 = 일반존
-        self.특화존 = 특화존
-    
-    @classmethod
-    def from_row(cls, row:pd.Series) -> 보건소GR이전체크리스트:
-        
-        return cls(
-            row,
-            MetaData.from_row(row),
-            어린이집일반존.from_row(row, True),
-            어린이집특화존.from_row(row, True),
-        )
-    
-    def apply_to(self, grm:GreenRetrofitModel, exceldata:dict[str,pd.DataFrame]) -> IDF:
-        
-        zoneID_category = {
-            category: [
-                zone.ID for zone in grm.zone
-                if zone.name in list(exceldata["실"].query("현장조사프로필 == @category" )["이름"].values)
-            ]
-            for category in ["일반존","특화존"]
-        }
-        
-        em = grm.to_dragon()
-        
-        self.일반존.apply_to([
-                zone for zone in em.zone
-                if zone.name in zoneID_category["일반존"]
-        ])
-        self.특화존.apply_to([
-                zone for zone in em.zone
-                if zone.name in zoneID_category["특화존"]
-        ])
-        
-        return em.to_idf()
 
-
-class 어린이집GR이후체크리스트(현장조사체크리스트):
+class 어린이집체크리스트:
     
     def __init__(self,
-        raw_input:pd.Series,
-        metadata :MetaData,
-        일반존: 어린이집일반존 ,
-        특화존: 어린이집특화존,
+        일반존 : 어린이집일반존 ,
+        특화존1: 어린이집특화존1,
+        특화존2: 어린이집특화존2,
         ) -> None:
-        
-        # common
-        super().__init__(raw_input, metadata)
-        
-        # zone survey
-        self.일반존 = 일반존
-        self.특화존 = 특화존
-    
-    @classmethod
-    def from_row(cls, row:pd.Series) -> 보건소GR이전체크리스트:
-        
-        return cls(
-            row,
-            MetaData.from_row(row),
-            어린이집일반존.from_row(row, False),
-            어린이집특화존.from_row(row, False),
-        )
-    
-    def apply_to(self, grm:GreenRetrofitModel, exceldata:dict[str,pd.DataFrame]) -> IDF:
-        
-        zoneID_category = {
-            category: [
-                zone.ID for zone in grm.zone
-                if zone.name in list(exceldata["실"].query("현장조사프로필 == @category" )["이름"].values)
-            ]
-            for category in ["일반존","특화존"]
-        }
-        
-        em = grm.to_dragon()
-        
-        self.일반존.apply_to([
-                zone for zone in em.zone
-                if zone.name in zoneID_category["일반존"]
-        ])
-        self.특화존.apply_to([
-                zone for zone in em.zone
-                if zone.name in zoneID_category["특화존"]
-        ])
-        
-        return em.to_idf()
-    
-    
-class 보건소GR이전체크리스트(현장조사체크리스트):
-    
-    def __init__(self,
-        raw_input:pd.Series,
-        metadata :MetaData,
-        일반존 : 보건소일반존 ,
-        특화존1: 보건소특화존1,
-        특화존2: 보건소특화존2,
-        ) -> None:
-        
-        # common
-        super().__init__(raw_input, metadata)
         
         # zone survey
         self.일반존  = 일반존
@@ -1335,74 +1247,20 @@ class 보건소GR이전체크리스트(현장조사체크리스트):
         self.특화존2 = 특화존2
     
     @classmethod
-    def from_row(cls, row:pd.Series) -> 보건소GR이전체크리스트:
+    def from_excel(cls, filepath:str) -> 어린이집체크리스트:
         
         return cls(
-            row,
-            MetaData.from_row(row),
-            보건소일반존.from_row(row, True),
-            보건소특화존1.from_row(row, True),
-            보건소특화존2.from_row(row, True),
-        )
-    
-    def apply_to(self, grm:GreenRetrofitModel, exceldata:dict[str,pd.DataFrame]) -> IDF:
-        
-        zoneID_category = {
-            category: [
-                zone.ID for zone in grm.zone
-                if zone.name in list(exceldata["실"].query("현장조사프로필 == @category" )["이름"].values)
-            ]
-            for category in ["일반존","특화존 1","특화존 2"]
-        }
-        
-        em = grm.to_dragon()
-        
-        self.일반존.apply_to([
-                zone for zone in em.zone
-                if zone.name in zoneID_category["일반존"]
-        ])
-        self.특화존1.apply_to([
-                zone for zone in em.zone
-                if zone.name in zoneID_category["특화존 1"]
-        ])
-        self.특화존2.apply_to([
-                zone for zone in em.zone
-                if zone.name in zoneID_category["특화존 2"]
-        ])
-        
-        return em.to_idf()
-    
-    
-class 보건소GR이후체크리스트(현장조사체크리스트):
-
-    def __init__(self,
-        raw_input:pd.Series,
-        metadata :MetaData,
-        일반존 : 보건소일반존 ,
-        특화존1: 보건소특화존1,
-        특화존2: 보건소특화존2,
-        ) -> None:
-        
-        # common
-        super().__init__(raw_input, metadata)
-        
-        # zone survey
-        self.일반존  = 일반존
-        self.특화존1 = 특화존1
-        self.특화존2 = 특화존2
-    
-    @classmethod
-    def from_row(cls, row:pd.Series) -> 보건소GR이전체크리스트:
-        
-        return cls(
-            row,
-            MetaData.from_row(row),
-            보건소일반존.from_row(row, False),
-            보건소특화존1.from_row(row, False),
-            보건소특화존2.from_row(row, False),
+            어린이집일반존.from_excel(filepath),
+            어린이집특화존1.from_excel(filepath),
+            어린이집특화존2.from_excel(filepath),
         )
         
-    def apply_to(self, grm:GreenRetrofitModel, exceldata:dict[str,pd.DataFrame]) -> IDF:
+    def apply_to(self,
+        grm      :GreenRetrofitModel,
+        exceldata:dict[str,pd.DataFrame],
+        *,
+        output:Literal["idf","em"] = "idf"
+        ) -> IDF|EnergyModel:
         
         zoneID_category = {
             category: [
@@ -1427,14 +1285,77 @@ class 보건소GR이후체크리스트(현장조사체크리스트):
                 if zone.name in zoneID_category["특화존2"]
         ])
         
-        return em.to_idf()
+        match output:
+            case "idf":
+                return em.to_idf()
+            case "em":
+                return em
+            case _:
+                raise ValueError(
+                    f"{output}은 지원되지 않는 변환 결과물입니다.. idf나 em으로 하세요..."
+                )
     
+class 보건소체크리스트:
     
-class 의료시설GR이전체크리스트(현장조사체크리스트): ...
-
-class 의료시설GR이후체크리스트(현장조사체크리스트): ...
-
-
+    def __init__(self,
+        일반존 : 보건소일반존 ,
+        특화존1: 보건소특화존1,
+        특화존2: 보건소특화존2,
+        ) -> None:
+        
+        # zone survey
+        self.일반존  = 일반존
+        self.특화존1 = 특화존1
+        self.특화존2 = 특화존2
+    
+    @classmethod
+    def from_excel(cls, filepath:str) -> 보건소체크리스트:
+        
+        return cls(
+            보건소일반존.from_excel(filepath),
+            보건소특화존1.from_excel(filepath),
+            보건소특화존2.from_excel(filepath),
+        )
+        
+    def apply_to(self,
+        grm      :GreenRetrofitModel,
+        exceldata:dict[str,pd.DataFrame],
+        *,
+        output:Literal["idf","em"] = "idf"
+        ) -> IDF|EnergyModel:
+        
+        zoneID_category = {
+            category: [
+                zone.ID for zone in grm.zone
+                if zone.name in list(exceldata["실"].query("현장조사프로필 == @category" )["이름"].values)
+            ]
+            for category in ["일반존","특화존1","특화존2"]
+        }
+        
+        em = grm.to_dragon()
+        
+        self.일반존.apply_to([
+                zone for zone in em.zone
+                if zone.name in zoneID_category["일반존"]
+        ])
+        self.특화존1.apply_to([
+                zone for zone in em.zone
+                if zone.name in zoneID_category["특화존1"]
+        ])
+        self.특화존2.apply_to([
+                zone for zone in em.zone
+                if zone.name in zoneID_category["특화존2"]
+        ])
+        
+        match output:
+            case "idf":
+                return em.to_idf()
+            case "em":
+                return em
+            case _:
+                raise ValueError(
+                    f"{output}은 지원되지 않는 변환 결과물입니다.. idf나 em으로 하세요..."
+                )
 
 # ---------------------------------------------------------------------------- #
 #                                  APPLICATION                                 #

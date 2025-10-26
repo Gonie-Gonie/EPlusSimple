@@ -289,7 +289,7 @@ def save_excel(
 def process_excel_file(
     file_path:str,
     *,
-    suffix         :str="preprocess",
+    suffix         :str="_preprocess",
     output_filepath:str=None        ,
     verbose:bool=True,
     ) -> str:
@@ -359,7 +359,7 @@ def process_excel_file(
         
         # 5. 결과 저장
         if output_filepath is None:
-            output_filepath = save_excel(wb, original_filepath=file_path, suffix=suffix)
+            output_filepath = save_excel(wb, original_filepath=file_path, suffix=suffix, verbose=verbose)
         else:
             output_filepath = save_excel(wb, output_filepath, verbose=verbose)
         
