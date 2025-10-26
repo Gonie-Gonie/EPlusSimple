@@ -424,7 +424,7 @@ def build_report(
     
     # get figures (by weather)
     before_weatherdata_filepath = find_weatherdata(building_info["주소"], "이전")
-    after_weatherdata_filepath  = find_weatherdata(building_info["주소"], "직후")
+    after_weatherdata_filepath  = find_weatherdata(building_info["주소"], "이후")
     fig_monthlytemp, fig_degreedays = draw_weather_figures(
         before_weatherdata_filepath,
         after_weatherdata_filepath ,

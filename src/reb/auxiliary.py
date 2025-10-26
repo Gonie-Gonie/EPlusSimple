@@ -28,10 +28,10 @@ WEATHERDATA_MAPPER = pd.read_csv(os.path.join(WEATHTERDATA_DIR, "weatherdata_map
 
 def find_weatherdata(
     loc    :str,
-    simtype:Literal["이전","직후","N년차"]
+    simtype:Literal["이전","이후","N년차"]
     ) -> str:
     
-    if loc not in WEATHERDATA_MAPPER["시·군·구"]: loc = re.search(r"[\w ]+(?= \w+)", loc).group()
+    if loc not in WEATHERDATA_MAPPER["시·군·구"].values: loc = re.search(r"[\w ]+(?= \w+)", loc).group()
     loc_idx = WEATHERDATA_MAPPER.index[WEATHERDATA_MAPPER["시·군·구"] == loc][0]
     
     weatherloc  = WEATHERDATA_MAPPER.at[loc_idx, "Station_num"]
