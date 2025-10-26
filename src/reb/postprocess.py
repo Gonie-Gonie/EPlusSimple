@@ -962,62 +962,99 @@ class 어린이집특화존1(hvac존):
     
     def get_occupant_schedule(self) -> dragon.Schedule:
         
-        오전starth, 오전startm, 오전endh, 오전endm = parse_duration_hours(self.오전운영시간)
-        오후starth, 오후startm, 오후endh, 오후endm = parse_duration_hours(self.오후운영시간)
-        
-        if 오전endh == 오후starth and 오전endm == 오후startm:
-            dayschedule_values = [
-                (오전starth, 오전startm, 0),
-                (오후starth, 오후startm, self.오전인원),
-                (오후endh  , 오전endm  , self.오후인원),
-                (24        , 0        , 0),
-            ]
-        else:
-            dayschedule_values = [
-                (오전starth, 오전startm, 0),
-                (오전endh  , 오전endm  , self.오전인원),
-                (오후starth, 오후startm, 0),
-                (오후endh  , 오전endm  , self.오후인원),
-                (24        , 0        , 0),
-            ]
-            
-        occupant_schedule = dragon.Schedule.from_compact(
-            None, [("0101","1231", dragon.RuleSet(
-                None,
-                dragon.DaySchedule.from_compact(None, dayschedule_values, dragon.ScheduleType.REAL),
-                dragon.DaySchedule.from_compact(None, [(24,0,0)], dragon.ScheduleType.REAL)
-            ))]
+        # 기본 스케줄 (0명)
+        occupant_ruleset = dragon.RuleSet(
+            None,
+            dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,),
+            dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,),
         )
         
+        
+        # 오전 재실
+        if not pd.isna(self.오전운영시간):
+            starth, startm, endh, endm = parse_duration_hours(self.오전운영시간)
+            오전_ruleset = dragon.RuleSet(
+                None,
+                dragon.DaySchedule.from_compact(None, [
+                    (starth, startm,              0),
+                    (endh  , endm  , self.오전재실인원),
+                    (24    , 0     ,              0),
+                ],dragon.ScheduleType.REAL,),
+                dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,),
+            )
+            occupant_ruleset += 오전_ruleset
+        
+        # 오후 재실
+        if not pd.isna(self.오후운영시간):
+            starth, startm, endh, endm = parse_duration_hours(self.오후운영시간)
+            오후_ruleset = dragon.RuleSet(
+                None,
+                dragon.DaySchedule.from_compact(None, [
+                    (starth, startm,              0),
+                    (endh  , endm  , self.오후재실인원),
+                    (24    , 0     ,              0),
+                ],dragon.ScheduleType.REAL,),
+                dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,),
+            )
+            occupant_ruleset += 오후_ruleset
+        
+        # 둘이 합치기
+        occupant_schedule = dragon.Schedule.from_compact(
+            None,
+            [("0101","1231", occupant_ruleset)]
+        )
+
         return occupant_schedule
     
     def get_hvac_availability_schedule(self) -> dragon.Schedule:
         
-        오전starth, 오전startm, 오전endh, 오전endm = parse_duration_hours(self.오전운영시간)
-        오후starth, 오후startm, 오후endh, 오후endm = parse_duration_hours(self.오후운영시간)
+        # 기본 운영시간
+        기본운영_ruleset = dragon.RuleSet(
+            None,
+            dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.ONOFF,),
+            dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.ONOFF,),
+        )
         
-        if 오전endh == 오후starth and 오전endm == 오후startm:
-            dayschedule_values = [
-                (오전starth, 오전startm, 0),
-                (오후starth, 오후startm, 1),
-                (오후endh  , 오전endm  , 1),
-                (24        , 0        , 0),
-            ]
-        else:
-            dayschedule_values = [
-                (오전starth, 오전startm, 0),
-                (오전endh  , 오전endm  , 1),
-                (오후starth, 오후startm, 0),
-                (오후endh  , 오전endm  , 1),
-                (24        , 0        , 0),
-            ]
-            
-        기본운영_schedule = dragon.Schedule.from_compact(
-            None, [("0101","1231", dragon.RuleSet(
+        # 오전 운영시간
+        if not pd.isna(self.오전운영시간):
+            starth, startm, endh, endm = parse_duration_hours(self.오전운영시간)
+            오전운영_ruleset = dragon.RuleSet(
                 None,
-                dragon.DaySchedule.from_compact(None, dayschedule_values, dragon.ScheduleType.ONOFF),
-                dragon.DaySchedule.from_compact(None, [(24,0,0)], dragon.ScheduleType.ONOFF)
-            ))]
+                dragon.DaySchedule.from_compact(
+                    None,
+                    [
+                        (starth, startm, 0),
+                        (endh  , endm  , 1),
+                        (24    , 0     , 0),
+                    ],
+                    dragon.ScheduleType.ONOFF,
+                ),
+                dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.ONOFF,)
+            )
+            기본운영_ruleset |= 오전운영_ruleset
+        
+        # 오후 운영시간
+        if not pd.isna(self.오후운영시간):
+            starth, startm, endh, endm = parse_duration_hours(self.오후운영시간)
+            오후운영_ruleset = dragon.RuleSet(
+                None,
+                dragon.DaySchedule.from_compact(
+                    None,
+                    [
+                        (starth, startm, 0),
+                        (endh  , endm  , 1),
+                        (24    , 0     , 0),
+                    ],
+                    dragon.ScheduleType.ONOFF,
+                ),
+                dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.ONOFF,)
+            )
+            기본운영_ruleset |= 오후운영_ruleset
+        
+        # 기본 운영 schedule 정리
+        기본운영_schedule = dragon.Schedule.from_compact(
+            None,
+            [("0101","1231", 기본운영_ruleset)]
         )
         
         # 설비 가동스케줄 (개별)
@@ -1096,62 +1133,116 @@ class 어린이집특화존2(hvac존):
     
     def get_occupant_schedule(self) -> dragon.Schedule:
         
-        오전starth, 오전startm, 오전endh, 오전endm = parse_duration_hours(self.오전운영시간)
-        오후starth, 오후startm, 오후endh, 오후endm = parse_duration_hours(self.오후운영시간)
+        # 기본 스케줄 (0명)
+        occupant_ruleset = dragon.RuleSet(
+            None,
+            dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,),
+            dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,),
+        )
         
-        if 오전endh == 오후starth and 오전endm == 오후startm:
-            dayschedule_values = [
-                (오전starth, 오전startm, 0),
-                (오후starth, 오후startm, self.오전인원),
-                (오후endh  , 오전endm  , self.오후인원),
-                (24        , 0        , 0),
-            ]
-        else:
-            dayschedule_values = [
-                (오전starth, 오전startm, 0),
-                (오전endh  , 오전endm  , self.오전인원),
-                (오후starth, 오후startm, 0),
-                (오후endh  , 오전endm  , self.오후인원),
-                (24        , 0        , 0),
-            ]
-            
-        occupant_schedule = dragon.Schedule.from_compact(
-            None, [("0101","1231", dragon.RuleSet(
+        # 오전 재실
+        if not pd.isna(self.오전운영시간):
+            starth, startm, endh, endm = parse_duration_hours(self.오전운영시간)
+            dayofweeks = [translate_dayofweek(s.strip()) for s in self.운영요일.split(",") if not s==""]
+            오전_ruleset = dragon.RuleSet(
                 None,
-                dragon.DaySchedule.from_compact(None, dayschedule_values, dragon.ScheduleType.REAL),
-                dragon.DaySchedule.from_compact(None, [(24,0,0)], dragon.ScheduleType.REAL)
-            ))]
+                dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,),
+                dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,),
+                **{
+                    k: dragon.DaySchedule.from_compact(
+                        None,
+                        [
+                            (starth, startm,              0),
+                            (endh  , endm  , self.오전재실인원),
+                            (24    , 0     ,              0),
+                        ],
+                        dragon.ScheduleType.REAL,
+                    )
+                    for k in dayofweeks
+                }
+            )
+            occupant_ruleset += 오전_ruleset
+        
+        # 오후 재실
+        if not pd.isna(self.오후운영시간):
+            starth, startm, endh, endm = parse_duration_hours(self.오후운영시간)
+            dayofweeks = [translate_dayofweek(s.strip()) for s in self.운영요일.split(",") if not s==""]
+            오후_ruleset = dragon.RuleSet(
+                None,
+                dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,),
+                dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,),
+                **{
+                    k: dragon.DaySchedule.from_compact(
+                        None,
+                        [
+                            (starth, startm,              0),
+                            (endh  , endm  , self.오후재실인원),
+                            (24    , 0     ,              0),
+                        ],
+                        dragon.ScheduleType.REAL,
+                    )
+                    for k in dayofweeks
+                }
+            )
+            occupant_ruleset += 오후_ruleset
+
+        # 둘이 합치기
+        occupant_schedule = dragon.Schedule.from_compact(
+            None,
+            [("0101","1231", occupant_ruleset)]
         )
         
         return occupant_schedule
     
     def get_hvac_availability_schedule(self) -> dragon.Schedule:
         
-        오전starth, 오전startm, 오전endh, 오전endm = parse_duration_hours(self.오전운영시간)
-        오후starth, 오후startm, 오후endh, 오후endm = parse_duration_hours(self.오후운영시간)
+        # 기본 운영시간
+        기본운영_ruleset = dragon.RuleSet(
+            None,
+            dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.ONOFF,),
+            dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.ONOFF,),
+        )
         
-        if 오전endh == 오후starth and 오전endm == 오후startm:
-            dayschedule_values = [
-                (오전starth, 오전startm, 0),
-                (오후starth, 오후startm, 1),
-                (오후endh  , 오전endm  , 1),
-                (24        , 0        , 0),
-            ]
-        else:
-            dayschedule_values = [
-                (오전starth, 오전startm, 0),
-                (오전endh  , 오전endm  , 1),
-                (오후starth, 오후startm, 0),
-                (오후endh  , 오전endm  , 1),
-                (24        , 0        , 0),
-            ]
-            
-        기본운영_schedule = dragon.Schedule.from_compact(
-            None, [("0101","1231", dragon.RuleSet(
+        # 오전 운영시간
+        if not pd.isna(self.오전운영시간):
+            starth, startm, endh, endm = parse_duration_hours(self.오전운영시간)
+            오전운영_ruleset = dragon.RuleSet(
                 None,
-                dragon.DaySchedule.from_compact(None, dayschedule_values, dragon.ScheduleType.ONOFF),
-                dragon.DaySchedule.from_compact(None, [(24,0,0)], dragon.ScheduleType.ONOFF)
-            ))]
+                dragon.DaySchedule.from_compact(
+                    None,
+                    [
+                        (starth, startm, 0),
+                        (endh  , endm  , 1),
+                        (24    , 0     , 0),
+                    ],
+                    dragon.ScheduleType.ONOFF,
+                ),
+                dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.ONOFF,)
+            )
+            기본운영_ruleset |= 오전운영_ruleset
+        
+        # 오후 운영시간
+        if not pd.isna(self.오후운영시간):
+            starth, startm, endh, endm = parse_duration_hours(self.오후운영시간)
+            오후운영_ruleset = dragon.RuleSet(
+                None,
+                dragon.DaySchedule.from_compact(
+                    None,
+                    [
+                        (starth, startm, 0),
+                        (endh  , endm  , 1),
+                        (24    , 0     , 0),
+                    ],
+                    dragon.ScheduleType.ONOFF,
+                ),
+                dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.ONOFF,)
+            )
+            기본운영_ruleset |= 오후운영_ruleset
+        
+        # 기본 운영 schedule 정리
+        기본운영_schedule = dragon.Schedule.from_compact(
+            None,
+            [("0101","1231", 기본운영_ruleset)]
         )
         
         # 설비 가동스케줄 (개별)
@@ -1167,7 +1258,7 @@ class 어린이집특화존2(hvac존):
                         dragon.DaySchedule.from_compact(None, [(24,0,0)], dragon.ScheduleType.ONOFF),
                     ))]
                 ))
-                
+        
         # 설비 가동스케줄 (or조건으로 개별 설비 결합: 모종의 설비가 가동중)
         hvac_availability = operation_schedules[0]
         for schedule in operation_schedules[1:]:
@@ -1177,6 +1268,7 @@ class 어린이집특화존2(hvac존):
         hvac_availability &= 기본운영_schedule
         
         return hvac_availability
+
 
     def apply_to(self, zones:list[dragon.Zone]) -> None:
         
