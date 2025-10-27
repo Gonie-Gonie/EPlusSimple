@@ -363,7 +363,7 @@ class 보건소일반존(hvac존):
             int(재실.at["직원","인원수"]),
             int(운영요일.loc["외근"].sum()),
             row_to_timestring(운영시간.loc["외근"]),
-            int(재실.at["외근직원","인원수"]),
+            int(v) if not pd.isna(v:=재실.at["외근직원","인원수"]) else 0,
             row_to_dayofweekstr(운영요일.loc["집중진료"]),
             row_to_timestring(운영시간.loc["집중진료"]),
             int(재실.at["집중진료-오전","인원수"]),
@@ -411,40 +411,45 @@ class 보건소일반존(hvac존):
         )
         
         # 외근
-        # 요일 정하기
-        non_집중진료_dayofweeks = {"monday","tuesday","wednesday","thursday","friday"} - set(집중진료_dayofweeks)
-        if len(non_집중진료_dayofweeks) >= self.외근횟수:
-            외근_dayofweeks = random.sample(sorted(non_집중진료_dayofweeks), self.외근횟수)
-        else:
-            외근_dayofweeks = list(non_집중진료_dayofweeks) + random.sample(sorted(집중진료_dayofweeks), self.외근횟수-len(non_집중진료_dayofweeks))
+        if self.외근직원 > 0:
+            # 요일 정하기
+            non_집중진료_dayofweeks = {"monday","tuesday","wednesday","thursday","friday"} - set(집중진료_dayofweeks)
+            if len(non_집중진료_dayofweeks) >= self.외근횟수:
+                외근_dayofweeks = random.sample(sorted(non_집중진료_dayofweeks), self.외근횟수)
+            else:
+                외근_dayofweeks = list(non_집중진료_dayofweeks) + random.sample(sorted(집중진료_dayofweeks), self.외근횟수-len(non_집중진료_dayofweeks))
 
-        # 시간 정하기
-        starth, startm, endh, endm = parse_duration_hours(self.외근시간)
-        # ruleset 만들기
-        외근_직원_ruleset = dragon.RuleSet(
-            None,
-            dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,),
-            dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,),
-            **{
-                k: dragon.DaySchedule.from_compact(
-                    None,
-                    [
-                        (starth, startm,           0),
-                        (endh  , endm  , self.외근직원),
-                        (24    , 0     ,           0),
-                    ],
-                    dragon.ScheduleType.REAL,
-                )
-                for k in 외근_dayofweeks
-            }
-        )
-        
-        final_occupant_ruleset = 기본운영_직원_ruleset + 집중진료_방문객_ruleset - 외근_직원_ruleset
+            # 시간 정하기
+            starth, startm, endh, endm = parse_duration_hours(self.외근시간)
+            # ruleset 만들기
+            외근_직원_ruleset = dragon.RuleSet(
+                None,
+                dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,),
+                dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,),
+                **{
+                    k: dragon.DaySchedule.from_compact(
+                        None,
+                        [
+                            (starth, startm,           0),
+                            (endh  , endm  , self.외근직원),
+                            (24    , 0     ,           0),
+                        ],
+                        dragon.ScheduleType.REAL,
+                    )
+                    for k in 외근_dayofweeks
+                }
+            )
+            
+            final_occupant_ruleset = 기본운영_직원_ruleset + 집중진료_방문객_ruleset - 외근_직원_ruleset
+            
+        else:
+            final_occupant_ruleset = 기본운영_직원_ruleset + 집중진료_방문객_ruleset
+            
+        # 스케줄 만들기
         occupant_schedule = dragon.Schedule(
             None,
             [final_occupant_ruleset] * 365
         )
-        
         return occupant_schedule
     
     def get_hvac_availability_schedule(self) -> dragon.Schedule:
@@ -726,8 +731,8 @@ class 보건소특화존2(hvac존):
                 row_to_설비운영(row)
                 for _, row in 설비.iterrows()
             ],
-            int(재실.at["사용관사수","인원수"]),
-            int(재실.at["동거인수","인원수"]),
+            int(v) if not pd.isna(v:=재실.at["사용관사수","인원수"]) else 0,
+            int(v) if not pd.isna(v:=재실.at["동거인수","인원수"]) else 0,
             row_to_dayofweekstr(운영요일.loc["운영요일"]),   
         )
     
