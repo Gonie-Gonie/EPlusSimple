@@ -530,7 +530,7 @@ def build_report(
     building_info = pd.read_excel(before_rebexcelpath, sheet_name="건물정보", usecols=range(6), nrows=1).iloc[0]
     metadata = MetaData(
         building_info["건물명"]     ,
-        f"{grrbefore["building"]["total_area"]:1f}",
+        f"{grrbefore["building"]["total_area"]:.1f}",
         building_info["주소"],
         building_info["허가일자"]   , 
     )

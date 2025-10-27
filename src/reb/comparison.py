@@ -264,13 +264,13 @@ class HeatingHVACDifference(ExcelDifference):
                     case "공조기"   :
                         beforeheating = f"공조기&{beforesource["유형"]}: COP {beforesource["난방COP [W/W]"]:.2f}, {beforesource["난방용량 [W]"]*1E-3:.2f}kW"
                     case "팬코일유닛":
-                        beforeheating = f"팬코일유닛&{beforesource["유형"]}: 효율 {beforesource["효율 [%]"]:.21}%, {beforesource["난방용량 [W]"]*1E-3:.2f}kW"
+                        beforeheating = f"팬코일유닛&{beforesource["유형"]}: 효율 {beforesource["효율 [%]"]:.2f}%, {beforesource["난방용량 [W]"]*1E-3:.2f}kW"
                     case "방열기"   :
-                        beforeheating = f"방열기&{beforesource["유형"]}: 효율 {beforesource["효율 [%]"]:.21}%, {beforesource["난방용량 [W]"]*1E-3:.2f}kW"
+                        beforeheating = f"방열기&{beforesource["유형"]}: 효율 {beforesource["효율 [%]"]:.2f}%, {beforesource["난방용량 [W]"]*1E-3:.2f}kW"
                     case "전기방열기":
                         beforeheating = f"전기방열기: {beforesupply["난방용량 [W]"]*1E-3:.2f}kW"
                     case "바닥난방"  : 
-                        beforeheating = f"바닥난방&{beforesource["유형"]}: 효율 {beforesource["효율 [%]"]:.21}%, {beforesource["난방용량 [W]"]*1E-3:.2f}kW"
+                        beforeheating = f"바닥난방&{beforesource["유형"]}: 효율 {beforesource["효율 [%]"]:.2f}%, {beforesource["난방용량 [W]"]*1E-3:.2f}kW"
             
             # after
             if pd.isna(afterrow["난방 공급 설비"]):
@@ -283,13 +283,13 @@ class HeatingHVACDifference(ExcelDifference):
                     case "공조기"   :
                         afterheating = f"공조기&{aftersource["유형"]}: COP {aftersource["난방COP [W/W]"]:.2f}, {aftersource["난방용량 [W]"]*1E-3:.2f}kW"
                     case "팬코일유닛":
-                        afterheating = f"팬코일유닛&{aftersource["유형"]}: 효율 {aftersource["효율 [%]"]:.21}%, {aftersource["난방용량 [W]"]*1E-3:.2f}kW"
+                        afterheating = f"팬코일유닛&{aftersource["유형"]}: 효율 {aftersource["효율 [%]"]:.2f}%, {aftersource["난방용량 [W]"]*1E-3:.2f}kW"
                     case "방열기"   :
-                        afterheating = f"방열기&{aftersource["유형"]}: 효율 {aftersource["효율 [%]"]:.21}%, {aftersource["난방용량 [W]"]*1E-3:.2f}kW"
+                        afterheating = f"방열기&{aftersource["유형"]}: 효율 {aftersource["효율 [%]"]:.2f}%, {aftersource["난방용량 [W]"]*1E-3:.2f}kW"
                     case "전기방열기":
                         afterheating = f"전기방열기: {aftersupply["난방용량 [W]"]*1E-3:.2f}kW"
                     case "바닥난방"  : 
-                        afterheating = f"바닥난방&{aftersource["유형"]}: 효율 {aftersource["효율 [%]"]:.21}%, {aftersource["난방용량 [W]"]*1E-3:.2f}kW"
+                        afterheating = f"바닥난방&{aftersource["유형"]}: 효율 {aftersource["효율 [%]"]:.2f}%, {aftersource["난방용량 [W]"]*1E-3:.2f}kW"
                 
                 if beforeheating != afterheating:
                     diffs.append(cls(zonename, "변경", beforeheating, afterheating, "-"))
@@ -351,7 +351,7 @@ class CoolingHVACDifference(ExcelDifference):
                     case "공조기"   :
                         beforecooling = f"공조기&{beforesource["유형"]}: COP {beforesource["냉방COP [W/W]"]:.2f}, {beforesource["냉방용량 [W]"]*1E-3:.2f}kW"
                     case "팬코일유닛":
-                        beforecooling = f"팬코일유닛&{beforesource["유형"]}: 효율 {beforesource["냉방COP [W/W]"]:.21}%, {beforesource["냉방용량 [W]"]*1E-3:.2f}kW"
+                        beforecooling = f"팬코일유닛&{beforesource["유형"]}: 효율 {beforesource["냉방COP [W/W]"]:.2f}%, {beforesource["냉방용량 [W]"]*1E-3:.2f}kW"
             
             # after
             if pd.isna(afterrow["냉방 공급 설비"]):
@@ -366,7 +366,7 @@ class CoolingHVACDifference(ExcelDifference):
                     case "공조기"   :
                         aftercooling = f"공조기&{aftersource["유형"]}: COP {aftersource["냉방COP [W/W]"]:.2f}, {aftersource["냉방용량 [W]"]*1E-3:.2f}kW"
                     case "팬코일유닛":
-                        aftercooling = f"팬코일유닛&{aftersource["유형"]}: 효율 {aftersource["냉방COP [W/W]"]:.21}%, {aftersource["냉방용량 [W]"]*1E-3:.2f}kW"
+                        aftercooling = f"팬코일유닛&{aftersource["유형"]}: 효율 {aftersource["냉방COP [W/W]"]:.2f}%, {aftersource["냉방용량 [W]"]*1E-3:.2f}kW"
             
             # compare
             if beforecooling != aftercooling:
