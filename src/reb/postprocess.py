@@ -142,13 +142,31 @@ def make_집중진료_dayschedule_values(starth, startm, endh, endm,
         available = seg_end - seg_start
         if n == 0 or stay_slots <= 0 or available <= 0:
             return [], 0
+
         if mode == "random":
-            start_points = sorted(random.sample(
-                range(seg_start, seg_end - stay_slots + 1), n
-            ))
-        else:  # 균등 배치
-            interval = (available - stay_slots) // (n - 1) if n > 1 else 0
-            start_points = [seg_start + i * interval for i in range(n)]
+            if n <= (seg_end - seg_start - stay_slots + 1):
+                start_points = sorted(random.sample(
+                    range(seg_start, seg_end - stay_slots + 1), n
+                ))
+            else:
+                start_points = sorted(random.choices(
+                    range(seg_start, seg_end - stay_slots + 1), k=n
+                ))
+
+        else:  # 균등 배치 (실수 단위로 계산 후 반올림)
+            if n == 1:
+                start_points = [seg_start]
+            else:
+                step = (available - stay_slots) / (n - 1)
+                start_points = [
+                    round(seg_start + i * step)
+                    for i in range(n)
+                ]
+                start_points = [
+                    max(seg_start, min(seg_end - stay_slots, s))
+                    for s in start_points
+                ]
+
         return start_points, stay_slots
 
     # 오전 배정
