@@ -29,7 +29,7 @@ err_idf_dir     = os.path.join(working_dir, "err_idf")
 filelist = [file for file in os.listdir(input_excel_dir) if not file.endswith("preprocess.xlsx")]
 if __name__ == "__main__":
     
-    for file in filelist:
+    for file in filelist[130:]:
         
         grr_path = os.path.join(result_grr_dir, file.replace(r".xlsx",r".grr"))
         idf_path = os.path.join(result_idf_dir, file.replace(r".xlsx",r".idf"))
