@@ -667,6 +667,7 @@ class GreenRetrofitResult:
         self.result = result
         
         if result.tbl is None:
+            if 
             raise EnergyPlusError(self.result.err)
     
     @property
