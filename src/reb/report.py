@@ -317,7 +317,7 @@ def draw_energysimulation_figures(
             grrafter["summary_per_area"]["site_uses"]["total_annual"],
             grrafterN["summary_per_area"]["site_uses"]["total_annual"],
         ],
-        ["Before","GR이후","N년차"],
+        ["GR이전","GR이후","N년차"],
         ylabel = "EUI [kWh/m2/year]",
     )
     
@@ -402,6 +402,22 @@ def _draw_monthly_stacked_bar(
     ax.set_title(f"{category_label} 월별 비교")
     ax.grid(axis="y", linestyle="--", alpha=0.4)
     ax.legend(fontsize=8, ncols=2)
+    
+    # --- ylim 자동 여유 설정 ---
+    all_values = np.concatenate([
+        np.array(grr_before[datatype][category_key].get(et_key, [0]*12))
+        for et_key, _ in ENERGY_TYPES
+    ] + [
+        np.array(grr_after[datatype][category_key].get(et_key, [0]*12))
+        for et_key, _ in ENERGY_TYPES
+    ] + [
+        np.array(grr_afterN[datatype][category_key].get(et_key, [0]*12))
+        for et_key, _ in ENERGY_TYPES
+    ])
+    ymax = all_values.max() if len(all_values) > 0 else 0
+    ax.set_ylim(0, max(5, ymax * 1.15))  # 상단 15% 여유
+    
+    
     fig.tight_layout()
     return fig
 
