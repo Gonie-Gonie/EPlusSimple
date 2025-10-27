@@ -362,7 +362,7 @@ class CoolingHVACDifference(ExcelDifference):
                 
                 match aftersupply["유형"]:
                     case "패키지에어컨":
-                        beforecooling = f"패키지에어컨: COP {beforesupply["냉방COP [W/W]"]:.2f}, {beforesupply["냉방용량 [W]"]*1E-3:.2f}kW"
+                        aftercooling = f"패키지에어컨: COP {beforesupply["냉방COP [W/W]"]:.2f}, {beforesupply["냉방용량 [W]"]*1E-3:.2f}kW"
                     case "공조기"   :
                         aftercooling = f"공조기&{aftersource["유형"]}: COP {aftersource["냉방COP [W/W]"]:.2f}, {aftersource["냉방용량 [W]"]*1E-3:.2f}kW"
                     case "팬코일유닛":
