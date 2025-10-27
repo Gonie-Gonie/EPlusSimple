@@ -733,7 +733,7 @@ class 보건소특화존2(hvac존):
     #zone
     사용관사수:str
     동거인수:int
-    운영요일:int
+    운영요일:str
 
     @classmethod
     def from_excel(cls, filepath:str):
