@@ -97,7 +97,7 @@
 \underline{${{EUIdiff[1]}}\,\mathrm{kWh/m^2}$} 절감될 것으로 분석되었다. 
 
 ③ 이는 운영특성 및 성능 변화로 그린리모델링 효과가 
-\underline{${{EUIdiff[2]}}\,\mathrm{kWh/m^2}$} 줄어든 것이다.
+\underline{${{EUIdiff[2] | abs}}\,\mathrm{kWh/m^2}$} 줄어든 것이다.
 \end{tcolorbox}
 
 % ==================== 을지 ====================
@@ -135,16 +135,10 @@
 }
 
 \section{기상 변화 내역 (GR 이전 → GR 이후)}
-\begin{figure}[h!]
-    \centering
-    \begin{minipage}[b]{0.6\textwidth}
-        \includegraphics[width=\textwidth]{weather_compare_monthly.png}
-    \end{minipage}
-    \hfill
-    \begin{minipage}[b]{0.39\textwidth}
-        \includegraphics[width=\textwidth]{weather_compare_degreeday.png}
-    \end{minipage}
-\end{figure}
+\noindent
+\includegraphics[width=0.6\textwidth]{weather_compare_monthly.png}%
+\hfill
+\includegraphics[width=0.38\textwidth]{weather_compare_degreeday.png}
 
 \section{성능 변화 내역 (GR 이후 → GR N년차)}
 {\scriptsize
@@ -208,6 +202,35 @@
 {% endif %}
 }
 
+\newpage
 \section{시뮬레이션 결과 (상세)}
+
+\paragraph{용도별, 월별 사용량 비교}
+
+\begin{center}
+  \includegraphics[width=0.49\textwidth]{monthly_heating.png}
+  \hfill
+  \includegraphics[width=0.49\textwidth]{monthly_cooling.png}
+
+  \vspace{1em}
+
+  \includegraphics[width=0.49\textwidth]{monthly_circulation.png}
+  \hfill
+  \includegraphics[width=0.49\textwidth]{monthly_lighting.png}
+
+  \vspace{1em}
+
+  \includegraphics[width=0.49\textwidth]{monthly_hotwater.png}
+  \hfill
+  \includegraphics[width=0.49\textwidth]{monthly_generators.png}
+\end{center}
+
+\paragraph{요약}
+
+\begin{center}
+  \includegraphics[width=0.49\textwidth]{annual_by_purpose.png}
+  \hfill
+  \includegraphics[width=0.49\textwidth]{total_monthly_line.png}
+\end{center}
 
 \end{document}
