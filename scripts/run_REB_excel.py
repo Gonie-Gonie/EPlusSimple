@@ -21,6 +21,7 @@ working_dir = r"B:\공유 드라이브\01 진행과제\(안전원) 시뮬레이�
 input_excel_dir = os.path.join(working_dir,"input_excel")
 result_grr_dir  = os.path.join(working_dir, "result_grr")
 result_idf_dir  = os.path.join(working_dir, "result_idf")
+err_idf_dir     = os.path.join(working_dir, "err_idf")
 
 
 # main
@@ -42,6 +43,7 @@ if __name__ == "__main__":
         except EnergyPlusError:
             print(f"!!!!!!!!!!!!!!!EP에러로 실패: {file}")
             idf, grm = rebexcel_to_idf_and_grm(os.path.join(input_excel_dir,file))
+            idf_path = os.path.join(err_idf_dir, file.replace(r".xlsx",r".idf"))
             idf.write(idf_path)
             
 
