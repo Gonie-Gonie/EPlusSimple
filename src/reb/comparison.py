@@ -425,7 +425,7 @@ class ProfileDifferenceKindergarten(ExcelDifference):
                             hvacstr_before = f"{hvac_before.사용기간} {hvac_before.사용시간}: {hvac_before.설정온도:.1f}℃"
                             hvacstr_after = f"{hvac_after.사용기간} {hvac_after.사용시간}: {hvac_after.설정온도:.1f}℃"
                             if hvacstr_before != hvacstr_after:
-                                diffs.append(cls(zonename, targethvac.replace("설비",""), hvac_before, hvacstr_after, "-"))
+                                diffs.append(cls(zonename, targethvac.replace("설비",""), hvacstr_before, hvacstr_after, "-"))
                                 
                     case "특화존1":
                         
@@ -452,7 +452,7 @@ class ProfileDifferenceKindergarten(ExcelDifference):
                             hvacstr_before = f"{hvac_before.사용기간} {hvac_before.사용시간}: {hvac_before.설정온도:.1f}℃"
                             hvacstr_after = f"{hvac_after.사용기간} {hvac_after.사용시간}: {hvac_after.설정온도:.1f}℃"
                             if hvacstr_before != hvacstr_after:
-                                diffs.append(cls(zonename, targethvac.replace("설비",""), hvac_before, hvacstr_after, "-"))
+                                diffs.append(cls(zonename, targethvac.replace("설비",""), hvacstr_before, hvacstr_after, "-"))
                             
                     case "특화존2":
                         
@@ -479,7 +479,7 @@ class ProfileDifferenceKindergarten(ExcelDifference):
                             hvacstr_before = f"{hvac_before.사용기간} {hvac_before.사용시간}: {hvac_before.설정온도:.1f}℃"
                             hvacstr_after = f"{hvac_after.사용기간} {hvac_after.사용시간}: {hvac_after.설정온도:.1f}℃"
                             if hvacstr_before != hvacstr_after:
-                                diffs.append(cls(zonename, targethvac.replace("설비",""), hvac_before, hvacstr_after, "-"))
+                                diffs.append(cls(zonename, targethvac.replace("설비",""), hvacstr_before, hvacstr_after, "-"))
         
         return diffs
         
@@ -541,7 +541,7 @@ class ProfileDifferenceHealthCareCenter(ExcelDifference):
                             hvacstr_before = f"{hvac_before.사용기간} {hvac_before.사용시간}: {hvac_before.설정온도:.1f}℃"
                             hvacstr_after = f"{hvac_after.사용기간} {hvac_after.사용시간}: {hvac_after.설정온도:.1f}℃"
                             if hvacstr_before != hvacstr_after:
-                                diffs.append(cls(zonename, targethvac.replace("설비",""), hvac_before, hvacstr_after, "-"))
+                                diffs.append(cls(zonename, targethvac.replace("설비",""), hvacstr_before, hvacstr_after, "-"))
                                 
                     case "특화존1":
                         
@@ -568,7 +568,7 @@ class ProfileDifferenceHealthCareCenter(ExcelDifference):
                             hvacstr_before = f"{hvac_before.사용기간} {hvac_before.사용시간}: {hvac_before.설정온도:.1f}℃"
                             hvacstr_after = f"{hvac_after.사용기간} {hvac_after.사용시간}: {hvac_after.설정온도:.1f}℃"
                             if hvacstr_before != hvacstr_after:
-                                diffs.append(cls(zonename, targethvac.replace("설비",""), hvac_before, hvacstr_after, "-"))
+                                diffs.append(cls(zonename, targethvac.replace("설비",""), hvacstr_before, hvacstr_after, "-"))
                             
                     case "특화존2":
                         
@@ -589,7 +589,7 @@ class ProfileDifferenceHealthCareCenter(ExcelDifference):
                             hvacstr_before = f"{hvac_before.사용기간} {hvac_before.사용시간}: {hvac_before.설정온도:.1f}℃"
                             hvacstr_after = f"{hvac_after.사용기간} {hvac_after.사용시간}: {hvac_after.설정온도:.1f}℃"
                             if hvacstr_before != hvacstr_after:
-                                diffs.append(cls(zonename, targethvac.replace("설비",""), hvac_before, hvacstr_after, "-"))
+                                diffs.append(cls(zonename, targethvac.replace("설비",""), hvacstr_before, hvacstr_after, "-"))
         
         return diffs
 
