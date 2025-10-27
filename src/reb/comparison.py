@@ -552,8 +552,8 @@ class ProfileDifferenceHealthCareCenter(ExcelDifference):
                             diffs.append(cls(zonename, "운영시간", operationstr_before, operationstr_after, "-"))
                             
                         # 재실밀도
-                        peoplestr_before = f"오전 {checklistbefore.특화존1.오전재실인원}명, 오후 {checklistbefore.특화존.오후재실인원}명"
-                        peoplestr_after = f"오전 {checklistafter.특화존1.오전재실인원}명, 오후 {checklistafter.특화존.오후재실인원}명"
+                        peoplestr_before = f"오전 {checklistbefore.특화존1.오전재실인원}명, 오후 {checklistbefore.특화존1.오후재실인원}명"
+                        peoplestr_after = f"오전 {checklistafter.특화존1.오전재실인원}명, 오후 {checklistafter.특화존1.오후재실인원}명"
                         if peoplestr_before != peoplestr_after:
                             diffs.append(cls(zonename, "재실인원", peoplestr_before, peoplestr_after, "-"))
                             
