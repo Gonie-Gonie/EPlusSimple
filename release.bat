@@ -148,7 +148,7 @@ echo [5/5] Creating archive: %OUTPUT_ZIP%
 pushd "%RELEASE_DIR%"
 :: 현재 폴더(.)의 모든 내용물을 압축 파일에 추가
 "%~dp0tools\7z.exe" a -tzip "%OUTPUT_ZIP%" .
-> nul
+
 :: 원래 위치로 복귀
 popd
 
