@@ -26,8 +26,13 @@ from .comparison import compare_rebexcel
 from .auxiliary  import find_weatherdata
 
 # settings
-plt.rcParams['font.family'] = 'Malgun Gothic'
-plt.rcParams['axes.unicode_minus'] = False
+PLOTFONTFAMILY = 'Malgun Gothic'
+plt.rc('font', family=PLOTFONTFAMILY)
+plt.rc('mathtext', fontset='custom', rm=PLOTFONTFAMILY,
+       it=f'{PLOTFONTFAMILY}:italic', bf=f'{PLOTFONTFAMILY}:bold')
+plt.rc('axes.formatter', useoffset=False)
+plt.rc('axes', unicode_minus=False)
+
 
 # ---------------------------------------------------------------------------- #
 #                                   VARIABLES                                  #
@@ -269,26 +274,39 @@ def draw_weather_figures(
 
 def draw_3step_bargraph(
     title : str,
-    values: list[int|float],
+    values: list[list[int|float]],
     index : list[str],
     *,
     ylabel: str = "Value",
-    colors: list = PALETTE,
-    ) -> plt.Figure:
-    
-    fig, ax = plt.subplots(figsize=(4, 3))
-    
+    ax    : plt.Axes
+    ) -> None:
+
     num_bars = len(values)
     x_positions = range(num_bars) # [0, 1, 2]
     width = 0.7  # 그룹이 아니므로 막대 폭을 넓게 설정
+    num_subbars =len(ENERGY_TYPES)
+    subbar_width = width / num_subbars
 
     for n, (pos, val) in enumerate(zip(x_positions, values)):
-        # x축 0, 1, 2 위치에 막대 생성
-        # xticklabels를 사용하므로 'label=' 인자는 제거
-        bars = ax.bar(pos, val, width, color=colors[n])
+        for et_idx, (et_key, et_label) in enumerate(ENERGY_TYPES):
+            color = DEFAULT_COLORS_BEFORE[et_key]
+            subbar_pos = pos - subbar_width*(num_subbars/2-et_idx-0.5)
+            #? step별로 구분
+            # ax.bar(subbar_pos, val[et_idx], width=subbar_width,
+            #        ec=color, lw=0.8,
+            #        fc=[color, color+'40', color+'40'][n],
+            #        hatch=[None, '//////', None][n])
+            # bar = ax.bar(subbar_pos, val[et_idx], width=subbar_width,
+            #        ec='k', fc='none', zorder=5, lw=1.0)
+            #? 모두 같은 스타일
+            bar = ax.bar(subbar_pos, val[et_idx], width=subbar_width,
+                   ec='k', fc=color+'90', lw=1)
+            #? 테두리 없이
+            # bar = ax.bar(subbar_pos, val[et_idx], width=subbar_width,
+            #        fc=color, lw=0)
         
-        # 막대 위에 값 표시 (padding을 3 정도로 살짝 띄움)
-        ax.bar_label(bars, fmt="%.1f", padding=3, fontsize=9)
+            # 막대 위에 값 표시 (padding을 3 정도로 살짝 띄움)
+            ax.bar_label(bar, fmt="%.1f", padding=3 + 10*(et_idx%2), fontsize=9)
 
     # --- 축 및 레이블 수정 ---
     # x축 눈금 위치를 막대 위치(0, 1, 2)와 동일하게 설정
@@ -299,46 +317,99 @@ def draw_3step_bargraph(
     ax.set_ylabel(ylabel)
     ax.set_title(title, fontsize=11, weight="bold")
     ax.grid(axis="y", linestyle="--", alpha=0.4)
+    ax.set_axisbelow(True)
     
     # xlim을 막대 좌우로 0.5만큼 여유 있게 설정 (-0.5 ~ 2.5)
     ax.set_xlim(-0.5, num_bars - 0.5)
     
     # bar_label이 잘 보이도록 y축 상단에 15% 여유 공간 추가
-    ax.set_ylim(top=max(values) * 1.15) 
-    
-    fig.tight_layout()
-    
-    return fig
+    ax.set_ylim(top=max([max(val) for val in values]) * 1.2)
 
 def draw_energysimulation_figures(
     grrbefore:dict,
     grrafter :dict,
     grrafterN:dict,
     ) -> tuple[plt.Figure]:
+
+    fig, axs = plt.subplots(1, 2, figsize=(8, 3), layout='constrained')
     
-    fig_use = draw_3step_bargraph(
+    # ENERGY_TYPES 순서대로 입력
+    [
+        sum([
+            result["site_uses"][cat][et_key]
+            for result in [grrbefore, grrafter, grrafterN]
+            for et_key, _ in ENERGY_TYPES
+        ])
+        for cat, _ in GRAPH_ORDER
+    ]
+    draw_3step_bargraph(
         "에너지 사용량 비교",
         [
-            grrbefore["summary_per_area"]["site_uses"]["total_annual"],
-            grrafter["summary_per_area"]["site_uses"]["total_annual"],
-            grrafterN["summary_per_area"]["site_uses"]["total_annual"],
+            [
+                grrbefore["summary_per_area"]["site_uses"]["total_annual"],
+                grrbefore["summary_per_area"]["site_uses"]["total_annual"],
+                grrbefore["summary_per_area"]["site_uses"]["total_annual"],
+                grrbefore["summary_per_area"]["site_uses"]["total_annual"],
+            ],
+            [
+                grrafter["summary_per_area"]["site_uses"]["total_annual"],
+                grrafter["summary_per_area"]["site_uses"]["total_annual"],
+                grrafter["summary_per_area"]["site_uses"]["total_annual"],
+                grrafter["summary_per_area"]["site_uses"]["total_annual"],
+            ],
+            [
+                grrafterN["summary_per_area"]["site_uses"]["total_annual"],
+                grrafterN["summary_per_area"]["site_uses"]["total_annual"],
+                grrafterN["summary_per_area"]["site_uses"]["total_annual"],
+                grrafterN["summary_per_area"]["site_uses"]["total_annual"],
+            ],
         ],
         ["GR이전","GR이후","N년차"],
-        ylabel = "EUI [kWh/m2/year]",
+        ylabel = r"$\mathrm{(kWh/m^2\cdot year)}$",
+        ax = axs[0]
     )
     
-    fig_co2 = draw_3step_bargraph(
+    draw_3step_bargraph(
         "온실가스 배출량 비교",
         [
-            grrbefore["summary_per_area"]["co2"]["total_annual"],
-            grrafter["summary_per_area"]["co2"]["total_annual"],
-            grrafterN["summary_per_area"]["co2"]["total_annual"],
+            [
+                grrbefore["summary_per_area"]["co2"]["total_annual"],
+                grrbefore["summary_per_area"]["co2"]["total_annual"],
+                grrbefore["summary_per_area"]["co2"]["total_annual"],
+                grrbefore["summary_per_area"]["co2"]["total_annual"],
+            ],
+            [
+                grrafter["summary_per_area"]["co2"]["total_annual"],
+                grrafter["summary_per_area"]["co2"]["total_annual"],
+                grrafter["summary_per_area"]["co2"]["total_annual"],
+                grrafter["summary_per_area"]["co2"]["total_annual"],
+            ],
+            [
+                grrafterN["summary_per_area"]["co2"]["total_annual"],
+                grrafterN["summary_per_area"]["co2"]["total_annual"],
+                grrafterN["summary_per_area"]["co2"]["total_annual"],
+                grrafterN["summary_per_area"]["co2"]["total_annual"],
+            ],
         ],
         ["GR이전","GR이후","N년차"],
-        ylabel = "CO2-eq [kgCO2/m2/year]",
+        ylabel = r"$\mathrm{CO_2}$ 배출량 $\mathrm{(kg/m^2\cdot year)}$",
+        ax = axs[1]
     )
+
+    fig.legend(
+        handles=[
+            Patch(ec='k', fc=DEFAULT_COLORS_BEFORE[et_key]+'90')
+            # Patch(color=DEFAULT_COLORS_BEFORE[et_key])
+            for et_key, _ in ENERGY_TYPES
+        ],
+        labels=[et_label for _, et_label in ENERGY_TYPES],
+        loc='outside lower center', ncol=4,
+        # bbox_to_anchor=(0.5, 0.95)
+    )
+
+    fig.get_layout_engine().set(wspace=0.1)
     
-    return fig_use, fig_co2
+    return fig
 
 # ---------------------------------------------------------------------------
 # New functions: Python versions of HTML Chart.js visualizations
@@ -555,8 +626,6 @@ def draw_simulation_figures(grr_before: dict, grr_after: dict, grr_afterN: dict)
     figs[1].suptitle('요약', fontsize=18, fontweight='bold')
     
     master_fig.align_ylabels(master_fig.axes)
-    master_fig.savefig(FIG_DIR / f"testtest.png", dpi=400, format="png", bbox_inches="tight")
-    print(ASDFASDFSDFDS)
 
     return master_fig
 
