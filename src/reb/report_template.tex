@@ -1,0 +1,236 @@
+\documentclass[a4paper,10pt]{article}
+
+% ======================
+% 한글 처리 (유일하게 필요한 패키지)
+% ======================
+\usepackage{kotex}   % ✅ UTF-8 + 한글 조합 + 폰트 자동 선택
+\renewcommand{\familydefault}{\sfdefault}
+
+% ======================
+% 일반 설정
+% ======================
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+\usepackage{setspace}
+\usepackage{caption}
+\usepackage{titlesec}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\setstretch{1.25}
+\usepackage[most]{tcolorbox}
+\usepackage{longtable}
+
+{% raw %}
+\graphicspath{{figures/}}
+{% endraw %}
+
+\titleformat{\section}{\large\bfseries}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{0.5em}{}
+% \section 번호 대신 네모 기호
+\titleformat{\section}
+  {\large\bfseries}   % 글꼴 설정
+  {\makebox[1.5em][c]{\rule{0.8em}{0.8em}}}  % <-- 네모 (검정색 사각형)
+  {0.5em}{}           % 간격
+
+% ======================
+% 문서 본문
+% ======================
+\title{건물 리모델링 성능 보고서}
+
+\begin{document}
+\begin{center}
+    \Large\bfseries GR 정성평가: {{metadata.name}}
+\end{center}
+
+% ==================== 갑지 ====================
+
+\section{건물 개요}
+
+\newcolumntype{L}{>{\columncolor[gray]{0.9}\bfseries\centering\arraybackslash}p{0.25\textwidth}}
+\newcolumntype{C}{>{\centering\arraybackslash}p{0.65\textwidth}}
+
+% 본문
+\setlength{\tabcolsep}{0pt}
+\renewcommand{\arraystretch}{1.3}
+
+\begin{table}[h!]
+\centering
+% 양쪽 끝 세로선은 빼고(요구사항), 가운데만 세로선
+\begin{tabular}{L|C}
+\hline
+면적 & {{metadata.area}}$\mathrm{m^2}$ \\ \hline
+허가연도 & {{metadata.date}} \\ \hline
+주소(시군구) & {{metadata.addr}} \\ \hline
+\end{tabular}
+\end{table}
+
+\section{리모델링 및 운영특성 변경 내역 요약}
+\begin{itemize}
+    \item 리모델링 전후 성능 변화: {{diffsummary[0]}}
+    \item 리모델링 N년차 성능 변화: {{diffsummary[1]}}
+    \item 리모델링 N년차 운영 변화: {{diffsummary[2]}}
+\end{itemize}
+
+\section{시뮬레이션 결과}
+\begin{figure}[h!]
+    \centering
+    \begin{minipage}[b]{0.49\textwidth}
+        \includegraphics[width=\textwidth]{energy_summary_use.png}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[b]{0.49\textwidth}
+        \includegraphics[width=\textwidth]{energy_summary_co2.png}
+    \end{minipage}
+\end{figure}
+
+
+\section{결론}
+\begin{tcolorbox}[colback=gray!5,colframe=black!60,boxrule=0.6pt,
+                  left=4mm,right=4mm,top=2mm,bottom=2mm]
+\textbf{ {{metadata.name}} }은,
+
+① 성능 변화 및 기상데이터의 변화를 고려할 때, \underline{${{EUIdiff[0]}}\,\mathrm{kWh/m^2}$} 절감될 것으로 분석되었다.
+
+② 운영특성 및 추가적인 성능 변화를 고려할 때, 
+\underline{${{EUIdiff[1]}}\,\mathrm{kWh/m^2}$} 절감될 것으로 분석되었다. 
+
+③ 이는 운영특성 및 성능 변화로 그린리모델링 효과가 
+\underline{${{EUIdiff[2]}}\,\mathrm{kWh/m^2}$} 줄어든 것이다.
+\end{tcolorbox}
+
+% ==================== 을지 ====================
+
+\newpage
+\section{성능 변화 내역 (GR 이전 → GR 이후)}
+{\scriptsize
+\setlength{\tabcolsep}{8pt}
+{% if perf_diff12 %}
+\begin{longtable}{l!{\color{gray!60}\vrule width 0.3pt}
+                  l!{\color{gray!60}\vrule width 0.3pt}
+                  l!{\color{gray!60}\vrule width 0.3pt}
+                  c!{\color{gray!60}\vrule width 0.3pt}
+                  c!{\color{gray!60}\vrule width 0.3pt}
+                  c}
+\toprule
+존 이름 & 구분 & 항목 & 이전 값 & 이후 값 & 단위 \\
+\midrule
+\endfirsthead
+\toprule
+존 이름 & 구분 & 항목 & 이전 값 & 이후 값 & 단위 \\
+\midrule
+\endhead
+{% for d in perf_diff12 %}
+{% if not loop.first and d.type != loop.previtem.type %}
+\arrayrulecolor[gray]{0.85}\midrule\arrayrulecolor{black}
+{% endif %}
+{{ d.zonename }} & {{ d.type }} & {{ d.prop }} & {{ d.before }} & {{ d.after }} & {{ d.unit }} \\
+{% endfor %}
+\bottomrule
+\end{longtable}
+{% else %}
+\textit{변경내역 없음.}
+{% endif %}
+}
+
+\section{기상 변화 내역 (GR 이전 → GR 이후)}
+\noindent
+\includegraphics[width=0.6\textwidth]{weather_compare_monthly.png}%
+\hfill
+\includegraphics[width=0.38\textwidth]{weather_compare_degreeday.png}
+
+\section{성능 변화 내역 (GR 이후 → GR N년차)}
+{\scriptsize
+\setlength{\tabcolsep}{8pt}
+{% if perf_diff23 %}
+\begin{longtable}{l!{\color{gray!60}\vrule width 0.3pt}
+                  l!{\color{gray!60}\vrule width 0.3pt}
+                  l!{\color{gray!60}\vrule width 0.3pt}
+                  c!{\color{gray!60}\vrule width 0.3pt}
+                  c!{\color{gray!60}\vrule width 0.3pt}
+                  c}
+\toprule
+존 이름 & 구분 & 항목 & 이전 값 & 이후 값 & 단위 \\
+\midrule
+\endfirsthead
+\toprule
+존 이름 & 구분 & 항목 & 이전 값 & 이후 값 & 단위 \\
+\midrule
+\endhead
+{% for d in perf_diff23 %}
+{% if not loop.first and d.type != loop.previtem.type %}
+\arrayrulecolor[gray]{0.85}\midrule\arrayrulecolor{black}
+{% endif %}
+{{ d.zonename }} & {{ d.type }} & {{ d.prop }} & {{ d.before }} & {{ d.after }} & {{ d.unit }} \\
+{% endfor %}
+\bottomrule
+\end{longtable}
+{% else %}
+\textit{변경내역 없음.}
+{% endif %}
+}
+
+\section{운영특성 변화 내역 (GR 이후 → GR N년차)}
+{\scriptsize
+\setlength{\tabcolsep}{8pt}
+{% if oper_diff23 %}
+\begin{longtable}{l!{\color{gray!60}\vrule width 0.3pt}
+                  l!{\color{gray!60}\vrule width 0.3pt}
+                  l!{\color{gray!60}\vrule width 0.3pt}
+                  c!{\color{gray!60}\vrule width 0.3pt}
+                  c!{\color{gray!60}\vrule width 0.3pt}
+                  c}
+\toprule
+존 이름 & 구분 & 항목 & 이전 값 & 이후 값 & 단위 \\
+\midrule
+\endfirsthead
+\toprule
+존 이름 & 구분 & 항목 & 이전 값 & 이후 값 & 단위 \\
+\midrule
+\endhead
+{% for d in oper_diff23 %}
+{% if not loop.first and d.prop != loop.previtem.prop %}
+\arrayrulecolor[gray]{0.85}\midrule\arrayrulecolor{black}
+{% endif %}
+{{ d.zonename }} & {{ d.type }} & {{ d.prop }} & {{ d.before }} & {{ d.after }} & {{ d.unit }} \\
+{% endfor %}
+\bottomrule
+\end{longtable}
+{% else %}
+\textit{변경내역 없음.}
+{% endif %}
+}
+
+\newpage
+\section{시뮬레이션 결과 (상세)}
+
+\paragraph{용도별, 월별 사용량 비교}
+
+\begin{center}
+  \includegraphics[width=0.49\textwidth]{monthly_heating.png}
+  \hfill
+  \includegraphics[width=0.49\textwidth]{monthly_cooling.png}
+
+  \vspace{1em}
+
+  \includegraphics[width=0.49\textwidth]{monthly_circulation.png}
+  \hfill
+  \includegraphics[width=0.49\textwidth]{monthly_lighting.png}
+
+  \vspace{1em}
+
+  \includegraphics[width=0.49\textwidth]{monthly_hotwater.png}
+  \hfill
+  \includegraphics[width=0.49\textwidth]{monthly_generators.png}
+\end{center}
+
+\paragraph{요약}
+
+\begin{center}
+  \includegraphics[width=0.49\textwidth]{annual_by_purpose.png}
+  \hfill
+  \includegraphics[width=0.49\textwidth]{total_monthly_line.png}
+\end{center}
+
+\end{document}

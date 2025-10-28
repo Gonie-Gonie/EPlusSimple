@@ -253,8 +253,14 @@ def replace_typo(wb) -> None:
     for idx in range(wb["실"].max_row):
         if wb["실"].cell(idx+1, 4).value == "회의실 및 세미나실":
             wb["실"].cell(idx+1, 4).value = "회의 및 세미나실"
-    
-    # 오타 2
+        if wb["실"].cell(idx+1, 4).value == "강의실(대학)":
+            wb["실"].cell(idx+1, 4).value = "강의실"
+        if wb["실"].cell(idx+1, 4).value == "매장(상점/백화점)":
+            wb["실"].cell(idx+1, 4).value = "매장"
+        if wb["실"].cell(idx+1, 4).value == "전시실(전시관/박물관)":
+            wb["실"].cell(idx+1, 4).value = "전시실"
+        if wb["실"].cell(idx+1, 4).value == "열람실(도서관)":
+            wb["실"].cell(idx+1, 4).value = "열람실"
     
     return 
     
@@ -289,7 +295,7 @@ def save_excel(
 def process_excel_file(
     file_path:str,
     *,
-    suffix         :str="preprocess",
+    suffix         :str="_preprocess",
     output_filepath:str=None        ,
     verbose:bool=True,
     ) -> str:
@@ -359,7 +365,7 @@ def process_excel_file(
         
         # 5. 결과 저장
         if output_filepath is None:
-            output_filepath = save_excel(wb, original_filepath=file_path, suffix=suffix)
+            output_filepath = save_excel(wb, original_filepath=file_path, suffix=suffix, verbose=verbose)
         else:
             output_filepath = save_excel(wb, output_filepath, verbose=verbose)
         

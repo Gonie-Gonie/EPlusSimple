@@ -82,8 +82,11 @@ class EnergyPlusError(Exception):
     
     def __init__(self, err:pd.DataFrame):
         
-        err_message = "===EnergyPlusError===\n" +\
-                      "\n".join(err.query("type=='Severe' | type=='Fatal'")["title"].values)
+        if err is not None:
+            err_message = "===EnergyPlusError===\n" +\
+                "\n".join(err.query("type=='Severe' | type=='Fatal'")["title"].values)
+        else:
+            err_message = "EP ERROR파일조차 생성되지 않음."
                       
         super().__init__(err_message)
         

@@ -48,7 +48,7 @@ class EnergyPlusResult:
         
         # default results
         self.audit = None
-        self.audit = None
+        self.err   = None
         self.bnd   = None
         self.tbl   = None
         self.eso   = None
