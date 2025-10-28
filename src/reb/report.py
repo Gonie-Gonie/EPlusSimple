@@ -67,16 +67,6 @@ DEFAULT_COLORS = ("tab:blue", "tab:orange")  # epw1, epw2 색상
 # PALETTE = ['#FF0305', '#363AFF', '#FF8820', '#FFFE03', '#98C1EF', '#A4C761']
 PALETTE = ['#FF1F5B', '#009ADE', '#F28522', '#AF59BA', '#FFC61E', '#00CD6C', '#A1B1BA', '#A6761D']
 
-def _apply_axis_style(ax, title:str=None, ylabel:str=None):
-    if title:
-        ax.set_title(title, fontsize=11, weight="bold")
-    if ylabel:
-        ax.set_ylabel(ylabel)
-    ax.grid(axis="y", linestyle="--", alpha=0.4)
-    ax.set_axisbelow(True)
-    ax.set_xticks(range(1,13))
-    ax.set_xticklabels(MONTH_LBLS, fontsize=9)
-
 # ---------------------------------------------------------------------------- #
 #                               FIGURE FUNCTIONS                               #
 # ---------------------------------------------------------------------------- #
@@ -181,11 +171,16 @@ def draw_weather_monthlycomparision(
     )
 
     # 월평균 표시(점선+마커)
-    ax.plot(pos1, mean1, color=colors[0], marker="o", linestyle="--", linewidth=1.3, label=f"{label1} mean")
-    ax.plot(pos2, mean2, color=colors[1], marker="o", linestyle="--", linewidth=1.3, label=f"{label2} mean")
+    ax.plot(pos1, mean1, color=colors[0], marker="o", ms=3, linestyle="--", linewidth=1.3, label=f"{label1.split('_')[1]}년")
+    ax.plot(pos2, mean2, color=colors[1], marker="o", ms=3, linestyle="--", linewidth=1.3, label=f"{label2.split('_')[1]}년")
 
-    _apply_axis_style(ax, "월간 외기 온도", "건구 온도 (°C)")
+    ax.set_xticks(range(1,13))
+    ax.set_xticklabels(MONTH_LBLS, fontsize=9)
     ax.set_xlim(0.5, 12.5 + shift)
+    ax.set_title("월간 외기 온도", fontsize=11, weight="bold")
+    ax.set_ylabel("건구 온도 (°C)")
+    ax.grid(axis="both", linestyle="--", alpha=0.4)
+    ax.set_axisbelow(True)
     all_values = pd.concat([
         df1["DryBulb"].dropna(),
         df2["DryBulb"].dropna()
@@ -250,7 +245,7 @@ def draw_weather_degreedays(
     # --- 범례 ---
     custom = [plt.Rectangle((0,0),1,1,color=colors[0],alpha=0.8),
               plt.Rectangle((0,0),1,1,color=colors[1],alpha=0.8)]
-    ax.legend(custom, [label1, label2], fontsize=9, ncols=2, loc='upper center', bbox_to_anchor=(0.5, -0.1))
+    ax.legend(custom, [f"{l.split('_')[1]}년" for l in [label1, label2]], fontsize=9, ncols=2, loc='upper center', bbox_to_anchor=(0.5, -0.1))
 
 
 def draw_weather_figures(
@@ -338,7 +333,7 @@ def draw_energysimulation_figures(
     
     # ENERGY_TYPES 순서대로 입력
     draw_3step_bargraph(
-        "에너지 사용량 비교",
+        "연간 단위면적당 에너지소요량",
         [
             [
                 sum([
@@ -350,12 +345,12 @@ def draw_energysimulation_figures(
             for result in [grrbefore, grrafter, grrafterN]
         ],
         ["GR이전","GR이후","N년차"],
-        ylabel = r"(kWh/$\mathrm{m^2\cdot}$년)",
+        ylabel = "(kWh/$\\mathrm{m^2\\cdot}$년)",
         ax = axs[0]
     )
     
     draw_3step_bargraph(
-        "온실가스 배출량 비교",
+        "온실가스 배출량",
         [
             [
                 sum([
@@ -457,8 +452,8 @@ def _draw_monthly_stacked_bar(
 
     ax.set_xticks(month_labels)
     ax.set_xticklabels([f"{m}월" for m in month_labels])
-    ax.set_ylabel("단위당 값")
-    ax.set_title(f"{category_label} 월별 비교")
+    ax.set_ylabel("(kWh/$\\mathrm{m^2\\cdot}$월)")
+    ax.set_title(f"월간 단위면적당 에너지소요량 - {category_label}")
     ax.grid(axis="y", linestyle="--", alpha=0.4)
     # legend는 나중에 한 번에
     # ax.legend(fontsize=8, ncols=2)
@@ -549,9 +544,9 @@ def _draw_annual_by_purpose(ax: plt.Axes, grr_before: dict, grr_after: dict, grr
     ax.set_ylim(0, max(5, ymax * 1.15))  # 상단 15% 여유
 
     ax.set_xticks(x)
-    ax.set_xticklabels([lbl for _, lbl in GRAPH_ORDER])
+    ax.set_xticklabels([lbl.replace('/', '/\n') for _, lbl in GRAPH_ORDER])
     ax.set_ylabel("연간 합계")
-    ax.set_title("연간 용도별 에너지소요량 비교")
+    ax.set_title("연간 용도별 에너지소요량")
     ax.grid(axis="y", linestyle="--", alpha=0.4)
     # ax.legend(fontsize=8, ncols=3)
     # fig.tight_layout()
@@ -572,8 +567,8 @@ def _draw_total_monthly_line(ax: plt.Axes, grr_before: dict, grr_after: dict, gr
     ax.set_xticks(months)
     ax.set_xticklabels([f"{m}월" for m in months])
     ax.set_ylabel("월별 총합")
-    ax.set_title("월별 총 에너지소요량 비교")
-    ax.grid(axis="y", linestyle="--", alpha=0.4)
+    ax.set_title("월별 에너지소요량")
+    ax.grid(axis="both", linestyle="--", alpha=0.4)
     ax.legend(fontsize=8, loc="upper right")
     # fig.tight_layout()
 
@@ -585,7 +580,7 @@ def draw_simulation_figures(grr_before: dict, grr_after: dict, grr_afterN: dict)
     
     master_fig = plt.figure(figsize=(9, 3*4), constrained_layout=True)
 
-    figs = master_fig.subfigures(2, 1, height_ratios=[3, 1], hspace=0.05)
+    figs = master_fig.subfigures(2, 1, height_ratios=[3, 1.2], hspace=0.05)
 
     _draw_monthly_stacked_bars(figs[0], grr_before, grr_after, grr_afterN)
 
