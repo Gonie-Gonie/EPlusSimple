@@ -51,8 +51,10 @@ class MetaData:
 #                                 SUBFUNCTIONS                                 #
 # ---------------------------------------------------------------------------- #
 
-MONTH_LBLS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+MONTH_LBLS = ([f"{m}월" for m in range(1, 13)])
 DEFAULT_COLORS = ("tab:blue", "tab:orange")  # epw1, epw2 색상
+# PALETTE = ['#FF0305', '#363AFF', '#FF8820', '#FFFE03', '#98C1EF', '#A4C761']
+PALETTE = ['#FF1F5B', '#009ADE', '#F28522', '#AF59BA', '#FFC61E', '#00CD6C', '#A1B1BA', '#A6761D']
 
 def _apply_axis_style(ax, title:str=None, ylabel:str=None):
     if title:
@@ -60,6 +62,7 @@ def _apply_axis_style(ax, title:str=None, ylabel:str=None):
     if ylabel:
         ax.set_ylabel(ylabel)
     ax.grid(axis="y", linestyle="--", alpha=0.4)
+    ax.set_axisbelow(True)
     ax.set_xticks(range(1,13))
     ax.set_xticklabels(MONTH_LBLS, fontsize=9)
 
@@ -128,7 +131,7 @@ def draw_weather_monthlycomparision(
     *,
     label1: str | None = None,
     label2: str | None = None,
-    colors: tuple[str,str] = DEFAULT_COLORS,
+    colors: list[str,str] = PALETTE[:2],
     figsize=(6.0, 3.8),
 ) -> plt.Figure:
     """
@@ -152,17 +155,17 @@ def draw_weather_monthlycomparision(
     pos2 = [p + shift for p in pos1]
 
     bp1 = ax.boxplot(
-        box1, positions=pos1, widths=0.25, patch_artist=True,
-        boxprops=dict(facecolor=colors[0], alpha=0.3, linewidth=1.2),
-        medianprops=dict(color=colors[0], linewidth=1.2),
+        box1, positions=pos1, widths=0.25, patch_artist=True, showfliers=False,
+        boxprops=dict(ec=colors[0], fc='none', linewidth=1.0),
+        medianprops=dict(color=colors[0], linewidth=1.0),
         whiskerprops=dict(color=colors[0], linewidth=1.0),
         capprops=dict(color=colors[0], linewidth=1.0),
         flierprops=dict(markeredgecolor=colors[0], alpha=0.4, markersize=3),
     )
     bp2 = ax.boxplot(
-        box2, positions=pos2, widths=0.25, patch_artist=True,
-        boxprops=dict(facecolor=colors[1], alpha=0.3, linewidth=1.2),
-        medianprops=dict(color=colors[1], linewidth=1.2),
+        box2, positions=pos2, widths=0.25, patch_artist=True, showfliers=False,
+        boxprops=dict(ec=colors[0], fc='none', linewidth=1.0),
+        medianprops=dict(color=colors[1], linewidth=1.0),
         whiskerprops=dict(color=colors[1], linewidth=1.0),
         capprops=dict(color=colors[1], linewidth=1.0),
         flierprops=dict(markeredgecolor=colors[1], alpha=0.4, markersize=3),
@@ -172,7 +175,7 @@ def draw_weather_monthlycomparision(
     ax.plot(pos1, mean1, color=colors[0], marker="o", linestyle="--", linewidth=1.3, label=f"{label1} mean")
     ax.plot(pos2, mean2, color=colors[1], marker="o", linestyle="--", linewidth=1.3, label=f"{label2} mean")
 
-    _apply_axis_style(ax, "Monthly Outdoor Temperature (Box & Mean)", "Dry Bulb Temperature (°C)")
+    _apply_axis_style(ax, "월간 외기 온도", "건구 온도 (°C)")
     ax.set_xlim(0.5, 12.5 + shift)
     all_values = pd.concat([
         df1["DryBulb"].dropna(),
@@ -194,7 +197,7 @@ def draw_weather_degreedays(
     base_temp: float = 18.0,
     label1: str | None = None,
     label2: str | None = None,
-    colors: tuple[str, str] = ("tab:blue", "tab:orange"),
+    colors: list[str,str] = PALETTE[:2],
     figsize=(3.9, 3.8),
 ) -> plt.Figure:
     """
@@ -228,13 +231,14 @@ def draw_weather_degreedays(
     # --- x축 그룹 라벨 ---
     ax.set_xticks([0.5, 3.5])
     ax.set_xticklabels(["HDD", "CDD"], fontsize=10)
-    ax.set_ylabel("Degree Days (°C·day)")
+    ax.set_ylabel("도일 (°C·day)")
     ax.set_title(f"Annual HDD/CDD Comparison (Base {base_temp:.1f}°C)",
                  fontsize=11, weight="bold")
     ax.grid(axis="y", linestyle="--", alpha=0.4)
 
     # --- 막대 위 값 표시 ---
     ax.bar_label(bars, fmt="%.0f", padding=3, fontsize=9)
+    ax.set_ylim(0, max(heights)*1.15)
 
     # --- 범례 ---
     custom = [plt.Rectangle((0,0),1,1,color=colors[0],alpha=0.8),
@@ -267,7 +271,7 @@ def draw_3step_bargraph(
     index : list[str],
     *,
     ylabel: str = "Value",
-    colors: tuple = ("tab:blue", "tab:orange", "tab:green"),
+    colors: list = PALETTE,
     ) -> plt.Figure:
     
     fig, ax = plt.subplots(figsize=(4, 3))
@@ -356,13 +360,9 @@ ENERGY_TYPES = [
 ]
 
 DEFAULT_COLORS_BEFORE = {
-    "ELECTRICITY": "tab:green",
-    "NATURALGAS": "tab:red",
-    "OIL": "tab:orange",
-    "DISTRICTHEATING": "tab:purple",
+    k: PALETTE[k_idx]
+    for k_idx, k in enumerate(["ELECTRICITY", "NATURALGAS", "OIL", "DISTRICTHEATING"])
 }
-DEFAULT_COLORS_AFTER = {k: c + "light" if hasattr(c, "light") else c for k, c in DEFAULT_COLORS_BEFORE.items()}
-
 
 def _draw_monthly_stacked_bar(
     category_key: str,
@@ -385,12 +385,23 @@ def _draw_monthly_stacked_bar(
         avals = np.array(grr_after[datatype][category_key].get(et_key, [0]*12))
         nvals = np.array(grr_afterN[datatype][category_key].get(et_key, [0]*12))
 
+        color = DEFAULT_COLORS_BEFORE[et_key]
+
         ax.bar(month_labels - 0.25, bvals, width=0.25, bottom=bottom_before,
-               color=DEFAULT_COLORS_BEFORE[et_key], alpha=0.8, label=f"{et_label} (전)")
+               label=f"{et_label} (전)",
+               fc=color)
+        ax.bar(month_labels - 0.25, bvals, width=0.25, bottom=bottom_before,
+               ec='k', fc='none', zorder=5, lw=1.0)
+        
         ax.bar(month_labels, avals, width=0.25, bottom=bottom_after,
-               color=DEFAULT_COLORS_BEFORE[et_key], alpha=0.4, label=f"{et_label} (후)")
+               label=f"{et_label} (후)",
+               ec=color, fc=color+'40', hatch='//////', lw=0.8)
+        ax.bar(month_labels, avals, width=0.25, bottom=bottom_after,
+               ec='k', fc='none', zorder=5, lw=1.0)
+        
         ax.bar(month_labels + 0.25, nvals, width=0.25, bottom=bottom_afterN,
-               color=DEFAULT_COLORS_BEFORE[et_key], alpha=0.2, label=f"{et_label} (N)")
+               label=f"{et_label} (N)",
+               ec='k', fc=color+'40', zorder=5, lw=1.0)
 
         bottom_before += bvals
         bottom_after += avals
@@ -401,7 +412,8 @@ def _draw_monthly_stacked_bar(
     ax.set_ylabel("단위당 값")
     ax.set_title(f"{category_label} 월별 비교")
     ax.grid(axis="y", linestyle="--", alpha=0.4)
-    ax.legend(fontsize=8, ncols=2)
+    # legend는 나중에 한 번에
+    # ax.legend(fontsize=8, ncols=2)
     
     # --- ylim 자동 여유 설정 ---
     all_values = np.concatenate([
@@ -562,7 +574,7 @@ def build_report(
         afterN_rebexcelpath ,
     )
     
-    # comparison summry
+    # comparison summary
     if len(perf_diff12) > 0:
         diff_counts12 = perf_diff12.drop_duplicates(["type", "zonename"]).groupby("type")["zonename"].nunique().to_dict()
         diffstr12 = ", ".join(f"{k} {v}개 존" for k, v in diff_counts12.items())
