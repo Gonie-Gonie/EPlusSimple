@@ -26,12 +26,16 @@ from .comparison import compare_rebexcel
 from .auxiliary  import find_weatherdata
 
 # settings
+PLOTFONTSIZE = 11
 PLOTFONTFAMILY = 'Malgun Gothic'
-plt.rc('font', family=PLOTFONTFAMILY)
+plt.rc('font', family=PLOTFONTFAMILY, size=PLOTFONTSIZE)
 plt.rc('mathtext', fontset='custom', rm=PLOTFONTFAMILY,
        it=f'{PLOTFONTFAMILY}:italic', bf=f'{PLOTFONTFAMILY}:bold')
 plt.rc('axes.formatter', useoffset=False)
-plt.rc('axes', unicode_minus=False)
+plt.rc('axes', titlesize=PLOTFONTSIZE, labelsize=PLOTFONTSIZE, unicode_minus=False)
+plt.rc('xtick', labelsize=PLOTFONTSIZE)
+plt.rc('ytick', labelsize=PLOTFONTSIZE)
+plt.rc('legend', fontsize=PLOTFONTSIZE)
 
 
 # ---------------------------------------------------------------------------- #
@@ -139,8 +143,8 @@ def draw_weather_monthlycomparision(
     label1: str | None = None,
     label2: str | None = None,
     colors: list[str,str] = PALETTE[:2],
-    figsize=(6.0, 3.8),
-) -> plt.Figure:
+    ax: plt.Axes
+) -> None:
     """
     두 EPW의 월별 DryBulb 분포(boxplot)와 월평균(라인)을 한 그림에 비교.
     """
@@ -154,8 +158,6 @@ def draw_weather_monthlycomparision(
     box2 = [df2.loc[df2["Month"]==m, "DryBulb"].to_numpy() for m in range(1,13)]
     mean1 = [float(pd.Series(b).mean()) if len(b)>0 else float("nan") for b in box1]
     mean2 = [float(pd.Series(b).mean()) if len(b)>0 else float("nan") for b in box2]
-
-    fig, ax = plt.subplots(figsize=figsize)
 
     pos1 = list(range(1,13))
     shift = 0.3
@@ -192,9 +194,8 @@ def draw_weather_monthlycomparision(
     margin = (vmax - vmin) * 0.1  # 상하단 10% 여유
 
     ax.set_ylim(vmin - margin, vmax + margin)
-    ax.legend(fontsize=9, ncols=2, loc="upper center", bbox_to_anchor=(0.5, 1.20))
-    fig.tight_layout()
-    return fig
+    ax.legend(fontsize=9, ncols=2, loc='upper center', bbox_to_anchor=(0.5, -0.1))
+
 
 # ===== (2) HDD/CDD 비교 =====
 def draw_weather_degreedays(
@@ -205,8 +206,8 @@ def draw_weather_degreedays(
     label1: str | None = None,
     label2: str | None = None,
     colors: list[str,str] = PALETTE[:2],
-    figsize=(3.9, 3.8),
-) -> plt.Figure:
+    ax: plt.Axes
+) -> None:
     """
     두 EPW 파일의 연간 Heating/Cooling Degree Days를 막대 4개로 비교.
     HDD/CDD는 °C·day 단위로 계산.
@@ -228,7 +229,6 @@ def draw_weather_degreedays(
     hdd2, cdd2 = degree_days(df2, base_temp)
 
     # --- Figure 구성 ---
-    fig, ax = plt.subplots(figsize=figsize)
     x_positions = [0, 1, 3, 4]  # HDD1, HDD2, CDD1, CDD2
     heights = [hdd1, hdd2, cdd1, cdd2]
     colors_seq = [colors[0], colors[1], colors[0], colors[1]]
@@ -239,7 +239,7 @@ def draw_weather_degreedays(
     ax.set_xticks([0.5, 3.5])
     ax.set_xticklabels(["HDD", "CDD"], fontsize=10)
     ax.set_ylabel("도일 (°C·day)")
-    ax.set_title(f"Annual HDD/CDD Comparison (Base {base_temp:.1f}°C)",
+    ax.set_title(f"연간 HDD/CDD 비교 ({base_temp:.1f}°C 기준)",
                  fontsize=11, weight="bold")
     ax.grid(axis="y", linestyle="--", alpha=0.4)
 
@@ -250,26 +250,29 @@ def draw_weather_degreedays(
     # --- 범례 ---
     custom = [plt.Rectangle((0,0),1,1,color=colors[0],alpha=0.8),
               plt.Rectangle((0,0),1,1,color=colors[1],alpha=0.8)]
-    ax.legend(custom, [label1, label2], fontsize=9, loc="upper right")
+    ax.legend(custom, [label1, label2], fontsize=9, ncols=2, loc='upper center', bbox_to_anchor=(0.5, -0.1))
 
-    fig.tight_layout()
-    return fig
 
 def draw_weather_figures(
     before_weatherdata_filepath:str,
     after_weatherdata_filepath :str,
     ) -> tuple[plt.Figure]:
+
+    fig, axs = plt.subplots(1, 2, figsize=(8, 3), gridspec_kw={'width_ratios': [2, 1]}, layout='constrained')
     
-    fig_monthlytemp = draw_weather_monthlycomparision(
+    draw_weather_monthlycomparision(
         before_weatherdata_filepath,
         after_weatherdata_filepath ,
+        ax = axs[0]
     )
-    fig_degreedays = draw_weather_degreedays(
+    draw_weather_degreedays(
         before_weatherdata_filepath,
         after_weatherdata_filepath ,
+        ax = axs[1]
     )
+    fig.get_layout_engine().set(wspace=0.1)
     
-    return fig_monthlytemp, fig_degreedays
+    return fig
 
 
 def draw_3step_bargraph(
@@ -306,7 +309,7 @@ def draw_3step_bargraph(
             #        fc=color, lw=0)
         
             # 막대 위에 값 표시 (padding을 3 정도로 살짝 띄움)
-            ax.bar_label(bar, fmt="%.1f", padding=3 + 10*(et_idx%2), fontsize=9)
+            # ax.bar_label(bar, fmt="%.1f", padding=3 + 10*(et_idx%2), fontsize=9)
 
     # --- 축 및 레이블 수정 ---
     # x축 눈금 위치를 막대 위치(0, 1, 2)와 동일하게 설정
@@ -323,7 +326,7 @@ def draw_3step_bargraph(
     ax.set_xlim(-0.5, num_bars - 0.5)
     
     # bar_label이 잘 보이도록 y축 상단에 15% 여유 공간 추가
-    ax.set_ylim(top=max([max(val) for val in values]) * 1.2)
+    ax.set_ylim(top=max([max(val) for val in values]) * 1.1)
 
 def draw_energysimulation_figures(
     grrbefore:dict,
@@ -334,38 +337,20 @@ def draw_energysimulation_figures(
     fig, axs = plt.subplots(1, 2, figsize=(8, 3), layout='constrained')
     
     # ENERGY_TYPES 순서대로 입력
-    [
-        sum([
-            result["site_uses"][cat][et_key]
-            for result in [grrbefore, grrafter, grrafterN]
-            for et_key, _ in ENERGY_TYPES
-        ])
-        for cat, _ in GRAPH_ORDER
-    ]
     draw_3step_bargraph(
         "에너지 사용량 비교",
         [
             [
-                grrbefore["summary_per_area"]["site_uses"]["total_annual"],
-                grrbefore["summary_per_area"]["site_uses"]["total_annual"],
-                grrbefore["summary_per_area"]["site_uses"]["total_annual"],
-                grrbefore["summary_per_area"]["site_uses"]["total_annual"],
-            ],
-            [
-                grrafter["summary_per_area"]["site_uses"]["total_annual"],
-                grrafter["summary_per_area"]["site_uses"]["total_annual"],
-                grrafter["summary_per_area"]["site_uses"]["total_annual"],
-                grrafter["summary_per_area"]["site_uses"]["total_annual"],
-            ],
-            [
-                grrafterN["summary_per_area"]["site_uses"]["total_annual"],
-                grrafterN["summary_per_area"]["site_uses"]["total_annual"],
-                grrafterN["summary_per_area"]["site_uses"]["total_annual"],
-                grrafterN["summary_per_area"]["site_uses"]["total_annual"],
-            ],
+                sum([
+                    sum(result["site_uses"][cat][et_key])
+                    for cat, _ in GRAPH_ORDER
+                ])
+                for et_key, _ in ENERGY_TYPES
+            ]
+            for result in [grrbefore, grrafter, grrafterN]
         ],
         ["GR이전","GR이후","N년차"],
-        ylabel = r"$\mathrm{(kWh/m^2\cdot year)}$",
+        ylabel = r"(kWh/$\mathrm{m^2\cdot}$년)",
         ax = axs[0]
     )
     
@@ -373,26 +358,16 @@ def draw_energysimulation_figures(
         "온실가스 배출량 비교",
         [
             [
-                grrbefore["summary_per_area"]["co2"]["total_annual"],
-                grrbefore["summary_per_area"]["co2"]["total_annual"],
-                grrbefore["summary_per_area"]["co2"]["total_annual"],
-                grrbefore["summary_per_area"]["co2"]["total_annual"],
-            ],
-            [
-                grrafter["summary_per_area"]["co2"]["total_annual"],
-                grrafter["summary_per_area"]["co2"]["total_annual"],
-                grrafter["summary_per_area"]["co2"]["total_annual"],
-                grrafter["summary_per_area"]["co2"]["total_annual"],
-            ],
-            [
-                grrafterN["summary_per_area"]["co2"]["total_annual"],
-                grrafterN["summary_per_area"]["co2"]["total_annual"],
-                grrafterN["summary_per_area"]["co2"]["total_annual"],
-                grrafterN["summary_per_area"]["co2"]["total_annual"],
-            ],
+                sum([
+                    sum(result["co2"][cat][et_key])
+                    for cat, _ in GRAPH_ORDER
+                ])
+                for et_key, _ in ENERGY_TYPES
+            ]
+            for result in [grrbefore, grrafter, grrafterN]
         ],
         ["GR이전","GR이후","N년차"],
-        ylabel = r"$\mathrm{CO_2}$ 배출량 $\mathrm{(kg/m^2\cdot year)}$",
+        ylabel = r"$\mathrm{CO_2}$ 배출량 (kg/$\mathrm{m^2\cdot}$년)",
         ax = axs[1]
     )
 
@@ -530,13 +505,14 @@ def _draw_monthly_stacked_bars(
                                  hatch=[None, '//////', None][l_idx]))
             labels.append(f"{et_label} {label}")
 
-    handles = np.array(handles).reshape(-1, 6).T.flatten().tolist()
-    labels = np.array(labels).reshape(-1, 6).T.flatten().tolist()
+    legend_ncol = 4
+    # handles = np.array(handles).reshape(-1, legend_ncol).T.flatten().tolist()
+    # labels = np.array(labels).reshape(-1, legend_ncol).T.flatten().tolist()
 
     fig.legend(
         handles=handles,
         labels=labels,
-        loc='outside upper center', ncol=6,
+        loc='outside upper center', ncol=legend_ncol,
         # bbox_to_anchor=(0.5, 0.95)
     )
 
@@ -577,7 +553,7 @@ def _draw_annual_by_purpose(ax: plt.Axes, grr_before: dict, grr_after: dict, grr
     ax.set_ylabel("연간 합계")
     ax.set_title("연간 용도별 에너지소요량 비교")
     ax.grid(axis="y", linestyle="--", alpha=0.4)
-    ax.legend(fontsize=8, ncols=3)
+    # ax.legend(fontsize=8, ncols=3)
     # fig.tight_layout()
 
 
@@ -607,7 +583,7 @@ def draw_simulation_figures(grr_before: dict, grr_after: dict, grr_afterN: dict)
     HTML에서 표시되는 모든 주요 그림들을 matplotlib로 생성하여 반환
     """
     
-    master_fig = plt.figure(figsize=(6*2, 3.5*4), constrained_layout=True)
+    master_fig = plt.figure(figsize=(9, 3*4), constrained_layout=True)
 
     figs = master_fig.subfigures(2, 1, height_ratios=[3, 1], hspace=0.05)
 
@@ -621,9 +597,9 @@ def draw_simulation_figures(grr_before: dict, grr_after: dict, grr_afterN: dict)
     # (3) 월별 총합 라인 그래프
     _draw_total_monthly_line(summary_axs[1], grr_before, grr_after, grr_afterN)
 
-    figs[0].suptitle('용도별, 월별 사용량 비교', y=1.03, fontsize=18, fontweight='bold')
-    master_fig.get_layout_engine().set(h_pad=0.1)
-    figs[1].suptitle('요약', fontsize=18, fontweight='bold')
+    figs[0].suptitle('용도별, 월별 사용량 비교', y=1.04, fontsize=16, fontweight='bold')
+    master_fig.get_layout_engine().set(h_pad=0.1, wspace=0.05)
+    figs[1].suptitle('요약', fontsize=16, fontweight='bold')
     
     master_fig.align_ylabels(master_fig.axes)
 
@@ -712,10 +688,9 @@ def build_report(
         diffstr23oper = "없음"
     
     # get figures (by results summary)
-    fig_use, fig_co2 = draw_energysimulation_figures(grrbefore, grrafter, grrafterN)
+    fig_use_co2 = draw_energysimulation_figures(grrbefore, grrafter, grrafterN)
     os.makedirs(FIG_DIR, exist_ok=True)
-    fig_use.savefig(FIG_DIR / "energy_summary_use.png", dpi=400, format="png")
-    fig_co2.savefig(FIG_DIR / "energy_summary_co2.png", dpi=400, format="png")
+    fig_use_co2.savefig(FIG_DIR / "energy_summary.png", dpi=400, format="png", bbox_inches="tight")
     
     # get figures
     fig_simresults = draw_simulation_figures(grrbefore, grrafter, grrafterN)
@@ -724,12 +699,11 @@ def build_report(
     # get figures (by weather)
     before_weatherdata_filepath = find_weatherdata(building_info["주소"], "이전")
     after_weatherdata_filepath  = find_weatherdata(building_info["주소"], "이후")
-    fig_monthlytemp, fig_degreedays = draw_weather_figures(
+    fig_weather = draw_weather_figures(
         before_weatherdata_filepath,
         after_weatherdata_filepath ,
     )
-    fig_monthlytemp.savefig(FIG_DIR / "weather_compare_monthly.png", dpi=400, format="png")
-    fig_degreedays.savefig(FIG_DIR / "weather_compare_degreeday.png", dpi=400, format="png")
+    fig_weather.savefig(FIG_DIR / "weather_compare.png", dpi=400, format="png", bbox_inches="tight")
     
     # arrange the results
     context = {
