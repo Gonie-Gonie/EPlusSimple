@@ -17,6 +17,8 @@ from dataclasses import dataclass
 import pandas            as pd
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
 from jinja2 import Template
 
 # local modules
@@ -164,7 +166,7 @@ def draw_weather_monthlycomparision(
     )
     bp2 = ax.boxplot(
         box2, positions=pos2, widths=0.25, patch_artist=True, showfliers=False,
-        boxprops=dict(ec=colors[0], fc='none', linewidth=1.0),
+        boxprops=dict(ec=colors[1], fc='none', linewidth=1.0),
         medianprops=dict(color=colors[1], linewidth=1.0),
         whiskerprops=dict(color=colors[1], linewidth=1.0),
         capprops=dict(color=colors[1], linewidth=1.0),
@@ -371,9 +373,9 @@ def _draw_monthly_stacked_bar(
     grr_after: dict,
     grr_afterN: dict,
     datatype: str = "site_uses",
+    ax: plt.Figure | None = None
 ) -> plt.Figure:
     """HTML의 월별 stacked bar (ex. 난방, 냉방 등)"""
-    fig, ax = plt.subplots(figsize=(6, 3.2))
 
     month_labels = np.arange(1, 13)
     bottom_before = np.zeros(12)
@@ -428,22 +430,56 @@ def _draw_monthly_stacked_bar(
     ])
     ymax = all_values.max() if len(all_values) > 0 else 0
     ax.set_ylim(0, max(5, ymax * 1.15))  # 상단 15% 여유
-    
-    
-    fig.tight_layout()
-    return fig
 
 
-def _draw_annual_by_purpose(grr_before: dict, grr_after: dict, grr_afterN: dict, datatype="site_uses") -> plt.Figure:
+def _draw_monthly_stacked_bars(
+    fig: plt.Figure,
+    grr_before: dict,
+    grr_after: dict,
+    grr_afterN: dict,
+    datatype: str = "site_uses"
+) -> None:
+    
+    axs = fig.subplots(3, 2)
+
+    # (1) 난방, 냉방, 조명, 팬/펌프/전열, 급탕, 발전량
+    for cat_idx, (cat_key, cat_label) in enumerate(GRAPH_ORDER):
+        _draw_monthly_stacked_bar(
+            cat_key, cat_label, grr_before, grr_after, grr_afterN, datatype,
+            ax = axs.ravel()[cat_idx]
+        )
+
+    handles = []
+    labels = []
+    for et_key, et_label in ENERGY_TYPES:
+        for l_idx, label in enumerate(["GR 이전", "GR 이후", "GR N년차"]):
+            color = DEFAULT_COLORS_BEFORE[et_key]
+            handles.append(Patch(ec=color, lw=0.8,
+                                 fc=[color, color+'40', color+'40'][l_idx],
+                                 hatch=[None, '//////', None][l_idx]))
+            labels.append(f"{et_label} {label}")
+
+    handles = np.array(handles).reshape(-1, 6).T.flatten().tolist()
+    labels = np.array(labels).reshape(-1, 6).T.flatten().tolist()
+
+    fig.legend(
+        handles=handles,
+        labels=labels,
+        loc='outside upper center', ncol=6,
+        # bbox_to_anchor=(0.5, 0.95)
+    )
+
+
+def _draw_annual_by_purpose(ax: plt.Axes, grr_before: dict, grr_after: dict, grr_afterN: dict, datatype="site_uses") -> None:
     """HTML의 연간 용도별 stacked bar (bar-annual-by-purpose)"""
-    fig, ax = plt.subplots(figsize=(6, 3))
     x = np.arange(len(GRAPH_ORDER))
     width = 0.25
 
-    for idx, (label, dataset, alpha) in enumerate([
-        ("GR 이전", grr_before, 0.9),
-        ("GR 이후", grr_after, 0.6),
-        ("GR N년차", grr_afterN, 0.3),
+    ymax = -np.inf
+    for idx, (label, dataset) in enumerate([
+        ("GR 이전", grr_before),
+        ("GR 이후", grr_after),
+        ("GR N년차", grr_afterN),
     ]):
         bottoms = np.zeros(len(GRAPH_ORDER))
         for et_key, et_label in ENERGY_TYPES:
@@ -451,10 +487,19 @@ def _draw_annual_by_purpose(grr_before: dict, grr_after: dict, grr_afterN: dict,
                 sum(dataset[datatype][cat_key].get(et_key, [0]*12))
                 for cat_key, _ in GRAPH_ORDER
             ]
+            color = DEFAULT_COLORS_BEFORE[et_key]
             ax.bar(x + (idx - 1) * width, vals, width=width,
-                   bottom=bottoms, color=DEFAULT_COLORS_BEFORE[et_key],
-                   alpha=alpha, label=f"{et_label} {label}")
+                   bottom=bottoms,
+                   label=f"{et_label} {label}",
+                   ec=color, lw=0.8,
+                   fc=[color, color+'40', color+'40'][idx],
+                   hatch=[None, '//////', None][idx])
+            ax.bar(x + (idx - 1) * width, vals, width=width,
+                   bottom=bottoms, ec='k', fc='none', zorder=5, lw=1.0)
             bottoms += vals
+            ymax = max(ymax, bottoms.max())
+
+    ax.set_ylim(0, max(5, ymax * 1.15))  # 상단 15% 여유
 
     ax.set_xticks(x)
     ax.set_xticklabels([lbl for _, lbl in GRAPH_ORDER])
@@ -462,22 +507,20 @@ def _draw_annual_by_purpose(grr_before: dict, grr_after: dict, grr_afterN: dict,
     ax.set_title("연간 용도별 에너지소요량 비교")
     ax.grid(axis="y", linestyle="--", alpha=0.4)
     ax.legend(fontsize=8, ncols=3)
-    fig.tight_layout()
-    return fig
+    # fig.tight_layout()
 
 
-def _draw_total_monthly_line(grr_before: dict, grr_after: dict, grr_afterN: dict, datatype="site_uses") -> plt.Figure:
+def _draw_total_monthly_line(ax: plt.Axes, grr_before: dict, grr_after: dict, grr_afterN: dict, datatype="site_uses") -> None:
     """HTML의 line-total (월별 총합 비교)"""
-    fig, ax = plt.subplots(figsize=(6, 3))
     months = np.arange(1, 13)
 
     before_vals = grr_before["summary_per_area"][datatype]["total_monthly"]
     after_vals = grr_after["summary_per_area"][datatype]["total_monthly"]
     afterN_vals = grr_afterN["summary_per_area"][datatype]["total_monthly"]
 
-    ax.plot(months, before_vals, color="#e76537", marker="o", label="GR 이전")
-    ax.plot(months, after_vals, color="#377be7", marker="o", linestyle="-", label="GR 이후")
-    ax.plot(months, afterN_vals, color="#377be7", marker="o", linestyle="--", label="GR N년차")
+    ax.plot(months, before_vals, color=PALETTE[0], marker="o", label="GR 이전")
+    ax.plot(months, after_vals, color=PALETTE[1], marker="o", linestyle="-", label="GR 이후")
+    ax.plot(months, afterN_vals, color=PALETTE[2], marker="o", linestyle=(0, (4, 6)), mfc='none', label="GR N년차")
 
     ax.set_xticks(months)
     ax.set_xticklabels([f"{m}월" for m in months])
@@ -485,29 +528,37 @@ def _draw_total_monthly_line(grr_before: dict, grr_after: dict, grr_afterN: dict
     ax.set_title("월별 총 에너지소요량 비교")
     ax.grid(axis="y", linestyle="--", alpha=0.4)
     ax.legend(fontsize=8, loc="upper right")
-    fig.tight_layout()
-    return fig
+    # fig.tight_layout()
 
 
 def draw_simulation_figures(grr_before: dict, grr_after: dict, grr_afterN: dict) -> dict[str, plt.Figure]:
     """
     HTML에서 표시되는 모든 주요 그림들을 matplotlib로 생성하여 반환
     """
-    figures = {}
+    
+    master_fig = plt.figure(figsize=(6*2, 3.5*4), constrained_layout=True)
 
-    # (1) 난방, 냉방, 조명, 팬/펌프/전열, 급탕, 발전량
-    for cat_key, cat_label in GRAPH_ORDER:
-        figures[f"monthly_{cat_key}"] = _draw_monthly_stacked_bar(
-            cat_key, cat_label, grr_before, grr_after, grr_afterN
-        )
+    figs = master_fig.subfigures(2, 1, height_ratios=[3, 1], hspace=0.05)
+
+    _draw_monthly_stacked_bars(figs[0], grr_before, grr_after, grr_afterN)
+
+    summary_axs = figs[1].subplots(1, 2)
 
     # (2) 연간 용도별 비교
-    figures["annual_by_purpose"] = _draw_annual_by_purpose(grr_before, grr_after, grr_afterN)
+    _draw_annual_by_purpose(summary_axs[0], grr_before, grr_after, grr_afterN)
 
     # (3) 월별 총합 라인 그래프
-    figures["total_monthly_line"] = _draw_total_monthly_line(grr_before, grr_after, grr_afterN)
+    _draw_total_monthly_line(summary_axs[1], grr_before, grr_after, grr_afterN)
 
-    return figures
+    figs[0].suptitle('용도별, 월별 사용량 비교', y=1.03, fontsize=18, fontweight='bold')
+    master_fig.get_layout_engine().set(h_pad=0.1)
+    figs[1].suptitle('요약', fontsize=18, fontweight='bold')
+    
+    master_fig.align_ylabels(master_fig.axes)
+    master_fig.savefig(FIG_DIR / f"testtest.png", dpi=400, format="png", bbox_inches="tight")
+    print(ASDFASDFSDFDS)
+
+    return master_fig
 
 # ---------------------------------------------------------------------------- #
 #                                   MAIN FUNC                                  #
@@ -598,9 +649,8 @@ def build_report(
     fig_co2.savefig(FIG_DIR / "energy_summary_co2.png", dpi=400, format="png")
     
     # get figures
-    figures = draw_simulation_figures(grrbefore, grrafter, grrafterN)
-    for name, fig in figures.items():
-        fig.savefig(FIG_DIR / f"{name}.png", dpi=400, format="png")
+    fig_simresults = draw_simulation_figures(grrbefore, grrafter, grrafterN)
+    fig_simresults.savefig(FIG_DIR / "simulation_results.png", dpi=400, format="png", bbox_inches="tight")
     
     # get figures (by weather)
     before_weatherdata_filepath = find_weatherdata(building_info["주소"], "이전")
