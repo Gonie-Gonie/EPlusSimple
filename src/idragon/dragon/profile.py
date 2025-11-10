@@ -681,16 +681,12 @@ class RuleSet:
         other       :RuleSet|int|float,
         ) -> RuleSet:
         
-        if isinstance(other, RuleSet):
-            other_comparelist = self_ruleset.to_dict().values()
-            other_defaultlist = [
-                        other.weekdays, other.weekends,
-                        other.weekdays, other.weekdays, other.weekdays, other.weekdays, other.weekdays,
-                        other.weekends, other.weekends, other.weekends,
-                ]
-        elif isinstance(other, int|float):
-            other_comparelist = [other if v is not None else None for v in self_ruleset.to_dict().values()]
-            other_defaultlist = [other if v is not None else None for v in self_ruleset.to_dict().values()]
+        if isinstance(other, int|float):
+            other = RuleSet(
+                str(other),
+                DaySchedule(None, [other]*DaySchedule.DATA_INTERVAL*24),
+                DaySchedule(None, [other]*DaySchedule.DATA_INTERVAL*24),
+            )
         
         return RuleSet(
             newname,
@@ -703,13 +699,17 @@ class RuleSet:
                 for k, self_day, other_day, self_default, other_default
                 in zip(
                     self_ruleset.to_dict().keys(),
-                    self_ruleset.to_dict().values(), other_comparelist,
+                    self_ruleset.to_dict().values(), other.to_dict().values(),
                     [
                         self_ruleset.weekdays, self_ruleset.weekends,
                         self_ruleset.weekdays, self_ruleset.weekdays, self_ruleset.weekdays, self_ruleset.weekdays, self_ruleset.weekdays,
                         self_ruleset.weekends, self_ruleset.weekends, self_ruleset.weekends,
                     ],
-                    other_defaultlist,
+                    [
+                        other.weekdays, other.weekends,
+                        other.weekdays, other.weekdays, other.weekdays, other.weekdays, other.weekdays,
+                        other.weekends, other.weekends, other.weekends,
+                    ],
                 )
             }
         )
