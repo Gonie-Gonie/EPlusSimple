@@ -17,6 +17,8 @@ from dataclasses import dataclass
 import pandas            as pd
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
 from jinja2 import Template
 
 # local modules
@@ -24,8 +26,17 @@ from .comparison import compare_rebexcel
 from .auxiliary  import find_weatherdata
 
 # settings
-plt.rcParams['font.family'] = 'Malgun Gothic'
-plt.rcParams['axes.unicode_minus'] = False
+PLOTFONTSIZE = 11
+PLOTFONTFAMILY = 'Malgun Gothic'
+plt.rc('font', family=PLOTFONTFAMILY, size=PLOTFONTSIZE)
+plt.rc('mathtext', fontset='custom', rm=PLOTFONTFAMILY,
+       it=f'{PLOTFONTFAMILY}:italic', bf=f'{PLOTFONTFAMILY}:bold')
+plt.rc('axes.formatter', useoffset=False)
+plt.rc('axes', titlesize=PLOTFONTSIZE, labelsize=PLOTFONTSIZE, unicode_minus=False)
+plt.rc('xtick', labelsize=PLOTFONTSIZE)
+plt.rc('ytick', labelsize=PLOTFONTSIZE)
+plt.rc('legend', fontsize=PLOTFONTSIZE)
+
 
 # ---------------------------------------------------------------------------- #
 #                                   VARIABLES                                  #
@@ -51,17 +62,10 @@ class MetaData:
 #                                 SUBFUNCTIONS                                 #
 # ---------------------------------------------------------------------------- #
 
-MONTH_LBLS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+MONTH_LBLS = ([f"{m}월" for m in range(1, 13)])
 DEFAULT_COLORS = ("tab:blue", "tab:orange")  # epw1, epw2 색상
-
-def _apply_axis_style(ax, title:str=None, ylabel:str=None):
-    if title:
-        ax.set_title(title, fontsize=11, weight="bold")
-    if ylabel:
-        ax.set_ylabel(ylabel)
-    ax.grid(axis="y", linestyle="--", alpha=0.4)
-    ax.set_xticks(range(1,13))
-    ax.set_xticklabels(MONTH_LBLS, fontsize=9)
+# PALETTE = ['#FF0305', '#363AFF', '#FF8820', '#FFFE03', '#98C1EF', '#A4C761']
+PALETTE = ['#FF1F5B', '#009ADE', '#F28522', '#AF59BA', '#FFC61E', '#00CD6C', '#A1B1BA', '#A6761D']
 
 # ---------------------------------------------------------------------------- #
 #                               FIGURE FUNCTIONS                               #
@@ -128,9 +132,9 @@ def draw_weather_monthlycomparision(
     *,
     label1: str | None = None,
     label2: str | None = None,
-    colors: tuple[str,str] = DEFAULT_COLORS,
-    figsize=(6.0, 3.8),
-) -> plt.Figure:
+    colors: list[str,str] = PALETTE[:2],
+    ax: plt.Axes
+) -> None:
     """
     두 EPW의 월별 DryBulb 분포(boxplot)와 월평균(라인)을 한 그림에 비교.
     """
@@ -145,35 +149,38 @@ def draw_weather_monthlycomparision(
     mean1 = [float(pd.Series(b).mean()) if len(b)>0 else float("nan") for b in box1]
     mean2 = [float(pd.Series(b).mean()) if len(b)>0 else float("nan") for b in box2]
 
-    fig, ax = plt.subplots(figsize=figsize)
-
     pos1 = list(range(1,13))
     shift = 0.3
     pos2 = [p + shift for p in pos1]
 
     bp1 = ax.boxplot(
-        box1, positions=pos1, widths=0.25, patch_artist=True,
-        boxprops=dict(facecolor=colors[0], alpha=0.3, linewidth=1.2),
-        medianprops=dict(color=colors[0], linewidth=1.2),
+        box1, positions=pos1, widths=0.25, patch_artist=True, showfliers=False,
+        boxprops=dict(ec=colors[0], fc='none', linewidth=1.0),
+        medianprops=dict(color=colors[0], linewidth=1.0),
         whiskerprops=dict(color=colors[0], linewidth=1.0),
         capprops=dict(color=colors[0], linewidth=1.0),
         flierprops=dict(markeredgecolor=colors[0], alpha=0.4, markersize=3),
     )
     bp2 = ax.boxplot(
-        box2, positions=pos2, widths=0.25, patch_artist=True,
-        boxprops=dict(facecolor=colors[1], alpha=0.3, linewidth=1.2),
-        medianprops=dict(color=colors[1], linewidth=1.2),
+        box2, positions=pos2, widths=0.25, patch_artist=True, showfliers=False,
+        boxprops=dict(ec=colors[1], fc='none', linewidth=1.0),
+        medianprops=dict(color=colors[1], linewidth=1.0),
         whiskerprops=dict(color=colors[1], linewidth=1.0),
         capprops=dict(color=colors[1], linewidth=1.0),
         flierprops=dict(markeredgecolor=colors[1], alpha=0.4, markersize=3),
     )
 
     # 월평균 표시(점선+마커)
-    ax.plot(pos1, mean1, color=colors[0], marker="o", linestyle="--", linewidth=1.3, label=f"{label1} mean")
-    ax.plot(pos2, mean2, color=colors[1], marker="o", linestyle="--", linewidth=1.3, label=f"{label2} mean")
+    ax.plot(pos1, mean1, color=colors[0], marker="o", ms=3, linestyle="--", linewidth=1.3, label=f"{label1.split('_')[1]}년")
+    ax.plot(pos2, mean2, color=colors[1], marker="o", ms=3, linestyle="--", linewidth=1.3, label=f"{label2.split('_')[1]}년")
 
-    _apply_axis_style(ax, "Monthly Outdoor Temperature (Box & Mean)", "Dry Bulb Temperature (°C)")
+    ax.set_xticks(range(1,13))
+    ax.set_xticklabels(MONTH_LBLS, fontsize=9)
     ax.set_xlim(0.5, 12.5 + shift)
+    ax.set_title("월간 외기 온도", fontsize=11, weight="bold")
+    ax.set_ylabel("건구 온도 (°C)")
+    ax.grid(axis="both", linestyle="--", alpha=0.4)
+    ax.set_axisbelow(True)
     all_values = pd.concat([
         df1["DryBulb"].dropna(),
         df2["DryBulb"].dropna()
@@ -182,9 +189,8 @@ def draw_weather_monthlycomparision(
     margin = (vmax - vmin) * 0.1  # 상하단 10% 여유
 
     ax.set_ylim(vmin - margin, vmax + margin)
-    ax.legend(fontsize=9, ncols=2, loc="upper center", bbox_to_anchor=(0.5, 1.20))
-    fig.tight_layout()
-    return fig
+    ax.legend(fontsize=9, ncols=2, loc='upper center', bbox_to_anchor=(0.5, -0.1))
+
 
 # ===== (2) HDD/CDD 비교 =====
 def draw_weather_degreedays(
@@ -194,9 +200,9 @@ def draw_weather_degreedays(
     base_temp: float = 18.0,
     label1: str | None = None,
     label2: str | None = None,
-    colors: tuple[str, str] = ("tab:blue", "tab:orange"),
-    figsize=(3.9, 3.8),
-) -> plt.Figure:
+    colors: list[str,str] = PALETTE[:2],
+    ax: plt.Axes
+) -> None:
     """
     두 EPW 파일의 연간 Heating/Cooling Degree Days를 막대 4개로 비교.
     HDD/CDD는 °C·day 단위로 계산.
@@ -218,7 +224,6 @@ def draw_weather_degreedays(
     hdd2, cdd2 = degree_days(df2, base_temp)
 
     # --- Figure 구성 ---
-    fig, ax = plt.subplots(figsize=figsize)
     x_positions = [0, 1, 3, 4]  # HDD1, HDD2, CDD1, CDD2
     heights = [hdd1, hdd2, cdd1, cdd2]
     colors_seq = [colors[0], colors[1], colors[0], colors[1]]
@@ -228,61 +233,78 @@ def draw_weather_degreedays(
     # --- x축 그룹 라벨 ---
     ax.set_xticks([0.5, 3.5])
     ax.set_xticklabels(["HDD", "CDD"], fontsize=10)
-    ax.set_ylabel("Degree Days (°C·day)")
-    ax.set_title(f"Annual HDD/CDD Comparison (Base {base_temp:.1f}°C)",
+    ax.set_ylabel("도일 (°C·day)")
+    ax.set_title(f"연간 HDD/CDD 비교 ({base_temp:.1f}°C 기준)",
                  fontsize=11, weight="bold")
     ax.grid(axis="y", linestyle="--", alpha=0.4)
 
     # --- 막대 위 값 표시 ---
     ax.bar_label(bars, fmt="%.0f", padding=3, fontsize=9)
+    ax.set_ylim(0, max(heights)*1.15)
 
     # --- 범례 ---
     custom = [plt.Rectangle((0,0),1,1,color=colors[0],alpha=0.8),
               plt.Rectangle((0,0),1,1,color=colors[1],alpha=0.8)]
-    ax.legend(custom, [label1, label2], fontsize=9, loc="upper right")
+    ax.legend(custom, [f"{l.split('_')[1]}년" for l in [label1, label2]], fontsize=9, ncols=2, loc='upper center', bbox_to_anchor=(0.5, -0.1))
 
-    fig.tight_layout()
-    return fig
 
 def draw_weather_figures(
     before_weatherdata_filepath:str,
     after_weatherdata_filepath :str,
     ) -> tuple[plt.Figure]:
+
+    fig, axs = plt.subplots(1, 2, figsize=(8, 3), gridspec_kw={'width_ratios': [2, 1]}, layout='constrained')
     
-    fig_monthlytemp = draw_weather_monthlycomparision(
+    draw_weather_monthlycomparision(
         before_weatherdata_filepath,
         after_weatherdata_filepath ,
+        ax = axs[0]
     )
-    fig_degreedays = draw_weather_degreedays(
+    draw_weather_degreedays(
         before_weatherdata_filepath,
         after_weatherdata_filepath ,
+        ax = axs[1]
     )
+    fig.get_layout_engine().set(wspace=0.1)
     
-    return fig_monthlytemp, fig_degreedays
+    return fig
 
 
 def draw_3step_bargraph(
     title : str,
-    values: list[int|float],
+    values: list[list[int|float]],
     index : list[str],
     *,
     ylabel: str = "Value",
-    colors: tuple = ("tab:blue", "tab:orange", "tab:green"),
-    ) -> plt.Figure:
-    
-    fig, ax = plt.subplots(figsize=(4, 3))
-    
+    ax    : plt.Axes
+    ) -> None:
+
     num_bars = len(values)
     x_positions = range(num_bars) # [0, 1, 2]
     width = 0.7  # 그룹이 아니므로 막대 폭을 넓게 설정
+    num_subbars =len(ENERGY_TYPES)
+    subbar_width = width / num_subbars
 
     for n, (pos, val) in enumerate(zip(x_positions, values)):
-        # x축 0, 1, 2 위치에 막대 생성
-        # xticklabels를 사용하므로 'label=' 인자는 제거
-        bars = ax.bar(pos, val, width, color=colors[n])
+        for et_idx, (et_key, et_label) in enumerate(ENERGY_TYPES):
+            color = DEFAULT_COLORS_BEFORE[et_key]
+            subbar_pos = pos - subbar_width*(num_subbars/2-et_idx-0.5)
+            #? step별로 구분
+            # ax.bar(subbar_pos, val[et_idx], width=subbar_width,
+            #        ec=color, lw=0.8,
+            #        fc=[color, color+'40', color+'40'][n],
+            #        hatch=[None, '//////', None][n])
+            # bar = ax.bar(subbar_pos, val[et_idx], width=subbar_width,
+            #        ec='k', fc='none', zorder=5, lw=1.0)
+            #? 모두 같은 스타일
+            bar = ax.bar(subbar_pos, val[et_idx], width=subbar_width,
+                   ec='k', fc=color+'90', lw=1)
+            #? 테두리 없이
+            # bar = ax.bar(subbar_pos, val[et_idx], width=subbar_width,
+            #        fc=color, lw=0)
         
-        # 막대 위에 값 표시 (padding을 3 정도로 살짝 띄움)
-        ax.bar_label(bars, fmt="%.1f", padding=3, fontsize=9)
+            # 막대 위에 값 표시 (padding을 3 정도로 살짝 띄움)
+            # ax.bar_label(bar, fmt="%.1f", padding=3 + 10*(et_idx%2), fontsize=9)
 
     # --- 축 및 레이블 수정 ---
     # x축 눈금 위치를 막대 위치(0, 1, 2)와 동일하게 설정
@@ -293,46 +315,71 @@ def draw_3step_bargraph(
     ax.set_ylabel(ylabel)
     ax.set_title(title, fontsize=11, weight="bold")
     ax.grid(axis="y", linestyle="--", alpha=0.4)
+    ax.set_axisbelow(True)
     
     # xlim을 막대 좌우로 0.5만큼 여유 있게 설정 (-0.5 ~ 2.5)
     ax.set_xlim(-0.5, num_bars - 0.5)
     
     # bar_label이 잘 보이도록 y축 상단에 15% 여유 공간 추가
-    ax.set_ylim(top=max(values) * 1.15) 
-    
-    fig.tight_layout()
-    
-    return fig
+    ax.set_ylim(top=max([max(val) for val in values]) * 1.1)
 
 def draw_energysimulation_figures(
     grrbefore:dict,
     grrafter :dict,
     grrafterN:dict,
     ) -> tuple[plt.Figure]:
+
+    fig, axs = plt.subplots(1, 2, figsize=(8, 3), layout='constrained')
     
-    fig_use = draw_3step_bargraph(
-        "에너지 사용량 비교",
+    # ENERGY_TYPES 순서대로 입력
+    draw_3step_bargraph(
+        "연간 단위면적당 에너지소요량",
         [
-            grrbefore["summary_per_area"]["site_uses"]["total_annual"],
-            grrafter["summary_per_area"]["site_uses"]["total_annual"],
-            grrafterN["summary_per_area"]["site_uses"]["total_annual"],
+            [
+                sum([
+                    sum(result["site_uses"][cat][et_key])
+                    for cat, _ in GRAPH_ORDER
+                ])
+                for et_key, _ in ENERGY_TYPES
+            ]
+            for result in [grrbefore, grrafter, grrafterN]
         ],
         ["GR이전","GR이후","N년차"],
-        ylabel = "EUI [kWh/m2/year]",
+        ylabel = "(kWh/$\\mathrm{m^2\\cdot}$년)",
+        ax = axs[0]
     )
     
-    fig_co2 = draw_3step_bargraph(
-        "온실가스 배출량 비교",
+    draw_3step_bargraph(
+        "온실가스 배출량",
         [
-            grrbefore["summary_per_area"]["co2"]["total_annual"],
-            grrafter["summary_per_area"]["co2"]["total_annual"],
-            grrafterN["summary_per_area"]["co2"]["total_annual"],
+            [
+                sum([
+                    sum(result["co2"][cat][et_key])
+                    for cat, _ in GRAPH_ORDER
+                ])
+                for et_key, _ in ENERGY_TYPES
+            ]
+            for result in [grrbefore, grrafter, grrafterN]
         ],
         ["GR이전","GR이후","N년차"],
-        ylabel = "CO2-eq [kgCO2/m2/year]",
+        ylabel = r"$\mathrm{CO_2}$ 배출량 (kg/$\mathrm{m^2\cdot}$년)",
+        ax = axs[1]
     )
+
+    fig.legend(
+        handles=[
+            Patch(ec='k', fc=DEFAULT_COLORS_BEFORE[et_key]+'90')
+            # Patch(color=DEFAULT_COLORS_BEFORE[et_key])
+            for et_key, _ in ENERGY_TYPES
+        ],
+        labels=[et_label for _, et_label in ENERGY_TYPES],
+        loc='outside lower center', ncol=4,
+        # bbox_to_anchor=(0.5, 0.95)
+    )
+
+    fig.get_layout_engine().set(wspace=0.1)
     
-    return fig_use, fig_co2
+    return fig
 
 # ---------------------------------------------------------------------------
 # New functions: Python versions of HTML Chart.js visualizations
@@ -356,13 +403,9 @@ ENERGY_TYPES = [
 ]
 
 DEFAULT_COLORS_BEFORE = {
-    "ELECTRICITY": "tab:green",
-    "NATURALGAS": "tab:red",
-    "OIL": "tab:orange",
-    "DISTRICTHEATING": "tab:purple",
+    k: PALETTE[k_idx]
+    for k_idx, k in enumerate(["ELECTRICITY", "NATURALGAS", "OIL", "DISTRICTHEATING"])
 }
-DEFAULT_COLORS_AFTER = {k: c + "light" if hasattr(c, "light") else c for k, c in DEFAULT_COLORS_BEFORE.items()}
-
 
 def _draw_monthly_stacked_bar(
     category_key: str,
@@ -371,9 +414,9 @@ def _draw_monthly_stacked_bar(
     grr_after: dict,
     grr_afterN: dict,
     datatype: str = "site_uses",
+    ax: plt.Figure | None = None
 ) -> plt.Figure:
     """HTML의 월별 stacked bar (ex. 난방, 냉방 등)"""
-    fig, ax = plt.subplots(figsize=(6, 3.2))
 
     month_labels = np.arange(1, 13)
     bottom_before = np.zeros(12)
@@ -385,12 +428,23 @@ def _draw_monthly_stacked_bar(
         avals = np.array(grr_after[datatype][category_key].get(et_key, [0]*12))
         nvals = np.array(grr_afterN[datatype][category_key].get(et_key, [0]*12))
 
+        color = DEFAULT_COLORS_BEFORE[et_key]
+
         ax.bar(month_labels - 0.25, bvals, width=0.25, bottom=bottom_before,
-               color=DEFAULT_COLORS_BEFORE[et_key], alpha=0.8, label=f"{et_label} (전)")
+               label=f"{et_label} (전)",
+               fc=color)
+        ax.bar(month_labels - 0.25, bvals, width=0.25, bottom=bottom_before,
+               ec='k', fc='none', zorder=5, lw=1.0)
+        
         ax.bar(month_labels, avals, width=0.25, bottom=bottom_after,
-               color=DEFAULT_COLORS_BEFORE[et_key], alpha=0.4, label=f"{et_label} (후)")
+               label=f"{et_label} (후)",
+               ec=color, fc=color+'40', hatch='//////', lw=0.8)
+        ax.bar(month_labels, avals, width=0.25, bottom=bottom_after,
+               ec='k', fc='none', zorder=5, lw=1.0)
+        
         ax.bar(month_labels + 0.25, nvals, width=0.25, bottom=bottom_afterN,
-               color=DEFAULT_COLORS_BEFORE[et_key], alpha=0.2, label=f"{et_label} (N)")
+               label=f"{et_label} (N)",
+               ec='k', fc=color+'40', zorder=5, lw=1.0)
 
         bottom_before += bvals
         bottom_after += avals
@@ -398,10 +452,11 @@ def _draw_monthly_stacked_bar(
 
     ax.set_xticks(month_labels)
     ax.set_xticklabels([f"{m}월" for m in month_labels])
-    ax.set_ylabel("단위당 값")
-    ax.set_title(f"{category_label} 월별 비교")
+    ax.set_ylabel("(kWh/$\\mathrm{m^2\\cdot}$월)")
+    ax.set_title(f"월간 단위면적당 에너지소요량 - {category_label}")
     ax.grid(axis="y", linestyle="--", alpha=0.4)
-    ax.legend(fontsize=8, ncols=2)
+    # legend는 나중에 한 번에
+    # ax.legend(fontsize=8, ncols=2)
     
     # --- ylim 자동 여유 설정 ---
     all_values = np.concatenate([
@@ -416,22 +471,57 @@ def _draw_monthly_stacked_bar(
     ])
     ymax = all_values.max() if len(all_values) > 0 else 0
     ax.set_ylim(0, max(5, ymax * 1.15))  # 상단 15% 여유
-    
-    
-    fig.tight_layout()
-    return fig
 
 
-def _draw_annual_by_purpose(grr_before: dict, grr_after: dict, grr_afterN: dict, datatype="site_uses") -> plt.Figure:
+def _draw_monthly_stacked_bars(
+    fig: plt.Figure,
+    grr_before: dict,
+    grr_after: dict,
+    grr_afterN: dict,
+    datatype: str = "site_uses"
+) -> None:
+    
+    axs = fig.subplots(3, 2)
+
+    # (1) 난방, 냉방, 조명, 팬/펌프/전열, 급탕, 발전량
+    for cat_idx, (cat_key, cat_label) in enumerate(GRAPH_ORDER):
+        _draw_monthly_stacked_bar(
+            cat_key, cat_label, grr_before, grr_after, grr_afterN, datatype,
+            ax = axs.ravel()[cat_idx]
+        )
+
+    handles = []
+    labels = []
+    for et_key, et_label in ENERGY_TYPES:
+        for l_idx, label in enumerate(["GR 이전", "GR 이후", "GR N년차"]):
+            color = DEFAULT_COLORS_BEFORE[et_key]
+            handles.append(Patch(ec=color, lw=0.8,
+                                 fc=[color, color+'40', color+'40'][l_idx],
+                                 hatch=[None, '//////', None][l_idx]))
+            labels.append(f"{et_label} {label}")
+
+    legend_ncol = 4
+    # handles = np.array(handles).reshape(-1, legend_ncol).T.flatten().tolist()
+    # labels = np.array(labels).reshape(-1, legend_ncol).T.flatten().tolist()
+
+    fig.legend(
+        handles=handles,
+        labels=labels,
+        loc='outside upper center', ncol=legend_ncol,
+        # bbox_to_anchor=(0.5, 0.95)
+    )
+
+
+def _draw_annual_by_purpose(ax: plt.Axes, grr_before: dict, grr_after: dict, grr_afterN: dict, datatype="site_uses") -> None:
     """HTML의 연간 용도별 stacked bar (bar-annual-by-purpose)"""
-    fig, ax = plt.subplots(figsize=(6, 3))
     x = np.arange(len(GRAPH_ORDER))
     width = 0.25
 
-    for idx, (label, dataset, alpha) in enumerate([
-        ("GR 이전", grr_before, 0.9),
-        ("GR 이후", grr_after, 0.6),
-        ("GR N년차", grr_afterN, 0.3),
+    ymax = -np.inf
+    for idx, (label, dataset) in enumerate([
+        ("GR 이전", grr_before),
+        ("GR 이후", grr_after),
+        ("GR N년차", grr_afterN),
     ]):
         bottoms = np.zeros(len(GRAPH_ORDER))
         for et_key, et_label in ENERGY_TYPES:
@@ -439,63 +529,76 @@ def _draw_annual_by_purpose(grr_before: dict, grr_after: dict, grr_afterN: dict,
                 sum(dataset[datatype][cat_key].get(et_key, [0]*12))
                 for cat_key, _ in GRAPH_ORDER
             ]
+            color = DEFAULT_COLORS_BEFORE[et_key]
             ax.bar(x + (idx - 1) * width, vals, width=width,
-                   bottom=bottoms, color=DEFAULT_COLORS_BEFORE[et_key],
-                   alpha=alpha, label=f"{et_label} {label}")
+                   bottom=bottoms,
+                   label=f"{et_label} {label}",
+                   ec=color, lw=0.8,
+                   fc=[color, color+'40', color+'40'][idx],
+                   hatch=[None, '//////', None][idx])
+            ax.bar(x + (idx - 1) * width, vals, width=width,
+                   bottom=bottoms, ec='k', fc='none', zorder=5, lw=1.0)
             bottoms += vals
+            ymax = max(ymax, bottoms.max())
+
+    ax.set_ylim(0, max(5, ymax * 1.15))  # 상단 15% 여유
 
     ax.set_xticks(x)
-    ax.set_xticklabels([lbl for _, lbl in GRAPH_ORDER])
+    ax.set_xticklabels([lbl.replace('/', '/\n') for _, lbl in GRAPH_ORDER])
     ax.set_ylabel("연간 합계")
-    ax.set_title("연간 용도별 에너지소요량 비교")
+    ax.set_title("연간 용도별 에너지소요량")
     ax.grid(axis="y", linestyle="--", alpha=0.4)
-    ax.legend(fontsize=8, ncols=3)
-    fig.tight_layout()
-    return fig
+    # ax.legend(fontsize=8, ncols=3)
+    # fig.tight_layout()
 
 
-def _draw_total_monthly_line(grr_before: dict, grr_after: dict, grr_afterN: dict, datatype="site_uses") -> plt.Figure:
+def _draw_total_monthly_line(ax: plt.Axes, grr_before: dict, grr_after: dict, grr_afterN: dict, datatype="site_uses") -> None:
     """HTML의 line-total (월별 총합 비교)"""
-    fig, ax = plt.subplots(figsize=(6, 3))
     months = np.arange(1, 13)
 
     before_vals = grr_before["summary_per_area"][datatype]["total_monthly"]
     after_vals = grr_after["summary_per_area"][datatype]["total_monthly"]
     afterN_vals = grr_afterN["summary_per_area"][datatype]["total_monthly"]
 
-    ax.plot(months, before_vals, color="#e76537", marker="o", label="GR 이전")
-    ax.plot(months, after_vals, color="#377be7", marker="o", linestyle="-", label="GR 이후")
-    ax.plot(months, afterN_vals, color="#377be7", marker="o", linestyle="--", label="GR N년차")
+    ax.plot(months, before_vals, color=PALETTE[0], marker="o", label="GR 이전")
+    ax.plot(months, after_vals, color=PALETTE[1], marker="o", linestyle="-", label="GR 이후")
+    ax.plot(months, afterN_vals, color=PALETTE[2], marker="o", linestyle=(0, (4, 6)), mfc='none', label="GR N년차")
 
     ax.set_xticks(months)
     ax.set_xticklabels([f"{m}월" for m in months])
     ax.set_ylabel("월별 총합")
-    ax.set_title("월별 총 에너지소요량 비교")
-    ax.grid(axis="y", linestyle="--", alpha=0.4)
+    ax.set_title("월별 에너지소요량")
+    ax.grid(axis="both", linestyle="--", alpha=0.4)
     ax.legend(fontsize=8, loc="upper right")
-    fig.tight_layout()
-    return fig
+    # fig.tight_layout()
 
 
 def draw_simulation_figures(grr_before: dict, grr_after: dict, grr_afterN: dict) -> dict[str, plt.Figure]:
     """
     HTML에서 표시되는 모든 주요 그림들을 matplotlib로 생성하여 반환
     """
-    figures = {}
+    
+    master_fig = plt.figure(figsize=(9, 3*4), constrained_layout=True)
 
-    # (1) 난방, 냉방, 조명, 팬/펌프/전열, 급탕, 발전량
-    for cat_key, cat_label in GRAPH_ORDER:
-        figures[f"monthly_{cat_key}"] = _draw_monthly_stacked_bar(
-            cat_key, cat_label, grr_before, grr_after, grr_afterN
-        )
+    figs = master_fig.subfigures(2, 1, height_ratios=[3, 1.2], hspace=0.05)
+
+    _draw_monthly_stacked_bars(figs[0], grr_before, grr_after, grr_afterN)
+
+    summary_axs = figs[1].subplots(1, 2)
 
     # (2) 연간 용도별 비교
-    figures["annual_by_purpose"] = _draw_annual_by_purpose(grr_before, grr_after, grr_afterN)
+    _draw_annual_by_purpose(summary_axs[0], grr_before, grr_after, grr_afterN)
 
     # (3) 월별 총합 라인 그래프
-    figures["total_monthly_line"] = _draw_total_monthly_line(grr_before, grr_after, grr_afterN)
+    _draw_total_monthly_line(summary_axs[1], grr_before, grr_after, grr_afterN)
 
-    return figures
+    figs[0].suptitle('용도별, 월별 사용량 비교', y=1.04, fontsize=16, fontweight='bold')
+    master_fig.get_layout_engine().set(h_pad=0.1, wspace=0.05)
+    figs[1].suptitle('요약', fontsize=16, fontweight='bold')
+    
+    master_fig.align_ylabels(master_fig.axes)
+
+    return master_fig
 
 # ---------------------------------------------------------------------------- #
 #                                   MAIN FUNC                                  #
@@ -562,7 +665,7 @@ def build_report(
         afterN_rebexcelpath ,
     )
     
-    # comparison summry
+    # comparison summary
     if len(perf_diff12) > 0:
         diff_counts12 = perf_diff12.drop_duplicates(["type", "zonename"]).groupby("type")["zonename"].nunique().to_dict()
         diffstr12 = ", ".join(f"{k} {v}개 존" for k, v in diff_counts12.items())
@@ -580,25 +683,22 @@ def build_report(
         diffstr23oper = "없음"
     
     # get figures (by results summary)
-    fig_use, fig_co2 = draw_energysimulation_figures(grrbefore, grrafter, grrafterN)
+    fig_use_co2 = draw_energysimulation_figures(grrbefore, grrafter, grrafterN)
     os.makedirs(FIG_DIR, exist_ok=True)
-    fig_use.savefig(FIG_DIR / "energy_summary_use.png", dpi=400, format="png")
-    fig_co2.savefig(FIG_DIR / "energy_summary_co2.png", dpi=400, format="png")
+    fig_use_co2.savefig(FIG_DIR / "energy_summary.png", dpi=400, format="png", bbox_inches="tight")
     
     # get figures
-    figures = draw_simulation_figures(grrbefore, grrafter, grrafterN)
-    for name, fig in figures.items():
-        fig.savefig(FIG_DIR / f"{name}.png", dpi=400, format="png")
+    fig_simresults = draw_simulation_figures(grrbefore, grrafter, grrafterN)
+    fig_simresults.savefig(FIG_DIR / "simulation_results.png", dpi=400, format="png", bbox_inches="tight")
     
     # get figures (by weather)
     before_weatherdata_filepath = find_weatherdata(building_info["주소"], "이전")
     after_weatherdata_filepath  = find_weatherdata(building_info["주소"], "이후")
-    fig_monthlytemp, fig_degreedays = draw_weather_figures(
+    fig_weather = draw_weather_figures(
         before_weatherdata_filepath,
         after_weatherdata_filepath ,
     )
-    fig_monthlytemp.savefig(FIG_DIR / "weather_compare_monthly.png", dpi=400, format="png")
-    fig_degreedays.savefig(FIG_DIR / "weather_compare_degreeday.png", dpi=400, format="png")
+    fig_weather.savefig(FIG_DIR / "weather_compare.png", dpi=400, format="png", bbox_inches="tight")
     
     # arrange the results
     context = {
