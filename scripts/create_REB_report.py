@@ -112,13 +112,20 @@ def main(
     
     for d in validlist:
         
-        pdfpath = os.path.join(report_dir, f"{d["name"]}.pdf")
-        build_report(
-            *d["excel"].values(),
-            *d["grr"].values()  ,
-            pdfpath
-        )
-
+        workingpath = os.path.join(report_dir, f"{d["name"]}.working")
+        if os.path.exists(workingpath):
+            continue
+        
+        try:
+            pdfpath = os.path.join(report_dir, f"{d["name"]}.pdf")
+            build_report(
+                *d["excel"].values(),
+                *d["grr"].values()  ,
+                pdfpath
+            )
+            
+        finally:
+            os.remove(workingpath)
 # ---------------------------------------------------------------------------- #
 #                                    SCRIPT                                    #
 # ---------------------------------------------------------------------------- #
