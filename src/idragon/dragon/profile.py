@@ -125,11 +125,6 @@ class DaySchedule(UserList):
     
         if isinstance(value, DaySchedule):
             
-            if self.type != value.type:
-                raise TypeError(
-                    f"Cannot add {self.type}-type DaySchedule to {value.type}-type DaySchedule."
-                )
-            
             return DaySchedule(
                 f"{self.name}:ADD:{value.name}",
                 [a * b for a,b in zip(self.data, value.data)],
@@ -150,11 +145,6 @@ class DaySchedule(UserList):
     def __truediv__(self, value:int|float) -> DaySchedule:
         
         if isinstance(value, DaySchedule):
-            
-            if self.type != value.type:
-                raise TypeError(
-                    f"Cannot add {self.type}-type DaySchedule to {value.type}-type DaySchedule."
-                )
             
             return DaySchedule(
                 f"{self.name}:ADD:{value.name}",
@@ -1077,11 +1067,6 @@ class Schedule(UserList):
         )
     
     def __mul__(self, value:int|float|Schedule) -> Schedule:
-        
-        if isinstance(value, Schedule) and (self.type != value.type):
-            raise TypeError(
-                f"Cannot add {self.type}-type Schedule to {value.type}-type Schedule."
-            )
             
         return Schedule.__operate_with_unified_schedule(
             f"{self.name}:MUL:{value if isinstance(value, Schedule) else str(value)}",
