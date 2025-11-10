@@ -121,22 +121,54 @@ class DaySchedule(UserList):
     """ algebraric methods
     """
         
-    def __mul__(self, value:int|float) -> DaySchedule:
-        return DaySchedule(
-            self.name,
-            [item * value for item in self.data],
-            type=self.type
-            )
+    def __mul__(self, value:int|float|DaySchedule) -> DaySchedule:
+    
+        if isinstance(value, DaySchedule):
+            
+            if self.type != value.type:
+                raise TypeError(
+                    f"Cannot add {self.type}-type DaySchedule to {value.type}-type DaySchedule."
+                )
+            
+            return DaySchedule(
+                f"{self.name}:ADD:{value.name}",
+                [a * b for a,b in zip(self.data, value.data)],
+                type=self.type
+                )
+        
+        elif isinstance(value, int|float):
+        
+            return DaySchedule(
+                self.name,
+                [item * value for item in self.data],
+                type=self.type
+                )
         
     def __rmul__(self, value:int|float) -> DaySchedule:
         return self.__mul__(value)
     
     def __truediv__(self, value:int|float) -> DaySchedule:
-        return DaySchedule(
-            self.name,
-            [item / value for item in self.data],
-            type=self.type
-            )
+        
+        if isinstance(value, DaySchedule):
+            
+            if self.type != value.type:
+                raise TypeError(
+                    f"Cannot add {self.type}-type DaySchedule to {value.type}-type DaySchedule."
+                )
+            
+            return DaySchedule(
+                f"{self.name}:ADD:{value.name}",
+                [a / b for a,b in zip(self.data, value.data)],
+                type=self.type
+                )
+        
+        elif isinstance(value, int|float): 
+            
+            return DaySchedule(
+                self.name,
+                [item / value for item in self.data],
+                type=self.type
+                )
         
     def __add__(self, other:DaySchedule) -> DaySchedule:
         
@@ -201,6 +233,144 @@ class DaySchedule(UserList):
             [int(not bool(value)) for value in self.data]
         )
         
+    def element_eq(self, other:int|float|DaySchedule) -> DaySchedule:
+        
+        if isinstance(other, DaySchedule):
+            
+            return DaySchedule(
+                f"{self.name}:EQ:{other.name}",
+                [int(a == b) for a,b in zip(self.data, other.data)],
+                type=ScheduleType.ONOFF
+            )
+            
+        elif isinstance(other, int|float):
+            
+            return DaySchedule(
+                f"{self.name}:LT:{other}",
+                [int(v == other) for v in self.data],
+                type=ScheduleType.ONOFF
+            )
+        
+        else:
+            raise TypeError(
+                f"Cannot '==' operate for {type(other).__name__} object."
+            )
+    
+    def element_ne(self, other:int|float|DaySchedule) -> DaySchedule:
+        
+        if isinstance(other, DaySchedule):
+            
+            return DaySchedule(
+                f"{self.name}:NE:{other.name}",
+                [int(a != b) for a,b in zip(self.data, other.data)],
+                type=ScheduleType.ONOFF
+            )
+            
+        elif isinstance(other, int|float):
+            
+            return DaySchedule(
+                f"{self.name}:NE:{other}",
+                [int(v != other) for v in self.data],
+                type=ScheduleType.ONOFF
+            )
+        
+        else:
+            raise TypeError(
+                f"Cannot '!=' operate for {type(other).__name__} object."
+            )
+    
+    def __lt__(self, other:int|float|DaySchedule) -> DaySchedule:
+        
+        if isinstance(other, DaySchedule):
+            
+            return DaySchedule(
+                f"{self.name}:LT:{other.name}",
+                [int(a < b) for a,b in zip(self.data, other.data)],
+                type=ScheduleType.ONOFF
+            )
+            
+        elif isinstance(other, int|float):
+            
+            return DaySchedule(
+                f"{self.name}:LT:{other}",
+                [int(v < other) for v in self.data],
+                type=ScheduleType.ONOFF
+            )
+        
+        else:
+            raise TypeError(
+                f"Cannot '<' operate for {type(other).__name__} object."
+            )
+        
+    def __le__(self, other:int|float|DaySchedule) -> DaySchedule:
+        
+        if isinstance(other, DaySchedule):
+            
+            return DaySchedule(
+                f"{self.name}:LE:{other.name}",
+                [int(a <= b) for a,b in zip(self.data, other.data)],
+                type=ScheduleType.ONOFF
+            )
+            
+        elif isinstance(other, int|float):
+            
+            return DaySchedule(
+                f"{self.name}:LE:{other}",
+                [int(v <= other) for v in self.data],
+                type=ScheduleType.ONOFF
+            )
+        
+        else:
+            raise TypeError(
+                f"Cannot '<=' operate for {type(other).__name__} object."
+            )
+       
+    def __gt__(self, other:int|float|DaySchedule) -> DaySchedule:
+        
+        if isinstance(other, DaySchedule):
+            
+            return DaySchedule(
+                f"{self.name}:GT:{other.name}",
+                [int(a > b) for a,b in zip(self.data, other.data)],
+                type=ScheduleType.ONOFF
+            )
+            
+        elif isinstance(other, int|float):
+            
+            return DaySchedule(
+                f"{self.name}:GT:{other}",
+                [int(v > other) for v in self.data],
+                type=ScheduleType.ONOFF
+            )
+        
+        else:
+            raise TypeError(
+                f"Cannot '>' operate for {type(other).__name__} object."
+            )
+    
+    def __ge__(self, other:int|float|DaySchedule) -> DaySchedule:
+        
+        if isinstance(other, DaySchedule):
+            
+            return DaySchedule(
+                f"{self.name}:GE:{other.name}",
+                [int(a >= b) for a,b in zip(self.data, other.data)],
+                type=ScheduleType.ONOFF
+            )
+            
+        elif isinstance(other, int|float):
+            
+            return DaySchedule(
+                f"{self.name}:GE:{other}",
+                [int(v >= other) for v in self.data],
+                type=ScheduleType.ONOFF
+            )
+        
+        else:
+            raise TypeError(
+                f"Cannot '>=' operate for {type(other).__name__} object."
+            )
+    
     def element_min(self, other:DaySchedule) -> DaySchedule:
         
         return DaySchedule(
@@ -483,29 +653,6 @@ class RuleSet:
     """ algebraric methods
     """
     
-    def __mul__(self, value:int|float) -> RuleSet:
-        return RuleSet(
-            self.name,
-            **{
-                k: dayschedule.__mul__(value)
-                for k,dayschedule in self.to_dict().items()
-                if isinstance(dayschedule, DaySchedule)
-            }
-        )
-        
-    def __rmul__(self, value:int|float) -> RuleSet:
-        return self.__mul__(value)
-    
-    def __truediv__(self, value:int|float) -> RuleSet:
-        return RuleSet(
-            self.name,
-            **{
-                k: dayschedule.__truediv__(value)
-                for k,dayschedule in self.to_dict().items()
-                if isinstance(dayschedule, DaySchedule)
-            }
-        )
-    
     @staticmethod
     def __operate_dayschedule_with_default(
         operator     :Callable   ,
@@ -524,7 +671,67 @@ class RuleSet:
             if other_day is None:
                 other_day = other_default
             
-            return operator(self_day, other_day)        
+            return operator(self_day, other_day)
+        
+    @staticmethod
+    def __operate_with_default(
+        newname:str,
+        dayschedule_operator:Callable,
+        self_ruleset:RuleSet,
+        other       :RuleSet|int|float,
+        ) -> RuleSet:
+        
+        if isinstance(other, RuleSet):
+            other_comparelist = self_ruleset.to_dict().values()
+            other_defaultlist = [
+                        other.weekdays, other.weekends,
+                        other.weekdays, other.weekdays, other.weekdays, other.weekdays, other.weekdays,
+                        other.weekends, other.weekends, other.weekends,
+                ]
+        elif isinstance(other, int|float):
+            other_comparelist = [other if v is not None else None for v in self_ruleset.to_dict().values()]
+            other_defaultlist = [other if v is not None else None for v in self_ruleset.to_dict().values()]
+        
+        return RuleSet(
+            newname,
+            **{
+                k: RuleSet.__operate_dayschedule_with_default(
+                    dayschedule_operator,
+                    self_day    , other_day    ,
+                    self_default, other_default,
+                )
+                for k, self_day, other_day, self_default, other_default
+                in zip(
+                    self_ruleset.to_dict().keys(),
+                    self_ruleset.to_dict().values(), other_comparelist,
+                    [
+                        self_ruleset.weekdays, self_ruleset.weekends,
+                        self_ruleset.weekdays, self_ruleset.weekdays, self_ruleset.weekdays, self_ruleset.weekdays, self_ruleset.weekdays,
+                        self_ruleset.weekends, self_ruleset.weekends, self_ruleset.weekends,
+                    ],
+                    other_defaultlist,
+                )
+            }
+        )
+    
+    def __mul__(self, value:int|float|RuleSet) -> RuleSet:
+        
+        return RuleSet.__operate_with_default(
+            f"{self.name}:MUL:{value.name if isinstance(value, RuleSet) else str(value)}",
+            lambda a, b: a.__mul__(b),
+            self, value
+        )
+        
+    def __rmul__(self, value:int|float) -> RuleSet:
+        return self.__mul__(value)
+    
+    def __truediv__(self, value:int|float|RuleSet) -> RuleSet:
+        
+        return RuleSet.__operate_with_default(
+            f"{self.name}:DIV:{value.name if isinstance(value, RuleSet) else str(value)}",
+            lambda a, b: a.__truediv__(b),
+            self, value
+        )
         
     def __add__(self, other:RuleSet) -> RuleSet:
         
@@ -533,30 +740,10 @@ class RuleSet:
                 f"Cannot add {self.type}-type RuleSet to {other.type}-type RuleSet."
             )
             
-        return RuleSet(
+        return RuleSet.__operate_with_default(
             f"{self.name}:ADD:{other.name}",
-            **{
-                k: RuleSet.__operate_dayschedule_with_default(
-                    lambda a, b: a + b,
-                    self_day    , other_day    ,
-                    self_default, other_default,
-                )
-                for k, self_day, other_day, self_default, other_default
-                in zip(
-                    self.to_dict().keys(),
-                    self.to_dict().values(), other.to_dict().values(),
-                    [
-                        self.weekdays, self.weekends,
-                        self.weekdays, self.weekdays, self.weekdays, self.weekdays, self.weekdays,
-                        self.weekends, self.weekends, self.weekends,
-                    ],
-                    [
-                        other.weekdays, other.weekends,
-                        other.weekdays, other.weekdays, other.weekdays, other.weekdays, other.weekdays,
-                        other.weekends, other.weekends, other.weekends,
-                    ],
-                )
-            }
+            lambda a, b: a + b,
+            self, other
         )
     
     def __radd__(self, other:RuleSet) -> RuleSet:
@@ -578,30 +765,10 @@ class RuleSet:
                 f"Cannot 'AND' operate for non-ONOFF typed RuleSets (get: {self.type} and {other.type})."
             )
             
-        return RuleSet(
+        return RuleSet.__operate_with_default(
             f"{self.name}:AND:{other.name}",
-            **{
-                k: RuleSet.__operate_dayschedule_with_default(
-                    lambda a, b: a.__and__(b),
-                    self_day    , other_day    ,
-                    self_default, other_default,
-                )
-                for k, self_day, other_day, self_default, other_default
-                in zip(
-                    self.to_dict().keys(),
-                    self.to_dict().values(), other.to_dict().values(),
-                    [
-                        self.weekdays, self.weekends,
-                        self.weekdays, self.weekdays, self.weekdays, self.weekdays, self.weekdays,
-                        self.weekends, self.weekends, self.weekends,
-                    ],
-                    [
-                        other.weekdays, other.weekends,
-                        other.weekdays, other.weekdays, other.weekdays, other.weekdays, other.weekdays,
-                        other.weekends, other.weekends, other.weekends,
-                    ],
-                )
-            }
+            lambda a, b: a.__and__(b),
+            self, other
         )
         
     def __or__(self, other:RuleSet) -> RuleSet:
@@ -611,30 +778,10 @@ class RuleSet:
                 f"Cannot 'AND' operate for non-ONOFF typed RuleSets (get: {self.type} and {other.type})."
             )
             
-        return RuleSet(
-            f"{self.name}:AND:{other.name}",
-            **{
-                k: RuleSet.__operate_dayschedule_with_default(
-                    lambda a, b: a.__or__(b),
-                    self_day    , other_day    ,
-                    self_default, other_default,
-                )
-                for k, self_day, other_day, self_default, other_default
-                in zip(
-                    self.to_dict().keys(),
-                    self.to_dict().values(), other.to_dict().values(),
-                    [
-                        self.weekdays, self.weekends,
-                        self.weekdays, self.weekdays, self.weekdays, self.weekdays, self.weekdays,
-                        self.weekends, self.weekends, self.weekends,
-                    ],
-                    [
-                        other.weekdays, other.weekends,
-                        other.weekdays, other.weekdays, other.weekdays, other.weekdays, other.weekdays,
-                        other.weekends, other.weekends, other.weekends,
-                    ],
-                )
-            }
+        return RuleSet.__operate_with_default(
+            f"{self.name}:OR:{other.name}",
+            lambda a, b: a.__or__(b),
+            self, other
         )
         
     def __invert__(self) -> RuleSet:
@@ -652,61 +799,69 @@ class RuleSet:
                 if isinstance(dayschedule, DaySchedule)
             }
         )
+    
+    def element_eq(self, other:int|float|RuleSet) -> RuleSet:
+            
+        return RuleSet.__operate_with_default(
+            f"{self.name}:EQ:{other.name if isinstance(other, RuleSet) else str(other)}",
+            lambda a, b: a.element_eq(b),
+            self, other
+        )
+        
+    def element_ne(self, other:int|float|RuleSet) -> RuleSet:
+            
+        return RuleSet.__operate_with_default(
+            f"{self.name}:NE:{other.name if isinstance(other, RuleSet) else str(other)}",
+            lambda a, b: a.element_ne(b),
+            self, other
+        )
+            
+    def __lt__(self, other:int|float|RuleSet) -> RuleSet:
+            
+        return RuleSet.__operate_with_default(
+            f"{self.name}:LT:{other.name if isinstance(other, RuleSet) else str(other)}",
+            lambda a, b: a.__lt__(b),
+            self, other
+        )
+        
+    def __le__(self, other:int|float|RuleSet) -> RuleSet:
+            
+        return RuleSet.__operate_with_default(
+            f"{self.name}:LE:{other.name if isinstance(other, RuleSet) else str(other)}",
+            lambda a, b: a.__le__(b),
+            self, other
+        )
+        
+    def __gt__(self, other:int|float|RuleSet) -> RuleSet:
+            
+        return RuleSet.__operate_with_default(
+            f"{self.name}:GT:{other.name if isinstance(other, RuleSet) else str(other)}",
+            lambda a, b: a.__gt__(b),
+            self, other
+        )
+        
+    def __ge__(self, other:int|float|RuleSet) -> RuleSet:
+            
+        return RuleSet.__operate_with_default(
+            f"{self.name}:GE:{other.name if isinstance(other, RuleSet) else str(other)}",
+            lambda a, b: a.__ge__(b),
+            self, other
+        )     
         
     def element_min(self, other:RuleSet) -> RuleSet:
         
-        return RuleSet(
+        return RuleSet.__operate_with_default(
             f"{self.name}:MIN:{other.name}",
-            **{
-                k: RuleSet.__operate_dayschedule_with_default(
-                    lambda a, b: a.element_min(b),
-                    self_day    , other_day    ,
-                    self_default, other_default,
-                )
-                for k, self_day, other_day, self_default, other_default
-                in zip(
-                    self.to_dict().keys(),
-                    self.to_dict().values(), other.to_dict().values(),
-                    [
-                        self.weekdays, self.weekends,
-                        self.weekdays, self.weekdays, self.weekdays, self.weekdays, self.weekdays,
-                        self.weekends, self.weekends, self.weekends,
-                    ],
-                    [
-                        other.weekdays, other.weekends,
-                        other.weekdays, other.weekdays, other.weekdays, other.weekdays, other.weekdays,
-                        other.weekends, other.weekends, other.weekends,
-                    ],
-                )
-            }
+            lambda a, b: a.element_min(b),
+            self, other
         )
         
     def element_max(self, other:RuleSet) -> RuleSet:
         
-        return RuleSet(
+        return RuleSet.__operate_with_default(
             f"{self.name}:MAX:{other.name}",
-            **{
-                k: RuleSet.__operate_dayschedule_with_default(
-                    lambda a, b: a.element_max(b),
-                    self_day    , other_day    ,
-                    self_default, other_default,
-                )
-                for k, self_day, other_day, self_default, other_default
-                in zip(
-                    self.to_dict().keys(),
-                    self.to_dict().values(), other.to_dict().values(),
-                    [
-                        self.weekdays, self.weekends,
-                        self.weekdays, self.weekdays, self.weekdays, self.weekdays, self.weekdays,
-                        self.weekends, self.weekends, self.weekends,
-                    ],
-                    [
-                        other.weekdays, other.weekends,
-                        other.weekdays, other.weekdays, other.weekdays, other.weekdays, other.weekdays,
-                        other.weekends, other.weekends, other.weekends,
-                    ],
-                )
-            }
+            lambda a, b: a.element_max(b),
+            self, other
         )
     
     @property
@@ -889,104 +1044,115 @@ class Schedule(UserList):
     """ algebraric operation
     """
     
-    def __mul__(self, value:int|float) -> Schedule:
+    @staticmethod
+    def __operate_with_unified_schedule(
+        newname:str,
+        ruleset_operator:Callable,
+        self_schedule :Schedule,
+        other         :Schedule|int|float,
+        ) -> Schedule:
+        
+        if isinstance(other, int|float):
+            other = Schedule.from_compact(
+                str(other),
+                [
+                    ("0101","1231",RuleSet(
+                        None,
+                        DaySchedule(None, [other]*DaySchedule.DATA_INTERVAL*24),
+                        DaySchedule(None, [other]*DaySchedule.DATA_INTERVAL*24),
+                    ))
+                ]
+            )
+        
+        unified_compactized_self, unified_compactized_other = Schedule.unify_compactized_schedules(
+            self_schedule.compactize(), other.compactize(),
+        )
+        
         return Schedule.from_compact(
-            f"{self.name}:MUL:{value:.6f}",
+            newname,
             [
-                (start_date, end_date, ruleset.__mul__(value))
-                for start_date, end_date, ruleset in self.compactize()
+                (start_date, end_date, ruleset_operator(ruleset_self,ruleset_other))
+                for (start_date, end_date, ruleset_self), (start_date, end_date, ruleset_other) in zip(unified_compactized_self, unified_compactized_other)
             ]
+        )
+    
+    def __mul__(self, value:int|float|Schedule) -> Schedule:
+        
+        if isinstance(value, Schedule) and (self.type != value.type):
+            raise TypeError(
+                f"Cannot add {self.type}-type Schedule to {value.type}-type Schedule."
+            )
+            
+        return Schedule.__operate_with_unified_schedule(
+            f"{self.name}:MUL:{value if isinstance(value, Schedule) else str(value)}",
+            lambda a,b: a.__mul__(b),
+            self, value
         )
         
     def __rmul__(self, value:int|float) -> Schedule:
         return self.__mul__(value)
     
     def __truediv__(self, value:int|float) -> Schedule:
-        return Schedule.from_compact(
-            f"{self.name}:TRUEDIV:{value:.6f}",
-            [
-                (start_date, end_date, ruleset.__truediv__(value))
-                for start_date, end_date, ruleset in self.compactize()
-            ]
+        
+        return Schedule.__operate_with_unified_schedule(
+            f"{self.name}:DIV:{value if isinstance(value, Schedule) else str(value)}",
+            lambda a,b: a.__truediv__(b),
+            self, value
         )
         
-    def __add__(self, other:Schedule) -> RuleSet:
+    def __add__(self, other:int|float|Schedule) -> RuleSet:
+        
+        if isinstance(other, Schedule) and (self.type != other.type):
+            raise TypeError(
+                f"Cannot add {self.type}-type Schedule to {other.type}-type Schedule."
+            )
+            
+        return Schedule.__operate_with_unified_schedule(
+            f"{self.name}:ADD:{other.name}",
+            lambda a, b: a+b,
+            self, other
+        )
+    
+    def __radd__(self, other:Schedule) -> Schedule:
+        return self.__add__(other)
+    
+    def __sub__(self, other:int|float|Schedule) -> Schedule:
+        
+        if isinstance(other, Schedule) and (self.type != other.type):
+            raise TypeError(
+                f"Cannot add {self.type}-type Schedule to {other.type}-type Schedule."
+            )
+            
+        return Schedule.__operate_with_unified_schedule(
+            f"{self.name}:SUB:{other.name}",
+            lambda a, b: a-b,
+            self, other
+        )
+        
+    def __and__(self, other:Schedule) -> Schedule:
         
         if self.type != other.type:
             raise TypeError(
                 f"Cannot add {self.type}-type Schedule to {other.type}-type Schedule."
             )
             
-        unified_compactized_self, unified_compactized_other = Schedule.unify_compactized_schedules(
-            self.compactize(), other.compactize(),
-        )
-        
-        return Schedule.from_compact(
-            f"{self.name}:ADD:{other.name}",
-            [
-                (start_date, end_date, ruleset_self.__add__(ruleset_other))
-                for (start_date, end_date, ruleset_self), (start_date, end_date, ruleset_other) in zip(unified_compactized_self, unified_compactized_other)
-            ]
-        )
-    
-    def __radd__(self, other:Schedule) -> Schedule:
-        return self.__add__(other)
-    
-    def __sub__(self, other:Schedule) -> Schedule:
-        
-        if self.type != other.type:
-            raise TypeError(
-                f"Cannot sub {self.type}-type Schedule to {other.type}-type Schedule."
-            )
-            
-        unified_compactized_self, unified_compactized_other = Schedule.unify_compactized_schedules(
-            self.compactize(), other.compactize(),
-        )
-        
-        return Schedule.from_compact(
-            f"{self.name}:SUB:{other.name}",
-            [
-                (start_date, end_date, ruleset_self.__sub__(ruleset_other))
-                for (start_date, end_date, ruleset_self), (start_date, end_date, ruleset_other) in zip(unified_compactized_self, unified_compactized_other)
-            ]
-        )
-        
-    def __and__(self, other:Schedule) -> Schedule:
-        
-        if (self.type is not ScheduleType.ONOFF) or (other.type is not ScheduleType.ONOFF):
-            raise TypeError(
-                f"Cannot 'AND' operate for non-ONOFF typed Schedules (get: {self.type} and {other.type})."
-            )
-            
-        unified_compactized_self, unified_compactized_other = Schedule.unify_compactized_schedules(
-            self.compactize(), other.compactize(),
-        )
-
-        return Schedule.from_compact(
+        return Schedule.__operate_with_unified_schedule(
             f"{self.name}:AND:{other.name}",
-            [
-                (start_date, end_date, ruleset_self.__and__(ruleset_other))
-                for (start_date, end_date, ruleset_self), (start_date, end_date, ruleset_other) in zip(unified_compactized_self, unified_compactized_other)
-            ]
+            lambda a, b: a.__and__(b),
+            self, other
         )
     
     def __or__(self, other:Schedule) -> Schedule:
         
-        if (self.type is not ScheduleType.ONOFF) or (other.type is not ScheduleType.ONOFF):
+        if self.type != other.type:
             raise TypeError(
-                f"Cannot 'OR' operate for non-ONOFF typed Schedules (get: {self.type} and {other.type})."
+                f"Cannot add {self.type}-type Schedule to {other.type}-type Schedule."
             )
             
-        unified_compactized_self, unified_compactized_other = Schedule.unify_compactized_schedules(
-            self.compactize(), other.compactize(),
-        )
-
-        return Schedule.from_compact(
+        return Schedule.__operate_with_unified_schedule(
             f"{self.name}:OR:{other.name}",
-            [
-                (start_date, end_date, ruleset_self.__or__(ruleset_other))
-                for (start_date, end_date, ruleset_self), (start_date, end_date, ruleset_other) in zip(unified_compactized_self, unified_compactized_other)
-            ]
+            lambda a, b: a.__or__(b),
+            self, other
         )
         
     def __invert__(self) -> Schedule:
@@ -1003,6 +1169,54 @@ class Schedule(UserList):
                 for start_date, end_date, ruleset in self.compactize()
             ]
         )
+        
+    def element_eq(self, other:int|float|Schedule) -> Schedule:
+        
+        return Schedule.__operate_with_unified_schedule(
+            f"{self.name}:EQ:{other.name if isinstance(other, Schedule) else str(other)}",
+            lambda a,b: a.element_eq(b),
+            self, other
+        )
+    
+    def element_ne(self, other:int|float|Schedule) -> Schedule:
+        
+        return Schedule.__operate_with_unified_schedule(
+            f"{self.name}:NE:{other.name if isinstance(other, Schedule) else str(other)}",
+            lambda a,b: a.element_ne(b),
+            self, other
+        )
+        
+    def __lt__(self, other:int|float|Schedule) -> Schedule:
+        
+        return Schedule.__operate_with_unified_schedule(
+            f"{self.name}:LT:{other.name if isinstance(other, Schedule) else str(other)}",
+            lambda a,b: a.__lt__(b),
+            self, other
+        )
+    
+    def __le__(self, other:int|float|Schedule) -> Schedule:
+        
+        return Schedule.__operate_with_unified_schedule(
+            f"{self.name}:LE:{other.name if isinstance(other, Schedule) else str(other)}",
+            lambda a,b: a.__le__(b),
+            self, other
+        )
+        
+    def __gt__(self, other:int|float|Schedule) -> Schedule:
+        
+        return Schedule.__operate_with_unified_schedule(
+            f"{self.name}:GT:{other.name if isinstance(other, Schedule) else str(other)}",
+            lambda a,b: a.__gt__(b),
+            self, other
+        )
+        
+    def __ge__(self, other:int|float|Schedule) -> Schedule:
+        
+        return Schedule.__operate_with_unified_schedule(
+            f"{self.name}:GE:{other.name if isinstance(other, Schedule) else str(other)}",
+            lambda a,b: a.__ge__(b),
+            self, other
+        )    
         
     def element_min(self, other:Schedule) -> Schedule:
         
