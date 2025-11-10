@@ -63,7 +63,7 @@ class EnergyPlusResult:
                     f"'{file}' is not existing energyplus output file."
                 )
             
-            with open(file, encoding="UTF-8") as f:
+            with open(file, encoding="UTF-8", errors="ignore") as f:
                 text = f.read()
             
             if file.endswith(".err"):
