@@ -2482,7 +2482,6 @@ class RadiantFloor(SupplySystem):
     
     @staticmethod
     def _get_internal_heatsource_layer(construction:Construction):
-        
         return max(len(construction.layers) - 1, 1)
     
     def to_idf_object(self,
@@ -2559,6 +2558,98 @@ class RadiantFloor(SupplySystem):
         
         return obj_internal_heatsources + obj_radiant_floor + obj_branches, postprocessors
 
+
+class ElectricRadiantFloor(SupplySystem):
+    
+    def __init__(self,
+        name:str,
+        *,
+        throttling_range:int|float = 2,
+        ) -> None:
+        
+        # user property
+        self.name = name
+        
+        # additional properties
+        self.throttling_range = throttling_range
+    
+    @property
+    def source(self) -> None:
+        return None
+    
+    @property
+    def heatable(self) -> bool:
+        return True
+    
+    @property
+    def coolable(self) -> bool:
+        return False
+    
+    """ idf-related
+    """
+    @property
+    def idf_objtypename(self) -> str:
+        return "ZoneHVAC:LowTemperatureRadiant:Electric"
+    
+    @staticmethod
+    def _get_internal_heatsource_layer(construction:Construction):    
+        return max(len(construction.layers) - 1, 1)
+    
+    def to_idf_object(self,
+        zone       :Zone,
+        for_heating:bool,
+        for_cooling:bool,
+        ) -> tuple[list[IdfObject], list[SupplySystemToIdfPostProcessor]]:
+        
+        if (not self.heatable and for_heating) or (not self.coolable and for_cooling):
+            raise ValueError(
+                f"그런건 못해요..."
+            )
+
+        obj_internal_heatsources = [
+            IdfObject("ConstructionProperty:InternalHeatSource",{
+                "Name": f"{surface.name} Internal Heat Source",
+                "Construction Name": f"{surface.construction.name}:for:{surface.name}",
+                "Thermal Source Present After Layer Number": self._get_internal_heatsource_layer(surface.construction),
+                "Temperature Calculation Requested After Layer Number": self._get_internal_heatsource_layer(surface.construction),
+                "Dimensions for the CTF Calculation": 1,
+                "Tube Spacing": 0.3,
+            }, ignore_default=False)
+            for surface in zone.floor_surface
+        ]
+        
+        flow_fractions = [surface.area/zone.floor_area for surface in zone.floor_surface]
+        obj_radiant_floor = [
+            # surface
+            IdfObject("ZoneHVAC:LowTemperatureRadiant:SurfaceGroup",{
+                "Name": f"RadiantFloorSurfaceGroup_for_{zone.name}",
+                **{
+                    f"Surface {idx+1} Name": surface.name                    
+                    for idx, surface in enumerate(zone.floor_surface)
+                },
+                **{
+                    f"Flow Fraction for Surface {idx+1}": fraction                    
+                    for idx, fraction in enumerate(flow_fractions)
+                },
+                
+            }),
+            # radiant floor
+            IdfObject(self.idf_objtypename,{
+                "Name": self.idf_get_objname(zone),
+                "Availability Schedule Name": zone.profile.hvac_availability.name,
+                "Zone Name": zone.name,
+                "Surface Name or Radiant Surface Group Name": f"RadiantFloorSurfaceGroup_for_{zone.name}",
+                "Setpoint Control Type": "ZeroFlowPower",
+                "Heating Throttling Range": self.throttling_range,
+                "Heating Setpoint Temperature Schedule Name": zone.profile.heating_setpoint.name,
+            }),
+        ]
+        
+        postprocessors = [
+            EquipmentListAppender(self, zone),
+        ]
+        
+        return obj_internal_heatsources + obj_radiant_floor, postprocessors
 
 # ---------------------------------------------------------------------------- #
 #                                HOTWATER SYSTEM                               #

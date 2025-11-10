@@ -1502,7 +1502,86 @@ class RadiantFloor(SupplySystem):
     def __repr__(self) -> str:
         return f"<RadiantFloor {self.name} (ID={self.ID}) at {hex(id(self))}>"
             
+
+class ElectricRadiantFloor(SupplySystem):
     
+    _heatable_sources = [NoneSource]
+    _coolable_sources = []
+    
+    def __init__(self,
+        name:str,
+        *,
+        ID:str|None=None
+        ) -> None:
+        
+        # user property
+        self.name = name
+        
+        # a packaged air conditioner doesn't require source system
+        self.__source = NoneSource()
+        
+        # set default ID if not specified
+        if ID is None:
+            ID = f"{AUTOID_PREFIX.SUPPLY_SYSTEM}AUTOID{hex(id(self))}"
+        self.__ID = ID
+        
+    """ fundamental properties
+    """
+    
+    @property
+    def source(self) -> NoneSource:
+        return self.__source
+    
+    """ identity and equality
+    """
+    
+    @property
+    def ID(self) -> str:
+        return self.__ID
+    
+    def __hash__(self) -> int:
+        return hash(self.ID)
+    
+    def __eq__(self, other:ElectricRadiantFloor) -> bool:
+        
+        # type validation
+        if not isinstance(other, ElectricRadiantFloor):
+            raise TypeError(
+                f"Cannot compare {type(self)} instance with {type(other)} instance"
+            )
+            
+        # two electric radiant floors are always equal (no fundamental properties)
+        return True
+    
+    """ in-out
+    """
+    
+    @staticmethod
+    def from_json(
+        input             :SimpleNamespace        ,
+        source_system_dict:dict[str, SourceSystem],
+    ) -> ElectricRadiantFloor:
+        
+        return ElectricRadiantFloor(
+            input.name,
+            ID=input.id,
+        )
+        
+    def to_dragon(self, source_dict:dict[str, dragon.SourceSystem]) -> dragon.ElectricRadiantFloor:
+        
+        return dragon.ElectricRadiantFloor(
+            self.ID,
+        )
+    
+    """ representation
+    """
+    
+    def __str__(self) -> str:
+        
+        return f"Electric radiant floor {self.name} (ID={self.ID})"
+    
+    def __repr__(self) -> str:
+        return f"<ElectricRadiantFloor {self.name} (ID={self.ID}) at {hex(id(self))}>"
 
 # ---------------------------------------------------------------------------- #
 #                                 OTHER SYSTEMS                                #
@@ -1751,6 +1830,7 @@ SupplySystem.type_mapper = {
     "radiator"                : Radiator              ,
     "electric_radiator"       : ElectricRadiator      ,
     "radiant_floor"           : RadiantFloor          ,
+    "electric_radiant_floor"  : ElectricRadiantFloor  ,
 }
 
 SourceSystem.type_mapper = {

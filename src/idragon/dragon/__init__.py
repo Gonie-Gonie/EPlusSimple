@@ -61,6 +61,7 @@ from .hvac import (
     Radiator,
     ElectricRadiator,
     RadiantFloor,
+    ElectricRadiantFloor,
     # hot water
     DomesticHotWater,
     # other systems
