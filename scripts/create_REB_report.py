@@ -48,8 +48,8 @@ def find_building_sets(
         }
         
     
-    rebexcel_filelist = os.listdir(rebexcel_dir)
-    grr_filelist      = os.listdir(grr_dir)
+    rebexcel_filelist = [file for file in os.listdir(rebexcel_dir) if file.endswith(".xlsx")]
+    grr_filelist      = [file for file in os.listdir(grr_dir) if file.endswith(".grr")]
     
     buildingdict = dict()
     
@@ -112,12 +112,15 @@ def main(
     
     for d in validlist:
         
+        pdfpath     = os.path.join(report_dir, f"{d["name"]}.pdf")
         workingpath = os.path.join(report_dir, f"{d["name"]}.working")
-        if os.path.exists(workingpath):
+        if os.path.exists(pdfpath) or os.path.exists(workingpath):
             continue
+        else:
+            with open(workingpath, "w") as f:
+                f.write("")
         
         try:
-            pdfpath = os.path.join(report_dir, f"{d["name"]}.pdf")
             build_report(
                 *d["excel"].values(),
                 *d["grr"].values()  ,
