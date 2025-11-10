@@ -1069,7 +1069,7 @@ class Schedule(UserList):
     def __mul__(self, value:int|float|Schedule) -> Schedule:
             
         return Schedule.__operate_with_unified_schedule(
-            f"{self.name}:MUL:{value if isinstance(value, Schedule) else str(value)}",
+            f"{self.name}:MUL:{value.name if isinstance(value, Schedule) else str(value)}",
             lambda a,b: a.__mul__(b),
             self, value
         )
@@ -1080,7 +1080,7 @@ class Schedule(UserList):
     def __truediv__(self, value:int|float) -> Schedule:
         
         return Schedule.__operate_with_unified_schedule(
-            f"{self.name}:DIV:{value if isinstance(value, Schedule) else str(value)}",
+            f"{self.name}:DIV:{value.name if isinstance(value, Schedule) else str(value)}",
             lambda a,b: a.__truediv__(b),
             self, value
         )
