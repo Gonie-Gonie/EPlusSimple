@@ -523,6 +523,9 @@ class 보건소일반존(hvac존):
         occupant_schedule          = self.get_occupant_schedule()/total_area 
         hvac_availability_schedule = self.get_hvac_availability_schedule()
         
+        lighting_schedule  = zone.profile.lighting  * (occupant_schedule > 0)
+        equipment_schedule = zone.profile.equipment * (occupant_schedule > 0)
+        
         for zone in zones:
             zone.profile = dragon.Profile(
                 f"{zone.name}_일반존체크리스트",
@@ -530,8 +533,8 @@ class 보건소일반존(hvac존):
                 self.get_cooling_setpoint_schedule(zone.profile.cooling_setpoint) , 
                 hvac_availability_schedule,
                 occupant_schedule         ,
-                zone.profile.lighting     ,
-                zone.profile.equipment    ,
+                lighting_schedule         ,
+                equipment_schedule        ,
             )
             
         return
@@ -714,6 +717,9 @@ class 보건소특화존1(hvac존):
         occupant_schedule          = self.get_occupant_schedule()/total_area 
         hvac_availability_schedule = self.get_hvac_availability_schedule()
         
+        lighting_schedule  = zone.profile.lighting  * (occupant_schedule > 0)
+        equipment_schedule = zone.profile.equipment * (occupant_schedule > 0)
+        
         for zone in zones:
             zone.profile = dragon.Profile(
                 f"{zone.name}_특화존1체크리스트",
@@ -721,8 +727,8 @@ class 보건소특화존1(hvac존):
                 self.get_cooling_setpoint_schedule(zone.profile.cooling_setpoint), 
                 hvac_availability_schedule,
                 occupant_schedule         ,
-                zone.profile.lighting     ,
-                zone.profile.equipment    ,
+                lighting_schedule     ,
+                equipment_schedule    ,
             )
             
         return
@@ -943,6 +949,9 @@ class 어린이집일반존(hvac존):
         occupant_schedule          = self.get_occupant_schedule()/total_area 
         hvac_availability_schedule = self.get_hvac_availability_schedule()
         
+        lighting_schedule  = zone.profile.lighting  * (occupant_schedule > 0)
+        equipment_schedule = zone.profile.equipment * (occupant_schedule > 0)
+        
         for zone in zones:
             zone.profile = dragon.Profile(
                 f"{zone.name}_일반존체크리스트",
@@ -950,8 +959,8 @@ class 어린이집일반존(hvac존):
                 self.get_cooling_setpoint_schedule(zone.profile.cooling_setpoint), 
                 hvac_availability_schedule,
                 occupant_schedule         ,
-                zone.profile.lighting     ,
-                zone.profile.equipment    ,
+                lighting_schedule    ,
+                equipment_schedule    ,
             )
             
         return
@@ -1110,6 +1119,9 @@ class 어린이집특화존1(hvac존):
         occupant_schedule          = self.get_occupant_schedule()/total_area 
         hvac_availability_schedule = self.get_hvac_availability_schedule()
         
+        lighting_schedule  = zone.profile.lighting  * (occupant_schedule > 0)
+        equipment_schedule = zone.profile.equipment * (occupant_schedule > 0)
+        
         for zone in zones:
             zone.profile = dragon.Profile(
                 f"{zone.name}_특화존1체크리스트",
@@ -1117,8 +1129,8 @@ class 어린이집특화존1(hvac존):
                 self.get_cooling_setpoint_schedule(zone.profile.cooling_setpoint), 
                 hvac_availability_schedule,
                 occupant_schedule         ,
-                zone.profile.lighting     ,
-                zone.profile.equipment    ,
+                lighting_schedule,
+                equipment_schedule    ,
             )
             
         return
@@ -1299,6 +1311,9 @@ class 어린이집특화존2(hvac존):
         occupant_schedule          = self.get_occupant_schedule()/total_area 
         hvac_availability_schedule = self.get_hvac_availability_schedule()
         
+        lighting_schedule  = zone.profile.lighting  * (occupant_schedule > 0)
+        equipment_schedule = zone.profile.equipment * (occupant_schedule > 0)
+        
         for zone in zones:
             zone.profile = dragon.Profile(
                 f"{zone.name}_특화존2체크리스트",
@@ -1306,8 +1321,8 @@ class 어린이집특화존2(hvac존):
                 self.get_cooling_setpoint_schedule(zone.profile.cooling_setpoint), 
                 hvac_availability_schedule,
                 occupant_schedule         ,
-                zone.profile.lighting     ,
-                zone.profile.equipment    ,
+                lighting_schedule  ,
+                equipment_schedule    ,
             )
             
         return
