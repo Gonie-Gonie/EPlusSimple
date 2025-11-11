@@ -572,8 +572,8 @@ class 보건소특화존1(hvac존):
             row_to_dayofweekstr(운영요일.loc["운영요일"]),
             row_to_timestring(운영시간.loc["오전"]) if has_valid_dayofweek else None,
             row_to_timestring(운영시간.loc["오후"]) if has_valid_dayofweek else None,
-            int(v) if not pd.isna(v:=재실.at["오전","인원수"]) else pd.NA,
-            int(v) if not pd.isna(v:=재실.at["오후","인원수"]) else pd.NA,
+            int(v) if not pd.isna(v:=재실.at["오전","인원수"]) else 0,
+            int(v) if not pd.isna(v:=재실.at["오후","인원수"]) else 0,
         )
     
     def get_occupant_schedule(self) -> dragon.Schedule:
