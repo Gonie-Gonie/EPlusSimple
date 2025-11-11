@@ -23,6 +23,10 @@ from epsimple.core.construction import (
 )
 from epsimple.core.model import address_to_weather
 
+# settings
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
+
 # ---------------------------------------------------------------------------- #
 #                           PHIKO EXCEL PREPROCESSING                          #
 # ---------------------------------------------------------------------------- #
