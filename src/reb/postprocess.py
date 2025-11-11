@@ -259,43 +259,33 @@ class 설비운영:
                 case "cooling": setpoint = original_schedule.min
         else:
             setpoint = self.설정온도
-                
-        starth, startm, endh, endm = parse_duration_hours(self.사용시간)
-        temperature_dayschedule = dragon.DaySchedule.from_compact(
+        
+        constant_setpoint = dragon.Schedule.from_compact(
             None,
             [
-                (starth, startm, default_temperature),
-                (endh  , endm  , int(setpoint)      ),
-                (24    , 0     , default_temperature),
-            ],
-            dragon.ScheduleType.TEMPERATURE         
+                ("0101","1231", dragon.RuleSet(
+                    None,
+                    dragon.DaySchedule(None, [setpoint]*dragon.DaySchedule.DATA_INTERVAL*24, type=dragon.ScheduleType.TEMPERATURE),
+                    dragon.DaySchedule(None, [setpoint]*dragon.DaySchedule.DATA_INTERVAL*24, type=dragon.ScheduleType.TEMPERATURE),
+                ))
+            ]
         )
-        
-        # ruleset:
-        temperature_ruleset = dragon.RuleSet(
+        default_setpoint = dragon.Schedule.from_compact(
             None,
-            temperature_dayschedule,
-            temperature_dayschedule,
+            [
+                ("0101","1231", dragon.RuleSet(
+                    None,
+                    dragon.DaySchedule(None, [default_temperature]*dragon.DaySchedule.DATA_INTERVAL*24, type=dragon.ScheduleType.TEMPERATURE),
+                    dragon.DaySchedule(None, [default_temperature]*dragon.DaySchedule.DATA_INTERVAL*24, type=dragon.ScheduleType.TEMPERATURE),
+                ))
+            ]
         )
         
-        # 기간
-        duration1, duration2 = parse_duration_month(self.사용기간) 
-        temperature_schedule = original_schedule.apply(
-            temperature_ruleset,
-            start = f"{duration1[0]:02d}01",
-            end   = f"{duration1[1]:02d}{get_end_of_the_month(duration1[1]):02d}",
-            inplace=False
-        )
-        if duration2 is not None:
-            temperature_schedule.apply(
-                temperature_ruleset,
-                start = f"{duration2[0]:02d}01",
-                end   = f"{duration2[1]:02d}{get_end_of_the_month(duration2[1]):02d}",
-                inplace=True
-            )        
-            
-        return temperature_schedule
-
+        availability_schedule = self.get_hvac_availability_schedule()
+        operational_setpoint = constant_setpoint * availability_schedule + default_setpoint * (~availability_schedule)
+        operational_setpoint.name = hex(id(operational_setpoint))
+        
+        return operational_setpoint
 
 @dataclass
 class hvac존:
