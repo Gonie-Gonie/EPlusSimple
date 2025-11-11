@@ -313,7 +313,16 @@ class hvac존:
                 final_schedule = first_equipment_setpoint
         
         else:
-            final_schedule = original_schedule
+            final_schedule = dragon.Schedule.from_compact(
+                None,
+                [
+                    ("0101","1231", dragon.RuleSet(
+                        None,
+                        dragon.DaySchedule(None, [-30]*dragon.DaySchedule.DATA_INTERVAL*24, type=dragon.ScheduleType.TEMPERATURE),
+                        dragon.DaySchedule(None, [-30]*dragon.DaySchedule.DATA_INTERVAL*24, type=dragon.ScheduleType.TEMPERATURE),
+                    ))
+                ]
+            )
         
         return final_schedule
     
@@ -334,7 +343,16 @@ class hvac존:
                 final_schedule = first_equipment_setpoint
         
         else:
-            final_schedule = original_schedule
+            final_schedule = dragon.Schedule.from_compact(
+                None,
+                [
+                    ("0101","1231", dragon.RuleSet(
+                        None,
+                        dragon.DaySchedule(None, [50]*dragon.DaySchedule.DATA_INTERVAL*24, type=dragon.ScheduleType.TEMPERATURE),
+                        dragon.DaySchedule(None, [50]*dragon.DaySchedule.DATA_INTERVAL*24, type=dragon.ScheduleType.TEMPERATURE),
+                    ))
+                ]
+            )
         
         return final_schedule
     
