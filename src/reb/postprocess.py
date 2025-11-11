@@ -170,16 +170,18 @@ def make_집중진료_dayschedule_values(starth, startm, endh, endm,
         return start_points, stay_slots
 
     # 오전 배정
-    am_points, am_stay = assign_people(x1, t1, am_start, am_end)
-    for s in am_points:
-        for i in range(am_stay):
-            slots[s+i] += 1
+    if x1 > 0:
+        am_points, am_stay = assign_people(x1, t1, am_start, am_end)
+        for s in am_points:
+            for i in range(am_stay):
+                slots[s+i] += 1
 
     # 오후 배정
-    pm_points, pm_stay = assign_people(x2, t2, pm_start, pm_end)
-    for s in pm_points:
-        for i in range(pm_stay):
-            slots[s+i] += 1
+    if x2 > 0:
+        pm_points, pm_stay = assign_people(x2, t2, pm_start, pm_end)
+        for s in pm_points:
+            for i in range(pm_stay):
+                slots[s+i] += 1
 
     return slots
 
@@ -384,10 +386,10 @@ class 보건소일반존(hvac존):
             int(v) if not pd.isna(v:=재실.at["외근직원","인원수"]) else 0,
             row_to_dayofweekstr(운영요일.loc["집중진료"]),
             row_to_timestring(운영시간.loc["집중진료"]),
-            int(재실.at["집중진료-오전","인원수"]),
-            int(재실.at["집중진료-오후","인원수"]),
-            재실.at["집중진료-오전","체류시간"],
-            재실.at["집중진료-오후","체류시간"],
+            int(v) if not pd.isna(v:=재실.at["집중진료-오전","인원수"]) else 0,
+            int(v) if not pd.isna(v:=재실.at["집중진료-오후","인원수"]) else 0,
+            int(v) if not pd.isna(v:=재실.at["집중진료-오전","체류시간"]) else 0,
+            int(v) if not pd.isna(v:=재실.at["집중진료-오후","체류시간"]) else 0,
         )
     
     def get_occupant_schedule(self) -> dragon.Schedule:
