@@ -101,8 +101,8 @@ class EnergyModel:
         # default runnable idf and settings
         idf = IDF(ensure_validity=False)
         idf["SimulationControl"].append(["Yes","Yes","Yes","No","Yes","No"])
-        idf["SizingPeriod:WeatherFileDays"].append(["Design",1,1,1,31])
-        idf["SizingPeriod:WeatherFileDays"].append(["Design",8,1,8,31])
+        idf["SizingPeriod:WeatherFileDays"].append(["DesignWinter",1,1,1,31])
+        idf["SizingPeriod:WeatherFileDays"].append(["DesignSummer",8,1,8,31])
         idf["Timestep"].append({"Number of Timesteps per Hour": 6})
         idf["RunPeriod"].append(["Year-Round", 1, 1, Setting.DEFAULT_YEAR, 12, 31, Setting.DEFAULT_YEAR])
         idf["GlobalGeometryRules"][0] =IdfObject("GlobalGeometryRules", ["UpperLeftCorner", "CounterClockwise", "World"])
