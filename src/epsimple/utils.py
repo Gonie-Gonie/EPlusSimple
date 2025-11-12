@@ -195,6 +195,7 @@ PROPERTY_RENAME_DICT = {
         "공조기": "air_handling_unit",
         "팬코일유닛": "fan_coil_unit",
         "바닥난방":"radiant_floor",
+        "전기바닥난방":"electric_radiant_floor",
         "패키지에어컨": "packaged_air_conditioner",
         "방열기" : "radiator",
         "전기방열기" : "electric_radiator"
@@ -444,7 +445,8 @@ def _convert_supply_systems(
         "fan_coil_unit"           : [],
         "radiator"                : ["capacity_heating"],
         "electric_radiator"       : ["capacity_heating"],
-        "radiant_floor"           : []
+        "radiant_floor"           : [],
+        "electric_radiant_floor"  : [],
     }
     
     supply_list = []
