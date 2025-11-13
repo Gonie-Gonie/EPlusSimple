@@ -1895,7 +1895,7 @@ class AirHandlingUnit(SupplySystem):
                 "Name": f"CoolingCoil_for_{self.idf_get_objname(zone)}",
                 "Availability Schedule Name": zone.profile.hvac_availability.name if for_cooling else "ALLOFF",
                 "Gross Rated Total Cooling Capacity": "autosize" if for_cooling else 0.1,
-                "Gross Rated Sensible Heat Ratio": "autosize",
+                "Gross Rated Sensible Heat Ratio": 0.7,
                 "Rated Air Flow Rate": "autosize",
                 "Coil Air Inlet Node": self.idf_get_airinletnodename(zone),
                 "Coil Air Outlet Node": f"{self.idf_get_objname(zone)} CoolingCoil2HeatingCoil Air MiddleNode",
