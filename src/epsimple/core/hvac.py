@@ -1005,10 +1005,19 @@ class PackagedAirConditioner(SupplySystem):
         
     def to_dragon(self, source_dict:dict[str, dragon.SourceSystem]) -> dragon.PackagedAirConditioner:
         
-        return dragon.PackagedAirConditioner(
-            self.ID,
+        dedicated_ehp = dragon.HeatPump(
+            f"DedicatedHeatPump_for_{self.ID}",
+            dragon.Fuel.ELECTRICITY,
+            None,
             self.cop,
+            1E-3,
             self.capacity,
+        )
+        source_dict[dedicated_ehp.name] = dedicated_ehp
+        
+        return dragon.AirHandlingUnit(
+            self.ID,
+            dedicated_ehp,
         )
         
     """ representation
