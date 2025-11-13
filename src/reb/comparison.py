@@ -271,7 +271,9 @@ class HeatingHVACDifference(ExcelDifference):
                         beforeheating = f"전기방열기: {beforesupply["난방용량 [W]"]*1E-3:.2f}kW"
                     case "바닥난방"  : 
                         beforeheating = f"바닥난방&{beforesource["유형"]}: 효율 {beforesource["효율 [%]"]:.1f}%, {beforesource["난방용량 [W]"]*1E-3:.2f}kW"
-            
+                    case "전기바닥난방": 
+                        beforeheating = f"전기바닥난방"
+                        
             # after
             if pd.isna(afterrow["난방 공급 설비"]):
                 afterheating = ""
