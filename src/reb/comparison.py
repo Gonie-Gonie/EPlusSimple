@@ -290,6 +290,8 @@ class HeatingHVACDifference(ExcelDifference):
                         afterheating = f"전기방열기: {aftersupply["난방용량 [W]"]*1E-3:.2f}kW"
                     case "바닥난방"  : 
                         afterheating = f"바닥난방&{aftersource["유형"]}: 효율 {aftersource["효율 [%]"]:.1f}%, {aftersource["난방용량 [W]"]*1E-3:.2f}kW"
+                    case "전기바닥난방": 
+                        afterheating = f"전기바닥난방"
                 
                 if beforeheating != afterheating:
                     diffs.append(cls(zonename, "변경", beforeheating, afterheating, "-"))
