@@ -417,26 +417,34 @@ class 보건소일반존(hvac존):
             ),
             dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,)
         )
+        final_occupant_ruleset = 기본운영_직원_ruleset
         
         # 집중진료
-        # 요일 parsing
-        집중진료_dayofweeks = [translate_dayofweek(s.strip()) for s in self.집중진료요일.split(",") if not s==""]
-        # 시간 정하기 (random 배정)
-        starth, startm, endh, endm = parse_duration_hours(self.집중진료시간)
-        schedule_values = make_집중진료_dayschedule_values(
-            starth, startm, endh, endm,
-            self.집중진료오전방문객, self.집중진료오전체류시간, self.집중진료오후방문객, self.집중진료오후체류시간
-        )
-        # ruleset 만들기
-        집중진료_방문객_ruleset = dragon.RuleSet(
-            None,
-            dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,),
-            dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,),
-            **{
-                k: dragon.DaySchedule(None, schedule_values, type=dragon.ScheduleType.REAL)
-                for k in 집중진료_dayofweeks
-            }
-        )
+        if self.집중진료요일:
+            # 요일 parsing
+            집중진료_dayofweeks = [translate_dayofweek(s.strip()) for s in self.집중진료요일.split(",") if not s==""]
+            # 시간 정하기 (random 배정)
+            starth, startm, endh, endm = parse_duration_hours(self.집중진료시간)
+            schedule_values = make_집중진료_dayschedule_values(
+                starth, startm, endh, endm,
+                self.집중진료오전방문객, self.집중진료오전체류시간, self.집중진료오후방문객, self.집중진료오후체류시간
+            )
+            # ruleset 만들기
+            집중진료_방문객_ruleset = dragon.RuleSet(
+                None,
+                dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,),
+                dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,),
+                **{
+                    k: dragon.DaySchedule(None, schedule_values, type=dragon.ScheduleType.REAL)
+                    for k in 집중진료_dayofweeks
+                }
+            )
+            
+            # 적용
+            final_occupant_ruleset += 집중진료_방문객_ruleset
+        
+        else:
+            집중진료_dayofweeks = []
         
         # 외근
         if self.외근직원 > 0:
@@ -468,10 +476,7 @@ class 보건소일반존(hvac존):
                 }
             )
             
-            final_occupant_ruleset = 기본운영_직원_ruleset + 집중진료_방문객_ruleset - 외근_직원_ruleset
-            
-        else:
-            final_occupant_ruleset = 기본운영_직원_ruleset + 집중진료_방문객_ruleset
+            final_occupant_ruleset -= 외근_직원_ruleset
             
         # 스케줄 만들기
         occupant_schedule = dragon.Schedule(
