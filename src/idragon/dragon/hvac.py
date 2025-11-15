@@ -33,6 +33,7 @@ from ..utils import (
     validate_enum ,
 )
 from ..constants import Unit
+from .profile import Schedule
 
 # settings
 if TYPE_CHECKING:
@@ -1833,6 +1834,39 @@ class SupplySystem(ABC):
         for_heating:bool,
         for_cooling:bool,
         ) -> tuple[list[IdfObject], list[SupplySystemToIdfPostProcessor]]: ...
+  
+  
+class MultipleSupplySystem:
+    
+    def __init__(self,
+        systems:list[SupplySystem],
+        *,
+        availabilities:list[Schedule] = None,
+        ) -> None:
+        
+        self.systems        = systems
+        self.availabilities = availabilities
+        
+    def to_idf_object(self,
+        zone       :Zone,
+        for_heating:bool,
+        for_cooling:bool,
+        ) -> tuple[list[IdfObject], list[SupplySystemToIdfPostProcessor]]:
+        
+        if self.availabilities is None:
+            availabilities = [None] * len(self.systems)
+        else:
+            availabilities = self.availabilities
+            
+        idfobjects     = []
+        postprocessors = []
+        for sys, sche in zip(self.systems, availabilities):
+            idfobject, postprocessor = sys.to_idf_object(zone, for_heating, for_cooling, override_availability=sche)
+            idfobjects     += idfobject
+            postprocessors += postprocessor
+        
+        return idfobjects, postprocessors       
+        
     
 class AirHandlingUnit(SupplySystem):
     
