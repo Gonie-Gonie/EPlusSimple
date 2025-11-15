@@ -1381,7 +1381,14 @@ class 현장조사체크리스트(ABC):
     
     @abstractmethod
     def apply_to(self, grm:GreenRetrofitModel) -> IDF: ...
+    
+    @staticmethod
+    def apply_dualhvac(
+        em       :EnergyModel            ,
+        exceldata:dict[str, pd.DataFrame],
+        ) -> None:
         
+        pass
 
 class 어린이집체크리스트:
     
@@ -1421,6 +1428,7 @@ class 어린이집체크리스트:
         }
         
         em = grm.to_dragon()
+        현장조사체크리스트.apply_dualhvac(em, exceldata)
         
         self.일반존.apply_to([
                 zone for zone in em.zone
