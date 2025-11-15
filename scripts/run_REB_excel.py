@@ -29,21 +29,29 @@ err_idf_dir     = os.path.join(working_dir, "err_idf")
 filelist = [file for file in os.listdir(input_excel_dir) if not file.endswith("preprocess.xlsx")]
 if __name__ == "__main__":
     
-    for file in filelist[130:]:
+    for file in filelist:
         
-        grr_path = os.path.join(result_grr_dir, file.replace(r".xlsx",r".grr"))
-        idf_path = os.path.join(result_idf_dir, file.replace(r".xlsx",r".idf"))
+        workingnote_path = os.path.join(result_grr_dir, file.replace(r".xlsx",r".working"))
+        grr_path    = os.path.join(result_grr_dir, file.replace(r".xlsx",r".grr"))
+        idf_path    = os.path.join(result_idf_dir, file.replace(r".xlsx",r".idf"))
+        erridf_path = os.path.join(err_idf_dir, file.replace(r".xlsx",r".idf"))
         
-        if os.path.exists(grr_path):
+        if os.path.exists(grr_path) or os.path.exists(workingnote_path) or os.path.exists(erridf_path):
             continue
         
+        print(f"도전: {file}")
+        with open(workingnote_path, "w") as f:
+            f.write("")
+            
         try:    
             grr, idf = run_rebexcel(os.path.join(input_excel_dir,file), grr_path, idf_path)
             
         except EnergyPlusError:
             print(f"!!!!!!!!!!!!!!!EP에러로 실패: {file}")
             idf, grm = rebexcel_to_idf_and_grm(os.path.join(input_excel_dir,file))
-            idf_path = os.path.join(err_idf_dir, file.replace(r".xlsx",r".idf"))
-            idf.write(idf_path)
+            idf.write(erridf_path)
+            
+        finally:
+            os.remove(workingnote_path)
             
 

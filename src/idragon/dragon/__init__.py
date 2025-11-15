@@ -55,12 +55,12 @@ from .hvac import (
     Boiler,
     # supply systems
     SupplySystem,
-    PackagedAirConditioner,
     AirHandlingUnit,
     FanCoilUnit,
     Radiator,
     ElectricRadiator,
     RadiantFloor,
+    ElectricRadiantFloor,
     # hot water
     DomesticHotWater,
     # other systems

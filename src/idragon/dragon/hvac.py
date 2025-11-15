@@ -1833,150 +1833,6 @@ class SupplySystem(ABC):
         for_heating:bool,
         for_cooling:bool,
         ) -> tuple[list[IdfObject], list[SupplySystemToIdfPostProcessor]]: ...
-
-
-
-class PackagedAirConditioner(SupplySystem):
-    
-    def __init__(self,
-        name:str,
-        cop     :int|float,
-        capacity:int|float|None,
-        *,
-        fan_efficiency   = 0.7, # - 
-        fan_pressure     = 75 , # Pa
-        motor_efficiency = 0.9, # - 
-        ) -> None:
-        
-        # user property
-        self.name = name
-        
-        # fundamental property
-        self.cop      = cop
-        self.capacity = capacity
-        
-        # additional properties
-        self.fan_efficiency   = fan_efficiency
-        self.fan_pressure     = fan_pressure
-        self.motor_efficiency = motor_efficiency
-
-    @property
-    def source(self) -> None:
-        return None
-    
-    @property
-    def heatable(self) -> bool:
-        return False
-    
-    @property
-    def coolable(self) -> bool:
-        return True
-    
-    
-    """ idf-related
-    """
-    
-    @property
-    def idf_objtypename(self) -> str:
-        return "ZoneHVAC:WindowAirConditioner"
-    
-    def to_idf_object(self,
-        zone       :Zone,
-        for_heating:bool,
-        for_cooling:bool,
-        ) -> tuple[list[IdfObject], list[SupplySystemToIdfPostProcessor]]:
-
-        curve_obj = [
-            IdfObject("Curve:Biquadratic",[
-                f"Curve_for_{self.idf_get_objname(zone)}:CoolingCapaTemp",
-                0.942587793, 0.009543347, 0.00068377, -0.011042676, 0.000005249, -0.00000972,
-                12.77778, 23.88889, 18, 46.11111, None, None, "Temperature", "Temperature", "Dimensionless",
-            ]),
-            IdfObject("Curve:Linear",[
-                f"Curve_for_{self.idf_get_objname(zone)}:CoolingCapaFlow",
-                0.8, 0.2,
-                0.5, 1.5,
-            ]),
-            IdfObject("Curve:Biquadratic",[
-                f"Curve_for_{self.idf_get_objname(zone)}:CoolingEIRTemp",
-                0.342414409, 0.034885008, -0.0006237, 0.004977216, 0.000437951, -0.000728028,
-                12.77778, 23.88889, 18, 46.11111, None, None, "Temperature", "Temperature", "Dimensionless",
-            ]),
-            IdfObject("Curve:Quadratic",[
-                f"Curve_for_{self.idf_get_objname(zone)}:CoolingEIRFlow",
-                1.1552, -0.1808, 0.0256,
-                0.5, 1.5
-            ]),
-            IdfObject("Curve:Linear",[
-                f"Curve_for_{self.idf_get_objname(zone)}:CoolingPLRCorrelation",
-                0.85, 0.15,
-                0, 1,
-            ]),
-        ]
-        
-        component_obj = [
-            IdfObject("OutdoorAir:Mixer",{
-                "Name": f"OAmixer_for_{self.idf_get_objname(zone)}",
-                "Mixed Air Node Name"         : f"{self.idf_get_objname(zone)} OAmixer2Fan Air MiddleNode",
-                "Outdoor Air Stream Node Name": f"OAmixer_for_{self.idf_get_objname(zone)} Air OutdoorNode",
-                "Relief Air Stream Node Name" : f"OAmixer_for_{self.idf_get_objname(zone)} Air ReliefNode",
-                "Return Air Stream Node Name" : self.idf_get_airinletnodename(zone),
-            }),
-            IdfObject("OutdoorAir:NodeList", [
-                f"OAmixer_for_{self.idf_get_objname(zone)} Air OutdoorNode",
-            ]),
-            IdfObject("Fan:SystemModel", {
-                "Name": f"Fan_for_{self.idf_get_objname(zone)}",
-                "Availability Schedule Name": zone.profile.hvac_availability.name,
-                "Air Inlet Node Name" : f"{self.idf_get_objname(zone)} OAmixer2Fan Air MiddleNode",
-                "Air Outlet Node Name": f"{self.idf_get_objname(zone)} Fan2CoolingCoil Air MiddleNode",
-                "Design Maximum Air Flow Rate": "autosize",
-                "Design Pressure Rise": self.fan_pressure,
-                "Motor Efficiency"    : self.motor_efficiency,
-                "Fan Total Efficiency": self.fan_efficiency,
-            }),
-            IdfObject("Coil:Cooling:DX:SingleSpeed", {
-                "Name": f"CoolingCoil_for_{self.idf_get_objname(zone)}",
-                "Availability Schedule Name": zone.profile.hvac_availability.name,
-                "Gross Rated Total Cooling Capacity": self.capacity if self.capacity is not None else "autosize",
-                "Gross Rated Sensible Heat Ratio":0.7,
-                "Gross Rated Cooling COP": self.cop,
-                "Rated Air Flow Rate": 0.00005034, # IO ref 참고. 허용되는 값 범위의 중간값.                
-                "Air Inlet Node Name" : f"{self.idf_get_objname(zone)} Fan2CoolingCoil Air MiddleNode",
-                "Air Outlet Node Name": self.idf_get_airoutletnodename(zone),
-                "Total Cooling Capacity Function of Temperature Curve Name"  :  f"Curve_for_{self.idf_get_objname(zone)}:CoolingCapaTemp",
-                "Total Cooling Capacity Function of Flow Fraction Curve Name":  f"Curve_for_{self.idf_get_objname(zone)}:CoolingCapaFlow",
-                "Energy Input Ratio Function of Temperature Curve Name"      :  f"Curve_for_{self.idf_get_objname(zone)}:CoolingEIRTemp",
-                "Energy Input Ratio Function of Flow Fraction Curve Name"    :  f"Curve_for_{self.idf_get_objname(zone)}:CoolingEIRFlow",
-                "Part Load Fraction Correlation Curve Name"                  :  f"Curve_for_{self.idf_get_objname(zone)}:CoolingPLRCorrelation",
-            })
-        ]
-        
-        package_obj = [
-            IdfObject(self.idf_objtypename, {
-                "Name": self.idf_get_objname(zone),
-                "Availability Schedule Name": zone.profile.hvac_availability.name,
-                "Maximum Supply Air Flow Rate": "autosize",
-                "Maximum Outdoor Air Flow Rate": 0,
-                "Air Inlet Node Name" : self.idf_get_airinletnodename(zone),
-                "Air Outlet Node Name": self.idf_get_airoutletnodename(zone),
-                "Outdoor Air Mixer Object Type": "OutdoorAir:Mixer",
-                "Outdoor Air Mixer Name"       : f"OAmixer_for_{self.idf_get_objname(zone)}",
-                "Supply Air Fan Object Type": "Fan:SystemModel",
-                "Supply Air Fan Name"       : f"Fan_for_{self.idf_get_objname(zone)}",
-                "Cooling Coil Object Type": "Coil:Cooling:DX:SingleSpeed",
-                "DX Cooling Coil Name"    : f"CoolingCoil_for_{self.idf_get_objname(zone)}",
-                "Supply Air Fan Operating Mode Schedule Name": "ALLON",
-                "Fan Placement": "BlowThrough"
-            })
-        ]
-        
-        postprocessors = [
-            ZoneAirNodeAppender(self, zone),
-            EquipmentListAppender(self, zone),
-        ]
-        
-        return curve_obj + component_obj + package_obj, postprocessors
     
 class AirHandlingUnit(SupplySystem):
     
@@ -2039,8 +1895,8 @@ class AirHandlingUnit(SupplySystem):
                 "Name": f"CoolingCoil_for_{self.idf_get_objname(zone)}",
                 "Availability Schedule Name": zone.profile.hvac_availability.name if for_cooling else "ALLOFF",
                 "Gross Rated Total Cooling Capacity": "autosize" if for_cooling else 0.1,
-                "Gross Rated Sensible Heat Ratio": "autosize",
-                "Rated Air Flow Rate": "autosize",
+                "Gross Rated Sensible Heat Ratio": 0.7,
+                "Rated Air Flow Rate": 0.01*zone.floor_area,
                 "Coil Air Inlet Node": self.idf_get_airinletnodename(zone),
                 "Coil Air Outlet Node": f"{self.idf_get_objname(zone)} CoolingCoil2HeatingCoil Air MiddleNode",
                 "Cooling Capacity Ratio Modifier Function of Temperature Curve Name": f"Curve_for_{self.idf_get_objname(zone)}:CoolingCapaTemp",
@@ -2050,7 +1906,7 @@ class AirHandlingUnit(SupplySystem):
                 "Name": f"HeatingCoil_for_{self.idf_get_objname(zone)}",
                 "Availability Schedule": zone.profile.hvac_availability.name if for_heating else "ALLOFF",
                 "Gross Rated Heating Capacity": "autosize" if for_heating else 0.1,
-                "Rated Air Flow Rate": "autosize",
+                "Rated Air Flow Rate": 0.01*zone.floor_area,
                 "Coil Air Inlet Node": f"{self.idf_get_objname(zone)} CoolingCoil2HeatingCoil Air MiddleNode",
                 "Coil Air Outlet Node": f"{self.idf_get_objname(zone)} HeatingCoil2Fan Air MiddleNode",
                 "Heating Capacity Ratio Modifier Function of Temperature Curve Name": f"Curve_for_{self.idf_get_objname(zone)}:HeatingCapaTemp",
@@ -2061,7 +1917,7 @@ class AirHandlingUnit(SupplySystem):
                 "Availability Schedule Name": zone.profile.hvac_availability.name,
                 "Fan Total Efficiency": self.fan_efficiency,
                 "Pressure Rise": self.fan_pressure,
-                "Maximum Flow Rate": "autosize",
+                "Maximum Flow Rate": 0.01*zone.floor_area,
                 "Motor Efficiency": self.motor_efficiency,
                 "Air Inlet Node Name" : f"{self.idf_get_objname(zone)} HeatingCoil2Fan Air MiddleNode",
                 "Air Outlet Node Name": self.idf_get_airoutletnodename(zone)
@@ -2482,7 +2338,6 @@ class RadiantFloor(SupplySystem):
     
     @staticmethod
     def _get_internal_heatsource_layer(construction:Construction):
-        
         return max(len(construction.layers) - 1, 1)
     
     def to_idf_object(self,
@@ -2559,6 +2414,98 @@ class RadiantFloor(SupplySystem):
         
         return obj_internal_heatsources + obj_radiant_floor + obj_branches, postprocessors
 
+
+class ElectricRadiantFloor(SupplySystem):
+    
+    def __init__(self,
+        name:str,
+        *,
+        throttling_range:int|float = 2,
+        ) -> None:
+        
+        # user property
+        self.name = name
+        
+        # additional properties
+        self.throttling_range = throttling_range
+    
+    @property
+    def source(self) -> None:
+        return None
+    
+    @property
+    def heatable(self) -> bool:
+        return True
+    
+    @property
+    def coolable(self) -> bool:
+        return False
+    
+    """ idf-related
+    """
+    @property
+    def idf_objtypename(self) -> str:
+        return "ZoneHVAC:LowTemperatureRadiant:Electric"
+    
+    @staticmethod
+    def _get_internal_heatsource_layer(construction:Construction):    
+        return max(len(construction.layers) - 1, 1)
+    
+    def to_idf_object(self,
+        zone       :Zone,
+        for_heating:bool,
+        for_cooling:bool,
+        ) -> tuple[list[IdfObject], list[SupplySystemToIdfPostProcessor]]:
+        
+        if (not self.heatable and for_heating) or (not self.coolable and for_cooling):
+            raise ValueError(
+                f"그런건 못해요..."
+            )
+
+        obj_internal_heatsources = [
+            IdfObject("ConstructionProperty:InternalHeatSource",{
+                "Name": f"{surface.name} Internal Heat Source",
+                "Construction Name": f"{surface.construction.name}:for:{surface.name}",
+                "Thermal Source Present After Layer Number": self._get_internal_heatsource_layer(surface.construction),
+                "Temperature Calculation Requested After Layer Number": self._get_internal_heatsource_layer(surface.construction),
+                "Dimensions for the CTF Calculation": 1,
+                "Tube Spacing": 0.3,
+            }, ignore_default=False)
+            for surface in zone.floor_surface
+        ]
+        
+        flow_fractions = [surface.area/zone.floor_area for surface in zone.floor_surface]
+        obj_radiant_floor = [
+            # surface
+            IdfObject("ZoneHVAC:LowTemperatureRadiant:SurfaceGroup",{
+                "Name": f"RadiantFloorSurfaceGroup_for_{zone.name}",
+                **{
+                    f"Surface {idx+1} Name": surface.name                    
+                    for idx, surface in enumerate(zone.floor_surface)
+                },
+                **{
+                    f"Flow Fraction for Surface {idx+1}": fraction                    
+                    for idx, fraction in enumerate(flow_fractions)
+                },
+                
+            }),
+            # radiant floor
+            IdfObject(self.idf_objtypename,{
+                "Name": self.idf_get_objname(zone),
+                "Availability Schedule Name": zone.profile.hvac_availability.name,
+                "Zone Name": zone.name,
+                "Surface Name or Radiant Surface Group Name": f"RadiantFloorSurfaceGroup_for_{zone.name}",
+                "Setpoint Control Type": "ZeroFlowPower",
+                "Heating Throttling Range": self.throttling_range,
+                "Heating Setpoint Temperature Schedule Name": zone.profile.heating_setpoint.name,
+            }),
+        ]
+        
+        postprocessors = [
+            EquipmentListAppender(self, zone),
+        ]
+        
+        return obj_internal_heatsources + obj_radiant_floor, postprocessors
 
 # ---------------------------------------------------------------------------- #
 #                                HOTWATER SYSTEM                               #

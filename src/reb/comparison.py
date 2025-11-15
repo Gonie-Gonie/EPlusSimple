@@ -271,7 +271,9 @@ class HeatingHVACDifference(ExcelDifference):
                         beforeheating = f"전기방열기: {beforesupply["난방용량 [W]"]*1E-3:.2f}kW"
                     case "바닥난방"  : 
                         beforeheating = f"바닥난방&{beforesource["유형"]}: 효율 {beforesource["효율 [%]"]:.1f}%, {beforesource["난방용량 [W]"]*1E-3:.2f}kW"
-            
+                    case "전기바닥난방": 
+                        beforeheating = f"전기바닥난방"
+                        
             # after
             if pd.isna(afterrow["난방 공급 설비"]):
                 afterheating = ""
@@ -290,6 +292,8 @@ class HeatingHVACDifference(ExcelDifference):
                         afterheating = f"전기방열기: {aftersupply["난방용량 [W]"]*1E-3:.2f}kW"
                     case "바닥난방"  : 
                         afterheating = f"바닥난방&{aftersource["유형"]}: 효율 {aftersource["효율 [%]"]:.1f}%, {aftersource["난방용량 [W]"]*1E-3:.2f}kW"
+                    case "전기바닥난방": 
+                        afterheating = f"전기바닥난방"
                 
                 if beforeheating != afterheating:
                     diffs.append(cls(zonename, "변경", beforeheating, afterheating, "-"))
@@ -362,7 +366,7 @@ class CoolingHVACDifference(ExcelDifference):
                 
                 match aftersupply["유형"]:
                     case "패키지에어컨":
-                        aftercooling = f"패키지에어컨: COP {beforesupply["냉방COP [W/W]"]:.2f}, {beforesupply["냉방용량 [W]"]*1E-3:.2f}kW"
+                        aftercooling = f"패키지에어컨: COP {aftersupply["냉방COP [W/W]"]:.2f}, {aftersupply["냉방용량 [W]"]*1E-3:.2f}kW"
                     case "공조기"   :
                         aftercooling = f"공조기&{aftersource["유형"]}: COP {aftersource["냉방COP [W/W]"]:.2f}, {aftersource["냉방용량 [W]"]*1E-3:.2f}kW"
                     case "팬코일유닛":

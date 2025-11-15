@@ -23,6 +23,10 @@ from epsimple.core.construction import (
 )
 from epsimple.core.model import address_to_weather
 
+# settings
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
+
 # ---------------------------------------------------------------------------- #
 #                           PHIKO EXCEL PREPROCESSING                          #
 # ---------------------------------------------------------------------------- #
@@ -225,11 +229,11 @@ def convert_이전레이어(wb, verbose:bool=True) -> None:
                         climate,
                     )
                     
-                    현재재료 = [wb["재료"].cell(count+1,1).value for count in range(1, wb["재료"].max_row) if wb["재료"].cell(count+1,1).value is not None]
-                    현재재료개수 = len(현재재료)
+                    
                     for layer in 이전surface.layers:
                         추가할재료이름 = layer[0].ID
-
+                        현재재료 = [wb["재료"].cell(count+1,1).value for count in range(1, wb["재료"].max_row) if wb["재료"].cell(count+1,1).value is not None]
+                        현재재료개수 = len(현재재료)
                         if 추가할재료이름 not in 현재재료:
                             wb["재료"].cell(현재재료개수+2,1).value = 추가할재료이름
                             wb["재료"].cell(현재재료개수+2,2).value = layer[0].conductivity
