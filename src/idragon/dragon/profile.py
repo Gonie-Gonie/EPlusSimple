@@ -498,7 +498,7 @@ class DaySchedule(UserList):
         
         return cls.from_compact(
             name,
-            [value]*DaySchedule.DATA_INTERVAL*24,
+            [(24, 0, value)],
             type=type
         )
     
