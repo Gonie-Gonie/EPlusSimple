@@ -1797,6 +1797,61 @@ class ZoneTerminalUnitAppender(SupplySystemToIdfPostProcessor):
         
         return
 
+class SequentialLoadFractionController(SupplySystemToIdfPostProcessor):
+    
+    @staticmethod
+    def find_target_equipment_number(equipmentlist:IdfObject, objname:str) -> int:
+        
+        for idx in range(1, 100):
+            
+            if equipmentlist[f"Zone Equipment {idx} Name"] == objname:
+                return idx
+            
+            elif equipmentlist[f"Zone Equipment {idx} Name"] is None:
+                raise ValueError(
+                    f"Cannot find objname {objname} in the equipmentlist {equipmentlist['Name']}"
+                )
+
+
+    def get_fraction_schedules(self) -> list[Schedule]:
+        
+        if self.supply.availabilities is None:
+            availabilities = [Schedule.from_constant(None, 1) for _ in range(len(self.supply.systems))]
+        else:
+            availabilities = self.supply.availabilities
+        
+        num_remained = sum(availabilities, start=Schedule.from_constant(None, 0))
+        fraction_schedules = []
+        
+        for sche in availabilities:
+            
+            fraction_schedules.append( sche * (1/num_remained+1E-10))
+            num_remained -= sche
+        
+        for sche in fraction_schedules:
+            sche.name = hex(id(sche))
+        
+        return fraction_schedules
+    
+    
+    
+    def run(self, idf:IDF) -> None:
+        
+        # find target equipment list
+        target_equiplist = idf["ZoneHVAC:EquipmentList"][self.zone.idf_equipmentlistname]
+        
+        # get fraction schedules and append to the idf
+        fraction_schedule = self.get_fraction_schedules()
+        for sche in fraction_schedule:
+            idf.append(sche.to_idf_object())
+        
+        for sys, f_sche in zip(self.supply.systems, fraction_schedule):
+            sys_idx = SequentialLoadFractionController.find_target_equipment_number(target_equiplist, sys.idf_get_objname(self.zone))
+            target_equiplist[f"Zone Equipment {sys_idx} Sequential Cooling Fraction Schedule Name"] = f_sche.name
+            target_equiplist[f"Zone Equipment {sys_idx} Sequential Heating Fraction Schedule Name"] = f_sche.name
+            
+        return
+
 class SupplySystem(ABC):
     
     @abstractmethod
@@ -1846,7 +1901,11 @@ class MultipleSupplySystem:
         
         self.systems        = systems
         self.availabilities = availabilities
-        
+    
+    @property
+    def source(self) -> list[SourceSystem]:
+        return [sys.source for sys in self.systems]
+    
     def to_idf_object(self,
         zone       :Zone,
         for_heating:bool,
@@ -1864,6 +1923,8 @@ class MultipleSupplySystem:
             idfobject, postprocessor = sys.to_idf_object(zone, for_heating, for_cooling)
             idfobjects     += idfobject
             postprocessors += postprocessor
+        
+        postprocessors.append(SequentialLoadFractionController(self, zone))
         
         return idfobjects, postprocessors       
         

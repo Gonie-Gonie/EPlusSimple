@@ -142,12 +142,12 @@ class DaySchedule(UserList):
     def __rmul__(self, value:int|float) -> DaySchedule:
         return self.__mul__(value)
     
-    def __truediv__(self, value:int|float) -> DaySchedule:
+    def __truediv__(self, value:int|float|DaySchedule) -> DaySchedule:
         
         if isinstance(value, DaySchedule):
             
             return DaySchedule(
-                f"{self.name}:ADD:{value.name}",
+                f"{self.name}:DIV:{value.name}",
                 [a / b for a,b in zip(self.data, value.data)],
                 type=self.type
                 )
@@ -159,7 +159,25 @@ class DaySchedule(UserList):
                 [item / value for item in self.data],
                 type=self.type
                 )
+    
+    def __rtruediv__(self, value:int|float|DaySchedule) -> DaySchedule:
         
+        if isinstance(value, DaySchedule):
+            
+            return DaySchedule(
+                f"{value.name}:DIV:{self.name}",
+                [b / a for a,b in zip(self.data, value.data)],
+                type=self.type
+                )
+        
+        elif isinstance(value, int|float): 
+            
+            return DaySchedule(
+                self.name,
+                [value / item for item in self.data],
+                type=self.type
+                )
+    
     def __add__(self, other:DaySchedule) -> DaySchedule:
         
         if self.type != other.type:
@@ -740,6 +758,14 @@ class RuleSet:
             self, value
         )
         
+    def __rtruediv__(self, value:int|float) -> RuleSet:
+        
+        return RuleSet.__operate_with_default(
+            f"{value.name if isinstance(value, RuleSet) else str(value)}:DIV:{self.name}",
+            lambda a, b: a.__rtruediv__(b),
+            self, value
+        )
+        
     def __add__(self, other:RuleSet) -> RuleSet:
         
         if self.type != other.type:
@@ -1107,14 +1133,22 @@ class Schedule(UserList):
     def __rmul__(self, value:int|float) -> Schedule:
         return self.__mul__(value)
     
-    def __truediv__(self, value:int|float) -> Schedule:
+    def __truediv__(self, value:int|float|Schedule) -> Schedule:
         
         return Schedule.__operate_with_unified_schedule(
             f"{self.name}:DIV:{value.name if isinstance(value, Schedule) else str(value)}",
             lambda a,b: a.__truediv__(b),
             self, value
         )
+    
+    def __rtruediv__(self, value:int|float|Schedule) -> Schedule:
         
+        return Schedule.__operate_with_unified_schedule(
+            f"{value.name if isinstance(value, Schedule) else str(value)}:DIV:{self.name}",
+            lambda a,b: a.__rtruediv__(b),
+            self, value
+        )
+    
     def __add__(self, other:int|float|Schedule) -> RuleSet:
         
         if isinstance(other, Schedule) and (self.type != other.type):
@@ -1123,7 +1157,7 @@ class Schedule(UserList):
             )
             
         return Schedule.__operate_with_unified_schedule(
-            f"{self.name}:ADD:{other.name}",
+            f"{self.name}:ADD:{other.name if isinstance(other, Schedule) else str(other)}",
             lambda a, b: a+b,
             self, other
         )
@@ -1139,7 +1173,7 @@ class Schedule(UserList):
             )
             
         return Schedule.__operate_with_unified_schedule(
-            f"{self.name}:SUB:{other.name}",
+            f"{self.name}:SUB:{other.name if isinstance(other, Schedule) else str(other)}",
             lambda a, b: a-b,
             self, other
         )
