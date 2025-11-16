@@ -1697,13 +1697,10 @@ class EquipmentListAppender(SupplySystemToIdfPostProcessor):
     @staticmethod
     def count_current_equipments(equiplist:IdfObject) -> int:
         
-        # calculate all items inlcuded
-        not_none_items = len({k:v for k,v in equiplist.items() if v is not None})
-        
-        # exclude its name and load distribution scheme
-        FIXED_NONBRANCH_ITEMS = 2
-        
-        return int((not_none_items-FIXED_NONBRANCH_ITEMS)/4)
+        for idx in range(1, 100):
+            
+            if equiplist[f"Zone Equipment {idx} Name"] is None:
+                return idx-1
         
     def run(self, idf:IDF) -> None:
         
