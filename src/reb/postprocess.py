@@ -754,7 +754,7 @@ class 보건소특화존1(hvac존):
 @dataclass
 class 보건소특화존2(hvac존):
     #zone
-    사용관사수:str
+    사용관사수:int
     동거인수:int
     운영요일:str
 
@@ -779,25 +779,77 @@ class 보건소특화존2(hvac존):
     
     def get_occupant_schedule(self) -> dragon.Schedule:
         
-        return
+        dayofweeks = [translate_dayofweek(s.strip()) for s in self.운영요일.split(",") if not s==""]
+        occupant_ruleset = dragon.RuleSet(
+                None,
+                dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,),
+                dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,),
+                **{
+                    k: dragon.DaySchedule.from_compact(
+                        None,
+                        [
+                            (24, 0, self.사용관사수+self.동거인수),
+                        ],
+                        dragon.ScheduleType.REAL,
+                    )
+                    for k in dayofweeks
+                }
+            )
+
+        occupant_schedule = dragon.Schedule.from_compact(
+            None,
+            [("0101","1231", occupant_ruleset)]
+        )
+        
+        return occupant_schedule
     
     def get_hvac_availability_schedule(self) -> dragon.Schedule:
         
-        return
+        기본운영_schedule = (self.get_occupant_schedule() > 0)
+        
+        # 설비 가동스케줄 (개별)
+        operation_schedules = []
+        for 설비 in [self.난방설비1, self.난방설비2, self.냉방설비1, self.냉방설비2]:
+            if 설비 is not None:
+                operation_schedules.append(설비.get_hvac_availability_schedule())
+            else:
+                operation_schedules.append(dragon.Schedule.from_compact(
+                    None, [("0101","1231", dragon.RuleSet(
+                        None,
+                        dragon.DaySchedule.from_compact(None, [(24,0,0)], dragon.ScheduleType.ONOFF),
+                        dragon.DaySchedule.from_compact(None, [(24,0,0)], dragon.ScheduleType.ONOFF),
+                    ))]
+                ))
+        
+        # 설비 가동스케줄 (or조건으로 개별 설비 결합: 모종의 설비가 가동중)
+        hvac_availability = operation_schedules[0]
+        for schedule in operation_schedules[1:]:
+            hvac_availability |= schedule
+        
+        # 최종 스케줄 = 운영중이면서, 설비 가동 중
+        hvac_availability &= 기본운영_schedule
+        
+        return hvac_availability
 
     def apply_to(self, zones:list[dragon.Zone]) -> None:
         
         total_area = max(sum(zone.floor_area for zone in zones), 1E-6)
+        occupant_schedule = self.get_occupant_schedule()/total_area
+        hvac_availability_schedule = self.get_hvac_availability_schedule()
         
         for zone in zones:
+            
+            lighting_schedule  = zone.profile.lighting  * (occupant_schedule > 0)
+            equipment_schedule = zone.profile.equipment * (occupant_schedule > 0)
+            
             zone.profile = dragon.Profile(
                 f"{zone.name}_특화존2체크리스트",
-                zone.profile.heating_setpoint, 
-                zone.profile.cooling_setpoint, 
-                zone.profile.hvac_availability,
-                zone.profile.occupant,
-                zone.profile.lighting     ,
-                zone.profile.equipment    ,
+                self.get_heating_setpoint_schedule(zone.profile.heating_setpoint), 
+                self.get_cooling_setpoint_schedule(zone.profile.cooling_setpoint), 
+                hvac_availability_schedule,
+                occupant_schedule         ,
+                lighting_schedule     ,
+                equipment_schedule    ,
             )
             
         return
