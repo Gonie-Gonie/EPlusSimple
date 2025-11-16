@@ -465,7 +465,11 @@ class DaySchedule(UserList):
         return compact_tuples
     
     @classmethod
-    def from_compact(cls, name, values:list[tuple], type=ScheduleType.REAL) -> DaySchedule:
+    def from_compact(cls,
+        name  :str        ,
+        values:list[tuple],
+        type:ScheduleType=ScheduleType.REAL
+        ) -> DaySchedule:
         
         if values[-1][:2] != (24,0):
             raise ValueError(
@@ -484,6 +488,19 @@ class DaySchedule(UserList):
                 schedule_values.append(values[0][2])
          
         return cls(name, schedule_values, type=type)
+    
+    @classmethod
+    def from_constant(cls,
+        name :str      ,
+        value:int|float,
+        type :ScheduleType=ScheduleType.REAL
+        ) -> DaySchedule:
+        
+        return cls.from_compact(
+            name,
+            [value]*DaySchedule.DATA_INTERVAL*24,
+            type=type
+        )
     
     """ representation
     """
@@ -887,6 +904,19 @@ class RuleSet:
             saturday  = self.saturday .normalize_by_max() if self.saturday  is not None else None,
             sunday    = self.sunday   .normalize_by_max() if self.sunday    is not None else None,
             holiday   = self.holiday  .normalize_by_max() if self.holiday   is not None else None,
+        )
+    
+    @classmethod
+    def from_constant(cls,
+        name :str      ,
+        value:int|float,
+        type :ScheduleType=ScheduleType.REAL
+        ) -> RuleSet:
+        
+        return RuleSet(
+            name,
+            DaySchedule.from_constant(None, value, type=type),
+            DaySchedule.from_constant(None, value, type=type),
         )
     
     """ representation
@@ -1327,6 +1357,20 @@ class Schedule(UserList):
             schedule.apply(ruleset, start=start, end=end)
         
         return schedule
+    
+    @classmethod
+    def from_constant(cls,
+        name :str      ,
+        value:int|float,
+        type:ScheduleType=ScheduleType.REAL
+        ) -> Schedule:
+        
+        return cls.from_compact(
+            name,
+            [
+                ("0101","1231",RuleSet.from_constant(None, value, type=type))
+            ]
+        )
     
     @staticmethod
     def unify_compactized_schedules(
