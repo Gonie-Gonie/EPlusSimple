@@ -1861,7 +1861,7 @@ class MultipleSupplySystem:
         idfobjects     = []
         postprocessors = []
         for sys, sche in zip(self.systems, availabilities):
-            idfobject, postprocessor = sys.to_idf_object(zone, for_heating, for_cooling, override_availability=sche)
+            idfobject, postprocessor = sys.to_idf_object(zone, for_heating, for_cooling)
             idfobjects     += idfobject
             postprocessors += postprocessor
         

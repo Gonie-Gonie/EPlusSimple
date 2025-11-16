@@ -1461,7 +1461,7 @@ class 현장조사체크리스트(ABC):
         dragonsource_dict = {k: v.to_dragon() for k, v in source_dict.items()}
         for v in dragonsource_dict.values():
             v.name = f"$FOR_SECOND${v.name}"
-        dragonsupply_dict = {k: v.to_dragon(source_dict) for k, v in supply_dict.items()}
+        dragonsupply_dict = {k: v.to_dragon(dragonsource_dict) for k, v in supply_dict.items()}
         for v in dragonsupply_dict.values():
             v.name = f"$FOR_SECOND${v.name}"
             
