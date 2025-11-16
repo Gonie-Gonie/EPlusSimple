@@ -8,6 +8,7 @@ from __future__ import annotations
 import re
 import math
 import random
+from types       import SimpleNamespace
 from typing      import Literal
 from dataclasses import dataclass
 from abc import (
@@ -20,6 +21,15 @@ import pandas as pd
 
 # local modules
 from epsimple import GreenRetrofitModel
+from epsimple.utils import (
+    _preprocess_excel_dict ,
+    _convert_supply_systems,
+    _convert_source_systems,
+)
+from epsimple.core.hvac import (
+    SupplySystem,
+    SourceSystem,
+)
 from idragon import (
     dragon     ,
     IDF        ,
@@ -1440,7 +1450,48 @@ class 현장조사체크리스트(ABC):
         exceldata:dict[str, pd.DataFrame],
         ) -> None:
         
-        pass
+        zonedata = exceldata["실"].loc[~pd.isna(exceldata["실"].iloc[:,0])].iloc[:,:11]
+        processed_excel = _preprocess_excel_dict(exceldata)
+        source_json  = _convert_source_systems(processed_excel["생산설비"])
+        supply_json = _convert_supply_systems(processed_excel["공급설비"], processed_excel["생산설비"])
+        
+        source_dict = {sys.ID: sys for sys in [SourceSystem.from_json(SimpleNamespace(**d)) for d in source_json]}
+        supply_dict = {sys.ID: sys for sys in [SupplySystem.from_json(SimpleNamespace(**d), source_dict) for d in supply_json]}
+        
+        dragonsource_dict = {k: v.to_dragon() for k, v in source_dict.items()}
+        for v in dragonsource_dict.values():
+            v.name = f"$FOR_SECOND${v.name}"
+        dragonsupply_dict = {k: v.to_dragon(source_dict) for k, v in supply_dict.items()}
+        for v in dragonsupply_dict.values():
+            v.name = f"$FOR_SECOND${v.name}"
+            
+        # 난방 공급 설비2
+        for (_, row), zone in zip(zonedata.iterrows(), em.zone):
+            
+            if pd.isna(row["난방 공급 설비2"]):
+                continue
+            
+            공급설비 = exceldata["공급설비"].query("이름 == @row['난방 공급 설비2']")
+            second_heating = dragonsupply_dict[[k for  k, v in supply_dict.items() if v.name == 공급설비["이름"].values[0]][0]]
+            
+            zone.heating_supply = dragon.hvac.MultipleSupplySystem(
+                [zone.heating_supply, second_heating]
+            )                
+            
+        # 냉방 공급 설비2
+        for (_, row), zone in zip(zonedata.iterrows(), em.zone):
+            
+            if pd.isna(row["냉방 공급 설비2"]):
+                continue  
+            
+            공급설비 = exceldata["공급설비"].query("이름 == @row['냉방 공급 설비2']")
+            second_heating = dragonsupply_dict[[k for  k, v in supply_dict.items() if v.name == 공급설비["이름"].values[0]][0]]
+            
+            zone.cooling_supply = dragon.hvac.MultipleSupplySystem(
+                [zone.cooling_supply, second_heating]
+            )
+        
+
 
 class 어린이집체크리스트:
     
@@ -1543,6 +1594,7 @@ class 보건소체크리스트:
         }
         
         em = grm.to_dragon()
+        현장조사체크리스트.apply_dualhvac(em, exceldata)
         
         self.일반존.apply_to([
                 zone for zone in em.zone

@@ -908,7 +908,7 @@ class SupplySystem:
     @property
     def coolable(self) -> bool:
         return (type(self.source) in self._coolable_sources)
-    
+   
 
 class PackagedAirConditioner(SupplySystem):
     
