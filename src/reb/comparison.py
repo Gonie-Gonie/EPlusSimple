@@ -426,8 +426,8 @@ class ProfileDifferenceKindergarten(ExcelDifference):
                             if hvac_before is None or hvac_after is None:
                                 continue
                             
-                            hvacstr_before = f"{hvac_before.사용기간} {hvac_before.사용시간}: {hvac_before.설정온도:.1f}℃"
-                            hvacstr_after = f"{hvac_after.사용기간} {hvac_after.사용시간}: {hvac_after.설정온도:.1f}℃"
+                            hvacstr_before = f"{hvac_before.사용기간} {hvac_before.사용시간}: {hvac_before.설정온도:.1f}℃" if hvac_before.설정온도 is not None else f"{hvac_before.사용기간} {hvac_before.사용시간}: 확인불가"
+                            hvacstr_after = f"{hvac_after.사용기간} {hvac_after.사용시간}: {hvac_after.설정온도:.1f}℃" if hvac_after.설정온도 is not None else f"{hvac_after.사용기간} {hvac_after.사용시간}: 확인불가"
                             if hvacstr_before != hvacstr_after:
                                 diffs.append(cls(zonename, targethvac.replace("설비",""), hvacstr_before, hvacstr_after, "-"))
                                 
@@ -453,8 +453,8 @@ class ProfileDifferenceKindergarten(ExcelDifference):
                             if hvac_before is None or hvac_after is None:
                                 continue
                             
-                            hvacstr_before = f"{hvac_before.사용기간} {hvac_before.사용시간}: {hvac_before.설정온도:.1f}℃"
-                            hvacstr_after = f"{hvac_after.사용기간} {hvac_after.사용시간}: {hvac_after.설정온도:.1f}℃"
+                            hvacstr_before = f"{hvac_before.사용기간} {hvac_before.사용시간}: {hvac_before.설정온도:.1f}℃" if hvac_before.설정온도 is not None else f"{hvac_before.사용기간} {hvac_before.사용시간}: 확인불가"
+                            hvacstr_after = f"{hvac_after.사용기간} {hvac_after.사용시간}: {hvac_after.설정온도:.1f}℃" if hvac_after.설정온도 is not None else f"{hvac_after.사용기간} {hvac_after.사용시간}: 확인불가"
                             if hvacstr_before != hvacstr_after:
                                 diffs.append(cls(zonename, targethvac.replace("설비",""), hvacstr_before, hvacstr_after, "-"))
                             
@@ -480,8 +480,8 @@ class ProfileDifferenceKindergarten(ExcelDifference):
                             if hvac_before is None or hvac_after is None:
                                 continue
                             
-                            hvacstr_before = f"{hvac_before.사용기간} {hvac_before.사용시간}: {hvac_before.설정온도:.1f}℃"
-                            hvacstr_after = f"{hvac_after.사용기간} {hvac_after.사용시간}: {hvac_after.설정온도:.1f}℃"
+                            hvacstr_before = f"{hvac_before.사용기간} {hvac_before.사용시간}: {hvac_before.설정온도:.1f}℃" if hvac_before.설정온도 is not None else f"{hvac_before.사용기간} {hvac_before.사용시간}: 확인불가"
+                            hvacstr_after = f"{hvac_after.사용기간} {hvac_after.사용시간}: {hvac_after.설정온도:.1f}℃" if hvac_after.설정온도 is not None else f"{hvac_after.사용기간} {hvac_after.사용시간}: 확인불가"
                             if hvacstr_before != hvacstr_after:
                                 diffs.append(cls(zonename, targethvac.replace("설비",""), hvacstr_before, hvacstr_after, "-"))
         
@@ -542,8 +542,8 @@ class ProfileDifferenceHealthCareCenter(ExcelDifference):
                             if hvac_before is None or hvac_after is None:
                                 continue
                             
-                            hvacstr_before = f"{hvac_before.사용기간} {hvac_before.사용시간}: {hvac_before.설정온도:.1f}℃"
-                            hvacstr_after = f"{hvac_after.사용기간} {hvac_after.사용시간}: {hvac_after.설정온도:.1f}℃"
+                            hvacstr_before = f"{hvac_before.사용기간} {hvac_before.사용시간}: {hvac_before.설정온도:.1f}℃" if hvac_before.설정온도 is not None else f"{hvac_before.사용기간} {hvac_before.사용시간}: 확인불가"
+                            hvacstr_after = f"{hvac_after.사용기간} {hvac_after.사용시간}: {hvac_after.설정온도:.1f}℃" if hvac_after.설정온도 is not None else f"{hvac_after.사용기간} {hvac_after.사용시간}: 확인불가"
                             if hvacstr_before != hvacstr_after:
                                 diffs.append(cls(zonename, targethvac.replace("설비",""), hvacstr_before, hvacstr_after, "-"))
                                 
@@ -569,8 +569,8 @@ class ProfileDifferenceHealthCareCenter(ExcelDifference):
                             if hvac_before is None or hvac_after is None:
                                 continue
                             
-                            hvacstr_before = f"{hvac_before.사용기간} {hvac_before.사용시간}: {hvac_before.설정온도:.1f}℃"
-                            hvacstr_after = f"{hvac_after.사용기간} {hvac_after.사용시간}: {hvac_after.설정온도:.1f}℃"
+                            hvacstr_before = f"{hvac_before.사용기간} {hvac_before.사용시간}: {hvac_before.설정온도:.1f}℃" if hvac_before.설정온도 is not None else f"{hvac_before.사용기간} {hvac_before.사용시간}: 확인불가"
+                            hvacstr_after = f"{hvac_after.사용기간} {hvac_after.사용시간}: {hvac_after.설정온도:.1f}℃" if hvac_after.설정온도 is not None else f"{hvac_after.사용기간} {hvac_after.사용시간}: 확인불가"
                             if hvacstr_before != hvacstr_after:
                                 diffs.append(cls(zonename, targethvac.replace("설비",""), hvacstr_before, hvacstr_after, "-"))
                             
@@ -590,8 +590,8 @@ class ProfileDifferenceHealthCareCenter(ExcelDifference):
                             if hvac_before is None or hvac_after is None:
                                 continue
                             
-                            hvacstr_before = f"{hvac_before.사용기간} {hvac_before.사용시간}: {hvac_before.설정온도:.1f}℃"
-                            hvacstr_after = f"{hvac_after.사용기간} {hvac_after.사용시간}: {hvac_after.설정온도:.1f}℃"
+                            hvacstr_before = f"{hvac_before.사용기간} {hvac_before.사용시간}: {hvac_before.설정온도:.1f}℃" if hvac_before.설정온도 is not None else f"{hvac_before.사용기간} {hvac_before.사용시간}: 확인불가"
+                            hvacstr_after = f"{hvac_after.사용기간} {hvac_after.사용시간}: {hvac_after.설정온도:.1f}℃" if hvac_after.설정온도 is not None else f"{hvac_after.사용기간} {hvac_after.사용시간}: 확인불가"
                             if hvacstr_before != hvacstr_after:
                                 diffs.append(cls(zonename, targethvac.replace("설비",""), hvacstr_before, hvacstr_after, "-"))
         

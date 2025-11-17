@@ -61,14 +61,14 @@ def row_to_dayofweekstr(row:pd.Series) -> str:
 
 def row_to_설비운영(row:pd.Series) -> None|설비운영:
     
-    if pd.isna(row).any():
+    if pd.isna(row.iloc[:6]).any():
         return None
     
     else:
         return 설비운영(
             row_to_timestring(row[["시작시","시작분","종료시","종료분"]]),
             f"{int(row["시작월"]):02d}~{int(row["종료월"]):02d}월",
-            float(v) if not isinstance(v:=row["설정온도"], str) else v,
+            (float(v) if not pd.isna(v) else None) if not isinstance(v:=row["설정온도"], str) else v,
         )
 
 # ---------------------------------------------------------------------------- #
@@ -263,7 +263,7 @@ class 설비운영:
             case "cooling": default_temperature =  50
         
         # for invalid case: return default setpoint temperature
-        if self.설정온도 == "확인불가":
+        if self.설정온도 == "확인불가" or self.설정온도 is None:
             match mode:
                 case "heating": setpoint = original_schedule.max
                 case "cooling": setpoint = original_schedule.min
