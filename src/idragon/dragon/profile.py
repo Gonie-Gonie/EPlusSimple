@@ -523,6 +523,18 @@ class DaySchedule(UserList):
     """ representation
     """
     
+    def __deepcopy__(self, memo:dict):
+        
+        if id(self) in memo:
+            return memo[id(self)]
+        
+        return DaySchedule(
+            f"{self.name}:COPY",
+            self.data,
+            type = self.type,
+            unit = self.unit,
+        )
+    
     def __str__(self) -> str:
         return f"DaySchedule {self.name}:\n" + "\n".join([
             f"\tUntil {hh:02d}:{mm:02d} -> {value}" for hh,mm,value in self.compactize()
@@ -584,6 +596,33 @@ class RuleSet:
     @property
     def type(self) -> ScheduleType|str:
         return self.__type
+    
+    def changetype(self,
+        type   :ScheduleType      ,
+        inplace:bool        =False,
+        ) -> RuleSet|None:
+        
+        if inplace:
+            self.weekdays.type = type
+            self.weekends.type = type
+            if self.monday    is not None: self.monday   .type = type
+            if self.tuesday   is not None: self.tuesday  .type = type
+            if self.wednesday is not None: self.wednesday.type = type
+            if self.thursday  is not None: self.thursday .type = type
+            if self.friday    is not None: self.friday   .type = type
+            if self.saturday  is not None: self.saturday .type = type
+            if self.sunday    is not None: self.sunday   .type = type
+            if self.holiday   is not None: self.holiday  .type = type
+            return
+        else:
+            dayscheduledict = {k: deepcopy(v) for k, v in self.to_dict().items()}
+            for sche in dayscheduledict.values():
+                if sche is not None:
+                    sche.type = type
+            return RuleSet(
+                self.name,
+                **dayscheduledict
+            )            
     
     @property
     def weekdays(self) -> DaySchedule:
@@ -961,6 +1000,16 @@ class RuleSet:
             "sunday"   : self.sunday   ,
             "holiday"  : self.holiday  ,
         }
+    
+    def __deepcopy__(self, memo:dict):
+        
+        if id(self) in memo:
+            return memo[id(self)]
+        
+        return RuleSet(
+            f"{self.name}:COPY",
+            **{k: deepcopy(dayschedule) for k, dayschedule in self.to_dict().items()}
+        )
     
     def __str__(self) -> str:        
         return f"RuleSet {self.name}:"
@@ -1354,6 +1403,19 @@ class Schedule(UserList):
     def type(self) -> ScheduleType:
         return self.__type
     
+    def changetype(self,
+        type:ScheduleType,
+        inplace:bool=False,
+        ) -> Schedule|None:
+        
+        return Schedule.from_compact(
+            self.name,
+            [
+                (start, end, deepcopy(ruleset).changetype(type))
+                for start, end, ruleset in self.compactize()
+            ]
+        )
+    
     """ time-related operations
     """
     
@@ -1456,6 +1518,19 @@ class Schedule(UserList):
 
     """ representation
     """
+    
+    def __deepcopy__(self, memo:dict):
+        
+        if id(self) in memo:
+            return memo[id(self)]
+        
+        return Schedule.from_compact(
+            f"{self.name}:COPY",
+            [
+                (start, end, deepcopy(ruleset))
+                for start, end, ruleset in self.compactize()
+            ]
+        )
     
     def __str__(self) -> str:        
         return f"Schedule {self.name}:\n" + "\n".join([

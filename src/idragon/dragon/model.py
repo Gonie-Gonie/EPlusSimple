@@ -30,7 +30,7 @@ from .shape import (
 )
 from .hvac import (   
     SupplySystem     ,
-    MultipleSupplySystem,
+    SupplyGroup,
     PhotoVoltaicPanel,
 )
 from .profile import (
@@ -201,7 +201,7 @@ class EnergyModel:
         created_sources = set([None])
         for zone in self.conditioned_zone:
             
-            if isinstance(zone.cooling_supply, MultipleSupplySystem):
+            if isinstance(zone.cooling_supply, SupplyGroup):
                 
                 for supply in zone.cooling_supply.systems:   
                     if supply.source not in created_sources:
@@ -215,7 +215,7 @@ class EnergyModel:
                     idf.append(*source_objs)
                     created_sources.add(zone.cooling_supply.source)
             
-            if isinstance(zone.heating_supply, MultipleSupplySystem):
+            if isinstance(zone.heating_supply, SupplyGroup):
                 
                 for supply in zone.heating_supply.systems:   
                     if supply.source not in created_sources:

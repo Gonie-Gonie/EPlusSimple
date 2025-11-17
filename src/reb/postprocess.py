@@ -366,6 +366,20 @@ class hvac존:
         
         return final_schedule
     
+    def apply_hvac_availability(self, zone:dragon.Zone):
+        
+        if isinstance(zone.heating_supply, dragon.hvac.SupplyGroup):
+            zone.heating_supply.availabilities = [
+                self.난방설비1.get_hvac_availability_schedule(),
+                self.난방설비2.get_hvac_availability_schedule(),
+                ]
+            
+        if isinstance(zone.cooling_supply, dragon.hvac.SupplyGroup):
+            zone.cooling_supply.availabilities = [
+                self.냉방설비1.get_hvac_availability_schedule(),
+                self.냉방설비2.get_hvac_availability_schedule(),
+            ]
+    
 
 @dataclass
 class 보건소일반존(hvac존):
@@ -562,6 +576,8 @@ class 보건소일반존(hvac존):
                 lighting_schedule         ,
                 equipment_schedule        ,
             )
+        
+            self.apply_hvac_availability(zone)
             
         return
     
@@ -758,6 +774,8 @@ class 보건소특화존1(hvac존):
                 equipment_schedule    ,
             )
             
+            self.apply_hvac_availability(zone)
+            
         return
     
     
@@ -861,6 +879,8 @@ class 보건소특화존2(hvac존):
                 lighting_schedule     ,
                 equipment_schedule    ,
             )
+            
+            self.apply_hvac_availability(zone)
             
         return
     
@@ -1043,6 +1063,8 @@ class 어린이집일반존(hvac존):
                 equipment_schedule    ,
             )
             
+            self.apply_hvac_availability(zone)
+            
         return
 
 @dataclass
@@ -1213,6 +1235,8 @@ class 어린이집특화존1(hvac존):
                 lighting_schedule,
                 equipment_schedule    ,
             )
+            
+            self.apply_hvac_availability(zone)
             
         return
     
@@ -1407,6 +1431,8 @@ class 어린이집특화존2(hvac존):
                 equipment_schedule    ,
             )
             
+            self.apply_hvac_availability(zone)
+            
         return
 
 # ---------------------------------------------------------------------------- #
@@ -1474,7 +1500,7 @@ class 현장조사체크리스트(ABC):
             공급설비 = exceldata["공급설비"].query("이름 == @row['난방 공급 설비2']")
             second_heating = dragonsupply_dict[[k for  k, v in supply_dict.items() if v.name == 공급설비["이름"].values[0]][0]]
             
-            zone.heating_supply = dragon.hvac.MultipleSupplySystem(
+            zone.heating_supply = dragon.hvac.SupplyGroup(
                 [zone.heating_supply, second_heating]
             )                
             
@@ -1487,7 +1513,7 @@ class 현장조사체크리스트(ABC):
             공급설비 = exceldata["공급설비"].query("이름 == @row['냉방 공급 설비2']")
             second_heating = dragonsupply_dict[[k for  k, v in supply_dict.items() if v.name == 공급설비["이름"].values[0]][0]]
             
-            zone.cooling_supply = dragon.hvac.MultipleSupplySystem(
+            zone.cooling_supply = dragon.hvac.SupplyGroup(
                 [zone.cooling_supply, second_heating]
             )
         
