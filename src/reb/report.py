@@ -188,7 +188,8 @@ def draw_weather_monthlycomparision(
     vmin, vmax = all_values.min(), all_values.max()
     margin = (vmax - vmin) * 0.1  # 상하단 10% 여유
 
-    ax.set_ylim(vmin - margin, vmax + margin)
+    # ax.set_ylim(vmin - margin, vmax + margin)
+    ax.set_ylim(-30, 45)
     ax.legend(fontsize=9, ncols=2, loc='upper center', bbox_to_anchor=(0.5, -0.1))
 
 
@@ -345,7 +346,7 @@ def draw_energysimulation_figures(
             for result in [grrbefore, grrafter, grrafterN]
         ],
         ["GR이전","GR이후","N년차"],
-        ylabel = "(kWh/$\\mathrm{m^2\\cdot}$년)",
+        ylabel = "에너지 소요량 (kWh/$\\mathrm{m^2\\cdot}$년)",
         ax = axs[0]
     )
     
@@ -404,7 +405,7 @@ ENERGY_TYPES = [
 
 DEFAULT_COLORS_BEFORE = {
     k: PALETTE[k_idx]
-    for k_idx, k in enumerate(["ELECTRICITY", "NATURALGAS", "OIL", "DISTRICTHEATING"])
+    for k_idx, k in enumerate(["NATURALGAS", "ELECTRICITY", "OIL", "DISTRICTHEATING"])
 }
 
 def _draw_monthly_stacked_bar(
@@ -564,6 +565,7 @@ def _draw_total_monthly_line(ax: plt.Axes, grr_before: dict, grr_after: dict, gr
     ax.plot(months, after_vals, color=PALETTE[1], marker="o", linestyle="-", label="GR 이후")
     ax.plot(months, afterN_vals, color=PALETTE[2], marker="o", linestyle=(0, (4, 6)), mfc='none', label="GR N년차")
 
+    ax.set_ylim(bottom=0)
     ax.set_xticks(months)
     ax.set_xticklabels([f"{m}월" for m in months])
     ax.set_ylabel("월별 총합")
