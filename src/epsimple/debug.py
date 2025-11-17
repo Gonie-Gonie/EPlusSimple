@@ -531,7 +531,7 @@ class NoChecklistSheet(ExcelException):
     @staticmethod
     def inspect(exceldata:dict[str, pd.DataFrame]) -> list[NoChecklistSheet]:
         
-        if "체크리스트" not in exceldata.keys():
+        if "현장조사" not in exceldata.keys():
             return [NoChecklistSheet()]
         else:
             return []
