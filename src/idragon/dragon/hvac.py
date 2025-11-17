@@ -2060,6 +2060,25 @@ class AirHandlingUnit(SupplySystem):
         
         return curve_obj + component_obj + indoor_obj, postprocessors
     
+    """ representation
+    """
+    
+    def __deepcopy__(self, memo):
+        
+        if id(self) in memo:
+            return memo[id(self)]
+        
+        clone =  AirHandlingUnit(
+            name             = f"{self.name}:COPY",
+            source           = self.source,
+            fan_efficiency   = self.fan_efficiency,
+            fan_pressure     = self.fan_pressure,
+            motor_efficiency = self.motor_efficiency,
+        )
+        memo[id(self)] = clone
+        return clone
+    
+    
 class FanCoilUnit(SupplySystem):
     
     def __init__(self,

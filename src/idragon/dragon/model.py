@@ -232,7 +232,7 @@ class EnergyModel:
         # HVAC: Supply 
         # Should be after adding supply systems and zones to the idf
         for zone in self.conditioned_zone:
-                
+            
             if zone.cooling_supply is zone.heating_supply:
                 EnergyModel.add_supply_system(idf,
                     zone, zone.cooling_supply,

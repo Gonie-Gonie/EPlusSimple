@@ -8,6 +8,7 @@ from __future__ import annotations
 import re
 import math
 import random
+from copy        import deepcopy
 from types       import SimpleNamespace
 from typing      import Literal
 from dataclasses import dataclass
@@ -1498,10 +1499,18 @@ class 현장조사체크리스트(ABC):
                 continue
             
             공급설비 = exceldata["공급설비"].query("이름 == @row['난방 공급 설비2']")
+            if isinstance(zone.heating_supply, dragon.hvac.AirHandlingUnit):
+                first_heating = deepcopy(zone.heating_supply)
+            else:
+                first_heating = zone.heating_supply
+            first_heating.name = f"{first_heating.name}forHeating"
             second_heating = dragonsupply_dict[[k for  k, v in supply_dict.items() if v.name == 공급설비["이름"].values[0]][0]]
+            if isinstance(second_heating, dragon.hvac.AirHandlingUnit):
+                second_heating = deepcopy(second_heating)
+            second_heating.name = f"{second_heating.name}forHeating"
             
             zone.heating_supply = dragon.hvac.SupplyGroup(
-                [zone.heating_supply, second_heating]
+                [first_heating, second_heating]
             )                
             
         # 냉방 공급 설비2
@@ -1511,10 +1520,18 @@ class 현장조사체크리스트(ABC):
                 continue  
             
             공급설비 = exceldata["공급설비"].query("이름 == @row['냉방 공급 설비2']")
+            if isinstance(zone.cooling_supply, dragon.hvac.AirHandlingUnit):
+                first_cooling = deepcopy(zone.cooling_supply)
+            else:
+                first_cooling = zone.cooling_supply
+            first_cooling.name = f"{first_cooling.name}forCooling"
             second_cooling = dragonsupply_dict[[k for  k, v in supply_dict.items() if v.name == 공급설비["이름"].values[0]][0]]
+            if isinstance(second_cooling, dragon.hvac.AirHandlingUnit):
+                second_cooling = deepcopy(second_cooling)
+            second_cooling.name = f"{second_cooling.name}forCooling"
             
             zone.cooling_supply = dragon.hvac.SupplyGroup(
-                [zone.cooling_supply, second_cooling]
+                [first_cooling, second_cooling]
             )
         
 
