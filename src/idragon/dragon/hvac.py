@@ -33,6 +33,10 @@ from ..utils import (
     validate_enum ,
 )
 from ..constants import Unit
+from .profile import (
+    Schedule    ,
+    ScheduleType,
+)
 
 # settings
 if TYPE_CHECKING:
@@ -1696,13 +1700,10 @@ class EquipmentListAppender(SupplySystemToIdfPostProcessor):
     @staticmethod
     def count_current_equipments(equiplist:IdfObject) -> int:
         
-        # calculate all items inlcuded
-        not_none_items = len({k:v for k,v in equiplist.items() if v is not None})
-        
-        # exclude its name and load distribution scheme
-        FIXED_NONBRANCH_ITEMS = 2
-        
-        return int((not_none_items-FIXED_NONBRANCH_ITEMS)/4)
+        for idx in range(1, 100):
+            
+            if equiplist[f"Zone Equipment {idx} Name"] is None:
+                return idx-1
         
     def run(self, idf:IDF) -> None:
         
@@ -1796,6 +1797,62 @@ class ZoneTerminalUnitAppender(SupplySystemToIdfPostProcessor):
         
         return
 
+class SequentialLoadFractionController(SupplySystemToIdfPostProcessor):
+    
+    @staticmethod
+    def find_target_equipment_number(equipmentlist:IdfObject, objname:str) -> int:
+        
+        for idx in range(1, 100):
+            
+            if equipmentlist[f"Zone Equipment {idx} Name"] == objname:
+                return idx
+            
+            elif equipmentlist[f"Zone Equipment {idx} Name"] is None:
+                raise ValueError(
+                    f"Cannot find objname {objname} in the equipmentlist {equipmentlist['Name']}"
+                )
+
+
+    def get_fraction_schedules(self) -> list[Schedule]:
+        
+        if self.supply.availabilities is None:
+            availabilities = [Schedule.from_constant(None, 1) for _ in range(len(self.supply.systems))]
+        else:
+            availabilities = [sche.changetype(ScheduleType.REAL) for sche in self.supply.availabilities]
+            
+        
+        num_remained = sum(availabilities, start=Schedule.from_constant(None, 0))
+        fraction_schedules = []
+        
+        for sche in availabilities:
+            
+            fraction_schedules.append( sche * (1/(num_remained+(1E-10))))
+            num_remained -= sche
+        
+        for sche in fraction_schedules:
+            sche.name = hex(id(sche))
+        
+        return fraction_schedules
+    
+    
+    
+    def run(self, idf:IDF) -> None:
+        
+        # find target equipment list
+        target_equiplist = idf["ZoneHVAC:EquipmentList"][self.zone.idf_equipmentlistname]
+        
+        # get fraction schedules and append to the idf
+        fraction_schedule = self.get_fraction_schedules()
+        for sche in fraction_schedule:
+            idf.append(sche.to_idf_object())
+        
+        for sys, f_sche in zip(self.supply.systems, fraction_schedule):
+            sys_idx = SequentialLoadFractionController.find_target_equipment_number(target_equiplist, sys.idf_get_objname(self.zone))
+            target_equiplist[f"Zone Equipment {sys_idx} Sequential Cooling Fraction Schedule Name"] = f_sche.name
+            target_equiplist[f"Zone Equipment {sys_idx} Sequential Heating Fraction Schedule Name"] = f_sche.name
+            
+        return
+
 class SupplySystem(ABC):
     
     @abstractmethod
@@ -1833,6 +1890,48 @@ class SupplySystem(ABC):
         for_heating:bool,
         for_cooling:bool,
         ) -> tuple[list[IdfObject], list[SupplySystemToIdfPostProcessor]]: ...
+  
+  
+class SupplyGroup:
+    
+    def __init__(self,
+        systems:list[SupplySystem],
+        *,
+        availabilities:list[Schedule] = None,
+        ) -> None:
+        
+        self.systems        = systems
+        self.availabilities = availabilities
+    
+    @property
+    def source(self) -> list[SourceSystem]:
+        return [sys.source for sys in self.systems]
+    
+    def to_idf_object(self,
+        zone       :Zone,
+        for_heating:bool,
+        for_cooling:bool,
+        ) -> tuple[list[IdfObject], list[SupplySystemToIdfPostProcessor]]:
+        
+        if self.availabilities is None:
+            availabilities = [None] * len(self.systems)
+        else:
+            availabilities = self.availabilities
+            
+        idfobjects     = []
+        postprocessors = []
+        for sys, sche in zip(self.systems, availabilities):
+            idfobject, postprocessor = sys.to_idf_object(zone, for_heating, for_cooling, availability = sche)
+            idfobjects     += idfobject
+            postprocessors += postprocessor
+            
+            if sche is not None:
+                idfobjects.append(sche.to_idf_object())
+        
+        postprocessors.append(SequentialLoadFractionController(self, zone))
+        
+        return idfobjects, postprocessors       
+        
     
 class AirHandlingUnit(SupplySystem):
     
@@ -1867,7 +1966,11 @@ class AirHandlingUnit(SupplySystem):
         zone       :Zone,
         for_heating:bool,
         for_cooling:bool,
+        availability:None|Schedule=None,
         ) -> tuple[list[IdfObject], list[SupplySystemToIdfPostProcessor]]:
+        
+        if availability is None:
+            availability = zone.profile.hvac_availability
         
         curve_obj = [
             IdfObject("Curve:Cubic", [
@@ -1893,7 +1996,7 @@ class AirHandlingUnit(SupplySystem):
         component_obj = [
             IdfObject("Coil:Cooling:DX:VariableRefrigerantFlow", {
                 "Name": f"CoolingCoil_for_{self.idf_get_objname(zone)}",
-                "Availability Schedule Name": zone.profile.hvac_availability.name if for_cooling else "ALLOFF",
+                "Availability Schedule Name": availability.name if for_cooling else "ALLOFF",
                 "Gross Rated Total Cooling Capacity": "autosize" if for_cooling else 0.1,
                 "Gross Rated Sensible Heat Ratio": 0.7,
                 "Rated Air Flow Rate": 0.01*zone.floor_area,
@@ -1904,7 +2007,7 @@ class AirHandlingUnit(SupplySystem):
             }),
             IdfObject("Coil:Heating:DX:VariableRefrigerantFlow", {
                 "Name": f"HeatingCoil_for_{self.idf_get_objname(zone)}",
-                "Availability Schedule": zone.profile.hvac_availability.name if for_heating else "ALLOFF",
+                "Availability Schedule": availability.name if for_heating else "ALLOFF",
                 "Gross Rated Heating Capacity": "autosize" if for_heating else 0.1,
                 "Rated Air Flow Rate": 0.01*zone.floor_area,
                 "Coil Air Inlet Node": f"{self.idf_get_objname(zone)} CoolingCoil2HeatingCoil Air MiddleNode",
@@ -1914,7 +2017,7 @@ class AirHandlingUnit(SupplySystem):
             }),
             IdfObject("Fan:ConstantVolume", {
                 "Name": f"Fan_for_{self.idf_get_objname(zone)}",
-                "Availability Schedule Name": zone.profile.hvac_availability.name,
+                "Availability Schedule Name": availability.name,
                 "Fan Total Efficiency": self.fan_efficiency,
                 "Pressure Rise": self.fan_pressure,
                 "Maximum Flow Rate": 0.01*zone.floor_area,
@@ -1927,7 +2030,7 @@ class AirHandlingUnit(SupplySystem):
         indoor_obj = [
             IdfObject(self.idf_objtypename,{
                 "Zone Terminal Unit Name": self.idf_get_objname(zone),
-                "Terminal Unit Availability Schedule": zone.profile.hvac_availability.name,
+                "Terminal Unit Availability Schedule": availability.name,
                 "Terminal Unit Air Inlet Node Name": self.idf_get_airinletnodename(zone),
                 "Terminal Unit Air Outlet Node Name": self.idf_get_airoutletnodename(zone),
                 "Cooling Supply Air Flow Rate"   : "autosize",
@@ -1956,6 +2059,25 @@ class AirHandlingUnit(SupplySystem):
         ]
         
         return curve_obj + component_obj + indoor_obj, postprocessors
+    
+    """ representation
+    """
+    
+    def __deepcopy__(self, memo):
+        
+        if id(self) in memo:
+            return memo[id(self)]
+        
+        clone =  AirHandlingUnit(
+            name             = f"{self.name}:COPY",
+            source           = self.source,
+            fan_efficiency   = self.fan_efficiency,
+            fan_pressure     = self.fan_pressure,
+            motor_efficiency = self.motor_efficiency,
+        )
+        memo[id(self)] = clone
+        return clone
+    
     
 class FanCoilUnit(SupplySystem):
     
@@ -1990,7 +2112,11 @@ class FanCoilUnit(SupplySystem):
         zone       :Zone,
         for_heating:bool,
         for_cooling:bool,
+        availability:None|Schedule=None,
         ) -> tuple[list[IdfObject], list[SupplySystemToIdfPostProcessor]]:
+        
+        if availability is None:
+            availability = zone.profile.hvac_availability
         
         curve_obj = [
             IdfObject("Curve:Exponent",[
@@ -2018,7 +2144,7 @@ class FanCoilUnit(SupplySystem):
             ]),
             IdfObject("Fan:OnOff", {
                 "Name": f"Fan_for_{self.idf_get_objname(zone)}",
-                "Availability Schedule Name": zone.profile.hvac_availability.name,
+                "Availability Schedule Name": availability.name,
                 "Fan Total Efficiency": self.fan_efficiency,
                 "Pressure Rise": self.fan_pressure,
                 "Maximum Flow Rate": "autosize",
@@ -2030,7 +2156,7 @@ class FanCoilUnit(SupplySystem):
             }),
             IdfObject("Coil:Cooling:Water", {
                 "Name": f"CoolingCoil_for_{self.idf_get_objname(zone)}",
-                "Availability Schedule Name": zone.profile.hvac_availability.name if for_cooling else "ALLOFF",
+                "Availability Schedule Name": availability.name if for_cooling else "ALLOFF",
                 "Water Inlet Node Name": f"CoolingCOil_for_{self.idf_get_objname(zone)} Water InletNode",
                 "Water Outlet Node Name": f"CoolingCoil_for_{self.idf_get_objname(zone)} Water OutletNode",
                 "Air Inlet Node Name": f"{self.idf_get_objname(zone)} Fan2CoolingCoil Air MiddleNode",
@@ -2038,7 +2164,7 @@ class FanCoilUnit(SupplySystem):
             }),
             IdfObject("Coil:Heating:Water", {
                 "Name": f"HeatingCoil_for_{self.idf_get_objname(zone)}",
-                "Availability Schedule Name": zone.profile.hvac_availability.name if for_heating else "ALLOFF",
+                "Availability Schedule Name": availability.name if for_heating else "ALLOFF",
                 "Water Inlet Node Name": f"HeatingCoil_for_{self.idf_get_objname(zone)} Water InletNode",
                 "Water Outlet Node Name": f"HeatingCoil_for_{self.idf_get_objname(zone)} Water OutletNode",
                 "Air Inlet Node Name": f"{self.idf_get_objname(zone)} CoolingCoil2HeatingCoil Air MiddleNode",
@@ -2049,7 +2175,7 @@ class FanCoilUnit(SupplySystem):
         fcu_obj = [
             IdfObject("ZoneHVAC:FourPipeFanCoil", {
                 "Name": self.idf_get_objname(zone),
-                "Availability Schedule Name": zone.profile.hvac_availability.name,
+                "Availability Schedule Name": availability.name,
                 "Capacity Control Method": "ConstantFanVariableFlow",
                 "Maximum Supply Air Flow Rate": "autosize",
                 "Maximum Outdoor Air Flow Rate": 0,
@@ -2195,7 +2321,11 @@ class Radiator(SupplySystem):
         zone       :Zone,
         for_heating:bool,
         for_cooling:bool,
+        availability:None|Schedule=None,
         ) -> tuple[list[IdfObject], list[SupplySystemToIdfPostProcessor]]:
+        
+        if availability is None:
+            availability = zone.profile.hvac_availability
         
         if (not self.heatable and for_heating) or (not self.coolable and for_cooling):
             raise ValueError(
@@ -2211,7 +2341,7 @@ class Radiator(SupplySystem):
             IdfObject(self.idf_objtypename,{
                 "Name": self.idf_get_objname(zone),
                 "Design Object": f"DesignOf_{self.idf_get_objname(zone)}",
-                "Availability Schedule Name": zone.profile.hvac_availability.name,
+                "Availability Schedule Name": availability.name,
                 "Inlet Node Name" : f"{self.idf_get_objname(zone)} Water InletNode" ,
                 "Outlet Node Name": f"{self.idf_get_objname(zone)} Water OutletNode",
                 "Heating Design Capacity": self.capacity if self.capacity is not None else "autosize",
@@ -2279,7 +2409,11 @@ class ElectricRadiator(SupplySystem):
         zone       :Zone,
         for_heating:bool,
         for_cooling:bool,
+        availability:None|Schedule=None,
         ) -> tuple[list[IdfObject], list[SupplySystemToIdfPostProcessor]]:
+        
+        if availability is None:
+            availability = zone.profile.hvac_availability
         
         if (not self.heatable and for_heating) or (not self.coolable and for_cooling):
             raise ValueError(
@@ -2290,7 +2424,7 @@ class ElectricRadiator(SupplySystem):
             # radiator
             IdfObject(self.idf_objtypename, {
                 "Name": self.idf_get_objname(zone),
-                "Availability Schedule Name": zone.profile.hvac_availability.name,
+                "Availability Schedule Name": availability.name,
                 "Heating Design Capacity": self.capacity if self.capacity is not None else "autosize",
                 "Efficiency": self.efficiency,
                 "Fraction Radiant": self.radiant_fraction,
@@ -2344,7 +2478,11 @@ class RadiantFloor(SupplySystem):
         zone       :Zone,
         for_heating:bool,
         for_cooling:bool,
+        availability:None|Schedule=None,
         ) -> tuple[list[IdfObject], list[SupplySystemToIdfPostProcessor]]:
+        
+        if availability is None:
+            availability = zone.profile.hvac_availability
         
         if (not self.heatable and for_heating) or (not self.coolable and for_cooling):
             raise ValueError(
@@ -2388,7 +2526,7 @@ class RadiantFloor(SupplySystem):
             IdfObject(self.idf_objtypename,{
                 "Name": self.idf_get_objname(zone),
                 "Design Object":f"DesignOf_{self.idf_get_objname(zone)}",
-                "Availability Schedule Name": zone.profile.hvac_availability.name,
+                "Availability Schedule Name": availability.name,
                 "Zone Name": zone.name,
                 "Surface Name or Radiant Surface Group Name": f"RadiantFloorSurfaceGroup_for_{zone.name}",
                 "Maximum Hot Water Flow": "autosize",
@@ -2455,7 +2593,11 @@ class ElectricRadiantFloor(SupplySystem):
         zone       :Zone,
         for_heating:bool,
         for_cooling:bool,
+        availability:None|Schedule=None,
         ) -> tuple[list[IdfObject], list[SupplySystemToIdfPostProcessor]]:
+        
+        if availability is None:
+            availability = zone.profile.hvac_availability
         
         if (not self.heatable and for_heating) or (not self.coolable and for_cooling):
             raise ValueError(
@@ -2492,7 +2634,7 @@ class ElectricRadiantFloor(SupplySystem):
             # radiant floor
             IdfObject(self.idf_objtypename,{
                 "Name": self.idf_get_objname(zone),
-                "Availability Schedule Name": zone.profile.hvac_availability.name,
+                "Availability Schedule Name": availability.name,
                 "Zone Name": zone.name,
                 "Surface Name or Radiant Surface Group Name": f"RadiantFloorSurfaceGroup_for_{zone.name}",
                 "Setpoint Control Type": "ZeroFlowPower",

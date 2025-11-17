@@ -459,8 +459,6 @@ class DuplicatedName(ExcelException):
         
         return exceptions
     
-
-
 class ExcessiveOpeningArea(ExcelException):
     
     def __init__(self,
@@ -488,6 +486,204 @@ class ExcessiveOpeningArea(ExcelException):
                 )
                 
         return exceptions
+
+
+class HVACTypeSubCategory(str, Enum):
+    HEATING = "난방"
+    COOLING = "냉방"
+
+class OnlySecondSupplyInputted(ExcelException):
+    
+    def __init__(self, object_name:str, type:str) -> None:
+        
+        super().__init__("실", object_name, subcategory=HVACTypeSubCategory(type))
+        self.message = f"실 '{object_name}'에 {type} 공급 설비2만 입력되어 있습니다. {type} 공급 설비1도 함께 입력해야 합니다."
+    
+    @staticmethod
+    def inspect(exceldata:dict[str, pd.DataFrame]) -> list[OnlySecondSupplyInputted]:
+        
+        exceptions = []
+        for _, row in exceldata["실"].iterrows():
+            
+            if pd.isna(row["난방 공급 설비"]) and not pd.isna(row["난방 공급 설비2"]):
+                exceptions.append(
+                    OnlySecondSupplyInputted(
+                        row["이름"], "난방"
+                    )
+                )
+            
+            if pd.isna(row["냉방 공급 설비"]) and not pd.isna(row["냉방 공급 설비2"]):
+                exceptions.append(
+                    OnlySecondSupplyInputted(
+                        row["이름"], "냉방"
+                    )
+                )
+        
+        return exceptions
+    
+class NoChecklistSheet(ExcelException):
+    
+    def __init__(self) -> None:
+        
+        super().__init__(None, None)
+        self.message = "현장조사 시트가 존재하지 않습니다."
+    
+    @staticmethod
+    def inspect(exceldata:dict[str, pd.DataFrame]) -> list[NoChecklistSheet]:
+        
+        if "현장조사" not in exceldata.keys():
+            return [NoChecklistSheet()]
+        else:
+            return []
+
+class SecondSupplyForOtherZone(ExcelException):
+    
+    def __init__(self, object_name, type:str):
+        super().__init__("실", object_name, subcategory=HVACTypeSubCategory(type))
+        self.message = f" 기타존 '{object_name}'에 {type} 공급 설비2가 입력되어 있습니다."
+        
+    @staticmethod
+    def inspect(exceldata:dict[str, pd.DataFrame]) -> list[SecondSupplyForOtherZone]:
+        
+        exceptions = []
+        for _, row in exceldata["실"].iterrows():
+            
+            if row["현장조사프로필"] == "기타존":
+                
+                if not pd.isna(row["난방 공급 설비2"]):
+                    exceptions.append(
+                        SecondSupplyForOtherZone(
+                            row["이름"]
+                            , "난방"
+                        )
+                    )
+                
+                if not pd.isna(row["냉방 공급 설비2"]):
+                    exceptions.append(
+                        SecondSupplyForOtherZone(
+                            row["이름"]
+                            , "냉방"
+                        )
+                    )
+        
+        return exceptions
+
+
+class ChecklistZoneSubCategory(str, Enum):
+    GENERAL_ZONE  = "일반존"
+    SPECIAL_ZONE1 = "특화존1"
+    SPECIAL_ZONE2 = "특화존2"
+
+class NoHVACSchedule(ExcelException):
+    
+    def __init__(self, zonename:str, profilename:str, hvacname:str, input:str) -> None:
+        
+        super().__init__("현장조사", zonename, subcategory=ChecklistZoneSubCategory(profilename))
+        self.message = f"{profilename} {zonename}의 {hvacname}에 사용시간,기간이 정의되지 않았습니다 (현재입력: {input})."
+        
+    @staticmethod
+    def inspect(exceldata:dict[str, pd.DataFrame]) -> list[NoHVACSchedule]:
+        
+        match exceldata["현장조사"].iloc[0,0]:
+            case "어린이집":
+                hvac_position = {"일반존": (16,4), "특화존1": (33,4), "특화존2": (53,4)}
+            case "보건소":
+                hvac_position = {"일반존": (21,4), "특화존1": (41,4), "특화존2": (57,4)}
+        
+        exceptions = []
+        for _, row in exceldata["실"].iterrows():
+            
+            if row["현장조사프로필"] not in hvac_position.keys():
+                continue
+            
+            pos = hvac_position[row["현장조사프로필"]]
+            
+            for idx, hvacname in enumerate(["난방 공급 설비", "난방 공급 설비2", "냉방 공급 설비", "냉방 공급 설비2"]):
+                
+                if pd.isna(row[hvacname]):
+                    continue
+                
+                if not bool(pd.isna(exceldata["현장조사"].iloc[pos[0]+idx,pos[1]:pos[1]+6]).any()):
+                    continue
+                
+                data = list(exceldata["현장조사"].iloc[pos[0]+idx,pos[1]:pos[1]+7].values)
+                hvacstr = f"{data[4]}~{data[5]}월 {data[0]}:{data[1]}~{data[2]}:{data[3]} ({data[6]}°C)"
+                exceptions.append(
+                    NoHVACSchedule(row["이름"], row["현장조사프로필"], hvacname, hvacstr)
+                )
+                    
+        return exceptions
+    
+
+class InvalidSetpointSchedule(ExcelException):
+    
+    def __init__(self, zonename:str, profilename:str, hvacname1, hvacname2, input1, input2) -> None:
+        
+        super().__init__("현장조사", zonename, subcategory=ChecklistZoneSubCategory(profilename))
+        self.message = "\n".join([
+            f"{profilename} {zonename}의 {hvacname1}과 {hvacname2}에 사용된 설정온도 스케줄이 유효하지 않습니다.",
+            f"-{hvacname1}: {input1}",
+            f"-{hvacname2}: {input2}",
+        ])
+        
+    @staticmethod
+    def inspect(exceldata:dict[str, pd.DataFrame]) -> list[InvalidSetpointSchedule]:
+        
+        match exceldata["현장조사"].iloc[0,0]:
+            case "어린이집":
+                hvac_position = {"일반존": (16,4), "특화존1": (33,4), "특화존2": (53,4)}
+            case "보건소":
+                hvac_position = {"일반존": (21,4), "특화존1": (41,4), "특화존2": (57,4)}
+        
+        exceptions = []
+        for _, row in exceldata["실"].iterrows():
+            
+            if row["현장조사프로필"] not in hvac_position.keys():
+                continue
+            
+            pos = hvac_position[row["현장조사프로필"]]
+            
+            for heatingidx, heatinghvacname in enumerate(["난방 공급 설비", "난방 공급 설비2"]):
+                
+                if pd.isna(row[heatinghvacname]) or bool(pd.isna(exceldata["현장조사"].iloc[pos[0]+heatingidx,pos[1]:pos[1]+6]).any()):
+                    continue
+                
+                for coolingidx, coolinghvacname in enumerate(["냉방 공급 설비", "냉방 공급 설비2"]):
+                    
+                    if pd.isna(row[coolinghvacname]) or bool(pd.isna(exceldata["현장조사"].iloc[pos[0]+coolingidx+2,pos[1]:pos[1]+6]).any()):
+                        continue
+                    
+                    heatingdata = list(exceldata["현장조사"].iloc[pos[0]+heatingidx,pos[1]:pos[1]+7].values)
+                    coolingdata = list(exceldata["현장조사"].iloc[pos[0]+coolingidx+2,pos[1]:pos[1]+7].values)
+                    
+                    if heatingdata[4] > heatingdata[5]:
+                        heatingmonths = list(range(1, heatingdata[5])) + list(range(heatingdata[4],13))
+                    else:
+                        heatingmonths = list(range(heatingdata[4], heatingdata[5]+1))
+                        
+                    if coolingdata[4] > coolingdata[5]:
+                        coolingmonths = list(range(1, coolingdata[5])) + list(range(coolingdata[4],13))
+                    else:
+                        coolingmonths = list(range(coolingdata[4], coolingdata[5]+1))  
+                    
+                    if set(heatingmonths).intersection(set(coolingmonths)) and (heatingdata[6] >= coolingdata[6]):
+                        
+                        heatstr = f"{heatingdata[4]}~{heatingdata[5]}월 {heatingdata[0]}:{heatingdata[1]}~{heatingdata[2]}:{heatingdata[3]} ({heatingdata[6]}°C)"
+                        coolstr = f"{coolingdata[4]}~{coolingdata[5]}월 {coolingdata[0]}:{coolingdata[1]}~{coolingdata[2]}:{coolingdata[3]} ({coolingdata[6]}°C)"
+                        exceptions.append(
+                            InvalidSetpointSchedule(
+                                row["이름"],
+                                row["현장조사프로필"],
+                                heatinghvacname,
+                                coolinghvacname,
+                                heatstr,
+                                coolstr,
+                            )
+                        )
+        
+        return exceptions
+            
+            
 
 # ---------------------------------------------------------------------------- #
 #                                 JSON WARNINGS                                #
@@ -711,6 +907,27 @@ class NoHVACSystemApplied(ExcelWarning):
             
         return exceptions
 
+class OnlyOtherZoneExist(ExcelWarning):
+    
+    def __init__(self) -> None:
+        
+        super().__init__("실", None)
+        self.message = f"모든 존의 현장조사프로필이 '기타존'으로 설정되어 있습니다."
+        
+        return
+
+    @staticmethod
+    def inspect(exceldata:dict[str, pd.DataFrame]) -> list[OnlyOtherZoneExist]:
+        
+        exceptions = []
+        
+        if (exceldata["실"]["현장조사프로필"] == "기타존").all():
+            exceptions.append(
+                OnlyOtherZoneExist()
+            )
+        
+        return exceptions
+
 # ---------------------------------------------------------------------------- #
 #                                DEBUG FUNCTIONS                               #
 # ---------------------------------------------------------------------------- #
@@ -734,18 +951,30 @@ EXCEL_INSPECTORS = [
     NoHVACSystemApplied,
 ]
 
+EXCEL_REBINESPECTORS = [
+    # exceptions
+    OnlySecondSupplyInputted,
+    NoChecklistSheet,
+    SecondSupplyForOtherZone,
+    NoHVACSchedule,
+    InvalidSetpointSchedule,
+    # warnings
+    OnlyOtherZoneExist,
+]
+
 JSON_INSPECTORS = [
     
 ]
 
-def debug_excel(filepath:str) -> list[ExcelException]:
+def debug_excel(filepath:str, include_reb:bool=False) -> list[ExcelException]:
     
     exceldata = pd.read_excel(filepath, sheet_name=None)
 
     exceptions = []
     warnings   = []
     
-    for inspector in EXCEL_INSPECTORS:
+    inspectors = EXCEL_INSPECTORS + EXCEL_REBINESPECTORS if include_reb else EXCEL_INSPECTORS
+    for inspector in inspectors:
         
         # check
         inspect_result = inspector.inspect(exceldata)

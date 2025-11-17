@@ -730,7 +730,7 @@ class GreenRetrofitResult:
         fuel_name_in_energyplus = {
             Fuel.ELECTRICITY    : "Electricity",
             Fuel.NATURALGAS     : "NaturalGas" ,
-            Fuel.OIL            : "FuelOil"    ,
+            Fuel.OIL            : "Diesel"    ,
             Fuel.DISTRICTHEATING: "OhterFuels" ,
         }
         

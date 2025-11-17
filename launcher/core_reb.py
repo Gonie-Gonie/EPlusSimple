@@ -180,7 +180,7 @@ def _run_debugging_phase(
     has_severe_error = False
 
     for filename, path in filepaths.items():
-        exceptions, warnings = debug_excel(str(path))
+        exceptions, warnings = debug_excel(str(path), include_reb=True)
         code, report_df = report_result(exceptions, warnings)
         
         if code == ReportCode.SEVERE:

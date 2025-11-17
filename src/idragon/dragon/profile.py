@@ -142,12 +142,12 @@ class DaySchedule(UserList):
     def __rmul__(self, value:int|float) -> DaySchedule:
         return self.__mul__(value)
     
-    def __truediv__(self, value:int|float) -> DaySchedule:
+    def __truediv__(self, value:int|float|DaySchedule) -> DaySchedule:
         
         if isinstance(value, DaySchedule):
             
             return DaySchedule(
-                f"{self.name}:ADD:{value.name}",
+                f"{self.name}:DIV:{value.name}",
                 [a / b for a,b in zip(self.data, value.data)],
                 type=self.type
                 )
@@ -159,7 +159,25 @@ class DaySchedule(UserList):
                 [item / value for item in self.data],
                 type=self.type
                 )
+    
+    def __rtruediv__(self, value:int|float|DaySchedule) -> DaySchedule:
         
+        if isinstance(value, DaySchedule):
+            
+            return DaySchedule(
+                f"{value.name}:DIV:{self.name}",
+                [b / a for a,b in zip(self.data, value.data)],
+                type=self.type
+                )
+        
+        elif isinstance(value, int|float): 
+            
+            return DaySchedule(
+                self.name,
+                [value / item for item in self.data],
+                type=self.type
+                )
+    
     def __add__(self, other:DaySchedule) -> DaySchedule:
         
         if self.type != other.type:
@@ -465,7 +483,11 @@ class DaySchedule(UserList):
         return compact_tuples
     
     @classmethod
-    def from_compact(cls, name, values:list[tuple], type=ScheduleType.REAL) -> DaySchedule:
+    def from_compact(cls,
+        name  :str        ,
+        values:list[tuple],
+        type:ScheduleType=ScheduleType.REAL
+        ) -> DaySchedule:
         
         if values[-1][:2] != (24,0):
             raise ValueError(
@@ -485,8 +507,33 @@ class DaySchedule(UserList):
          
         return cls(name, schedule_values, type=type)
     
+    @classmethod
+    def from_constant(cls,
+        name :str      ,
+        value:int|float,
+        type :ScheduleType=ScheduleType.REAL
+        ) -> DaySchedule:
+        
+        return cls.from_compact(
+            name,
+            [(24, 0, value)],
+            type=type
+        )
+    
     """ representation
     """
+    
+    def __deepcopy__(self, memo:dict):
+        
+        if id(self) in memo:
+            return memo[id(self)]
+        
+        return DaySchedule(
+            f"{self.name}:COPY",
+            self.data,
+            type = self.type,
+            unit = self.unit,
+        )
     
     def __str__(self) -> str:
         return f"DaySchedule {self.name}:\n" + "\n".join([
@@ -549,6 +596,33 @@ class RuleSet:
     @property
     def type(self) -> ScheduleType|str:
         return self.__type
+    
+    def changetype(self,
+        type   :ScheduleType      ,
+        inplace:bool        =False,
+        ) -> RuleSet|None:
+        
+        if inplace:
+            self.weekdays.type = type
+            self.weekends.type = type
+            if self.monday    is not None: self.monday   .type = type
+            if self.tuesday   is not None: self.tuesday  .type = type
+            if self.wednesday is not None: self.wednesday.type = type
+            if self.thursday  is not None: self.thursday .type = type
+            if self.friday    is not None: self.friday   .type = type
+            if self.saturday  is not None: self.saturday .type = type
+            if self.sunday    is not None: self.sunday   .type = type
+            if self.holiday   is not None: self.holiday  .type = type
+            return
+        else:
+            dayscheduledict = {k: deepcopy(v) for k, v in self.to_dict().items()}
+            for sche in dayscheduledict.values():
+                if sche is not None:
+                    sche.type = type
+            return RuleSet(
+                self.name,
+                **dayscheduledict
+            )            
     
     @property
     def weekdays(self) -> DaySchedule:
@@ -723,6 +797,14 @@ class RuleSet:
             self, value
         )
         
+    def __rtruediv__(self, value:int|float) -> RuleSet:
+        
+        return RuleSet.__operate_with_default(
+            f"{value.name if isinstance(value, RuleSet) else str(value)}:DIV:{self.name}",
+            lambda a, b: a.__rtruediv__(b),
+            self, value
+        )
+        
     def __add__(self, other:RuleSet) -> RuleSet:
         
         if self.type != other.type:
@@ -889,6 +971,19 @@ class RuleSet:
             holiday   = self.holiday  .normalize_by_max() if self.holiday   is not None else None,
         )
     
+    @classmethod
+    def from_constant(cls,
+        name :str      ,
+        value:int|float,
+        type :ScheduleType=ScheduleType.REAL
+        ) -> RuleSet:
+        
+        return RuleSet(
+            name,
+            DaySchedule.from_constant(None, value, type=type),
+            DaySchedule.from_constant(None, value, type=type),
+        )
+    
     """ representation
     """
     
@@ -905,6 +1000,16 @@ class RuleSet:
             "sunday"   : self.sunday   ,
             "holiday"  : self.holiday  ,
         }
+    
+    def __deepcopy__(self, memo:dict):
+        
+        if id(self) in memo:
+            return memo[id(self)]
+        
+        return RuleSet(
+            f"{self.name}:COPY",
+            **{k: deepcopy(dayschedule) for k, dayschedule in self.to_dict().items()}
+        )
     
     def __str__(self) -> str:        
         return f"RuleSet {self.name}:"
@@ -1077,14 +1182,22 @@ class Schedule(UserList):
     def __rmul__(self, value:int|float) -> Schedule:
         return self.__mul__(value)
     
-    def __truediv__(self, value:int|float) -> Schedule:
+    def __truediv__(self, value:int|float|Schedule) -> Schedule:
         
         return Schedule.__operate_with_unified_schedule(
             f"{self.name}:DIV:{value.name if isinstance(value, Schedule) else str(value)}",
             lambda a,b: a.__truediv__(b),
             self, value
         )
+    
+    def __rtruediv__(self, value:int|float|Schedule) -> Schedule:
         
+        return Schedule.__operate_with_unified_schedule(
+            f"{value.name if isinstance(value, Schedule) else str(value)}:DIV:{self.name}",
+            lambda a,b: a.__rtruediv__(b),
+            self, value
+        )
+    
     def __add__(self, other:int|float|Schedule) -> RuleSet:
         
         if isinstance(other, Schedule) and (self.type != other.type):
@@ -1093,7 +1206,7 @@ class Schedule(UserList):
             )
             
         return Schedule.__operate_with_unified_schedule(
-            f"{self.name}:ADD:{other.name}",
+            f"{self.name}:ADD:{other.name if isinstance(other, Schedule) else str(other)}",
             lambda a, b: a+b,
             self, other
         )
@@ -1109,7 +1222,7 @@ class Schedule(UserList):
             )
             
         return Schedule.__operate_with_unified_schedule(
-            f"{self.name}:SUB:{other.name}",
+            f"{self.name}:SUB:{other.name if isinstance(other, Schedule) else str(other)}",
             lambda a, b: a-b,
             self, other
         )
@@ -1290,6 +1403,19 @@ class Schedule(UserList):
     def type(self) -> ScheduleType:
         return self.__type
     
+    def changetype(self,
+        type:ScheduleType,
+        inplace:bool=False,
+        ) -> Schedule|None:
+        
+        return Schedule.from_compact(
+            self.name,
+            [
+                (start, end, deepcopy(ruleset).changetype(type))
+                for start, end, ruleset in self.compactize()
+            ]
+        )
+    
     """ time-related operations
     """
     
@@ -1327,6 +1453,20 @@ class Schedule(UserList):
             schedule.apply(ruleset, start=start, end=end)
         
         return schedule
+    
+    @classmethod
+    def from_constant(cls,
+        name :str      ,
+        value:int|float,
+        type:ScheduleType=ScheduleType.REAL
+        ) -> Schedule:
+        
+        return cls.from_compact(
+            name,
+            [
+                ("0101","1231",RuleSet.from_constant(None, value, type=type))
+            ]
+        )
     
     @staticmethod
     def unify_compactized_schedules(
@@ -1378,6 +1518,19 @@ class Schedule(UserList):
 
     """ representation
     """
+    
+    def __deepcopy__(self, memo:dict):
+        
+        if id(self) in memo:
+            return memo[id(self)]
+        
+        return Schedule.from_compact(
+            f"{self.name}:COPY",
+            [
+                (start, end, deepcopy(ruleset))
+                for start, end, ruleset in self.compactize()
+            ]
+        )
     
     def __str__(self) -> str:        
         return f"Schedule {self.name}:\n" + "\n".join([

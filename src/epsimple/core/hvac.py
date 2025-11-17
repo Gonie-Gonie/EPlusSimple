@@ -908,7 +908,7 @@ class SupplySystem:
     @property
     def coolable(self) -> bool:
         return (type(self.source) in self._coolable_sources)
-    
+   
 
 class PackagedAirConditioner(SupplySystem):
     
@@ -1013,6 +1013,7 @@ class PackagedAirConditioner(SupplySystem):
             1E-3,
             self.capacity,
         )
+        dedicated_ehp.name = f"DedicatedHeatPump{hex(id(dedicated_ehp))}_for_{self.ID}"
         source_dict[dedicated_ehp.name] = dedicated_ehp
         
         return dragon.AirHandlingUnit(

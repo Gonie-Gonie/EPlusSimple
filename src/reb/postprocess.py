@@ -8,6 +8,8 @@ from __future__ import annotations
 import re
 import math
 import random
+from copy        import deepcopy
+from types       import SimpleNamespace
 from typing      import Literal
 from dataclasses import dataclass
 from abc import (
@@ -20,6 +22,15 @@ import pandas as pd
 
 # local modules
 from epsimple import GreenRetrofitModel
+from epsimple.utils import (
+    _preprocess_excel_dict ,
+    _convert_supply_systems,
+    _convert_source_systems,
+)
+from epsimple.core.hvac import (
+    SupplySystem,
+    SourceSystem,
+)
 from idragon import (
     dragon     ,
     IDF        ,
@@ -51,14 +62,14 @@ def row_to_dayofweekstr(row:pd.Series) -> str:
 
 def row_to_설비운영(row:pd.Series) -> None|설비운영:
     
-    if pd.isna(row).any():
+    if pd.isna(row.iloc[:6]).any():
         return None
     
     else:
         return 설비운영(
             row_to_timestring(row[["시작시","시작분","종료시","종료분"]]),
             f"{int(row["시작월"]):02d}~{int(row["종료월"]):02d}월",
-            float(v) if not isinstance(v:=row["설정온도"], str) else v,
+            (float(v) if not pd.isna(v) else None) if not isinstance(v:=row["설정온도"], str) else v,
         )
 
 # ---------------------------------------------------------------------------- #
@@ -253,7 +264,7 @@ class 설비운영:
             case "cooling": default_temperature =  50
         
         # for invalid case: return default setpoint temperature
-        if self.설정온도 == "확인불가":
+        if self.설정온도 == "확인불가" or self.설정온도 is None:
             match mode:
                 case "heating": setpoint = original_schedule.max
                 case "cooling": setpoint = original_schedule.min
@@ -355,6 +366,20 @@ class hvac존:
             )
         
         return final_schedule
+    
+    def apply_hvac_availability(self, zone:dragon.Zone):
+        
+        if isinstance(zone.heating_supply, dragon.hvac.SupplyGroup):
+            zone.heating_supply.availabilities = [
+                self.난방설비1.get_hvac_availability_schedule(),
+                self.난방설비2.get_hvac_availability_schedule(),
+                ]
+            
+        if isinstance(zone.cooling_supply, dragon.hvac.SupplyGroup):
+            zone.cooling_supply.availabilities = [
+                self.냉방설비1.get_hvac_availability_schedule(),
+                self.냉방설비2.get_hvac_availability_schedule(),
+            ]
     
 
 @dataclass
@@ -552,6 +577,8 @@ class 보건소일반존(hvac존):
                 lighting_schedule         ,
                 equipment_schedule        ,
             )
+        
+            self.apply_hvac_availability(zone)
             
         return
     
@@ -748,13 +775,15 @@ class 보건소특화존1(hvac존):
                 equipment_schedule    ,
             )
             
+            self.apply_hvac_availability(zone)
+            
         return
     
     
 @dataclass
 class 보건소특화존2(hvac존):
     #zone
-    사용관사수:str
+    사용관사수:int
     동거인수:int
     운영요일:str
 
@@ -779,26 +808,80 @@ class 보건소특화존2(hvac존):
     
     def get_occupant_schedule(self) -> dragon.Schedule:
         
-        return
+        dayofweeks = [translate_dayofweek(s.strip()) for s in self.운영요일.split(",") if not s==""]
+        occupant_ruleset = dragon.RuleSet(
+                None,
+                dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,),
+                dragon.DaySchedule.from_compact(None, [(24,0,0)],dragon.ScheduleType.REAL,),
+                **{
+                    k: dragon.DaySchedule.from_compact(
+                        None,
+                        [
+                            (24, 0, self.사용관사수+self.동거인수),
+                        ],
+                        dragon.ScheduleType.REAL,
+                    )
+                    for k in dayofweeks
+                }
+            )
+
+        occupant_schedule = dragon.Schedule.from_compact(
+            None,
+            [("0101","1231", occupant_ruleset)]
+        )
+        
+        return occupant_schedule
     
     def get_hvac_availability_schedule(self) -> dragon.Schedule:
         
-        return
+        기본운영_schedule = (self.get_occupant_schedule() > 0)
+        
+        # 설비 가동스케줄 (개별)
+        operation_schedules = []
+        for 설비 in [self.난방설비1, self.난방설비2, self.냉방설비1, self.냉방설비2]:
+            if 설비 is not None:
+                operation_schedules.append(설비.get_hvac_availability_schedule())
+            else:
+                operation_schedules.append(dragon.Schedule.from_compact(
+                    None, [("0101","1231", dragon.RuleSet(
+                        None,
+                        dragon.DaySchedule.from_compact(None, [(24,0,0)], dragon.ScheduleType.ONOFF),
+                        dragon.DaySchedule.from_compact(None, [(24,0,0)], dragon.ScheduleType.ONOFF),
+                    ))]
+                ))
+        
+        # 설비 가동스케줄 (or조건으로 개별 설비 결합: 모종의 설비가 가동중)
+        hvac_availability = operation_schedules[0]
+        for schedule in operation_schedules[1:]:
+            hvac_availability |= schedule
+        
+        # 최종 스케줄 = 운영중이면서, 설비 가동 중
+        hvac_availability &= 기본운영_schedule
+        
+        return hvac_availability
 
     def apply_to(self, zones:list[dragon.Zone]) -> None:
         
         total_area = max(sum(zone.floor_area for zone in zones), 1E-6)
+        occupant_schedule = self.get_occupant_schedule()/total_area
+        hvac_availability_schedule = self.get_hvac_availability_schedule()
         
         for zone in zones:
+            
+            lighting_schedule  = zone.profile.lighting  * (occupant_schedule > 0)
+            equipment_schedule = zone.profile.equipment * (occupant_schedule > 0)
+            
             zone.profile = dragon.Profile(
                 f"{zone.name}_특화존2체크리스트",
-                zone.profile.heating_setpoint, 
-                zone.profile.cooling_setpoint, 
-                zone.profile.hvac_availability,
-                zone.profile.occupant,
-                zone.profile.lighting     ,
-                zone.profile.equipment    ,
+                self.get_heating_setpoint_schedule(zone.profile.heating_setpoint), 
+                self.get_cooling_setpoint_schedule(zone.profile.cooling_setpoint), 
+                hvac_availability_schedule,
+                occupant_schedule         ,
+                lighting_schedule     ,
+                equipment_schedule    ,
             )
+            
+            self.apply_hvac_availability(zone)
             
         return
     
@@ -981,6 +1064,8 @@ class 어린이집일반존(hvac존):
                 equipment_schedule    ,
             )
             
+            self.apply_hvac_availability(zone)
+            
         return
 
 @dataclass
@@ -1151,6 +1236,8 @@ class 어린이집특화존1(hvac존):
                 lighting_schedule,
                 equipment_schedule    ,
             )
+            
+            self.apply_hvac_availability(zone)
             
         return
     
@@ -1345,6 +1432,8 @@ class 어린이집특화존2(hvac존):
                 equipment_schedule    ,
             )
             
+            self.apply_hvac_availability(zone)
+            
         return
 
 # ---------------------------------------------------------------------------- #
@@ -1381,7 +1470,71 @@ class 현장조사체크리스트(ABC):
     
     @abstractmethod
     def apply_to(self, grm:GreenRetrofitModel) -> IDF: ...
+    
+    @staticmethod
+    def apply_dualhvac(
+        em       :EnergyModel            ,
+        exceldata:dict[str, pd.DataFrame],
+        ) -> None:
         
+        zonedata = exceldata["실"].loc[~pd.isna(exceldata["실"].iloc[:,0])].iloc[:,:11]
+        processed_excel = _preprocess_excel_dict(exceldata)
+        source_json  = _convert_source_systems(processed_excel["생산설비"])
+        supply_json = _convert_supply_systems(processed_excel["공급설비"], processed_excel["생산설비"])
+        
+        source_dict = {sys.ID: sys for sys in [SourceSystem.from_json(SimpleNamespace(**d)) for d in source_json]}
+        supply_dict = {sys.ID: sys for sys in [SupplySystem.from_json(SimpleNamespace(**d), source_dict) for d in supply_json]}
+        
+        dragonsource_dict = {k: v.to_dragon() for k, v in source_dict.items()}
+        for v in dragonsource_dict.values():
+            v.name = f"$FOR_SECOND${v.name}"
+        dragonsupply_dict = {k: v.to_dragon(dragonsource_dict) for k, v in supply_dict.items()}
+        for v in dragonsupply_dict.values():
+            v.name = f"$FOR_SECOND${v.name}"
+            
+        # 난방 공급 설비2
+        for (_, row), zone in zip(zonedata.iterrows(), em.zone):
+            
+            if pd.isna(row["난방 공급 설비2"]):
+                continue
+            
+            공급설비 = exceldata["공급설비"].query("이름 == @row['난방 공급 설비2']")
+            if isinstance(zone.heating_supply, dragon.hvac.AirHandlingUnit):
+                first_heating = deepcopy(zone.heating_supply)
+            else:
+                first_heating = zone.heating_supply
+            first_heating.name = f"{first_heating.name}forHeating"
+            second_heating = dragonsupply_dict[[k for  k, v in supply_dict.items() if v.name == 공급설비["이름"].values[0]][0]]
+            if isinstance(second_heating, dragon.hvac.AirHandlingUnit):
+                second_heating = deepcopy(second_heating)
+            second_heating.name = f"{second_heating.name}forHeating"
+            
+            zone.heating_supply = dragon.hvac.SupplyGroup(
+                [first_heating, second_heating]
+            )                
+            
+        # 냉방 공급 설비2
+        for (_, row), zone in zip(zonedata.iterrows(), em.zone):
+            
+            if pd.isna(row["냉방 공급 설비2"]):
+                continue  
+            
+            공급설비 = exceldata["공급설비"].query("이름 == @row['냉방 공급 설비2']")
+            if isinstance(zone.cooling_supply, dragon.hvac.AirHandlingUnit):
+                first_cooling = deepcopy(zone.cooling_supply)
+            else:
+                first_cooling = zone.cooling_supply
+            first_cooling.name = f"{first_cooling.name}forCooling"
+            second_cooling = dragonsupply_dict[[k for  k, v in supply_dict.items() if v.name == 공급설비["이름"].values[0]][0]]
+            if isinstance(second_cooling, dragon.hvac.AirHandlingUnit):
+                second_cooling = deepcopy(second_cooling)
+            second_cooling.name = f"{second_cooling.name}forCooling"
+            
+            zone.cooling_supply = dragon.hvac.SupplyGroup(
+                [first_cooling, second_cooling]
+            )
+        
+
 
 class 어린이집체크리스트:
     
@@ -1421,6 +1574,7 @@ class 어린이집체크리스트:
         }
         
         em = grm.to_dragon()
+        현장조사체크리스트.apply_dualhvac(em, exceldata)
         
         self.일반존.apply_to([
                 zone for zone in em.zone
@@ -1483,6 +1637,7 @@ class 보건소체크리스트:
         }
         
         em = grm.to_dragon()
+        현장조사체크리스트.apply_dualhvac(em, exceldata)
         
         self.일반존.apply_to([
                 zone for zone in em.zone
@@ -1506,15 +1661,4 @@ class 보건소체크리스트:
                 raise ValueError(
                     f"{output}은 지원되지 않는 변환 결과물입니다.. idf나 em으로 하세요..."
                 )
-
-# ---------------------------------------------------------------------------- #
-#                                  APPLICATION                                 #
-# ---------------------------------------------------------------------------- #
-
-def compare_surveys(
-    survey1:현장조사체크리스트,
-    survey2:현장조사체크리스트,
-    ) -> str:
-    
-    pass
 
