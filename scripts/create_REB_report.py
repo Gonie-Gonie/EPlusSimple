@@ -128,7 +128,8 @@ def main(
             )
             
         finally:
-            os.remove(workingpath)
+            if os.path.exists(workingpath):
+                os.remove(workingpath)
 # ---------------------------------------------------------------------------- #
 #                                    SCRIPT                                    #
 # ---------------------------------------------------------------------------- #
