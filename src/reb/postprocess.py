@@ -1511,10 +1511,10 @@ class 현장조사체크리스트(ABC):
                 continue  
             
             공급설비 = exceldata["공급설비"].query("이름 == @row['냉방 공급 설비2']")
-            second_heating = dragonsupply_dict[[k for  k, v in supply_dict.items() if v.name == 공급설비["이름"].values[0]][0]]
+            second_cooling = dragonsupply_dict[[k for  k, v in supply_dict.items() if v.name == 공급설비["이름"].values[0]][0]]
             
             zone.cooling_supply = dragon.hvac.SupplyGroup(
-                [zone.cooling_supply, second_heating]
+                [zone.cooling_supply, second_cooling]
             )
         
 
