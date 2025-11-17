@@ -7,7 +7,7 @@
 % ---------------------------------------------------------------------------- %
 
 \chapter{프로그램 구성 요소}
-본 시뮬레이터 엔진은 핵심 python 모듈(\pymodule)\을 중심으로 개발되었다. 이 시뮬레이터는 Python(3.12)\cite{python312}\과 EnergyPlus(24-2-0)\cite{energyplus242}\를 별도 설치 없이 실행할 수 있도록 패키징되어, 사용자가 어떤 환경에서도 단독으로 실행 할 수 있는 독립형 실행 환경을 제공한다(Figure \ref{fig:package_structure}). 개발한 python 모듈(\pymodule)에 대한 자세한 내용은 후속 장에서 설명하며, 사용자는 목적에 맞게 해당 모듈을 충분히 수정 및 가공할 수 있다.
+본 시뮬레이터 엔진은 핵심 python 모듈(\pymodule)\을 중심으로 개발되었다. 이 시뮬레이터는 Python(3.12)\cite{python312}\과 EnergyPlus(24-2-0)\cite{energyplus242}\를 별도 설치 없이 실행할 수 있도록 패키징되어, 사용자가 어떤 환경에서도 단독으로 실행 할 수 있는 독립형 실행 환경을 제공한다(Figure \ref{fig:package_structure}). 개발한 python 모듈(\pymodule)에 대한 자세한 내용은 후속 장에서 설명한다.
 
 \begin{defaultfigure}
   \includegraphics[scale=0.1]{package_structure.png}
@@ -22,71 +22,47 @@
 % ---------------------------------------------------------------------------- %
 
 \subsection{Python 및 그 모듈}
-\texttt{Python 3.12}에서 최적화 되었다. \texttt{Python 3.11} 버전과의 호환성도 확인하였으나, 그 이하 버전과의 호환성은 보장하지 않는다.
-데이터 처리 및 연산을 위해 \texttt{pandas}와 \texttt{numpy} 라이브러리를 사용한다. 이들 라이브러리의 버전 호환성은 별도로 검증하지 않았으므로, 잠재적인 호환성 문제를 인지하고 있어야 한다.
+\texttt{Python 3.12} 이용하였다.
+데이터 처리 및 연산을 위해 \texttt{pandas}와 \texttt{numpy} 라이브러리를 사용한다.
 
 \subsection{EnergyPlus}
-본 시뮬레이터는 \texttt{EnergyPlus 24.2} 버전에 맞추어 개발되었다. EnergyPlus는 하위 및 상위 버전과 호환되지 않으므로, 지원 가능한 버전(24.2)을 설치하도록 주의하여야 한다.\par
-참고로, EnergyPlus가 기본 설치 경로(C:/EnergyPlusV24-2-0)에 이미 설치되어 있는 경우, 별도의 패키징 없이도 python 모듈이 해당 경로를 자동으로 찾아 실행할 수 있다. 내 컴퓨터의 EnergyPlus 설치 여부 확인 방법은 아래와 같다.
-
-@TODO (@memo EnergyPlus 파일 찾는법 설명 필요할지?)
-를 쓴다. 이건 상하위호환 둘 다 안되니까 설치하려면 정확하게 해야 한다. (사실 될 수도 있는데 굳이 체크 안해봐도 될 듯)\par
-참고로 그냥 일반적으로 설치되는 경로인 C:/EnergyPlusV24-2-0에 깔려있으면 이 모듈이랑 같이 묶지 않아도 알아서 찾아서 돌릴 수 있다. EP찾는 순서는 아래와 같다.
+본 시뮬레이터는 \texttt{EnergyPlus 24.2} 버전에 맞추어 개발되었다. \ep는 버전의 상위/하위 호환 모두 지원하지 않으므로, 정확한 버전의 \ep를 요구한다.
+참고로, EnergyPlus가 기본 설치 경로(C:/EnergyPlusV24-2-0)에 이미 설치되어 있는 경우, 별도의 패키징 없이도 python 모듈이 해당 경로를 자동으로 찾아 실행할 수 있다. 본 엔진에서 실행 가능한 \ep 찾는 순서는 아래와 같다.
 
 \begin{enumerate}
-  \item dragon 아래에 있는 EP 폴더
-  \item C드라이브에 있는 기본 설치 폴더
-  \item 그다음에 내가 그냥 새로 깔기
+  \item idragon 모듈 하위의 EnergyPlus 디렉토리
+  \item C드라이브에 있는 기본 설치 디렉토리
 \end{enumerate}
-
-@TODO
-현재(250827) 자동 설치 기능은 지원되지 않으며, 배포 시점에 포함 여부는 미정이다. 따라서, 사용자는 EnergyPlus 24.2를 수동으로 설치하여야 한다.
 
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
 % ---------------------------------------------------------------------------- %
 
 \section{예시파일 및 문서}
-도 준비되어있다.
 
-설명 문서가 준비되어 있다.
+아래와 같은 문서가 준비되어 있다.
 \begin{itemize}
   \item 이 문서랑 별개로 PPT로 만든 사용자 매뉴얼이 제공된다.
   \item 이 문서는 개발자, 연구자용이다.
-  \item 개발 과정을 담은 보고서는 어디에 공개되어있으니 별도로 참고 바람.
+  \item 개발 과정을 담은 보고서는 ...에 공개되어있으니 참고 가능하다.
 \end{itemize}
 
 예시파일들도 준비되어있다. 표준입력과 출력을 n개 건물에 대하여 준비하였다.
-(이 건물들을 어떻게 정의할 것인지, 건물명을 노출하지 않더라도 그 모델을 노출하는 것이 맞을지 논의가 필요할 듯)
-
 \begin{itemize}
-  \item grjson   예시도 준비되어있다.
-  \item grexcel  예시도 준비되어있다.
-  \item grresult 예시도 준비되어있다.
+  \item grjson   예시도 준비되어있다 (어떤 건물, 어떤 예시).
+  \item grexcel  예시도 준비되어있다 (어떤 건물, 어떤 예시).
+  \item grresult 예시도 준비되어있다 (어떤 건물, 어떤 예시).
 \end{itemize}
-
 
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
 % ---------------------------------------------------------------------------- %
 
 \section{보조 프로그램들}
-도 만들어봤다. @TODO
-bat파일로 만든거니까 실행할 때 조심하시고.. 서버 안꺼질 수도 있으니까 조심하시고... \textbackslash taskkill로 백그라운드에서 실행되고 있는 python을 모두 끈 후 실행이 필요. \par
-현재 수준으로 GUI 배포는 어렵고, JS로 진행 예정.  (@memo 형곤 이부분 수정)
+...하여 실행 가능하다.
 
-\subsection{grexcel 검토 launcher}
-CHECK\_GREXCEL.bat 파일 실행하면 된다. 그럼 이런 창이 뜬다 (Figure \ref{fig:grjson_checker_capture}).
-파일 선택누르고 check 누르면 좀 기다려야 한다. 다 되면 초록색으로 이렇게 뜬다.
-
-\begin{defaultfigure}
-  \includegraphics[width=\textwidth]{grexcel checker 캡처.png}
-  \caption{grexcel checker 실행하면 나오는 페이지}
-  \label{fig:grjson_checker_capture}
-\end{defaultfigure}
-
-\subsection{grexcel 및 grjson 실행 launcher}
-RUN\_GREXCEL.bat 파일 실행하면 된다. 그럼 이런 창이 뜬다 (Figure \ref{fig:grjson_launcher_capture}).
+\subsection{grexcel 실행 launcher}
+RUN\_GREXCEL.bat 파일 실행하면 아래와 같은 창을 확인 가능하다 (Figure \ref{fig:grjson_launcher_capture}).
 
 \begin{defaultfigure}
   \includegraphics[width=\textwidth]{grexcel launcher 캡처.png}
@@ -94,7 +70,7 @@ RUN\_GREXCEL.bat 파일 실행하면 된다. 그럼 이런 창이 뜬다 (Figure
   \label{fig:grjson_launcher_capture}
 \end{defaultfigure}
 
-파일 선택하고 run 누르면 좀 기다려야 한다. 다 되면 초록색으로 이렇게 (Figure \ref{fig:grjson_launcher_capture_result}) 뜬다.
+파일 선택하고 run 누르면 백그라운드에서 \simulator가 실행된다. 시뮬레이션이 완료되면, 아래와 같은 창을 확인 가능하다 (Figure \ref{fig:grjson_launcher_capture_result}).
 
 \begin{defaultfigure}
   \includegraphics[width=\textwidth]{grexcel launcher 캡처 (결과).png}
@@ -109,27 +85,27 @@ RUN\_GREXCEL.bat 파일 실행하면 된다. 그럼 이런 창이 뜬다 (Figure
 
 \section{api}
 \subsection{python 모듈의 실행 구조}
-python -m 모듈이름 으로 시작하는거다. 우리 모듈도 똑같음 그걸 기대하고 만든것임 \_\_main\_\_.py가 진입점임.
-
-\subsection{api 개발 원칙}
-원칙까지는 없을듯.
+표준적인 python 호출 구문은 python -m 모듈이름 *args **kwargs이다. 본 엔진도 동일하다.
+runEngine.bat 파일에서 이를 wrap하고 있으니, 이 파일로도 실행이 가능하다.
 
 \subsection{주요 api}
 
 \subsubsection{run: grjson 또는 grexcel 실행}
-호출하면 실행하는 것임 인자는 -i 또는 --input, -o 또는 --output 등 있음. 예시는 아래 코드 참고
+호출하면 입력파일을 실행한다. 인자는 -i 또는 --input, -o 또는 --output 등 있다. 예시는 아래 코드를 참고.
 \begin{tcolorbox}[colback=gray!10, colframe=gray!80, boxrule=0.5pt, left=1em, right=1em]
 GRPython/python.exe -m pyGRsim run -i ...path\_to\_input/my\_grjson.grm
 \end{tcolorbox}
 
 \subsubsection{DB: DB값 조회}
-호출하면 DB 조회하는 것임. DB 이름이랑 key를 보내면 됨. 예시는 아래 코드 참고.
+호출하면 DB에서 제공되는 값을 조회한다. DB 이름이랑 key를 보내면 된다. 예시는 아래 코드를 참고.
 
 \begin{tcolorbox}[colback=gray!10, colframe=gray!80, boxrule=0.5pt, left=1em, right=1em]
 GRPython/python.exe -m pyGRsim run -i ...path\_to\_input/my\_grjson.grm
 \end{tcolorbox}
 
-참고로 surface construction이랑 fenestration construction은 \&로 묶은 key를 보내면 법규기준을 return하고 있음. \&로 묶을 수 있는 아이템들은 아래 참고 바람.
+참고로 surface construction이랑 fenestration construction은 \&로 묶은 key를 보내면 법규기준을 반환하고 있으며, \&로 묶을 수 있는 입력 key 조합은 아래 표에서 확인할 수 있다.
+
+---표 (예정)---
 
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
@@ -485,17 +461,16 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 
 \paragraph{fuel\_type} 연료의 종류. 생산설비의 사용 연료를 의미하며, 선택 가능한 항목은 전기(``electricity''), 천연가스/가스(``natural\_gas''), 난방유(``oil''), 지역난방(``district\_heating'')이다.
 
-@TODO
 \paragraph{compressor\_type} 압축기의 종류. 
-@TODO
+
 \paragraph{coolingtower\_type} 냉각탑의 종류. 
-@TODO
+
 \paragraph{coolingtower\_control} 냉각탑에 적용된 제어. 
 
 \paragraph{hotwater\_supply} 급탕공급 여부. 급탕을 공급하는 모든 생산설비들은 급탕효율 계산에 이용되며, 모든 설비가 동등하게 급탕 부하를 분담하는 것으로 가정한다.
 
 \paragraph{coolingtower\_capacity} 냉각탑용량. 해당 값을 입력하지 않을 경우 (\texttt{null}) EnergyPlus의 autosizing을 이용한다.
-@TODO
+
 \paragraph{boiler\_efficiency} 연동된 보일러의 효율.
 
 \paragraph{capacity\_cooling} 냉방용량. 해당 값을 입력하지 않을 경우 (\texttt{null}) EnergyPlus의 autosizing을 이용한다.
@@ -505,7 +480,7 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 \paragraph{cop\_cooling} 정격 냉방성능계수(COP). 정격 운전 조건에서의 냉방 출력을 소비 전력으로 나눈 값이다.
 
 \paragraph{cop\_heating} 정격 난방성능계수(COP). 정격 운전 조건에서의 난방 출력을 소비 전력으로 나눈 값이다.
-@TODO
+
 \paragraph{efficiency} 효율...
 
 \subsubsection{ventilation\_system} \label{subsubsection:ioref:ventilationsystem}
@@ -753,57 +728,43 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 \texttt{grexcel}은 사용자에게 가장 친숙한 워크시트 도구인 Excel을 기반으로 
 기본적인 데이터 입력 인터페이스(UI) 역할을 한다. 사용자가 한 페이지 내에서 많은 정보를 확인할 수 있도록 구성되어 있다.
 \par
-@TODO 
-단위도 사용자에게 편한 단위 쓴다. 파란색은 뭐 초록색은 뭐... (@memo 정보 제공 파트에 집중하여 작성)
+단위도 사용자에게 편한 단위 쓴다. 파란색은 수정 불가.. 초록색은 수정 가능한 영역을 나타내며 ...
 
 \subsection{sheet별 명세}
 \subsubsection{건물정보}
-@TODO
 
 \subsubsection{실}
-@TODO
 
 \subsubsection{면}
-@TODO
 
 \subsubsection{개구부}
-@TODO
 
 \subsubsection{구조체\_면}
-@TODO
 
 \subsubsection{구조체\_개구부}
-@TODO
 
 \subsubsection{구조체\_면}
-@TODO
 
 \subsection{재료}
-@TODO
 
 \subsection{공급설비}
-@TODO
 
 \subsection{생산설비}
-@TODO
 
 \subsection{환기설비}
-@TODO
 
 \subsection{PV패널}
-@TODO
 
 \subsection{예시}
-@TODO
-
 
 \subsection{grexcel을 grjson으로 변환하는 과정}
-유효한 컬럼만 떼고...
-컬럼명에서 단위 없애고...
-단위변환하고...
-값변환할 것 하고...
-@TODO  코드 풀어서 설명, 캡쳐 사진 넣기
+아래 과정을 거쳐 변환된다.
 
+유효한 컬럼만 남기기, 
+컬럼명에서 단위 없애기, 
+단위변환하기, 
+값 변환하기, 
+...
 
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
@@ -826,27 +787,15 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
   \item 5가지 열원: 전기(ELECTRICITY), 천연가스(NATURALGAS), 등유(OIL), 지역난방(DISTRICTHEATING)
 \end{itemize}
 
-\paragraph{site\_uses} 건물에서 쓰는거 월별로 원별로 용도별로. 이런식으로 구성되어있음.
-\paragraph{source\_uses} 1차에너지에 해당하는 것.
-\paragraph{co2} CO2 배출량
-\paragraph{cost} 비용. 여기까지 다 site\_uses에다가 곱해서 얻어지는 것임
+\paragraph{site\_uses} 건물에서 쓰는거 월별로 원별로 용도별로 제공한다.
+\paragraph{source\_uses} 1차에너지에 해당된다. site\_uses에 계수를 곱해서 얻어진다.
+\paragraph{co2} CO2 배출량이다. site\_uses에 계수를 곱해서 얻어진다.
+\paragraph{cost} 비용이다. site\_uses에 계수를 곱해서 얻어진다.
 
 \subsubsection{요약데이터 관련}
-\paragraph{summary\_per\_area} 다 합한 것.
-\paragraph{summary\_gross} 에 면적을 곱한 것. 비용 관련된 부분은 얘를 보는 게 맞을 듯.
+\paragraph{summary\_per\_area} 모두 합한 것이다.
+\paragraph{summary\_gross} 에 면적을 곱한 것이다.
 
 \subsection{예시}
 
 아래는 결과 파일 예시이다.
-
-\subsection{다른 도구와의 관계}
-\subsubsection{EnergyPlus(IDFEditor, DesignBuilder, ...)}
-이걸 좀 더 사용자 친화적으로 바꾼 개념임. 형상은 이렇게 이해하면 되고 설비는 이렇게 이해해야 함. EP 설비할 때는 이런걸 이렇게 신경썼을텐데 이 툴을 쓸 때는 이런식으로 접근하면 대응되게 할 수 있음.
-
->> 이거 레벨 한단계 안올리면 결과파일 관련 내용임
-
-\subsubsection{ECO2}
-입력체계는 거의 비슷하다. 원래 하던대로 하면 된다. 단 형상쪽은 좀 주의해야 할 것임. \par
-결과도 비슷한데 환기쪽만 조심하면 됨. ECO2에서 환기는 환기침기부하지만 우리는 그런거 없음. 환기침기부하생기면 냉난방으로 처리하는 거니까 냉난방에 묶여있음. 써큘레이션이라고 팬 펌프 전열교환기만 따로 뽑았음.
-
->> 이거 레벨 한단계 안올리면 결과파일 관련 내용임

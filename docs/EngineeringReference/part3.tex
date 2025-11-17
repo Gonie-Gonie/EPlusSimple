@@ -11,19 +11,12 @@
 \section{데이터 변환 시뮬레이션의 순서}
 
 \subsection{시뮬레이션 개요}
-시뮬레이션을 하려면, 일단 데이터를 읽고 변환하고 옵션 설정해서 돌리고 결과 나온거 정리해서 return함.
-본 \simulator\는 요구하는 포맷이 있음. @todo 예시 json파일 아래에 넣기
+시뮬레이션을 하려면, 입력데이터를 읽고 변환하고 옵션 설정해서 \ep 돌리고 결과 나온거 정리해서 반환한다.
 
-데이터를 읽고, 요구하는 json 파일로 변환하는 과정이 필요함. 이렇게 해서 json을 입력하면 \simulator 엔진으로 시뮬레이션을 수행하고, 결과를 불러와 사용자에게 보여주는 방식임.
+데이터를 읽고, 요구하는 json 파일로 변환하는 과정이 필요함. 이렇게 해서 json을 입력하면 \simulator 엔진으로 시뮬레이션을 수행하고, 결과를 불러와 사용자에게 보여주는 방식이다.
 
 \subsection{데이터 체계}
-json구조로 들어온 데이터는, 동일한 python 구조체로 변환되고 그게 dragon이라는 EP친화적 구조체로 변환된 다음 idf로 내보내짐.
-
-\begin{defaultfigure}
-  \includegraphics[scale=0.1]{데이터 schema의 위계.png}
-  \caption{\simulator\ 데이터 체계 및 변환 과정(??)}
-  \label{fig:data_hierarchy}
-\end{defaultfigure}
+json구조로 들어온 데이터는, 동일한 python 구조체로 변환되고 그게 dragon이라는 \ep 친화적 구조체로 변환된 다음 idf로 내보내진다.
 
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
@@ -33,7 +26,7 @@ json구조로 들어온 데이터는, 동일한 python 구조체로 변환되고
 \subsection{기상데이터}
 \subsubsection{주소 및 행정구역 기준}
 주소 정보는 2024년 12월 31일 기준 행정구역 체계를 적용하였으며, 세종특별자치시와 제주특별자치도(제주시, 서귀포시)를 포함하여 전국을 총 229개 시·군·구로 분류하였다.
-각 시·군·구의 중심 좌표는 Naver Cloud Platform(NCP)에서 제공하는 Geocoding API를 기반으로 한 \texttt{korean\_geocoding} 파이썬 패키지를 활용하여 위도(latitude)와 경도(longitude) 정보를 추출하였다.
+각 시·군·구의 중심 좌표는 Naver Cloud Platform(NCP)에서 제공하는 Geocoding API를 기반으로 한 \texttt{korean\_geocoding} Python 패키지를 활용하여 위도(latitude)와 경도(longitude) 정보를 추출하였다.
 
 \subsubsection{기상데이터 수집}
 기상데이터는 국제적으로 통용되는 기상데이터 플랫폼인 OneBuilding.org\cite{onebuilding2025}에서 제공하는 TMYx(Typical Meteorological Year) 데이터를 활용하였다. 해당 플랫폼은 각 지역별 기상데이터를 총 7개 형식(clm, ddy, epw, pvsyst, rain, stat, wea)으로 제공하며, 본 시뮬레이터에서는 EnergyPlus 시뮬레이션에 요구되는 EPW 형식을 사용한다.
@@ -335,15 +328,12 @@ json구조로 들어온 데이터는, 동일한 python 구조체로 변환되고
 \section{EnergyPlus 구동}
 \subsection{EnergyPlus 실행}
 \subsubsection{EnergyPlus의 독립 구동 방법}
-EnergyPlus 핵심은 EnergyPlus.exe 맞나? 그것임.
-그 전에 expansion 필요하면 expandobject.exe도 실행해주어야 함.
-각각은 아래 option들을 받을 수 있음.
-
+EnergyPlus는 EnergyPlus.exe를 직접 실행한다.
 
 \subsection{디렉토리 구조}
-코드 내부적으로는 이렇게 호출하고 있는데,
-디렉토리는 중간에 3개의 temp 폴더가 생김.
-temp 폴더 경로는 C:/users/.../Appdata/Local/Temp/하위에 생김
+코드 내부적으로는 그림()과 같은 구조로 호출하고 있다.
+디렉토리는 중간에 3개의 temp 폴더가 생긴다.
+temp 폴더 경로는 C:/users/.../Appdata/Local/Temp/하위에 생긴다.
 
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
@@ -351,22 +341,14 @@ temp 폴더 경로는 C:/users/.../Appdata/Local/Temp/하위에 생김
 
 \section{오류의 정의와 처리}
 오류가 날 수도 있는데, 분류별로 보면 입력이 잘못된 경우와 뭐가 잘못된 경우와... \dots
-각각에 대하여는 이렇게 이렇게 처리할 수 있음.
-
-@todo시뮬레이터 사용 과정에서, 발생 가능한 오류의 종류는 다음과 같다: (1) 입력변수가 잘못된 경우, (2) idf 변환 과정이 잘못된 경우, ... (3) EnergyPlus 시뮬레이션이 진행되지 않는 경우.
-각 오류는 다음과 같이 해결할 수 있다.
-
+각각에 대하여는 이렇게 이렇게 처리할 수 있다.
 
 \subsection{입력변수가 잘못된 경우}
-입력변수 오류는 python 객체로 전환될 때 탐지해서 이런식으로 return함. 사용자는 이걸 보고 무엇을 판단할 수 있음.
-지금까지 발견한 오류들?
-(1) 
+입력변수 오류는 python 객체로 전환될 때 탐지해서 ...하는 방식으로 반환한다. 사용자는 이걸 보고 무엇을 판단할 수 있다.
 
 \subsection{idf 변환 과정이 잘못된 경우}
-@TODO
 
 \subsection{EP가 안돌아가는 경우}
-@TODO report와 건물 파일을 개발자에게 문의
 
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
@@ -426,23 +408,23 @@ EnergyPlus의 형상 입력 방식은 크게 detailed geometry와 simplified geo
 \end{defaultfigure}
 
 \subsection{벽체, 지붕, 바닥 변환 방법}
-좌표 생성하고 뒤집고 copy하고 ...
+Simplified Geometry를 \ep 입력 체계에 맞게 변환한다.
 
 \subsubsection{좌표 생성}
 천장은 높이 받아서 생성하고 나머지도 높이 받아서 만들고 바닥 만들고.
-Azimuth는 hash함수로 랜덤하게 생성함. copy한 얘들끼리 180도 뒤집도록 잘 했음
+내벽의 경우 azimuth는 hash함수로 랜덤하게 생성한다. 
 
 \subsubsection{clone 객체 생성}
-이걸 뒤집어서 복제할 것임
+copy한 벽체는 이를 azimuth를 180도 뒤집어주어야 한다.
 
 \subsubsection{연산 옵션 설정}
 EnergyPlus \texttt{Building} 객체의 \texttt{Solar Distribution} 속성을 `\texttt{MinimalShadowing}'으로 설정하며, 모든 \texttt{ShadowCalculation} 객체를 삭제한다.
 
 \subsection{창호, 문 변환 방법}
-벽의 일부로 정사각형을...
+벽의 일부로 직사각형을 생성한다. \ep의 ...객체를 이용한다.
 
 \subsection{블라인드 변환 방법}
-20W/m2...으로는 안하겠지만...
+...
 
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
@@ -450,20 +432,17 @@ EnergyPlus \texttt{Building} 객체의 \texttt{Solar Distribution} 속성을 `\t
 
 \section{구조체 정의}
 \subsection{EnergyPlus 구조체의 정의 및 변환 방법}
-EnergyPlus는 Material class에서 먼저 재료의 물성치 (열전도율, 밀도, 비열) 입력하고 구조체는 Construction class에서 하나씩 referecing해와서 구조체를 만드는 방식임.
-외부에서부터 내부 방향으로 각 layer가 어떻게 구성되어있는지 입력하는것임 
-우리도 똑같아용..
+EnergyPlus는 Material class에서 먼저 재료의 물성치 (열전도율, 밀도, 비열) 입력하고 구조체는 Construction class에서 하나씩 referecing해와서 구조체를 만드는 방식이다.
+외부에서부터 내부 방향으로 각 layer가 어떻게 구성되어있는지 입력하는것이다.
 
 \subsection{모르는 값 추정}
 기축건물은 구조체를 모르는 경우가 많으며, 성적서 없는 경우도 다수 존재.
 구조체 모르는 경우 법규 연계, 창호는 현장 조사에서 레이어 조사 후 DB에서 값 선택 등 @TODO
-그린리모델링의 대상인 기축건물은 도면 및 시방서의 누락 등으로 인해 건물의 각 부위별 구조체를 모르는 경우가 많으며, 구조체 정보는 존재하더라도, 물성치에 대한 정보(시험성적서 등)가 없는 경우도 다수 존재한다. 이를 위해, 본 @바꿔 시뮬레이터 구조체 모르는 경우 법규 연계, 창호는 현장 조사에서 레이어 조사 후 DB에서 값 선택 등 @TODO
+그린리모델링의 대상인 기축건물은 도면 및 시방서의 누락 등으로 인해 건물의 각 부위별 구조체를 모르는 경우가 많으며, 구조체 정보는 존재하더라도, 물성치에 대한 정보(시험성적서 등)가 없는 경우도 다수 존재한다. 이를 위해, 본 \simulator는 구조체를 모르는 경우 법규 연계, 창호는 현장 조사에서 레이어 조사 후 DB에서 값 선택 등 대안이 있다.
 
 
 \subsubsection{재료}
 ASHRAE 참고
-
-여기다 단위를 쓰겠습니다 \unit{density} \unit{asdfasdf}
 
 \renewcommand{\arraystretch}{0.8}
 \begin{longtable}{llcclc}
@@ -554,15 +533,15 @@ ASHRAE 참고
 \end{longtable}
 
 \subsubsection{구조체}
-구조체와 실내외 표면열전달저항 값은 에너지절약설계기준값을 참고. 그냥 콘크리트랑 단열재만 가지고 만듦. RC diagram으로 생각하면 아래 그림과 같은 형태인 것임. 구조체 만들때는 이걸 맞춘거니까 이거 쓰는게 맞음.\par
-참고로 EnergyPlus에서는 실내외 표면열전달저항 동적으로 계산됨. 수식은 아래와 같고, 시뮬레이션 해보니 보통 아래와 같음. 비교해보면 차이는 있긴 함.
+구조체와 실내외 표면열전달저항 값은 에너지절약설계기준값을 참고하였다. 임의의 구조체는 콘크리트와 단열재 레이어를 이용하여 정의한다 (아래 RC diagram 그림).\par
+참고로 EnergyPlus에서는 실내외 표면열전달저항 동적으로 계산된다. 수식은 아래와 같고, 시뮬레이션 해보니 보통 아래와 같다. 
 \begin{tcolorbox}[colback=gray!10, colframe=gray!80, boxrule=0.5pt, left=1em, right=1em]
-대충 1년간 hout hin 변화하는 그림 (에절서에 정의된 값이랑 비교할 것) -> 이런 얘기할 때 test건물에 대한 정의는 어떻게 해야 되나? test건물들을 만들어두고 문서 부록에서 기술하여야 할 듯
+1년간 hout hin 변화하는 그림 (에절서에 정의된 값이랑 비교)
 \end{tcolorbox}
 
 \subsubsection{창호}
-창호는 법규에서 U값은 지정하고 있음. SHGC가 없어서 문제임. 또 현장에서 알 수가 없는 경우가 많음. 그래서 그냥 창호 종류에 따라 U, SHGC값을 선택하도록 만들었음.
-이것도 에절서 긁었는데, 현재 기준에 있는 걸로 긁었음. 참고로 에절서에 있는 창호 종류별 성능은 에절서 제정된 2013년 이후로 바뀐 적 없음.
+창호는 법규에서 U값은 지정하고 있으나 SHGC는 따로 규정한 바 없으며, 현장에서 알 수가 없는 경우가 많다. 
+창호 종류에 따라 U, SHGC값을 선택하도록 만들었으며, 이 선택은 에너지절약설계기준을 참고하였다. 참고로, 에절서에 있는 창호 종류별 성능은 에절서 제정된 2013년 이후로 개정된 바 없다.
 
 
 % ---------------------------------------------------------------------------- %
@@ -571,7 +550,7 @@ ASHRAE 참고
 
 \section{프로필 정의와 활용}
 \subsection{ECO2 프로필의 정의}
-건축물에너지효율등급인증규정은 건물 에너지 모델 구축 과정에서 실의 용도를 프로필로 지정하도록 하고 있으며, 총 20개의 프로필을 제공한다\cite{law:usageprofile}. 국내 용도프로필은 (1)사용시간과 운전 시간, (2)설정 요구량, (3)열발열원, (4)실내공기온도, (5)월간 사용일수에 관한 정보를 담고 있다 (\cref{tab:smallofficeusage}). 
+건축물에너지효율등급인증규정은 건물 에너지 모델 구축 과정에서 실의 용도를 프로필로 지정하도록 하고 있으며, 총 23개의 프로필을 제공한다\cite{law:usageprofile}. 국내 용도프로필은 (1)사용시간과 운전 시간, (2)설정 요구량, (3)열발열원, (4)실내공기온도, (5)월간 사용일수에 관한 정보를 담고 있다 (\cref{tab:smallofficeusage}). 
 
 \begin{table}[ht]
   \caption{ECO2:주거 및 주거용 이외 건축물 용도프로필 종류}
@@ -770,66 +749,62 @@ ASHRAE 참고
 
 \section{설비 변환 알고리즘}
 \subsection{Simulator 설비 데이터의 구조와 이해}
-공급-생산 이원화함
+공급-생산 이원화하였다.
 
 \subsection{EnergyPlus 설비 데이터의 구조와 이해}
-branch와 loop 개념임
+branch와 loop 개념을 사용한다. supply와 demand로 구분되어있다.
 
 \subsection{공급 및 생산 설비 변환 방법}
 \subsubsection{데이터 구조 변환}
-공급 만들고, 생산 만들면 일단 loop만들고 branch 만듦.
-그거 결합하면 됨.
-필요하면 source의 source도 있음.
+생산설비로 supply loop와 demand loop 일부를 만들고, 공급설비에서 demand branch를 만든다.
+branchlist등 후처리한다.
 
-\subsubsection{모르는 값 추정}
-default 값 쓰는 걸 기본으로 함. 결정해야 했던 것들도 물론 있음.
-\paragraph{냉각탑} defulat씀. 기본 팬 제어 채택함
-\paragraph{냉동기} defulat씀. 기본 팬 제어 채택함
-\paragraph{보일러} defulat씀. 기본 팬 제어 채택함
+\subsubsection{모르른 변수 추정}
+
+ASHRAE 등 참고하는 것을 기본으로 한다.
+
+각 설비시스템 별 사용자 입력변수, 시뮬레이터가 가정하는 변수, \ep가 기본적으로 제공하는 변수들은 아래 그림들과 같다.
 
 \subsection{전열교환기 변환 방법}
-ventilation에 포함
+ventilation에 포함된다.
 
 \subsection{태양광패널 변환 방법}
-가상의 surface 만듦.
+가상의 surface를 생성하고, ...
 
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
 % ---------------------------------------------------------------------------- %
 
-\chapter{시뮬레이션 결과의 해석} @TODO
+\chapter{시뮬레이션 결과의 해석}
 
 \section{EnergyPlus의 실행 결과물 종류와 의미}
-Table: 어떤 결과 
-CSV:어떤 결과를 의미
-이것을 종합하여, 연료별 table 생성하고 읽어들임.
+연료별 table 생성하고 읽어들인다.
 
 \subsection{EP 결과 내는 법과 의미}
-Table:Output 활용함. Output은 6가지로 구분되는데, heating, cooling, lighting, fan, pump, cogeneration, ...
+Table:Output 활용한다. Output은 6가지로 구분되는데, heating, cooling, lighting, fan, pump, cogeneration, ...
 
 \subsubsection{heating}
-뭐뭐뭐뭐를 포함함
+heating에는 ... 에서 소요되는 에너지가 포함된다.
 
 \subsubsection{cooling}
-뭐뭐뭐뭐를 포함함
+cooling에는 ... 에서 소요되는 에너지가 포함된다.
 
 \subsubsection{lighting}
-뭐뭐뭐뭐를 포함함
+lighting에는 ... 에서 소요되는 에너지가 포함된다.
 
 \subsubsection{fan}
-뭐뭐뭐뭐를 포함함.
-예를들어, 전열교환기를 설치하는 경우 전열교환기 팬이 사용하는 전력은 여기에 들어감.
-nn절에 따라 전열교환기를 모델링하면 전열교환기 1대당 보통 00kW 수준의 전력을 소비함.
+fan에는 ... 에서 소요되는 에너지가 포함된다.
+예를들어, 전열교환기를 설치하는 경우 전열교환기 팬이 사용하는 전력은 여기에 들어간다.
 
 \subsubsection{pump}
-뭐뭐뭐뭐를 포함함. 예를들어, ...
+pump에는 ... 에서 소요되는 에너지가 포함된다. ...설비들을 모델링하면 펌프가 자동으로 생성되어 에너지사용량에 포함된다.
 
 \subsubsection{cogeneration}
-뭐뭐뭐뭐를 포함함
+PV패널 발전량이다.
 
 \subsection{EP 결과 읽는 법과 의미}
-우리가 원하는 결과는 냉방, 난방, 조명, 유체동력계, 급탕, 발전임.
-각각 heating, cooling, lighting, fan과 pump, domestic hot water, cogeneration에 대응됨.
+냉방, 난방, 조명, 팬/펌프/전열교환기, 급탕, 발전은,
+각각 heating, cooling, lighting, fan과 pump, domestic hot water, cogeneration에 대응된다.
 
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
@@ -838,7 +813,7 @@ nn절에 따라 전열교환기를 모델링하면 전열교환기 1대당 보�
 \section{그린리모델링을 위한 결과 해석}
 
 \subsection{단위면적당 에너지소비량} \label{subsec:floorarea_definition_for_EUI}
-가장 널리 사용되는 단위면적당 에너지 소요량 (EUI) 씀. 여기서 단위면적당에는 (@memo 전체 연면적? )까지 포함임. 참고로, ECO2는 냉난방 공조 면적을 구분함. 바닥면적은 그냥 공조하는 모든 zone의 바닥면적의 총합임.
+가장 널리 사용되는 단위면적당 에너지 소요량 (EUI) 씀. 여기서 단위면적당에는 ...까지 포함된다. 바닥면적은 공조하는 모든 zone의 바닥면적의 총합이다.
 
 \subsection{산출 지표들} \label{subsec:result_converting_coeff_definition}
 \simulator\은 계산된 용도별, 열원별, 월별 에너지소요량을 바탕으로, 1차에너지소요량, 온실가스 배출량 및 에너지 비용을 산출하여 제시한다. 각 지표에 대한 변환 계수는 본 엔진에서 지원하는 4가지 연료(전기, 천연가스, 등유, 지역난방)에 대하여 각각 정의되며, 건물 전체의 1차에너지소요량, 온실가스배출량 및 에너지 비용은 4가지 연료에 대한 값의 합으로 정의된다 (식 \ref{eq:1st_energy_calculation} - \ref{eq:cost_calculation}).
