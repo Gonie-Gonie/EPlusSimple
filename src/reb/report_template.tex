@@ -147,30 +147,26 @@
 {\scriptsize
 \setlength{\tabcolsep}{8pt}
 {% if perf_diff12 %}
-\begin{longtable}{l!{\color{gray!60}\vrule width 0.3pt}
-                  l!{\color{gray!60}\vrule width 0.3pt}
-                  l!{\color{gray!60}\vrule width 0.3pt}
-                  c!{\color{gray!60}\vrule width 0.3pt}
-                  c!{\color{gray!60}\vrule width 0.3pt}
-                  c}
-\toprule
-존 이름 & 구분 & 항목 & 이전 값 & 이후 값 & 단위 \\
-\midrule
-\endfirsthead
-\toprule
-존 이름 & 구분 & 항목 & 이전 값 & 이후 값 & 단위 \\
-\midrule
-\endhead
+\begin{tcolorbox}[mysection, breakable]
+\centering
+
+\begin{tabular}{l|l|l|c|c|c}
+\hline
+존 이름 & 구분 & 항목 & 이전 값 & 이후 값 & 단위 \\ \hline
 {% for d in perf_diff12 %}
-{% if not loop.first and d.type != loop.previtem.type %}
-\arrayrulecolor[gray]{0.85}\midrule\arrayrulecolor{black}
-{% endif %}
-{{ d.zonename }} & {{ d.type }} & {{ d.prop }} & {{ d.before }} & {{ d.after }} & {{ d.unit }} \\
+    {% if not loop.first and d.type != loop.previtem.type %}
+        \hline
+    {% endif %}
+    {{ d.zonename }} & {{ d.type }} & {{ d.prop }} & {{ d.before }} & {{ d.after }} & {{ d.unit }} \\
 {% endfor %}
-\bottomrule
-\end{longtable}
+\hline
+\end{tabular}
+\end{tcolorbox}
+
 {% else %}
+\begin{tcolorbox}[mysection]
 \textit{변경내역 없음.}
+\end{tcolorbox}
 {% endif %}
 }
 
@@ -188,30 +184,26 @@
 {\scriptsize
 \setlength{\tabcolsep}{8pt}
 {% if perf_diff23 %}
-\begin{longtable}{l!{\color{gray!60}\vrule width 0.3pt}
-                  l!{\color{gray!60}\vrule width 0.3pt}
-                  l!{\color{gray!60}\vrule width 0.3pt}
-                  c!{\color{gray!60}\vrule width 0.3pt}
-                  c!{\color{gray!60}\vrule width 0.3pt}
-                  c}
-\toprule
-존 이름 & 구분 & 항목 & 이전 값 & 이후 값 & 단위 \\
-\midrule
-\endfirsthead
-\toprule
-존 이름 & 구분 & 항목 & 이전 값 & 이후 값 & 단위 \\
-\midrule
-\endhead
+\begin{tcolorbox}[mysection, breakable]
+\centering
+
+\begin{tabular}{l|l|l|c|c|c}
+\hline
+존 이름 & 구분 & 항목 & 이전 값 & 이후 값 & 단위 \\ \hline
 {% for d in perf_diff23 %}
-{% if not loop.first and d.type != loop.previtem.type %}
-\arrayrulecolor[gray]{0.85}\midrule\arrayrulecolor{black}
-{% endif %}
-{{ d.zonename }} & {{ d.type }} & {{ d.prop }} & {{ d.before }} & {{ d.after }} & {{ d.unit }} \\
+    {% if not loop.first and d.type != loop.previtem.type %}
+        \hline
+    {% endif %}
+    {{ d.zonename }} & {{ d.type }} & {{ d.prop }} & {{ d.before }} & {{ d.after }} & {{ d.unit }} \\
 {% endfor %}
-\bottomrule
-\end{longtable}
+\hline
+\end{tabular}
+\end{tcolorbox}
+
 {% else %}
+\begin{tcolorbox}[mysection]
 \textit{변경내역 없음.}
+\end{tcolorbox}
 {% endif %}
 }
 
@@ -219,30 +211,26 @@
 {\scriptsize
 \setlength{\tabcolsep}{8pt}
 {% if oper_diff23 %}
-\begin{longtable}{l!{\color{gray!60}\vrule width 0.3pt}
-                  l!{\color{gray!60}\vrule width 0.3pt}
-                  l!{\color{gray!60}\vrule width 0.3pt}
-                  c!{\color{gray!60}\vrule width 0.3pt}
-                  c!{\color{gray!60}\vrule width 0.3pt}
-                  c}
-\toprule
-존 이름 & 구분 & 항목 & 이전 값 & 이후 값 & 단위 \\
-\midrule
-\endfirsthead
-\toprule
-존 이름 & 구분 & 항목 & 이전 값 & 이후 값 & 단위 \\
-\midrule
-\endhead
+\begin{tcolorbox}[mysection, breakable]
+\centering
+
+\begin{tabular}{l|l|l|c|c|c}
+\hline
+존 이름 & 구분 & 항목 & 이전 값 & 이후 값 & 단위 \\ \hline
 {% for d in oper_diff23 %}
-{% if not loop.first and d.prop != loop.previtem.prop %}
-\arrayrulecolor[gray]{0.85}\midrule\arrayrulecolor{black}
-{% endif %}
-{{ d.zonename }} & {{ d.type }} & {{ d.prop }} & {{ d.before }} & {{ d.after }} & {{ d.unit }} \\
+    {% if not loop.first and d.type != loop.previtem.type %}
+        \hline
+    {% endif %}
+    {{ d.zonename }} & {{ d.type }} & {{ d.prop }} & {{ d.before }} & {{ d.after }} & {{ d.unit }} \\
 {% endfor %}
-\bottomrule
-\end{longtable}
+\hline
+\end{tabular}
+\end{tcolorbox}
+
 {% else %}
+\begin{tcolorbox}[mysection]
 \textit{변경내역 없음.}
+\end{tcolorbox}
 {% endif %}
 }
 
