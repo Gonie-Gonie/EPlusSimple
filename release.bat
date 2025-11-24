@@ -81,9 +81,31 @@ if %BUILD_ERROR% neq 0 (
     pause
     exit /b
 )
-echo     ...Documentation build successful.
+echo     ...Engineering Reference build successful.
 
-echo [4/5] Copying files for distribution...
+echo [4/5] Building Regression Test Report...
+
+:: latexmk는 .tex 파일이 있는 곳에서 실행하는 것이 가장 안정적입니다.
+pushd docs
+
+:: -pdf: PDF 파일을 생성합니다.
+:: -outdir: 출력 폴더를 지정합니다. 최상위 폴더 기준이므로 ../dist/docs 입니다.
+if not exist "..\dist\docs\RegressionTestReport" mkdir "..\dist\docs\EngineeringReference"
+
+%LATEX_COMPILER% -pdf -outdir=../dist/docs "mainRTR.tex"
+
+set "BUILD_ERROR=%errorlevel%"
+popd
+
+:: 빠져나온 후에 저장된 errorlevel 값으로 성공/실패를 판정합니다.
+if %BUILD_ERROR% neq 0 (
+    echo [ERROR] LaTeX build failed. Please check the log file.
+    pause
+    exit /b
+)
+echo     ...Regression Test Report build successful.
+
+echo [5/6] Copying files for distribution...
 echo     ...Build target: %BUILD_FOR%
 mkdir "%RELEASE_DIR%"
 mkdir "%RELEASE_DIR%\docs"
@@ -143,7 +165,7 @@ if not %errorlevel% equ 0 (
 )
 
 
-echo [5/5] Creating archive: %OUTPUT_ZIP%
+echo [6/6] Creating archive: %OUTPUT_ZIP%
 :: 압축할 폴더로 직접 이동
 pushd "%RELEASE_DIR%"
 :: 현재 폴더(.)의 모든 내용물을 압축 파일에 추가

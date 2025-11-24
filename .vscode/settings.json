@@ -13,4 +13,8 @@
             ]
         },
     ],
+    "files.associations": {
+        "*.grm": "json",
+        "*.grr": "json",
+    }
 }
