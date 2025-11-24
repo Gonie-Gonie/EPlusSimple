@@ -105,7 +105,7 @@ if %BUILD_ERROR% neq 0 (
 )
 echo     ...Regression Test Report build successful.
 
-echo [4/5] Copying files for distribution...
+echo [5/6] Copying files for distribution...
 echo     ...Build target: %BUILD_FOR%
 mkdir "%RELEASE_DIR%"
 mkdir "%RELEASE_DIR%\docs"
@@ -165,7 +165,7 @@ if not %errorlevel% equ 0 (
 )
 
 
-echo [5/5] Creating archive: %OUTPUT_ZIP%
+echo [6/6] Creating archive: %OUTPUT_ZIP%
 :: 압축할 폴더로 직접 이동
 pushd "%RELEASE_DIR%"
 :: 현재 폴더(.)의 모든 내용물을 압축 파일에 추가
