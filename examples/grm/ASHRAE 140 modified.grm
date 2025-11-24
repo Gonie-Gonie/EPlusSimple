@@ -19,7 +19,7 @@
                         "name": "실",
                         "height": 2.7,
                         "profile": "소규모사무실",
-                        "light_density": 0.0,
+                        "light_density": 10,
                         "infiltration": 1.5,
                         "supply_system_heating_id": "SUPL-0x000000",
                         "supply_system_cooling_id": "SUPL-0x000000",

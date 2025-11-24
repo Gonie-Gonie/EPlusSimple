@@ -639,7 +639,7 @@ class Zone:
         
     @property
     def is_conditioned(self):
-        return (self.heating_supply is not None) or (self.cooling_supply is not None)
+        return ((self.heating_supply is not None) or (self.cooling_supply is not None)) and (self.profile.hvac_availability is not None)
     
     @property
     def floor_surface(self) -> list[Surface]:
