@@ -134,9 +134,11 @@ mkdir "%RELEASE_DIR%\docs"
 
 :: Copy common files
 xcopy /E /I /Q "venv"     "%RELEASE_DIR%\venv\"
+xcopy /E /I /Q "examples" "%RELEASE_DIR%\examples\"
 copy "runEngine.bat"        "%RELEASE_DIR%\runEngine.bat" > nul
 copy "runExcelLauncher.bat" "%RELEASE_DIR%\runExcelLauncher.bat" > nul
 copy "dist\docs\mainTRM.pdf" "%RELEASE_DIR%\docs\TechnicalReferenceManual.pdf" > nul
+copy "dist\docs\mainRTR.pdf" "%RELEASE_DIR%\docs\RegressionTestReport.pdf" > nul
 copy "dist\docs\mainEIUG.pdf" "%RELEASE_DIR%\docs\ExcelInterfaceUserGuide.pdf" > nul
 
 :: Copy src modules (conditionally)
