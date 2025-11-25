@@ -14,6 +14,7 @@
 \setstretch{1.5}                       % 기본 줄간격 1.5배
 \setlength{\parskip}{0.6em}            % 단락 사이 간격
 \setlength{\parindent}{1em}            % 단락 들여쓰기
+\usepackage{indentfirst}               % 첫 단락 들여쓰기
 
 % --- 수식 및 수학 패키지 ---
 \usepackage{amsmath}                   % 수학 공식
@@ -50,12 +51,7 @@
 % --- 링크 ---
 \usepackage[colorlinks, linkcolor=blue, citecolor=red]{hyperref} % 하이퍼링크
 \usepackage[capitalise]{cleveref}      % cref 레퍼런스
-\hypersetup{
-  pdftitle={시뮬레이터 기술문서},
-  pdfauthor={서울대학교 건축에너지연구실},
-  pdfkeywords={},
-  bookmarksopen=true
-}
+
 % ---------------------------------------------------------------------------- %
 %                                   SETTINGS                                   %
 % ---------------------------------------------------------------------------- %
@@ -154,7 +150,12 @@
 \newcommand{\ep}{EnergyPlus}
 \newcommand{\simulator}{EPlusSimple}
 \newcommand{\pymodule}{epsimple}
-
+\hypersetup{
+  pdftitle={\simulator~Document},
+  pdfauthor={서울대학교 건축에너지연구실},
+  pdfkeywords={},
+  bookmarksopen=true
+}
 % --- 단위 정의 ---
 \newcommand{\unit}[1]{
   \begingroup

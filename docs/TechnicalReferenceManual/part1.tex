@@ -63,12 +63,22 @@
 %                                  NEW SECTION                                 %
 % ---------------------------------------------------------------------------- %
 
-\section{\simulator의 개요 및 역할}
+\section{\simulator 의 개념 및 구조}
 
-이 프로그램이 하는 건 실질적으로 converting이다 (그림 \ref{fig:package_function}). 중간에 python이 껴있고, interface로 IO 처리한다.
+\simulator 은 국제적으로 검증된 건물 에너지 해석 프로그램인 EnergyPlus(EP)를 핵심 연산 코어로 사용하되, 사용자가 EP의 복잡한 입출력 과정을 직접 다루지 않도록 설계된 추상화 계층(Abstraction Layer)이다 \parencref{fig:simulator_concept_structure}. 
 
 \begin{defaultfigure}
-  \includegraphics[width=\textwidth]{GRSimulator의 실체.png}
-  \caption{\simulator\ 프로그램의 기능...이 무엇인지?}
-  \label{fig:package_function}
+  \includegraphics[width=\textwidth]{시뮬레이터 개념 및 구조.png}
+  \caption{\simulator 의 개념 및 구조}
+  \label{fig:simulator_concept_structure}
 \end{defaultfigure}
+
+사용자는 GUI를 통해 건물 정보를 트리 구조의 input.grm 파일(json 기반)로 입력하면, 이 파일이 곧 인터페이스 계층의 표준 형태가 된다. 이후 파이썬 모듈이 이를 받아 사람이 이해·수정하기 쉬운 형태의 Input-Friendly class로 변환하고, 데이터베이스 값 삽입, 세부 변수 가정, EnergyPlus 구조에 맞춘 재구성을 수행하여 EP-Friendly class로 매핑한다. 이 과정을 통해 사용자는 복잡한 IDF 문법이나 수많은 상세 필드를 직접 다루지 않고도, 자신의 언어와 업무 흐름에 가까운 구조로 모델을 정의할 수 있다.
+
+변환된 EP-Friendly class는 템플릿 기반의 IDF 생성 절차를 거쳐 input.idf 파일로 자동 변환되고, EnergyPlus 해석이 수행된 뒤 결과 파일(output.csv)이 다시 파이썬에서 EnergyPlusResult 객체로 읽혀 들어온다. 이후 이 결과는 월별·용도별 에너지 지표 등 그린리모델링 의사결정에 바로 활용 가능한 형태의 output.grr 파일로 재가공된다. 즉, 제안된 엔진은 입력 단계에서 건물 데이터 구조를 단순화·표준화하고, 해석 단계에서는 EnergyPlus의 물리 기반 고정밀 해석을 그대로 활용하며, 출력 단계에서는 실무자가 이해하기 쉬운 지표와 형식으로 재구성하는 Python 기반 변환 모듈 집합이다. 이를 통해 사용자는 EnergyPlus의 복잡한 내부 구조를 직접 학습하지 않고도, GUI와 단일 입력·출력 포맷만으로 고정밀 동적 시뮬레이션을 활용할 수 있게 된다.
+
+본 시뮬레이션 엔진은 건물 에너지 해석 프로그램인 EnergyPlus(EP)를 핵심 연산 코어로 사용하되, 사용자가 EP의 복잡한 입출력 과정을 직접 다루지 않도록 설계된 **고도화된 추상화 계층(Abstraction Layer)**입니다. 구조적으로는 Python 기반의 변환 모듈이 EP를 감싸고 있는(Wrapping) 형태를 띠고 있어, 외부적으로는 단순한 데이터 흐름을 보이지만 내부적으로는 정교한 변환 로직이 작동하는 미들웨어 역할을 수행합니다.
+
+데이터 처리 과정을 살펴보면, 엔진은 사용자가 다루기 쉬운 Tree 구조의 건물 데이터(input.grm)를 입력받아 Python 내부의 **'Input-Friendly class'**로 변환합니다. 이후 데이터베이스(DB) 값을 매핑하고 세부 변수를 자동으로 가정하여 EP가 해석 가능한 구조인 'EP-Friendly class' 및 IDF 템플릿으로 재가공합니다. 이는 사용자가 복잡한 물리적 변수를 일일이 설정하지 않아도, 엔진이 자동으로 EP 구동에 필요한 input.idf 파일을 생성해 준다는 것을 의미합니다.
+
+결과적으로 이 엔진은 사용자의 편의성을 극대화하기 위해 개발되었습니다. 해석이 완료된 후에도 EP의 원본 결과물(output.csv)을 그대로 보여주는 것이 아니라, Python 객체로 다시 변환하여 월별/용도별 에너지 지표와 같이 직관적인 형태(output.grr)로 가공해 제공합니다. 즉, Python 변환 모듈이 중간에서 복잡한 기술적 장벽을 해소해 줌으로써, 사용자는 EnergyPlus의 강력한 성능을 쉽고 간편하게 활용할 수 있습니다.
