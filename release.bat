@@ -68,9 +68,9 @@ pushd docs
 
 :: -pdf: PDF 파일을 생성합니다.
 :: -outdir: 출력 폴더를 지정합니다. 최상위 폴더 기준이므로 ../dist/docs 입니다.
-if not exist "..\dist\docs\EngineeringReference" mkdir "..\dist\docs\EngineeringReference"
+if not exist "..\dist\docs\TechnicalReferenceManual" mkdir "..\dist\docs\TechnicalReferenceManual"
 
-%LATEX_COMPILER% -pdf -outdir=../dist/docs "mainER.tex"
+%LATEX_COMPILER% -pdf -outdir=../dist/docs "mainTRM.tex"
 
 set "BUILD_ERROR=%errorlevel%"
 popd
@@ -114,7 +114,7 @@ mkdir "%RELEASE_DIR%\docs"
 xcopy /E /I /Q "venv"     "%RELEASE_DIR%\venv\"
 copy "runEngine.bat"        "%RELEASE_DIR%\runEngine.bat" > nul
 copy "runExcelLauncher.bat" "%RELEASE_DIR%\runExcelLauncher.bat" > nul
-copy "dist\docs\mainER.pdf" "%RELEASE_DIR%\docs\EngineeringReference.pdf" > nul
+copy "dist\docs\mainTRM.pdf" "%RELEASE_DIR%\docs\TechnicalReferenceManual.pdf" > nul
 
 :: Copy src modules (conditionally)
 echo     ...Copying src modules...

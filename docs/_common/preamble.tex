@@ -170,4 +170,33 @@
   \endgroup
 }
 
-% --- 
+
+
+% ---------------------------------------------------------------------------- %
+%                                   FUNCTIONS                                  %
+% ---------------------------------------------------------------------------- %
+
+\newcommand{\maketitlepage}[1]{%
+\begin{titlepage}
+  \centering
+  
+  {\scshape\large \simulator Version \releaseversion Documentation\par}
+  \vspace{6em}
+
+  {\bfseries\Huge #1\par}
+  \vspace{1em}
+
+  {\itshape\Large Korea Authority of Land \& Infrastructure Safety\par}
+  {\itshape\Large Seoul National University\par}
+
+  \vfill
+  \includegraphics[height=0.25\textwidth]{국토안전관리원_시그니처2.png}
+  \hspace{4em}
+  \includegraphics[height=0.25\textwidth]{snu_ui.png}
+
+  \vfill
+  {\large \releasedate\par}
+  \vspace{0.5em}
+  {\small COPYRIGHT (c) \simulator\는 국토교통부, 국토안전관리원의 지원으로 제작되었습니다.}
+\end{titlepage}
+}

@@ -18,26 +18,7 @@
 \listoftodos
 
 % --- 표지 ---
-\begin{titlepage}
-  \centering
-  % 제목 및 상단 문구
-  {\scshape\large \simulator Version \releaseversion Documentation\par}
-  \vspace{6em}
-  {\bfseries\Huge Input, Output, and Engineering Reference\par}
-  \vspace{1em}
-  {\itshape\Large Korea Authority of Land \& Infrastructure Safety\par}
-  {\itshape\Large Seoul National University\par}
-  \vfill
-  % 중앙 그림 (로고)
-  \includegraphics[height=0.25\textwidth]{국토안전관리원_시그니처2.png}
-  \hspace{4em}
-  \includegraphics[height=0.25\textwidth]{snu_ui.png}
-  \vfill
-  % 하단
-  {\large \releasedate \par}
-  \vspace{0.5em}
-  {\small COPYRIGHT (c) \simulator\는 국토교통부, 국토안전관리원의 지원으로 제작되었습니다.. 이 문서도 소유권은 누구에게 있고...}
-\end{titlepage}
+\maketitlepage{Techniccal Reference Manual}
 
 % --- 서문 ---
 \section*{서문}
@@ -68,13 +49,13 @@
 
 % --- 본문 ---
 \mainmatter
-\include{EngineeringReference/part1}
-\include{EngineeringReference/part2}
-\include{EngineeringReference/part3}
-\include{EngineeringReference/part4}
+\include{TechnicalRefernceManual/part1}
+\include{TechnicalRefernceManual/part2}
+\include{TechnicalRefernceManual/part3}
+\include{TechnicalRefernceManual/part4}
 
 % --- 부록 --- 
-\include{EngineeringReference/appendix}
+\include{TechnicalRefernceManual/appendix}
 
 % ---------------------------------------------------------------------------- %
 %                                  BACKMATTER                                  %
