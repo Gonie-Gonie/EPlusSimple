@@ -21,9 +21,9 @@
     % 1. Root Level
     \textbf{src/} & 엔진의 핵심 알고리즘이 포함된 소스 코드 &  \\
     
-    \hspace{0.5em} $\llcorner$ idragon/ & EnergyPlus 친화적 구조 및 idf 변환 & \ref{subsection:dirstructure-epmodule} \\
+    \hspace{0.5em} $\llcorner$ idragon/ & EnergyPlus 친화적 구조 및 idf 변환 & \ref{subsection:dirstructure-pymodule} \\
     \hspace{1.5em} $\llcorner$ \_energyPlus/ & 내장된 EnergyPlus 엔진 & \ref{subsection:dirstructure-energyplus} \\
-    \hspace{0.5em} $\llcorner$ \pymodule / & \simulator 친화적 구조 및 중간 변환 & \ref{subsection:dirstructure-mainmodule} \\
+    \hspace{0.5em} $\llcorner$ \pymodule / & \simulator 친화적 구조 및 중간 변환 & \ref{subsection:dirstructure-pymodule} \\
     \addlinespace 
     
     \textbf{launcher/} & Excel 기반 입력파일의 실행을 위한 web 기반 GUI  & \ref{subsection:dirstructure-excellauncher} \\
@@ -56,13 +56,10 @@
 
 \section{소스 코드}
 
-\subsection{idragon} \label{subsection:dirstructure-epmodule}
+\subsection{idragon과 \pymodule} \label{subsection:dirstructure-pymodule}
 추후 기술
 
-\subsection{\pymodule} \label{subsection:dirstructure-mainmodule}
-추후 기술
-
-\section{API 상세 명세}
+\subsection{\pymodule~API 상세 명세}
 \label{sec:api_detail}
 
 \pymodule{} 모듈의 \texttt{api.py}는 시뮬레이션 엔진의 핵심 기능을 수행하는 4개의 주요 함수를 제공한다.
@@ -70,28 +67,56 @@
 % ---------------------------------------------------------------------------- %
 %                                1. RUN FUNCTIONS                              %
 % ---------------------------------------------------------------------------- %
-\subsection{시뮬레이션 실행 함수}
 
-\begin{codebox}{run\_grjson / run\_grexcel}
+\subsubsection{json구조 입력파일(grm) 실행 (run\_grjson)}
+
+표준 JSON 포맷(\texttt{.grm})으로 작성된 모델 파일을 입력받아 시뮬레이션을 수행한다. 엔진의 가장 기본이 되는 실행 함수이다.
+
+\begin{codebox}{run\_grjson}
 \small
 \textbf{Definition:}
 \begin{verbatim}
 def run_grjson(input_filepath, output_filepath=None, *, save=True) -> str | dict
-def run_grexcel(input_filepath, output_filepath=None, *, save=True) -> str
 \end{verbatim}
 \end{codebox}
-
-\noindent 두 함수는 각각 JSON(.grm)과 Excel(.xlsx) 포맷의 모델을 입력받아 시뮬레이션을 수행한다.
 
 \begin{table}[htbp]
     \centering\small
     \begin{tabularx}{\textwidth}{l l X}
     \toprule
-    \textbf{매개변수 (Args)} & \textbf{타입} & \textbf{설명} \\
+    \textbf{매개변수} & \textbf{타입} & \textbf{설명} \\
     \midrule
-    \texttt{input\_filepath} & \texttt{str} & 입력 파일 경로 (확장자 생략 가능) \\
-    \texttt{output\_filepath} & \texttt{str | None} & 결과 저장 경로. \texttt{None}일 경우 입력 파일명에 \texttt{\_out} 접미사를 붙여 자동 생성 \\
-    \texttt{save} & \texttt{bool} & \texttt{True}일 경우 결과를 파일(.grr)로 저장, \texttt{False}일 경우 딕셔너리로 반환 (\texttt{grjson} 전용) \\
+    \texttt{input\_filepath} & \texttt{str} & 입력 파일 경로 (\texttt{.grm} 확장자 권장, 생략 가능) \\
+    \texttt{output\_filepath} & \texttt{str | None} & 결과 파일(.grr) 저장 경로. \newline \texttt{None}일 경우 입력 파일명에 \texttt{\_out}을 붙여 자동 생성 \\
+    \texttt{save} & \texttt{bool} & \texttt{True}이면 결과를 파일로 저장하고 경로(\texttt{str}) 반환. \newline \texttt{False}이면 저장하지 않고 결과 딕셔너리(\texttt{dict}) 반환 \\
+    \bottomrule
+    \end{tabularx}
+\end{table}
+
+% ---------------------------------------------------------------------------- %
+%                                 2. RUN_GREXCEL                               %
+% ---------------------------------------------------------------------------- %
+\subsubsection{스프레드시트 입력파일 실행 (run\_grexcel)}
+
+사용자 편의를 위해 작성된 엑셀(\texttt{.xlsx}) 모델 파일을 입력받는다. 내부적으로 \texttt{excel2grjson} 유틸리티를 호출하여 JSON으로 변환한 뒤 시뮬레이션을 수행하며, 종료 시 임시 JSON 파일은 삭제된다.
+
+\begin{codebox}{run\_grexcel}
+\small
+\textbf{Definition:}
+\begin{verbatim}
+def run_grexcel(input_filepath, output_filepath=None, *, save=True) -> str
+\end{verbatim}
+\end{codebox}
+
+\begin{table}[htbp]
+    \centering\small
+    \begin{tabularx}{\textwidth}{l l X}
+    \toprule
+    \textbf{매개변수} & \textbf{타입} & \textbf{설명} \\
+    \midrule
+    \texttt{input\_filepath} & \texttt{str} & 입력 엑셀 파일 경로 (\texttt{.xlsx} 확장자, 생략 가능) \\
+    \texttt{output\_filepath} & \texttt{str | None} & 결과 파일(.grr) 저장 경로 (자동 생성 지원) \\
+    \texttt{save} & \texttt{bool} & 결과 파일 저장 여부 (기본값 \texttt{True}) \\
     \bottomrule
     \end{tabularx}
 \end{table}
@@ -99,7 +124,7 @@ def run_grexcel(input_filepath, output_filepath=None, *, save=True) -> str
 % ---------------------------------------------------------------------------- %
 %                                2. GET DATABASE                               %
 % ---------------------------------------------------------------------------- %
-\subsection{데이터베이스 조회 함수}
+\subsubsection{데이터베이스 조회 함수}
 
 \begin{codebox}{get\_database}
 \small
@@ -127,7 +152,7 @@ def get_database(datatype, key, *, as_dict=False) -> object | dict
 % ---------------------------------------------------------------------------- %
 %                                   3. CONVERT                                 %
 % ---------------------------------------------------------------------------- %
-\subsection{포맷 변환 함수}
+\subsubsection{포맷 변환 함수}
 
 \begin{codebox}{convert}
 \small
@@ -302,9 +327,63 @@ Regression Test Report는 소프트웨어의 기능 추가나 코드 수정, 혹
 \section{엔진 실행 파일 (runEngine.bat)} \label{subsection:dirstructure-enginelauncher}
 
 \subsection{실행파일(.bat)의 역할}
-추후 기술
 
-\section{CLI 명령어 명세}
+\texttt{runEngine.bat}은 윈도우 환경에서 \simulator{} 엔진을 구동하기 위한 배치(Batch) 스크립트이다. 이 스크립트는 단순히 프로그램을 실행하는 것을 넘어, 포터블 파이썬 환경의 경로를 동적으로 할당하고 실행 로그를 관리하는 **실행 래퍼(Execution Wrapper)** 역할을 수행한다.
+
+주요 기능과 내부 동작 원리는 다음과 같다.
+
+% ---------------------------------------------------------------------------- %
+%                                 1. ENV WRAPPING                              %
+% ---------------------------------------------------------------------------- %
+\subsubsection{독립 실행 환경 래핑 (Environment Wrapping)}
+
+사용자의 시스템에 파이썬이 설치되어 있지 않거나 버전이 다르더라도 실행을 보장하기 위해, 스크립트 내부에서 포터블 파이썬의 절대 경로를 동적으로 구성한다.
+
+\begin{itemize}
+    \item \textbf{상대 경로의 절대 경로화}: \texttt{\%~dp0} 변수를 사용하여 스크립트가 위치한 현재 디렉토리 경로를 가져온다. 이를 통해 어디서 실행하든 \texttt{venv} 폴더 내의 파이썬 실행 파일(\texttt{python.exe})을 정확히 참조한다.
+    \item \textbf{모듈 실행 캡슐화}: \texttt{-m epsimple} 옵션을 내장하여, 사용자는 복잡한 모듈명을 입력할 필요 없이 스크립트 실행만으로 엔진을 호출할 수 있다.
+\end{itemize}
+
+\begin{codebox}{Path Configuration}
+\small
+\begin{verbatim}
+SET "BATCH_DIR=%~dp0"
+SET "PYTHON_EXE=%BATCH_DIR%venv\python.exe"
+SET "MODULE_NAME=epsimple"
+\end{verbatim}
+\end{codebox}
+
+% ---------------------------------------------------------------------------- %
+%                                 2. LOGGING                                   %
+% ---------------------------------------------------------------------------- %
+\subsubsection{로그 파일 관리 및 리다이렉션 (Log Management)}
+
+시뮬레이션 엔진의 모든 실행 기록은 콘솔(화면)이 아닌 파일로 저장된다. 이는 대량의 연산 과정에서 발생할 수 있는 에러를 추적(Debugging)하고, GUI 런처 등 외부 프로그램이 실행 상태를 모니터링하기 위함이다.
+
+\begin{itemize}
+    \item \textbf{로그 초기화}: 스크립트가 실행될 때마다 기존 \texttt{log.log} 파일이 존재할 경우 이를 삭제하여, 항상 해당 실행 회차의 깨끗한 로그만 남도록 관리한다.
+    \item \textbf{표준 출력/에러 리다이렉션}: \texttt{> "\%LOG\_FILE\%" 2>\&1} 구문을 사용하여, 정상적인 출력 메시지(Stdout, 1)뿐만 아니라 에러 메시지(Stderr, 2)까지 모두 하나의 로그 파일로 통합하여 저장한다.
+\end{itemize}
+
+\begin{codebox}{Execution \& Redirection Logic}
+\small
+\begin{verbatim}
+REM 기존 로그 삭제
+IF EXIST "%LOG_FILE%" DEL "%LOG_FILE%"
+
+REM 실행 및 출력 리다이렉션 (Stdout + Stderr -> Log)
+"%PYTHON_EXE%" -m "%MODULE_NAME%" %* > "%LOG_FILE%" 2>&1
+\end{verbatim}
+\end{codebox}
+
+% ---------------------------------------------------------------------------- %
+%                                 3. ARG PASSING                               %
+% ---------------------------------------------------------------------------- %
+\subsubsection{인자 전달 (Argument Forwarding)}
+
+사용자가 배치 파일 뒤에 입력한 모든 추가 인자(\texttt{run -i input.xlsx} 등)는 \texttt{\%*} 와일드카드를 통해 파이썬 모듈로 그대로 전달된다.이를 통해 \texttt{runEngine.bat}은 마치 파이썬 실행 파일 그 자체인 것처럼 투명하게 동작한다.
+
+\subsection{CLI 명령어 명세}
 \label{sec:cli_spec}
 
 \texttt{\_\_main\_\_.py}는 사용자의 커맨드라인 입력을 파싱하여 앞서 기술한 API 함수들을 호출하는 진입점이다.
@@ -312,7 +391,7 @@ Regression Test Report는 소프트웨어의 기능 추가나 코드 수정, 혹
 % ---------------------------------------------------------------------------- %
 %                                   1. RUN CMD                                 %
 % ---------------------------------------------------------------------------- %
-\subsection{run: 시뮬레이션 실행}
+\subsubsection{run: 시뮬레이션 실행}
 
 \begin{codebox}{Syntax}
 \texttt{python -m \pymodule{} run [-i INPUT] [-o OUTPUT]}
@@ -328,7 +407,7 @@ Regression Test Report는 소프트웨어의 기능 추가나 코드 수정, 혹
 % ---------------------------------------------------------------------------- %
 %                                 2. CONVERT CMD                               %
 % ---------------------------------------------------------------------------- %
-\subsection{convert: 포맷 변환}
+\subsubsection{convert: 포맷 변환}
 
 \begin{codebox}{Syntax}
 \texttt{python -m \pymodule{} convert INPUT [-s SRC] [-d DST] [-o OUTPUT]}
@@ -345,7 +424,7 @@ Regression Test Report는 소프트웨어의 기능 추가나 코드 수정, 혹
 % ---------------------------------------------------------------------------- %
 %                                   3. DB CMD                                  %
 % ---------------------------------------------------------------------------- %
-\subsection{DB: 데이터베이스 인터페이스}
+\subsubsection{DB: 데이터베이스 조회}
 
 \begin{codebox}{Syntax}
 \texttt{python -m \pymodule{} DB DATATYPE [-g KEY]}
