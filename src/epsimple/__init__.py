@@ -40,7 +40,6 @@ if module_validity != 0:
 from .core import *
 from .api  import (
     run_grjson   ,
-    check_grexcel,
     run_grexcel  ,
     get_database ,
 )

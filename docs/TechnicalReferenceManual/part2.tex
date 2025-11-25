@@ -6,130 +6,369 @@
 %                                  NEW SECTION                                 %
 % ---------------------------------------------------------------------------- %
 
-\chapter{프로그램 구성 요소}
-본 시뮬레이터 엔진은 핵심 python 모듈(\pymodule)\을 중심으로 개발되었다. 이 시뮬레이터는 Python(3.12)\cite{python312}\과 EnergyPlus(24-2-0)\cite{energyplus242}\를 별도 설치 없이 실행할 수 있도록 패키징되어, 사용자가 어떤 환경에서도 단독으로 실행 할 수 있는 독립형 실행 환경을 제공한다(Figure \ref{fig:package_structure}). 개발한 python 모듈(\pymodule)에 대한 자세한 내용은 후속 장에서 설명하며, 사용자는 목적에 맞게 해당 모듈을 충분히 수정 및 가공할 수 있다.
+\chapter{엔진 구조}
+\simulator 는 핵심 알고리즘을 포함하는 \pymodule 과 함께, 실행을 위한 독립 실행형 Python, 실행도구, 및 관련 문서 및 예시파일을 포함한다.
+디렉토리의 각 구성 요소별 내용은 \textcref{table:release-dirstructure}\과 같다.
 
-\begin{defaultfigure}
-  \includegraphics[scale=0.1]{package_structure.png}
-  \caption{\simulator\ 프로그램 구조도}
-  \label{fig:package_structure}
-\end{defaultfigure}
+\begin{defaulttable}
+  \caption{\simulator~디렉토리 구성}
+  \label{table:release-dirstructure}
+  \begin{tabularx}{\textwidth}{l X c}
+    \toprule
+    \textbf{구성 요소 (경로)} & \textbf{내용} & \textbf{참조} \\
+    \midrule
+    
+    % 1. Root Level
+    \textbf{src/} & 엔진의 핵심 알고리즘이 포함된 소스 코드 &  \\
+    
+    \hspace{0.5em} $\llcorner$ idragon/ & EnergyPlus 친화적 구조 및 idf 변환 & \ref{subsection:dirstructure-epmodule} \\
+    \hspace{1.5em} $\llcorner$ \_energyPlus/ & 내장된 EnergyPlus 엔진 & \ref{subsection:dirstructure-energyplus} \\
+    \hspace{0.5em} $\llcorner$ \pymodule / & \simulator 친화적 구조 및 중간 변환 & \ref{subsection:dirstructure-mainmodule} \\
+    \addlinespace 
+    
+    \textbf{launcher/} & Excel 기반 입력파일의 실행을 위한 web 기반 GUI  & \ref{subsection:dirstructure-excellauncher} \\
+    \addlinespace
+    
+    \textbf{docs/} & 엔진 관련 명세 &  \\
+    \hspace{0.5em} $\llcorner$ \texttt{TechnicalReferenceManual} & \simulator 의 구조 및 알고리즘 명세 (본 문서) & \ref{subsection:dirstructure-documentationTRM} \\
+    \hspace{0.5em} $\llcorner$ \texttt{RegressionTestReport} & 버전 검증용 테스트 파일 실행 결과 & \ref{subsection:dirstructure-documentationRTR} \\
+    \addlinespace
+
+    \textbf{examples/} & 입출력 파일 예시 및 포맷 & \ref{subsection:dirstructure-example} \\
+    \hspace{0.5em} $\llcorner$ grm/ & json구조 입력파일 예시 &  \\
+    \hspace{0.5em} $\llcorner$ grexcel/ & 엑셀기반 입력파일 예시 &  \\
+    \hspace{0.5em} $\llcorner$ grr/ & json구조 출력파일 예시 &  \\
+    \addlinespace
+
+    \textbf{venv/} & 필요한 라이브러리가 포함된 독립 실행형 Python & \ref{subsection:dirstructure-python} \\
+    \addlinespace
+    
+    \texttt{runEngine} & 엔진 실행 배치 스크립트 & \ref{subsection:dirstructure-enginelauncher} \\
+    \texttt{runExcelLauncher} & Excel 기반 입력파일의 실행을 위한 web 기반 GUI 실행 배치 스크립트 & \ref{subsection:dirstructure-excellauncher} \\
+    
+    \bottomrule
+  \end{tabularx}
+\end{defaulttable}
+
+% ---------------------------------------------------------------------------- %
+%                                  NEW SECTION                                 %
+% ---------------------------------------------------------------------------- %
+
+\section{소스 코드}
+
+\subsection{idragon} \label{subsection:dirstructure-epmodule}
+추후 기술
+
+\subsection{\pymodule} \label{subsection:dirstructure-mainmodule}
+추후 기술
+
+\section{API 상세 명세}
+\label{sec:api_detail}
+
+\pymodule{} 모듈의 \texttt{api.py}는 시뮬레이션 엔진의 핵심 기능을 수행하는 4개의 주요 함수를 제공한다.
+
+% ---------------------------------------------------------------------------- %
+%                                1. RUN FUNCTIONS                              %
+% ---------------------------------------------------------------------------- %
+\subsection{시뮬레이션 실행 함수}
+
+\begin{codebox}{run\_grjson / run\_grexcel}
+\small
+\textbf{Definition:}
+\begin{verbatim}
+def run_grjson(input_filepath, output_filepath=None, *, save=True) -> str | dict
+def run_grexcel(input_filepath, output_filepath=None, *, save=True) -> str
+\end{verbatim}
+\end{codebox}
+
+\noindent 두 함수는 각각 JSON(.grm)과 Excel(.xlsx) 포맷의 모델을 입력받아 시뮬레이션을 수행한다.
+
+\begin{table}[htbp]
+    \centering\small
+    \begin{tabularx}{\textwidth}{l l X}
+    \toprule
+    \textbf{매개변수 (Args)} & \textbf{타입} & \textbf{설명} \\
+    \midrule
+    \texttt{input\_filepath} & \texttt{str} & 입력 파일 경로 (확장자 생략 가능) \\
+    \texttt{output\_filepath} & \texttt{str | None} & 결과 저장 경로. \texttt{None}일 경우 입력 파일명에 \texttt{\_out} 접미사를 붙여 자동 생성 \\
+    \texttt{save} & \texttt{bool} & \texttt{True}일 경우 결과를 파일(.grr)로 저장, \texttt{False}일 경우 딕셔너리로 반환 (\texttt{grjson} 전용) \\
+    \bottomrule
+    \end{tabularx}
+\end{table}
+
+% ---------------------------------------------------------------------------- %
+%                                2. GET DATABASE                               %
+% ---------------------------------------------------------------------------- %
+\subsection{데이터베이스 조회 함수}
+
+\begin{codebox}{get\_database}
+\small
+\textbf{Definition:}
+\begin{verbatim}
+def get_database(datatype, key, *, as_dict=False) -> object | dict
+\end{verbatim}
+\end{codebox}
+
+\noindent 내장 데이터베이스에서 특정 객체나 속성값을 조회한다.
+
+\begin{table}[htbp]
+    \centering\small
+    \begin{tabularx}{\textwidth}{l l X}
+    \toprule
+    \textbf{매개변수} & \textbf{타입} & \textbf{설명} \\
+    \midrule
+    \texttt{datatype} & \texttt{Literal} & 조회 대상 DB 종류 (\texttt{material}, \texttt{schedule}, \texttt{surface\_construction} 등) \\
+    \texttt{key} & \texttt{str} & 아이템 식별자. 복합 구조체(Construction)의 경우 속성을 \texttt{\&} 기호로 연결하여 문자열로 전달 \\
+    \texttt{as\_dict} & \texttt{bool} & \texttt{True} 설정 시 객체가 아닌 딕셔너리(JSON 호환 포맷) 형태로 반환 \\
+    \bottomrule
+    \end{tabularx}
+\end{table}
+
+% ---------------------------------------------------------------------------- %
+%                                   3. CONVERT                                 %
+% ---------------------------------------------------------------------------- %
+\subsection{포맷 변환 함수}
+
+\begin{codebox}{convert}
+\small
+\textbf{Definition:}
+\begin{verbatim}
+def convert(input_filepath, src, dst, *, output_filepath=None) -> None
+\end{verbatim}
+\end{codebox}
+
+\noindent 입력 파일의 형식을 변환한다. 변환 전 \texttt{src}와 \texttt{dst} 간의 호환성을 검사하며, 지원하지 않는 변환 요청 시 \texttt{ValueError}를 발생시킨다.
+
+\begin{table}[htbp]
+    \centering\small
+    \begin{tabularx}{\textwidth}{l l X}
+    \toprule
+    \textbf{매개변수} & \textbf{타입} & \textbf{설명} \\
+    \midrule
+    \texttt{src / dst} & \texttt{Enum} & \texttt{GreenRetrofitDataFormat} (excel, json, idf) \\
+    \texttt{output\_filepath} & \texttt{str} & 지정하지 않을 경우, 원본 파일 경로의 확장자만 변경하여 저장 \\
+    \bottomrule
+    \end{tabularx}
+\end{table}
+% ---------------------------------------------------------------------------- %
+%                                  NEW SECTION                                 %
+% ---------------------------------------------------------------------------- %
 
 \section{외부 프로그램}
 
+\subsection{Python 및 그 모듈} \label{subsection:dirstructure-python}
+\simulator \는 2023년 말 출시되어 현재 가장 널리 쓰이는 버전 중 하나인 \texttt{Python 3.12}\cite{python312}를 사용한다.
+Python은 연 1회의 버전 업데이트(매년 10월)를 원칙으로 하며, 강력한 하위 호환성을 유지하되 노후화된 기능은 DeprecationWarning을 거쳐 단계적으로 폐지하는 안정적인 수명 주기를 가지므로, 상위 버전의 Python을 대신 사용하는 것은 긍정적으로 고려될 수 있다.
+
+\pymodule 을 비롯한 내장된 Python 모듈에서 기능 구현을 위해 사용된 라이브러리는 \textcref{table:portablepython-dependencies}\와 같다.
+
+\begin{defaultlongtable}{l p{7cm} c c}
+    \caption{독립 실행형 Python의 의존성 라이브러리 목록}
+    \label{table:portablepython-dependencies} \\
+
+    % --- 헤더 정의 ---
+    \toprule
+    \textbf{모듈명} & \textbf{기능} & \textbf{버전} & \textbf{링크} \\
+    \midrule
+    \endfirsthead
+
+    % --- 다음 페이지 헤더 ---
+    \toprule
+    \textbf{모듈명} & \textbf{기능} & \textbf{버전} & \textbf{링크} \\
+    \midrule
+    \endhead
+
+    % --- 푸터 ---
+    \midrule
+    \multicolumn{4}{r}{\small\textit{다음 페이지에 계속...}} \\
+    \endfoot
+
+    \bottomrule
+    \endlastfoot
+
+    % ==========================================
+    % 1. 데이터 처리 및 엑셀
+    % ==========================================
+    \multicolumn{4}{l}{\textbf{1. 데이터 처리 및 엑셀 (Data Processing \& Excel)}} \\
+    \midrule
+    numpy & 과학 연산 및 다차원 배열 처리 핵심 라이브러리 & 2.3.1 & \href{https://pypi.org/project/numpy/}{PyPI} \\
+    pandas & 고성능 데이터 구조 및 데이터 분석 도구 & 2.3.0 & \href{https://pypi.org/project/pandas/}{PyPI} \\
+    tinynumpy & 경량화된 NumPy 호환 모듈 & 1.2.1 & \href{https://pypi.org/project/tinynumpy/}{PyPI} \\
+    openpyxl & Excel (.xlsx) 파일 읽기/쓰기 지원 & 3.1.5 & \href{https://pypi.org/project/openpyxl/}{PyPI} \\
+    et\_xmlfile & 메모리 효율적인 XML 파일 처리 & 2.0.0 & \href{https://pypi.org/project/et-xmlfile/}{PyPI} \\
+
+    % ==========================================
+    % 2. 시각화 및 그래픽
+    % ==========================================
+    \midrule
+    \multicolumn{4}{l}{\textbf{2. 시각화 및 그래픽 (Visualization \& Graphics)}} \\
+    \midrule
+    matplotlib & 출판 품질의 데이터 시각화 및 플로팅 & 3.10.1 & \href{https://pypi.org/project/matplotlib/}{PyPI} \\
+    pillow & 다양한 포맷을 지원하는 이미지 처리 & 11.1.0 & \href{https://pypi.org/project/pillow/}{PyPI} \\
+    contourpy & 등고선 데이터 계산 및 조작 & 1.3.1 & \href{https://pypi.org/project/contourpy/}{PyPI} \\
+    cycler & 플롯 스타일 속성 순환 설정 & 0.12.1 & \href{https://pypi.org/project/cycler/}{PyPI} \\
+    fonttools & 폰트 파일(TTF, OTF) 조작 및 변환 & 4.56.0 & \href{https://pypi.org/project/fonttools/}{PyPI} \\
+    kiwisolver & 고속 제약 조건 해결 알고리즘 (레이아웃 계산) & 1.4.8 & \href{https://pypi.org/project/kiwisolver/}{PyPI} \\
+
+    % ==========================================
+    % 3. 웹 프레임워크 및 인터페이스 (GUI/Launcher)
+    % ==========================================
+    \midrule
+    \multicolumn{4}{l}{\textbf{3. 웹 프레임워크 및 인터페이스 (Web Framework \& Interface)}} \\
+    \midrule
+    Flask & Python 기반 경량 마이크로 웹 애플리케이션 프레임워크 & 3.1.1 & \href{https://pypi.org/project/Flask/}{PyPI} \\
+    Werkzeug & 포괄적인 WSGI 웹 애플리케이션 & 3.1.3 & \href{https://pypi.org/project/Werkzeug/}{PyPI} \\
+    Jinja2 & 빠르고 유연한 Python용 텍스트 템플릿 엔진 & 3.1.6 & \href{https://pypi.org/project/Jinja2/}{PyPI} \\
+    click & 간편하고 강력한 커맨드라인 인터페이스(CLI) 제작 & 8.2.1 & \href{https://pypi.org/project/click/}{PyPI} \\
+    MarkupSafe & HTML/XML 텍스트의 안전한 이스케이프 처리 & 3.0.2 & \href{https://pypi.org/project/MarkupSafe/}{PyPI} \\
+    blinker & 고속 이벤트 신호 처리 시스템 & 1.9.0 & \href{https://pypi.org/project/blinker/}{PyPI} \\
+    itsdangerous & 데이터 서명 및 무결성 검증 보완 & 2.2.0 & \href{https://pypi.org/project/itsdangerous/}{PyPI} \\
+
+    % ==========================================
+    % 4. 시스템 및 유틸리티
+    % ==========================================
+    \midrule
+    \multicolumn{4}{l}{\textbf{4. 시스템 및 유틸리티 (System \& Utilities)}} \\
+    \midrule
+    python-dateutil & 표준 datetime 모듈을 보완하는 날짜 확장 기능 & 2.9.0 & \href{https://pypi.org/project/python-dateutil/}{PyPI} \\
+    pytz & 세계 표준 시간대 정의 및 변환 & 2024.2 & \href{https://pypi.org/project/pytz/}{PyPI} \\
+    tzdata & IANA 시간대 데이터베이스 파일 & 2024.2 & \href{https://pypi.org/project/tzdata/}{PyPI} \\
+    tqdm & 루프 및 작업 진행률 표시바 & 4.67.1 & \href{https://pypi.org/project/tqdm/}{PyPI} \\
+    six & Python 2와 3 코드 호환성 유틸리티 & 1.16.0 & \href{https://pypi.org/project/six/}{PyPI} \\
+    pyparsing & 복잡한 텍스트 구문 분석을 위한 문법 정의 & 3.2.1 & \href{https://pypi.org/project/pyparsing/}{PyPI} \\
+    zope.interface & 인터페이스 정의 및 어댑터 디자인 패턴 지원 & 7.2 & \href{https://pypi.org/project/zope.interface/}{PyPI} \\
+
+    % ==========================================
+    % 5. 패키징 및 배포
+    % ==========================================
+    \midrule
+    \multicolumn{4}{l}{\textbf{5. 패키징 및 배포 (Packaging \& Distribution)}} \\
+    \midrule
+    setuptools & Python 패키지 빌드, 설치, 배포 & 80.9.0 & \href{https://pypi.org/project/setuptools/}{PyPI} \\
+    wheel & Python 바이너리 패키지 포맷(.whl) 지원 & 0.45.1 & \href{https://pypi.org/project/wheel/}{PyPI} \\
+    packaging & 버전 관리 및 배포 & 24.2 & \href{https://pypi.org/project/packaging/}{PyPI} \\
+
+\end{defaultlongtable}
+
+
+\subsection{EnergyPlus} \label{subsection:dirstructure-energyplus}
+\simulator 에서 EnergyPlus 실행파일 변환 및 실행을 담당하는 idragon 모듈은 2024년 9월 말에 출시된 \texttt{EnergyPlus 24.2}\cite{energyplus242} 버전에 맞추어 개발되었다.
+EnergyPlus는 매년 3월과 9월, 반기별로 정기 업데이트를 수행하며, 입력 파일(.idf)의 포맷 변경이 잦아 버전 간 직접 호환성은 매우 낮으므로 (내장된 IDFVersionUpdater를 이용한 idf 버전 변환을 지원) 다른 버전의 EnergyPlus 사용은 권장되지 않는다.
+
+
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
 % ---------------------------------------------------------------------------- %
 
-\subsection{Python 및 그 모듈}
-\texttt{Python 3.12}에서 최적화 되었다. \texttt{Python 3.11} 버전과의 호환성도 확인하였으나, 그 이하 버전과의 호환성은 보장하지 않는다.
-데이터 처리 및 연산을 위해 \texttt{pandas}와 \texttt{numpy} 라이브러리를 사용한다. 이들 라이브러리의 버전 호환성은 별도로 검증하지 않았으므로, 잠재적인 호환성 문제를 인지하고 있어야 한다.
+\section{기술문서 및 예시파일}
 
-\subsection{EnergyPlus}
-본 시뮬레이터는 \texttt{EnergyPlus 24.2} 버전에 맞추어 개발되었다. EnergyPlus는 하위 및 상위 버전과 호환되지 않으므로, 지원 가능한 버전(24.2)을 설치하도록 주의하여야 한다.\par
-참고로, EnergyPlus가 기본 설치 경로(C:/EnergyPlusV24-2-0)에 이미 설치되어 있는 경우, 별도의 패키징 없이도 python 모듈이 해당 경로를 자동으로 찾아 실행할 수 있다. 내 컴퓨터의 EnergyPlus 설치 여부 확인 방법은 아래와 같다.
+\subsection{기술문서} 
 
-@TODO (@memo EnergyPlus 파일 찾는법 설명 필요할지?)
-를 쓴다. 이건 상하위호환 둘 다 안되니까 설치하려면 정확하게 해야 한다. (사실 될 수도 있는데 굳이 체크 안해봐도 될 듯)\par
-참고로 그냥 일반적으로 설치되는 경로인 C:/EnergyPlusV24-2-0에 깔려있으면 이 모듈이랑 같이 묶지 않아도 알아서 찾아서 돌릴 수 있다. EP찾는 순서는 아래와 같다.
+\subsubsection{TechnicalReferenceManual} \label{subsection:dirstructure-documentationTRM}
+본 문서이다.
 
-\begin{enumerate}
-  \item dragon 아래에 있는 EP 폴더
-  \item C드라이브에 있는 기본 설치 폴더
-  \item 그다음에 내가 그냥 새로 깔기
-\end{enumerate}
+\subsubsection{RegressionTestReport} \label{subsection:dirstructure-documentationRTR}
+Regression Test Report는 소프트웨어의 기능 추가나 코드 수정, 혹은 종속 라이브러리의 업데이트가 기존에 정상적으로 작동하던 기능에 의도치 않은 오류(Regression)를 유발하지 않았음을 검증하고 기록한 문서이다\cite{sommerville2015software}\cite{energyplus2024validation}.
+이 보고서에서는 표준 테스트용 시뮬레이션을 수행한 결과값, 실행 속도 등을 정량적으로 제시하므로, 이전 버전과 현재 버전 간의 차이를 비교, 엔진의 수치적 정합성과 시스템 안정성을 확인 가능하다.
 
-@TODO
-현재(250827) 자동 설치 기능은 지원되지 않으며, 배포 시점에 포함 여부는 미정이다. 따라서, 사용자는 EnergyPlus 24.2를 수동으로 설치하여야 한다.
+\subsubsection{ExcelInputUserGuide} \label{subsection:dirstructure-documentationEIUG}
+추후 기술 (제작 예정)
+
+\subsection{예시파일} \label{subsection:dirstructure-example}
+추후 기술
+
 
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
 % ---------------------------------------------------------------------------- %
 
-\section{예시파일 및 문서}
-도 준비되어있다.
+\section{Excel 기반 입력파일의 실행을 위한 web 기반 GUI 및 실행 배치 스크립트 (runExcelLauncher.bat)} \label{subsection:dirstructure-excellauncher}
 
-설명 문서가 준비되어 있다.
+\subsection{Excel 기반 입력파일}
+추후 기술
+
+\subsection{web 기반 GUI}
+추후 기술
+
+\subsection{GUI 실행 배치 스크립트}
+추후 기술
+
+
+
+% ---------------------------------------------------------------------------- %
+%                                  NEW SECTION                                 %
+% ---------------------------------------------------------------------------- %
+
+\section{엔진 실행 파일 (runEngine.bat)} \label{subsection:dirstructure-enginelauncher}
+
+\subsection{실행파일(.bat)의 역할}
+추후 기술
+
+\section{CLI 명령어 명세}
+\label{sec:cli_spec}
+
+\texttt{\_\_main\_\_.py}는 사용자의 커맨드라인 입력을 파싱하여 앞서 기술한 API 함수들을 호출하는 진입점이다.
+
+% ---------------------------------------------------------------------------- %
+%                                   1. RUN CMD                                 %
+% ---------------------------------------------------------------------------- %
+\subsection{run: 시뮬레이션 실행}
+
+\begin{codebox}{Syntax}
+\texttt{python -m \pymodule{} run [-i INPUT] [-o OUTPUT]}
+\end{codebox}
+
+입력 파일의 확장자를 감지하여 적절한 API(\texttt{run\_grexcel} 혹은 \texttt{run\_grjson})를 호출한다.
+
 \begin{itemize}
-  \item 이 문서랑 별개로 PPT로 만든 사용자 매뉴얼이 제공된다.
-  \item 이 문서는 개발자, 연구자용이다.
-  \item 개발 과정을 담은 보고서는 어디에 공개되어있으니 별도로 참고 바람.
+    \item \textbf{-i, --input}: 입력 모델 파일 경로 (필수)
+    \item \textbf{-o, --output}: 결과 파일 저장 경로 (선택)
 \end{itemize}
 
-예시파일들도 준비되어있다. 표준입력과 출력을 n개 건물에 대하여 준비하였다.
-(이 건물들을 어떻게 정의할 것인지, 건물명을 노출하지 않더라도 그 모델을 노출하는 것이 맞을지 논의가 필요할 듯)
+% ---------------------------------------------------------------------------- %
+%                                 2. CONVERT CMD                               %
+% ---------------------------------------------------------------------------- %
+\subsection{convert: 포맷 변환}
+
+\begin{codebox}{Syntax}
+\texttt{python -m \pymodule{} convert INPUT [-s SRC] [-d DST] [-o OUTPUT]}
+\end{codebox}
+
+\texttt{api.convert} 함수를 래핑(Wrapping)하여 파일 형식을 변환한다.
 
 \begin{itemize}
-  \item grjson   예시도 준비되어있다.
-  \item grexcel  예시도 준비되어있다.
-  \item grresult 예시도 준비되어있다.
+    \item \textbf{INPUT}: [위치 인자] 변환할 원본 파일 경로
+    \item \textbf{-s, --source}: 원본 포맷 (excel, json, idf)
+    \item \textbf{-d, --destination}: 대상 포맷 (excel, json, idf)
 \end{itemize}
 
-
 % ---------------------------------------------------------------------------- %
-%                                  NEW SECTION                                 %
+%                                   3. DB CMD                                  %
 % ---------------------------------------------------------------------------- %
+\subsection{DB: 데이터베이스 인터페이스}
 
-\section{보조 프로그램들}
-도 만들어봤다. @TODO
-bat파일로 만든거니까 실행할 때 조심하시고.. 서버 안꺼질 수도 있으니까 조심하시고... \textbackslash taskkill로 백그라운드에서 실행되고 있는 python을 모두 끈 후 실행이 필요. \par
-현재 수준으로 GUI 배포는 어렵고, JS로 진행 예정.  (@memo 형곤 이부분 수정)
+\begin{codebox}{Syntax}
+\texttt{python -m \pymodule{} DB DATATYPE [-g KEY]}
+\end{codebox}
 
-\subsection{grexcel 검토 launcher}
-CHECK\_GREXCEL.bat 파일 실행하면 된다. 그럼 이런 창이 뜬다 (Figure \ref{fig:grjson_checker_capture}).
-파일 선택누르고 check 누르면 좀 기다려야 한다. 다 되면 초록색으로 이렇게 뜬다.
+외부 프로그램(GUI 등)과의 연동을 위해 설계된 명령어로, 조회 결과를 파싱 가능한 JSON 텍스트로 표준 출력(Stdout)한다.
 
-\begin{defaultfigure}
-  \includegraphics[width=\textwidth]{grexcel checker 캡처.png}
-  \caption{grexcel checker 실행하면 나오는 페이지}
-  \label{fig:grjson_checker_capture}
-\end{defaultfigure}
+\begin{itemize}
+    \item \textbf{DATATYPE}: [위치 인자] 조회할 DB 클래스명 (material, schedule 등)
+    \item \textbf{-g, --get}: 조회할 아이템의 Key (구조체는 \texttt{\&}로 연결된 문자열)
+\end{itemize}
 
-\subsection{grexcel 및 grjson 실행 launcher}
-RUN\_GREXCEL.bat 파일 실행하면 된다. 그럼 이런 창이 뜬다 (Figure \ref{fig:grjson_launcher_capture}).
-
-\begin{defaultfigure}
-  \includegraphics[width=\textwidth]{grexcel launcher 캡처.png}
-  \caption{grexcel runner 실행하면 나오는 페이지 (시뮬레이션 전)}
-  \label{fig:grjson_launcher_capture}
-\end{defaultfigure}
-
-파일 선택하고 run 누르면 좀 기다려야 한다. 다 되면 초록색으로 이렇게 (Figure \ref{fig:grjson_launcher_capture_result}) 뜬다.
-
-\begin{defaultfigure}
-  \includegraphics[width=\textwidth]{grexcel launcher 캡처 (결과).png}
-  \caption{grexcel runner 실행하면 나오는 페이지 (시뮬레이션 후)}
-  \label{fig:grjson_launcher_capture_result}
-\end{defaultfigure}
-
-
-% ---------------------------------------------------------------------------- %
-%                                  NEW SECTION                                 %
-% ---------------------------------------------------------------------------- %
-
-\section{api}
-\subsection{python 모듈의 실행 구조}
-python -m 모듈이름 으로 시작하는거다. 우리 모듈도 똑같음 그걸 기대하고 만든것임 \_\_main\_\_.py가 진입점임.
-
-\subsection{api 개발 원칙}
-원칙까지는 없을듯.
-
-\subsection{주요 api}
-
-\subsubsection{run: grjson 또는 grexcel 실행}
-호출하면 실행하는 것임 인자는 -i 또는 --input, -o 또는 --output 등 있음. 예시는 아래 코드 참고
-\begin{tcolorbox}[colback=gray!10, colframe=gray!80, boxrule=0.5pt, left=1em, right=1em]
-GRPython/python.exe -m pyGRsim run -i ...path\_to\_input/my\_grjson.grm
-\end{tcolorbox}
-
-\subsubsection{DB: DB값 조회}
-호출하면 DB 조회하는 것임. DB 이름이랑 key를 보내면 됨. 예시는 아래 코드 참고.
-
-\begin{tcolorbox}[colback=gray!10, colframe=gray!80, boxrule=0.5pt, left=1em, right=1em]
-GRPython/python.exe -m pyGRsim run -i ...path\_to\_input/my\_grjson.grm
-\end{tcolorbox}
-
-참고로 surface construction이랑 fenestration construction은 \&로 묶은 key를 보내면 법규기준을 return하고 있음. \&로 묶을 수 있는 아이템들은 아래 참고 바람.
+\begin{codebox}{Output Format (Standard Output)}
+\small
+명령어 실행 시 아래와 같은 JSON 구조가 출력된다.
+\begin{verbatim}
+{
+    "success": 1,        // 성공(1) 또는 실패(0)
+    "result":  {...},    // 요청한 데이터 딕셔너리 (실패 시 None)
+    "error":   None      // 에러 메시지 트레이스백 (성공 시 None)
+}
+\end{verbatim}
+\end{codebox}
 
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
@@ -265,7 +504,7 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 
 \subsection{class별 명세}
 
-\subsubsection{building} \label{subsection:ioref:building}
+\subsubsection{building} \label{subsubsection:ioref:building}
 실재하는 건물에 대한 최상위 정보 체계이다.
 
 \jsontable{building}{

@@ -115,63 +115,6 @@ def run_grexcel(
     # and remove the temporal grjson file
     finally:
         os.remove(grjson_filepath)
-
-
-def check_grexcel(
-    input_filepath:str,
-    ) -> dict:
-    
-    """ check grexcel file has well made so is runnable
-    * note: this function temporary generate in.grjson file in the current directory
-
-    Args
-    ---
-    input_filepath (str)
-        * grexcel file path
-
-    Returns
-    -------
-    dict
-        * keys: "step1","step2","step3","step4","err"
-        * includes results (bool) for 4 steps of conversion
-        * includes error description if any step has been failed
-    """
-    
-    result = {
-        "step1": False,
-        "step2": False,
-        "step3": False,
-        "step4": False,
-        "err"  : ""   ,
-    }
-    
-    try:
-        # step 1: excel -> grjson
-        _, grjson_path = excel2grjson(input_filepath, "in.grjson")
-        result["step1"] = True
-        
-        # step 2: grjson -> pyGRsim pyGRsim model
-        grm = GreenRetrofitModel.from_grjson(grjson_path)
-        result["step2"] = True
-        
-        # step 3: pyGRsim model -> dragon model
-        em  = grm.to_dragon()
-        result["step3"] = True
-        
-        # step 4: dragon model -> idf
-        idf = em.to_idf()
-        result["step4"] = True
-        
-    except Exception as e:
-        result["err"] = f"{type(e).__name__}: {repr(e)}"
-    
-    finally:
-        # remove tempeorary generated grjson file
-        if result["step1"]:
-            os.remove(grjson_path)
-    
-    return result
-    
     
 def get_database(
     datatype:Literal[
