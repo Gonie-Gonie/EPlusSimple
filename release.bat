@@ -115,6 +115,7 @@ xcopy /E /I /Q "venv"     "%RELEASE_DIR%\venv\"
 copy "runEngine.bat"        "%RELEASE_DIR%\runEngine.bat" > nul
 copy "runExcelLauncher.bat" "%RELEASE_DIR%\runExcelLauncher.bat" > nul
 copy "dist\docs\mainER.pdf" "%RELEASE_DIR%\docs\EngineeringReference.pdf" > nul
+copy "dist\docs\mainRTR.pdf" "%RELEASE_DIR%\docs\RegressionTestReport.pdf" > nul
 
 :: Copy src modules (conditionally)
 echo     ...Copying src modules...
