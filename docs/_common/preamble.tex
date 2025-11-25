@@ -19,7 +19,7 @@
 \usepackage{amsmath}                   % 수학 공식
 \numberwithin{equation}{chapter}       % 챕터별 수식번호
 
-% --- 표, 그림 관련 패키지 ---
+% --- 표 관련 패키지 ---
 \usepackage{booktabs}                  % \toprule 등 고급 표
 \usepackage{longtable}                 % 페이지 나누는 표
 \usepackage{tabularx}                  % 가변 폭 표
@@ -29,6 +29,9 @@
 \usepackage{subcaption}
 \usepackage{array}
 \newcolumntype{Y}{>{\centering\arraybackslash}X}
+
+% --- 그림 관련 패키지 ---
+\usepackage{subcaption}                % 서브캡션
 
 % --- 기타 디자인 ---
 \usepackage[most]{tcolorbox}                 % 박스 디자인
@@ -62,6 +65,11 @@
 \renewcommand{\listfigurename}{그림 목록}
 \renewcommand{\listtablename}{표 목록}
 \renewcommand{\bibname}{참고문헌}
+% 캡션 레이블 한글화 (Figure → 그림, Table → 표), 볼드
+\renewcommand{\figurename}{그림}
+\renewcommand{\tablename}{표}
+\captionsetup[table]{labelfont=bf, labelsep=period}
+\captionsetup[figure]{labelfont=bf, labelsep=period}
 
 % --- 그림, 표, 식, 장, 절 인용 표기 --- 
 \crefname{figure}{그림}{그림}
@@ -74,6 +82,8 @@
 \crefformat{chapter}{#2#1장#3}
 \crefformat{section}{#2#1절#3}
 \crefformat{subsection}{#2#1절#3}
+% 괄호인용 표기 통일하기 위함
+\newcommand{\parencref}[1]{[\cref{#1}]}
 
 % --- secnum, 제목 스타일, 단락 스타일 등 ---
 \setcounter{secnumdepth}{3}            % subsubsection까지 번호 매김
@@ -109,23 +119,6 @@
 \definecolor{theungDu_color}{RGB}{176, 224, 230}   
 \definecolor{형진_color}{RGB}{255, 220, 230}   
 
-\let\originaltodo\todo
-\renewcommand{\todo}[2]{%
-  \ifthenelse{\equal{#1}{형곤}}%
-    {\originaltodo[color=gonie_color, size=tiny]{\textbf{#1}: #2}}%
-  {%
-  \ifthenelse{\equal{#1}{철홍}}%
-    {\originaltodo[color=hongI_color, size=tiny]{\textbf{#1}: #2}}%
-  {%
-  \ifthenelse{\equal{#1}{승주}}%
-    {\originaltodo[color=theungDu_color, size=tiny]{\textbf{#1}: #2}}%
-  {%
-  \ifthenelse{\equal{#1}{형진}}%
-    {\originaltodo[color=형진_color, size=tiny]{\textbf{#1}: #2}}%
-  {%
-    \originaltodo[color=gray!20, size=tiny]{\textbf{#1}: #2} % 기본값
-  }}}}%
-}
 % ---------------------------------------------------------------------------- %
 %                                     STYLE                                    %
 % ---------------------------------------------------------------------------- %
@@ -187,12 +180,9 @@
   {\bfseries\Huge #1\par}
   \vspace{1em}
 
-  {\itshape\Large Korea Authority of Land \& Infrastructure Safety\par}
   {\itshape\Large Seoul National University\par}
 
   \vfill
-  \includegraphics[height=0.25\textwidth]{국토안전관리원_시그니처2.png}
-  \hspace{4em}
   \includegraphics[height=0.25\textwidth]{snu_ui.png}
 
   \vfill
