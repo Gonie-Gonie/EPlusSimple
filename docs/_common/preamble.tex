@@ -160,8 +160,9 @@
 % --- 반복되는 용어/alias 정의 ---
 \newcommand{\ep}{EnergyPlus}
 \newcommand{\simulator}{EPlusSimple}
-
 \newcommand{\pymodule}{epsimple}
+
+% --- 단위 정의 ---
 \newcommand{\unit}[1]{
   \begingroup
   \ifthenelse{\equal{#1}{density}}{$kg/m^3$}{%
@@ -180,7 +181,7 @@
 \begin{titlepage}
   \centering
   
-  {\scshape\large \simulator Version \releaseversion Documentation\par}
+  {\scshape\large \simulator~Version~\releaseversion~Documentation\par}
   \vspace{6em}
 
   {\bfseries\Huge #1\par}
@@ -197,6 +198,6 @@
   \vfill
   {\large \releasedate\par}
   \vspace{0.5em}
-  {\small COPYRIGHT (c) \simulator\는 국토교통부, 국토안전관리원의 지원으로 제작되었습니다.}
+  {\small \simulator\는 국토교통부, 국토안전관리원의 지원으로 개발되었습니다.}
 \end{titlepage}
 }
