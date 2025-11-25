@@ -105,7 +105,29 @@ if %BUILD_ERROR% neq 0 (
 )
 echo     ...Regression Test Report build successful.
 
-echo [5/6] Copying files for distribution...
+echo [5/7] Building Excel Interface User Guide...
+
+:: latexmk는 .tex 파일이 있는 곳에서 실행하는 것이 가장 안정적입니다.
+pushd docs
+
+:: -pdf: PDF 파일을 생성합니다.
+:: -outdir: 출력 폴더를 지정합니다. 최상위 폴더 기준이므로 ../dist/docs 입니다.
+if not exist "..\dist\docs\ExcelInterfaceUserGuide" mkdir "..\dist\docs\ExcelInterfaceUserGuide"
+
+%LATEX_COMPILER% -pdf -outdir=../dist/docs "mainEIUG.tex"
+
+set "BUILD_ERROR=%errorlevel%"
+popd
+
+:: 빠져나온 후에 저장된 errorlevel 값으로 성공/실패를 판정합니다.
+if %BUILD_ERROR% neq 0 (
+    echo [ERROR] LaTeX build failed. Please check the log file.
+    pause
+    exit /b
+)
+echo     ...Excel Interface User Guide build successful.
+
+echo [6/7] Copying files for distribution...
 echo     ...Build target: %BUILD_FOR%
 mkdir "%RELEASE_DIR%"
 mkdir "%RELEASE_DIR%\docs"
@@ -115,6 +137,7 @@ xcopy /E /I /Q "venv"     "%RELEASE_DIR%\venv\"
 copy "runEngine.bat"        "%RELEASE_DIR%\runEngine.bat" > nul
 copy "runExcelLauncher.bat" "%RELEASE_DIR%\runExcelLauncher.bat" > nul
 copy "dist\docs\mainTRM.pdf" "%RELEASE_DIR%\docs\TechnicalReferenceManual.pdf" > nul
+copy "dist\docs\mainEIUG.pdf" "%RELEASE_DIR%\docs\ExcelInterfaceUserGuide.pdf" > nul
 
 :: Copy src modules (conditionally)
 echo     ...Copying src modules...
@@ -165,7 +188,7 @@ if not %errorlevel% equ 0 (
 )
 
 
-echo [6/6] Creating archive: %OUTPUT_ZIP%
+echo [7/7] Creating archive: %OUTPUT_ZIP%
 :: 압축할 폴더로 직접 이동
 pushd "%RELEASE_DIR%"
 :: 현재 폴더(.)의 모든 내용물을 압축 파일에 추가
