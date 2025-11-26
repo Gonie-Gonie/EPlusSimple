@@ -51,6 +51,9 @@ def run_grjson(
     output_filepath (str|None, defulat=None)
         * where to save the result
         * automatically defined using input_filepath if given None
+    save (bool, default=True)
+        * if True, save the result to output_filepath
+        * else return the dictionarized data
     
     """
     
@@ -97,6 +100,9 @@ def run_grexcel(
     output_filepath (str|None, defulat=None)
         * where to save the result
         * automatically defined using input_filepath if given None
+    save (bool, default=True)
+        * if True, save the result to output_filepath
+        * else return the dictionarized data
     
     """
     
@@ -229,13 +235,27 @@ class GreenRetrofitDataFormat(str, Enum):
         
         return obj
 
-def convert(
+def convert_inputformat(
     input_filepath: str,
     src: GreenRetrofitDataFormat,
     dst: GreenRetrofitDataFormat,
     *,
     output_filepath:str|None = None
-) -> None:    
+) -> None:
+    """ convert input file from src format to dst format
+    
+    Args
+    ----
+    input_filepath (str)
+        * path to the input file
+    src (GreenRetrofitDataFormat)
+        * format of the input file
+    dst (GreenRetrofitDataFormat)
+        * format of the output file
+    output_filepath (str|None, defulat=None)
+        * where to save the result
+        * automatically defined using input_filepath with changed extension if given None
+    """
     
     # convert format to enum
     src = GreenRetrofitDataFormat(src)

@@ -152,17 +152,24 @@
   {\end{defaulttable}}
 
 % 코드박스
-\newtcblisting{verbatimbox}{
-  colback=gray!5, 
-  colframe=gray!40, 
+\newtcblisting{pycodebox}{
+  colback=gray!5,
+  colframe=gray!40,
   boxrule=0.5pt,
   left=5pt, right=5pt, top=5pt, bottom=5pt,
-  listing only,        % 내용을 실행하지 않고 텍스트 그대로 보여줌
+  listing only,
   listing options={
-    basicstyle=\ttfamily\small, % 폰트: 타자기체 + 약간 작게
-    breaklines=true             % 줄바꿈 허용
+    basicstyle=\ttfamily\small\linespread{0.85}\selectfont,
+    breaklines=true,
+    numbers=left,                    % ★ 줄번호 표시
+    numberstyle=\tiny\color{gray},   % 줄번호 스타일
+    numbersep=11pt,                   % 줄번호와 코드 사이 간격
+    aboveskip=1pt,
+    belowskip=1pt,
+    lineskip=0pt,
   }
 }
+
 % --- API 및 CLI 명세용 박스 스타일 정의 ---
 \newtcolorbox{codebox}[2][]{%
     colback=gray!5,      % 본문 배경: 아주 연한 회색

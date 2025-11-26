@@ -769,7 +769,7 @@ ASHRAE 참고
 % ---------------------------------------------------------------------------- %
 
 \section{설비 변환 알고리즘}
-\subsection{Simulator 설비 데이터의 구조와 이해}
+\subsection{\simulator~설비 데이터의 구조와 이해}
 공급-생산 이원화함
 
 \subsection{EnergyPlus 설비 데이터의 구조와 이해}
@@ -940,33 +940,20 @@ nn절에 따라 전열교환기를 모델링하면 전열교환기 1대당 보�
 %                                  NEW SECTION                                 %
 % ---------------------------------------------------------------------------- %
 
-\chapter{\pymodule 모듈} \label{chapter:pymodule}
+\chapter{Python 모듈} \label{chapter:pymodule}
 
-\section{개발 원칙, 철학, 구조}
+\section{개요}
+\pymodule 은 ...
 
-\subsection{철학}
-음.. PEP8 따른다? 뭘 써야할지 고민 필요. @TODO
-
-\subsection{전체 구조}
+\subsection{모듈 구조}
 \pymodule 밑에 core 있고 dragon 있고... core와 dragon은 동일한 하위폴더로 분류되어있고..
 
-\subsection{환경 및 의존성}
-이것도 위에서 몇 번 언급한 것 같은데 한 곳에서 통일할 필요가 있을듯.
-
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
 % ---------------------------------------------------------------------------- %
 
-
-\section{활용법}
-python 레벨에서 이 모듈을 활용하려면 일단 GreenRetrofitModel을 직접 구축하는 예시부터 참고하면 됨.
-
-% ---------------------------------------------------------------------------- %
-%                                  NEW SECTION                                 %
-% ---------------------------------------------------------------------------- %
-
-\section{\pymodule 구조별 상세}
-\pymodule 이랑 dragon이랑 launcher랑 나누어서 서술할 것임.
+\section{\pymodule~구조별 상세}
+\pymodule 이랑 idragon이랑 launcher랑 나누어서 서술할 것임.
 
 \subsection{\pymodule}
 \subsubsection{construction}
@@ -980,7 +967,7 @@ python 레벨에서 이 모듈을 활용하려면 일단 GreenRetrofitModel을 �
 \subsubsection{model}
 모델임
 
-\subsection{dragon}
+\subsection{idragon}
 \subsubsection{construction}
 구조임
 \subsubsection{profile}
@@ -993,6 +980,7 @@ python 레벨에서 이 모듈을 활용하려면 일단 GreenRetrofitModel을 �
 모델임
 \subsection{imugi}
 eppy를 대신하는 모듈. @TODO 어떤것을 위주로 사용되는지 서술 
+
 \subsection{launcher}
 EP 실행하는 모듈임. 모듈 구조는 아래와 같이 되어 있고, 향후 무슨무슨 실행을 고려할 수 있도록 구조화되었음. EP run 도는 부분까지 호출되는 순서는 유의 바람.
 EP 돌아가는거 파싱하는 부분도 있음. 이런 가정 하에서 파싱하는거라서 혹시 이게 안되면 잘 안될지도 모름.

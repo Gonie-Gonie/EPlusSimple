@@ -42,6 +42,7 @@ from .api  import (
     run_grjson   ,
     run_grexcel  ,
     get_database ,
+    convert_inputformat,
 )
 
 
