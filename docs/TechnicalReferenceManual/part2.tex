@@ -19,7 +19,7 @@
     \midrule
     
     % 1. Root Level
-    \textbf{src/} & 엔진의 핵심 알고리즘이 포함된 소스 코드 &  \\
+    \textbf{src/} & 엔진의 핵심 알고리즘이 포함된 소스 코드 & - \\
     
     \hspace{0.5em} $\llcorner$ idragon/ & EnergyPlus 친화적 구조 및 idf 변환 & \ref{subsection:dirstructure-pymodule} \\
     \hspace{1.5em} $\llcorner$ \_energyPlus/ & 내장된 EnergyPlus 엔진 & \ref{subsection:dirstructure-energyplus} \\
@@ -29,16 +29,16 @@
     \textbf{launcher/} & Excel 기반 입력파일의 실행을 위한 web 기반 GUI  & \ref{subsection:dirstructure-excellauncher} \\
     \addlinespace
     
-    \textbf{docs/} & 엔진 관련 명세 &  \\
+    \textbf{docs/} & 엔진 관련 명세 & - \\
     \hspace{0.5em} $\llcorner$ \texttt{TechnicalReferenceManual} & \simulator 의 구조 및 알고리즘 명세 (본 문서) & \ref{subsection:dirstructure-documentationTRM} \\
     \hspace{0.5em} $\llcorner$ \texttt{RegressionTestReport} & 버전 검증용 테스트 파일 실행 결과 & \ref{subsection:dirstructure-documentationRTR} \\
     \hspace{0.5em} $\llcorner$ \texttt{ExcelInterfaceUseGuide} & Excel 기반 입력파일 작성 안내 & \ref{subsection:dirstructure-documentationEIUG} \\
     \addlinespace
 
     \textbf{examples/} & 입출력 파일 예시 및 포맷 & \ref{subsection:dirstructure-example} \\
-    \hspace{0.5em} $\llcorner$ grm/ & json구조 입력파일 예시 &  \\
-    \hspace{0.5em} $\llcorner$ grexcel/ & 엑셀기반 입력파일 예시 &  \\
-    \hspace{0.5em} $\llcorner$ grr/ & json구조 출력파일 예시 &  \\
+    \hspace{0.5em} $\llcorner$ grm/ & json구조 입력파일 예시 & - \\
+    \hspace{0.5em} $\llcorner$ grexcel/ & 엑셀기반 입력파일 예시 & - \\
+    \hspace{0.5em} $\llcorner$ grr/ & json구조 출력파일 예시 & - \\
     \addlinespace
 
     \textbf{venv/} & 필요한 라이브러리가 포함된 독립 실행형 Python & \ref{subsection:dirstructure-python} \\
@@ -69,30 +69,59 @@
 %                                1. RUN FUNCTIONS                              %
 % ---------------------------------------------------------------------------- %
 
-\subsubsection{json구조 입력파일(grm) 실행 (run\_grjson)}
+\subsubsection{\texttt{run\_grjson}: json구조 입력파일(\texttt{grm} 확장자) 실행}
 
-표준 JSON 포맷(\texttt{.grm})으로 작성된 모델 파일을 입력받아 시뮬레이션을 수행한다. 엔진의 가장 기본이 되는 실행 함수이다.
+표준 JSON 구조\footnote{이 구조를 grjson이라 하고, \texttt{.grm} 확장자 사용을 권장한다.}로 작성된 모델 파일을 입력받아 시뮬레이션을 수행,
+사용자 입력에 따라 결과 파일(\texttt{.grr} 확장자)을 저장 후 그 경로를 반환하거나 결과 딕셔너리를 반환한다. 함수 시그니처는 아래와 같다.
 
-\begin{codebox}{run\_grjson}
-\small
-\textbf{Definition:}
-\begin{verbatim}
-def run_grjson(input_filepath, output_filepath=None, *, save=True) -> str | dict
-\end{verbatim}
-\end{codebox}
+\begin{pycodebox}
+run_grjson(
+    input_filepath :str|None=None,
+    output_filepath:str|None=None,
+    *,
+    save           :bool    =True,
+    ) -> str|dict:
+\end{pycodebox}
 
-\begin{table}[htbp]
-    \centering\small
-    \begin{tabularx}{\textwidth}{l l X}
-    \toprule
-    \textbf{매개변수} & \textbf{타입} & \textbf{설명} \\
-    \midrule
-    \texttt{input\_filepath} & \texttt{str} & 입력 파일 경로 (\texttt{.grm} 확장자 권장, 생략 가능) \\
-    \texttt{output\_filepath} & \texttt{str | None} & 결과 파일(.grr) 저장 경로. \newline \texttt{None}일 경우 입력 파일명에 \texttt{\_out}을 붙여 자동 생성 \\
-    \texttt{save} & \texttt{bool} & \texttt{True}이면 결과를 파일로 저장하고 경로(\texttt{str}) 반환. \newline \texttt{False}이면 저장하지 않고 결과 딕셔너리(\texttt{dict}) 반환 \\
-    \bottomrule
-    \end{tabularx}
-\end{table}
+\paragraph{입력 매개변수}
+\begin{description}
+    \setlength{\itemsep}{0.5em} 
+    \item[\texttt{input\_filepath}] (\texttt{str}, 선택 사항) \\
+    입력 대상 파일의 경로. 인자를 생략하거나 \texttt{None}을 입력하면, 기본값으로 \texttt{``in.grm''}을 사용한다.
+    
+    \item[\texttt{output\_filepath}] (\texttt{str}, 선택 사항) \\
+    처리 결과를 저장할 경로. 인자를 생략하면 \texttt{input\_filepath}의 확장자를 \texttt{.grr}로 변경한 경로를 자동으로 할당한다.
+    
+    \item[\texttt{save}] (\texttt{bool}, 기본값: \texttt{True}) \\
+    결과 파일의 저장 여부. 
+    \begin{itemize}
+        \item \texttt{True}: 결과를 파일로 저장하고, 저장된 파일 경로(\texttt{str})를 반환한다.
+        \item \texttt{False}: 파일을 저장하지 않고, 처리된 데이터를 딕셔너리(\texttt{dict}) 형태로 반환한다.
+    \end{itemize}
+\end{description}
+
+\paragraph{반환값}
+\begin{itemize}
+  \item \texttt{str | dict}: \texttt{save=True}일 경우 결과 파일 경로(\texttt{str}), \texttt{save=False}일 경우 결과 딕셔너리(\texttt{dict})
+\end{itemize}
+
+run\_grjson 함수의 사용 례는 아래와 같다.
+\begin{itemize}
+  \item 입력 파일 경로가 \texttt{model.grm}이고, 결과 파일을 저장할 경로가 \texttt{result.grr}인 경우:
+  \begin{pycodebox}
+result_filepath = run_grjson(
+    input_filepath="model.grm",
+    output_filepath="result.grr",
+    save=True
+  \end{pycodebox}
+  \item 입력 파일 경로가 \texttt{model.grm}이고, 결과를 딕셔너리로 반환받는 경우:
+  \begin{pycodebox}
+result_filepath = run_grjson(
+    input_filepath="model.grm",
+    output_filepath="result.grr",
+    save=True
+  \end{pycodebox}
+\end{itemize}
 
 % ---------------------------------------------------------------------------- %
 %                                 2. RUN_GREXCEL                               %
@@ -294,11 +323,11 @@ EnergyPlus는 매년 3월과 9월, 반기별로 정기 업데이트를 수행하
 본 문서이다.
 
 \subsubsection{RegressionTestReport} \label{subsection:dirstructure-documentationRTR}
-Regression Test Report는 소프트웨어의 기능 추가나 코드 수정, 혹은 종속 라이브러리의 업데이트가 기존에 정상적으로 작동하던 기능에 의도치 않은 오류(Regression)를 유발하지 않았음을 검증하고 기록한 문서이다\cite{sommerville2015software}\cite{energyplus2024validation}.
+Regression Test Report는 소프트웨어의 기능 추가나 코드 수정, 혹은 종속 라이브러리의 업데이트가 기존에 정상적으로 작동하던 기능에 의도치 않은 오류(Regression)를 유발하지 않았음을 검증하고 기록한 문서이다\cite{energyplus2024validation}\cite{sommerville2015software}.
 이 보고서에서는 표준 테스트용 시뮬레이션을 수행한 결과값, 실행 속도 등을 정량적으로 제시하므로, 이전 버전과 현재 버전 간의 차이를 비교, 엔진의 수치적 정합성과 시스템 안정성을 확인 가능하다.
 
 \subsubsection{ExcelInterfaceUserGuide} \label{subsection:dirstructure-documentationEIUG}
-추후 기술 (제작 예정)
+추후 기술
 
 \subsection{예시파일} \label{subsection:dirstructure-example}
 추후 기술

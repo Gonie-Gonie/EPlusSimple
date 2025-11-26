@@ -36,11 +36,11 @@ from .utils import (
 
 
 def run_grjson(
-    input_filepath :str|None=None,
-    output_filepath:str|None=None,
+    input_filepath :str      ="in.grm",
+    output_filepath:str|None =None    ,
     *,
-    save           :bool    =True,
-    ) -> str:
+    save           :bool     =True    ,
+    ) -> str|dict:
     
     """ run grjson input file and write result
     
@@ -57,15 +57,9 @@ def run_grjson(
     
     """
     
-    # set default input filepath
-    if input_filepath is None:
-        input_filepath = "in.grm"
-    
     # set default output filepath
-    # add '_out' to the end (except the extension) of the input_filepath
-    output_suffix = "_out"
     if output_filepath is None:
-        output_filepath = re.sub(r"(\.\w+?)$",rf"{output_suffix}.grr",input_filepath)
+        output_filepath = re.sub(r"(\.\w+?)$",rf".grr",input_filepath)
      
     # read input file
     grm = GreenRetrofitModel.from_grjson(input_filepath)
@@ -76,7 +70,6 @@ def run_grjson(
     # write the result if required
     if save:
         grr.write(output_filepath)
-        print(f"[DEBUG] 결과 파일 저장 위치: {output_filepath}")
         return output_filepath
     
     # else return the dictionarized data
