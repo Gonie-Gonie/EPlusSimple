@@ -345,7 +345,7 @@ def _launch_energyplus(
     ]
     
     if verbose:
-        with subprocess.Popen(cmd, stdout=subprocess.PIPE, encoding="UTF-8", errors="replace",text=True) as proc:
+        with subprocess.Popen(cmd, stdout=subprocess.PIPE, encoding="UTF-8", errors="replace",text=True, cwd=run_dir) as proc:
             start_date, end_date = _parse_runperiod_from_idf(idfpath)
             run_result =  _verbose_idf_stdout(proc, start_date, end_date)
     
