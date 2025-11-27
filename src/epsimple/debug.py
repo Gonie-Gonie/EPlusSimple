@@ -706,8 +706,48 @@ class InvalidSetpointSchedule(ExcelException):
                         )
         
         return exceptions
-            
-            
+    
+class InvalidOccupantSubCategory(str, Enum):
+    TooManyOigeunJikwon  = "외근직원이직원보다많음"
+
+ 
+class InvalidOccupantSchedule(ExcelException):
+    
+    def __init__(self, checklistzonename:str, subcategory:str, extramessage:str):
+        
+        super().__init__("현장조사", checklistzonename, subcategory=InvalidOccupantSubCategory(subcategory))
+        self.message = f"{checklistzonename}의 재실자 수 규칙에 맞지 않습니다: {extramessage}"
+        
+    @staticmethod
+    def inspect_보건소(exceldata:dict[str, pd.DataFrame]) -> list[InvalidOccupantSchedule]:
+        
+        exceptions = []
+        
+        if exceldata["현장조사"].iloc[6,4] < exceldata["현장조사"].iloc[7,4]:
+            exceptions.append(InvalidOccupantSchedule(
+                "일반존",
+                "외근직원이직원보다많음",
+                f"외근 직원 수({exceldata["현장조사"].iloc[7,4]}명)가 전체 직원 수({exceldata["현장조사"].iloc[6,4]})보다 많습니다"
+            ))
+        
+        return exceptions
+    
+    @staticmethod
+    def inspect_어린이집(exceldata:dict[str, pd.DataFrame]) -> list[InvalidOccupantSchedule]:
+        
+        exceptions = []
+        
+        return exceptions
+    
+    @staticmethod
+    def insepct(exceldata:dict[str, pd.DataFrame]) -> list[InvalidOccupantSchedule]:
+        
+        match exceldata["현장조사"].iloc[0,0]:
+            case "어린이집":
+                return InvalidOccupantSchedule.inspect_보건소(exceldata)
+            case "보건소":
+                return InvalidOccupantSchedule.inspect_어린이집(exceldata)
+    
 
 # ---------------------------------------------------------------------------- #
 #                                 JSON WARNINGS                                #
