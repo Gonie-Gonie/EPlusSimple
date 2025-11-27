@@ -723,11 +723,11 @@ class InvalidOccupantSchedule(ExcelException):
         
         exceptions = []
         
-        if exceldata["현장조사"].iloc[6,4] < exceldata["현장조사"].iloc[7,4]:
+        if exceldata["현장조사"].iloc[5,4] < exceldata["현장조사"].iloc[6,4]:
             exceptions.append(InvalidOccupantSchedule(
                 "일반존",
                 "외근직원이직원보다많음",
-                f"외근 직원 수({exceldata["현장조사"].iloc[7,4]}명)가 전체 직원 수({exceldata["현장조사"].iloc[6,4]})보다 많습니다"
+                f"외근 직원 수({exceldata["현장조사"].iloc[6,4]}명)가 전체 직원 수({exceldata["현장조사"].iloc[5,4]})보다 많습니다"
             ))
         
         return exceptions
@@ -740,14 +740,15 @@ class InvalidOccupantSchedule(ExcelException):
         return exceptions
     
     @staticmethod
-    def insepct(exceldata:dict[str, pd.DataFrame]) -> list[InvalidOccupantSchedule]:
+    def inspect(exceldata:dict[str, pd.DataFrame]) -> list[InvalidOccupantSchedule]:
         
         match exceldata["현장조사"].iloc[0,0]:
-            case "어린이집":
-                return InvalidOccupantSchedule.inspect_보건소(exceldata)
             case "보건소":
-                return InvalidOccupantSchedule.inspect_어린이집(exceldata)
-    
+                exceptions =  InvalidOccupantSchedule.inspect_보건소(exceldata)
+            case "어린이집":
+                exceptions =  InvalidOccupantSchedule.inspect_어린이집(exceldata)
+        
+        return exceptions
 
 # ---------------------------------------------------------------------------- #
 #                                 JSON WARNINGS                                #
