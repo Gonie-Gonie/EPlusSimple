@@ -36,11 +36,11 @@ from .utils import (
 
 
 def run_grjson(
-    input_filepath :str|None=None,
-    output_filepath:str|None=None,
+    input_filepath :str      ="in.grm",
+    output_filepath:str|None =None    ,
     *,
-    save           :bool    =True,
-    ) -> str:
+    save           :bool     =True    ,
+    ) -> str|dict:
     
     """ run grjson input file and write result
     
@@ -51,18 +51,15 @@ def run_grjson(
     output_filepath (str|None, defulat=None)
         * where to save the result
         * automatically defined using input_filepath if given None
+    save (bool, default=True)
+        * if True, save the result to output_filepath
+        * else return the dictionarized data
     
     """
     
-    # set default input filepath
-    if input_filepath is None:
-        input_filepath = "in.grm"
-    
     # set default output filepath
-    # add '_out' to the end (except the extension) of the input_filepath
-    output_suffix = "_out"
     if output_filepath is None:
-        output_filepath = re.sub(r"(\.\w+?)$",rf"{output_suffix}.grr",input_filepath)
+        output_filepath = re.sub(r"(\.\w+?)$",rf".grr",input_filepath)
      
     # read input file
     grm = GreenRetrofitModel.from_grjson(input_filepath)
@@ -73,7 +70,6 @@ def run_grjson(
     # write the result if required
     if save:
         grr.write(output_filepath)
-        print(f"[DEBUG] 결과 파일 저장 위치: {output_filepath}")
         return output_filepath
     
     # else return the dictionarized data
@@ -97,6 +93,9 @@ def run_grexcel(
     output_filepath (str|None, defulat=None)
         * where to save the result
         * automatically defined using input_filepath if given None
+    save (bool, default=True)
+        * if True, save the result to output_filepath
+        * else return the dictionarized data
     
     """
     
@@ -115,63 +114,6 @@ def run_grexcel(
     # and remove the temporal grjson file
     finally:
         os.remove(grjson_filepath)
-
-
-def check_grexcel(
-    input_filepath:str,
-    ) -> dict:
-    
-    """ check grexcel file has well made so is runnable
-    * note: this function temporary generate in.grjson file in the current directory
-
-    Args
-    ---
-    input_filepath (str)
-        * grexcel file path
-
-    Returns
-    -------
-    dict
-        * keys: "step1","step2","step3","step4","err"
-        * includes results (bool) for 4 steps of conversion
-        * includes error description if any step has been failed
-    """
-    
-    result = {
-        "step1": False,
-        "step2": False,
-        "step3": False,
-        "step4": False,
-        "err"  : ""   ,
-    }
-    
-    try:
-        # step 1: excel -> grjson
-        _, grjson_path = excel2grjson(input_filepath, "in.grjson")
-        result["step1"] = True
-        
-        # step 2: grjson -> pyGRsim pyGRsim model
-        grm = GreenRetrofitModel.from_grjson(grjson_path)
-        result["step2"] = True
-        
-        # step 3: pyGRsim model -> dragon model
-        em  = grm.to_dragon()
-        result["step3"] = True
-        
-        # step 4: dragon model -> idf
-        idf = em.to_idf()
-        result["step4"] = True
-        
-    except Exception as e:
-        result["err"] = f"{type(e).__name__}: {repr(e)}"
-    
-    finally:
-        # remove tempeorary generated grjson file
-        if result["step1"]:
-            os.remove(grjson_path)
-    
-    return result
-    
     
 def get_database(
     datatype:Literal[
@@ -286,13 +228,27 @@ class GreenRetrofitDataFormat(str, Enum):
         
         return obj
 
-def convert(
+def convert_inputformat(
     input_filepath: str,
     src: GreenRetrofitDataFormat,
     dst: GreenRetrofitDataFormat,
     *,
     output_filepath:str|None = None
-) -> None:    
+) -> None:
+    """ convert input file from src format to dst format
+    
+    Args
+    ----
+    input_filepath (str)
+        * path to the input file
+    src (GreenRetrofitDataFormat)
+        * format of the input file
+    dst (GreenRetrofitDataFormat)
+        * format of the output file
+    output_filepath (str|None, defulat=None)
+        * where to save the result
+        * automatically defined using input_filepath with changed extension if given None
+    """
     
     # convert format to enum
     src = GreenRetrofitDataFormat(src)

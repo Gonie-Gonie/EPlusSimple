@@ -657,9 +657,20 @@ class GreenRetrofitModel:
             self  ,
             result,
         )
+        
+    """ representation
+    """
+    
+    def __repr__(self) -> str:
+        return f"<GreenRetrofitModel {self.name} at {hex(id(self))}>"
+    
+    def __str__(self) -> str:
+        return f"GreenRetrofitModel '{self.name}' with {len(self.zone)} zones and total area of {self.area} m2."
 
 
 class GreenRetrofitResult:
+    
+    VALID_DIGITS = 2
     
     def __init__(self,
         model :GreenRetrofitModel,
@@ -700,14 +711,14 @@ class GreenRetrofitResult:
                 
                 EFFICIENCY_OF_DISTRICT_HEATING = 1.0
                 hotwater_energy[Fuel.DISTRICTHEATING.name] = [
-                    v_add/EFFICIENCY_OF_DISTRICT_HEATING +v_org 
+                    round(v_add/EFFICIENCY_OF_DISTRICT_HEATING +v_org, GreenRetrofitResult.VALID_DIGITS)
                     for v_add, v_org in zip(demand_per_supply, hotwater_energy[Fuel.DISTRICTHEATING.name])
                 ]
             
             # case 2: boiler 
             elif isinstance(supply, Boiler):
                 hotwater_energy[Fuel(supply.fuel).name] = [
-                    v_add/supply.efficiency +v_org 
+                    round(v_add/supply.efficiency +v_org, GreenRetrofitResult.VALID_DIGITS)
                     for v_add, v_org in zip(demand_per_supply, hotwater_energy[Fuel(supply.fuel).name])
                 ]
                 
@@ -747,7 +758,7 @@ class GreenRetrofitResult:
             fuel = fuel_type.name
             for use in df_site.columns:
                 target_cols = [col for col in df.columns if any(col.startswith(usecol) for usecol in usecol_map[use])]                
-                df_site.loc[fuel,use] = list(df[target_cols].sum(axis=1)[:12].astype(float).map(lambda v: round(v/self.area, 1)))
+                df_site.loc[fuel,use] = list(df[target_cols].sum(axis=1)[:12].astype(float).map(lambda v: round(v/self.area, GreenRetrofitResult.VALID_DIGITS)))
                 
         # hot water use from the profiles
         hotwater_energy_dict = self.calc_hotwater_energy()
@@ -757,7 +768,7 @@ class GreenRetrofitResult:
         # PV panel production
         table_name = "EnergyConsumptionElectricityGeneratedPropaneMonthly"
         if table_name in self.result.tbl.keys():
-            df_site.loc["ELECTRICITY","generators"] = self.result.tbl[table_name]["ELECTRICITYPRODUCED:FACILITY [kWh]"][:12].astype(float).map(lambda v: round(v/self.area, 1)).tolist()
+            df_site.loc["ELECTRICITY","generators"] = self.result.tbl[table_name]["ELECTRICITYPRODUCED:FACILITY [kWh]"][:12].astype(float).map(lambda v: round(v/self.area, GreenRetrofitResult.VALID_DIGITS)).tolist()
         
         return df_site
     
@@ -765,7 +776,7 @@ class GreenRetrofitResult:
         
         df_source = deepcopy(self.to_site_uses())
         for idx, coeff in zip(df_source.index, [v.value for v in Site2Source]):
-            df_source.loc[idx] = df_source.loc[idx].map(lambda l: [round(v*coeff,1) for v in l])
+            df_source.loc[idx] = df_source.loc[idx].map(lambda l: [round(v*coeff,GreenRetrofitResult.VALID_DIGITS) for v in l])
         
         return df_source
     
@@ -773,7 +784,7 @@ class GreenRetrofitResult:
         
         df_co2 = deepcopy(self.to_site_uses())
         for idx, coeff in zip(df_co2.index, [v.value for v in Site2CO2]):
-            df_co2.loc[idx] = df_co2.loc[idx].map(lambda l: [round(v*coeff,1) for v in l])
+            df_co2.loc[idx] = df_co2.loc[idx].map(lambda l: [round(v*coeff,GreenRetrofitResult.VALID_DIGITS) for v in l])
         
         return df_co2
     
@@ -781,7 +792,7 @@ class GreenRetrofitResult:
         
         df_cost = deepcopy(self.to_site_uses())
         for idx, coeff in zip(df_cost.index, [v.value for v in Site2Cost]):
-            df_cost.loc[idx] = df_cost.loc[idx].map(lambda l: [round(v*coeff,1) for v in l])
+            df_cost.loc[idx] = df_cost.loc[idx].map(lambda l: [round(v*coeff,GreenRetrofitResult.VALID_DIGITS) for v in l])
         
         return df_cost
     
@@ -797,20 +808,34 @@ class GreenRetrofitResult:
     
     def summarize(self, df:pd.DataFrame, *, gross:bool) -> dict:
         
-        monthly_use = [round(sum(x),1) for x in zip(*list(df[["heating", "cooling", "lighting", "circulation", "hotwater"]].values.flatten()))]
-        monthly_gen = [round(sum(x),1) for x in zip(*list(df[["generators"]].values.flatten()))]
-        
+        # total
+        monthly_use = [
+            round(sum(x),GreenRetrofitResult.VALID_DIGITS)
+            for x in zip(*list(df[["heating", "cooling", "lighting", "circulation", "hotwater"]].values.flatten()))
+        ]
+        monthly_gen = [
+            round(sum(x),GreenRetrofitResult.VALID_DIGITS)
+            for x in zip(*list(df[["generators"]].values.flatten()))
+        ]
         monthly_sum = [use-gen for use, gen in zip(monthly_use, monthly_gen)]
-                
+
+        # fuel sum
+        fuel_sum = df.apply(lambda row: sum(sum(x) for x in row), axis=1).to_dict()
+        fuel_sum_gross = {k: round(v*self.area, GreenRetrofitResult.VALID_DIGITS) for k,v in fuel_sum.items()}
+        
+        # usage sum
+        usage_sum = df.apply(lambda col: sum(sum(x) for x in col), axis=0).to_dict()
+        usage_sum_gross = {k: round(v*self.area, GreenRetrofitResult.VALID_DIGITS) for k,v in usage_sum.items()}
+        
         if gross:
-            summary = {
-                "total_monthly": [round(v*self.area,1) for v in monthly_sum]           ,
-                "total_annual" : round(sum(monthly_sum)*self.area,1)        ,
+            summary = fuel_sum_gross|usage_sum_gross|{
+                "total_monthly": [round(v*self.area,GreenRetrofitResult.VALID_DIGITS) for v in monthly_sum]           ,
+                "total_annual" : round(sum(monthly_sum)*self.area, GreenRetrofitResult.VALID_DIGITS)        ,
             }
         else:
-            summary = {
+            summary = fuel_sum|usage_sum|{
                 "total_monthly": monthly_sum,
-                "total_annual" : round(sum(monthly_sum),1),
+                "total_annual" : round(sum(monthly_sum), GreenRetrofitResult.VALID_DIGITS),
         } 
                
         return summary
