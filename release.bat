@@ -90,7 +90,7 @@ pushd docs
 
 :: -pdf: PDF 파일을 생성합니다.
 :: -outdir: 출력 폴더를 지정합니다. 최상위 폴더 기준이므로 ../dist/docs 입니다.
-if not exist "..\dist\docs\RegressionTestReport" mkdir "..\dist\docs\EngineeringReference"
+if not exist "..\dist\docs\RegressionTestReport" mkdir "..\dist\docs\RegressionTestReport"
 
 %LATEX_COMPILER% -pdf -outdir=../dist/docs "mainRTR.tex"
 
@@ -194,8 +194,7 @@ echo [7/7] Creating archive: %OUTPUT_ZIP%
 :: 압축할 폴더로 직접 이동
 pushd "%RELEASE_DIR%"
 :: 현재 폴더(.)의 모든 내용물을 압축 파일에 추가
-"%~dp0tools\7z.exe" a -tzip "%OUTPUT_ZIP%" .
-> nul
+"%~dp0tools\7z.exe" a -tzip "%OUTPUT_ZIP%" . > nul
 :: 원래 위치로 복귀
 popd
 
