@@ -1022,6 +1022,7 @@ EXCEL_REBINESPECTORS = [
     SecondSupplyForOtherZone,
     NoHVACSchedule,
     InvalidSetpointSchedule,
+    InvalidOccupantSchedule,
     # warnings
     OnlyOtherZoneExist,
 ]
