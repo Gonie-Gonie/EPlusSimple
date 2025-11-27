@@ -14,11 +14,11 @@
             <div class="filename-box" id="filenameBoxBefore">파일이 선택되지 않았습니다.</div>
         </div>
         <div class="form-row">
-            <label for="fileInputAfter" class="file-label" style="background-color: #5b8cde;">2: GR 직후 파일 선택</label>
+            <label for="fileInputAfter" class="file-label" style="background-color: #5b8cde;">2: GR 이후 파일 선택</label>
             <div class="filename-box" id="filenameBoxAfter">파일이 선택되지 않았습니다. (선택하지 않으면 리모델링 전만 실행)</div>
         </div>
         <div class="form-row">
-            <label for="fileInputAfterN" class="file-label" style="background-color: #5b8cde;">3: N년차 파일 선택</label>
+            <label for="fileInputAfterN" class="file-label" style="background-color: #5b8cde;">3: GR 이후 (운영특성 반영) 파일 선택</label>
             <div class="filename-box" id="filenameBoxAfterN">파일이 선택되지 않았습니다. (선택하지 않으면 리모델링 전만 실행)</div>
         </div>
         <input id="fileInputBefore" type="file" name="file_before" accept=".xlsx,.xls">
@@ -207,10 +207,10 @@
             datasets.push({ label: et.label + ' (전)', data: data.before[et.key], backgroundColor: et.color, stack: 'GR 이전' });
         });
         energyTypes.forEach(et => {
-            datasets.push({ label: et.label + ' (후)', data: data.after[et.key], backgroundColor: et.light_color, stack: 'GR 직후' });
+            datasets.push({ label: et.label + ' (후)', data: data.after[et.key], backgroundColor: et.light_color, stack: 'GR 이후' });
         });
         energyTypes.forEach(et => {
-            datasets.push({ label: et.label + ' (N)', data: data.afterN[et.key], backgroundColor: et.light_color, stack: 'GR N년차' });
+            datasets.push({ label: et.label + ' (N)', data: data.afterN[et.key], backgroundColor: et.light_color, stack: 'GR 이후 (운영특성 반영)' });
         });
         
         const chartLabels = graphOrder.map(g => g.name);
@@ -237,16 +237,16 @@
             tension: 0.15, fill: true 
         }];
         datasets.push({
-            label: `GR 직후 ${baseName}`, data: valuesAfter,
+            label: `GR 이후 ${baseName}`, data: valuesAfter,
             borderColor: '#377be7', backgroundColor: 'rgba(55, 123, 231, 0.08)',
             tension: 0.15, fill: true,
             borderDash: [], // '후 1'은 실선
         });
         datasets.push({
-            label: `GR N년차 ${baseName}`, data: valuesAfterN,
+            label: `GR 이후 (운영특성 반영) ${baseName}`, data: valuesAfterN,
             borderColor: '#377be7', backgroundColor: 'rgba(55, 123, 231, 0.08)', // '후 1'과 동일한 계열 색상 사용
             tension: 0.15, fill: true,
-            borderDash: [5, 5], // '후 2' (N년차)는 점선으로 구분
+            borderDash: [5, 5], // '후 2' (GR 이후 (운영특성 반영))는 점선으로 구분
         });
 
         chartInstances[canvasId] = new Chart(ctx, { 
@@ -279,7 +279,7 @@ function calculateAnnualData(allData, dataType) {
             });
         });
 
-        // [추가] 'after' (GR 직후) 계산
+        // [추가] 'after' (GR 이후) 계산
         graphOrder.forEach(itemInfo => {
             energyTypes.forEach(et => {
                 const sumAfter = (allData.after[dataType]?.[itemInfo.key]?.[et.key] || []).reduce((s, v) => s + v, 0);
@@ -287,7 +287,7 @@ function calculateAnnualData(allData, dataType) {
             });
         });
 
-        // [추가] 'afterN' (GR N년차) 계산
+        // [추가] 'afterN' (GR 이후 (운영특성 반영)) 계산
         graphOrder.forEach(itemInfo => {
             energyTypes.forEach(et => {
                 const sumAfterN = (allData.afterN[dataType]?.[itemInfo.key]?.[et.key] || []).reduce((s, v) => s + v, 0);
@@ -323,6 +323,7 @@ function calculateAnnualData(allData, dataType) {
             drawDualLineChart('line-total', allData.before.summary_per_area[dataType]?.total_monthly, valuesAfter, valuesAfterN, labels.unit, `총 ${labels.name}`);
         {% endif %}
     }
+    
 // --- 연간 성능 요약 테이블 생성 함수 ---
     function drawAnnualSummary(dataBefore, dataAfter, dataAfterN) {
         const container = document.getElementById('annualSummaryContainer');
@@ -355,7 +356,7 @@ function calculateAnnualData(allData, dataType) {
             const valGrossBefore = (dataBefore.summary_gross[metric.key]?.total_annual || 0) / 1000;
             tableHtml += `<tr><td class="case-label">[GR 이전]</td><td>${valPerAreaBefore.toLocaleString(undefined, {maximumFractionDigits: 1})}</td><td>-</td><td>${valGrossBefore.toLocaleString(undefined, {maximumFractionDigits: 1})}</td><td>-</td></tr>`;
             
-            // --- [수정] "After" (GR 직후) 행 ---
+            // --- [수정] "After" (GR 이후) 행 ---
             // dataAfters.forEach 루프를 제거하고 dataAfter 인자를 직접 사용
             const valPerAreaAfter = dataAfter.summary_per_area[metric.key]?.total_annual || 0;
             const valGrossAfter = (dataAfter.summary_gross[metric.key]?.total_annual || 0) / 1000;
@@ -364,9 +365,9 @@ function calculateAnnualData(allData, dataType) {
             const changeHtmlPerAreaAfter = calculateChangeHtml(valPerAreaBefore, valPerAreaAfter);
             const changeHtmlGrossAfter = calculateChangeHtml(valGrossBefore, valGrossAfter);
 
-            tableHtml += `<tr><td class="case-label">[GR 직후]</td><td>${valPerAreaAfter.toLocaleString(undefined, {maximumFractionDigits: 1})}</td><td>${changeHtmlPerAreaAfter}</td><td>${valGrossAfter.toLocaleString(undefined, {maximumFractionDigits: 1})}</td><td>${changeHtmlGrossAfter}</td></tr>`;
+            tableHtml += `<tr><td class="case-label">[GR 이후]</td><td>${valPerAreaAfter.toLocaleString(undefined, {maximumFractionDigits: 1})}</td><td>${changeHtmlPerAreaAfter}</td><td>${valGrossAfter.toLocaleString(undefined, {maximumFractionDigits: 1})}</td><td>${changeHtmlGrossAfter}</td></tr>`;
             
-            // --- [추가] "After N" (GR N년차) 행 ---
+            // --- [추가] "After N" (GR 이후 (운영특성 반영)) 행 ---
             // dataAfterN 인자를 직접 사용
             const valPerAreaAfterN = dataAfterN.summary_per_area[metric.key]?.total_annual || 0;
             const valGrossAfterN = (dataAfterN.summary_gross[metric.key]?.total_annual || 0) / 1000;
@@ -375,7 +376,7 @@ function calculateAnnualData(allData, dataType) {
             const changeHtmlPerAreaAfterN = calculateChangeHtml(valPerAreaBefore, valPerAreaAfterN);
             const changeHtmlGrossAfterN = calculateChangeHtml(valGrossBefore, valGrossAfterN);
 
-            tableHtml += `<tr><td class="case-label">[GR N년차]</td><td>${valPerAreaAfterN.toLocaleString(undefined, {maximumFractionDigits: 1})}</td><td>${changeHtmlPerAreaAfterN}</td><td>${valGrossAfterN.toLocaleString(undefined, {maximumFractionDigits: 1})}</td><td>${changeHtmlGrossAfterN}</td></tr>`;
+            tableHtml += `<tr><td class="case-label">[GR 이후 (운영특성 반영)]</td><td>${valPerAreaAfterN.toLocaleString(undefined, {maximumFractionDigits: 1})}</td><td>${changeHtmlPerAreaAfterN}</td><td>${valGrossAfterN.toLocaleString(undefined, {maximumFractionDigits: 1})}</td><td>${changeHtmlGrossAfterN}</td></tr>`;
 
             tableHtml += `</tbody>`;
         });
@@ -395,8 +396,8 @@ function calculateAnnualData(allData, dataType) {
                 // 세 파일명을 리스트 형태로 표시하도록 HTML을 구성합니다.
                 let filesHtml = '<strong>비교 대상:</strong><ul>'; // <ul> 태그로 리스트 시작
                 filesHtml += `<li><strong>[GR 이전]:</strong> ${allData.filename_before}</li>`;
-                filesHtml += `<li><strong>[GR 직후]:</strong> ${allData.filename_after}</li>`;
-                filesHtml += `<li><strong>[GR N년차]:</strong> ${allData.filename_afterN}</li>`;
+                filesHtml += `<li><strong>[GR 이후]:</strong> ${allData.filename_after}</li>`;
+                filesHtml += `<li><strong>[GR 이후 (운영특성 반영)]:</strong> ${allData.filename_afterN}</li>`;
                 filesHtml += '</ul>'; // <ul> 태그 닫기
                 
                 fnContainer.innerHTML = filesHtml;

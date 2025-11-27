@@ -66693,7 +66693,127 @@ ZoneTerminalUnitList,
   A20,    \field Zone Terminal Unit Name 19
           \type object-list
           \object-list ZoneTerminalUnitNames
-  A21;    \field Zone Terminal Unit Name 20
+  A21,    \field Zone Terminal Unit Name 20
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A22,    \field Zone Terminal Unit Name 21
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A23,    \field Zone Terminal Unit Name 22
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A24,    \field Zone Terminal Unit Name 23
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A25,    \field Zone Terminal Unit Name 24
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A26,    \field Zone Terminal Unit Name 25
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A27,    \field Zone Terminal Unit Name 26
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A28,    \field Zone Terminal Unit Name 27
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A29,    \field Zone Terminal Unit Name 28
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A30,    \field Zone Terminal Unit Name 29
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A31,    \field Zone Terminal Unit Name 30
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A32,    \field Zone Terminal Unit Name 31
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A33,    \field Zone Terminal Unit Name 32
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A34,    \field Zone Terminal Unit Name 33
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A35,    \field Zone Terminal Unit Name 34
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A36,    \field Zone Terminal Unit Name 35
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A37,    \field Zone Terminal Unit Name 36
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A38,    \field Zone Terminal Unit Name 37
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A39,    \field Zone Terminal Unit Name 38
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A40,    \field Zone Terminal Unit Name 39
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A41,    \field Zone Terminal Unit Name 40
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A42,    \field Zone Terminal Unit Name 41
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A43,    \field Zone Terminal Unit Name 42
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A44,    \field Zone Terminal Unit Name 43
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A45,    \field Zone Terminal Unit Name 44
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A46,    \field Zone Terminal Unit Name 45
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A47,    \field Zone Terminal Unit Name 46
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A48,    \field Zone Terminal Unit Name 47
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A49,    \field Zone Terminal Unit Name 48
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A50,    \field Zone Terminal Unit Name 49
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A51,    \field Zone Terminal Unit Name 50
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A52,    \field Zone Terminal Unit Name 51
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A53,    \field Zone Terminal Unit Name 52
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A54,    \field Zone Terminal Unit Name 53
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A55,    \field Zone Terminal Unit Name 54
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A56,    \field Zone Terminal Unit Name 55
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A57,    \field Zone Terminal Unit Name 56
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A58,    \field Zone Terminal Unit Name 57
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A59,    \field Zone Terminal Unit Name 58
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A60,    \field Zone Terminal Unit Name 59
+          \type object-list
+          \object-list ZoneTerminalUnitNames
+  A61;    \field Zone Terminal Unit Name 60
           \type object-list
           \object-list ZoneTerminalUnitNames
 
