@@ -590,6 +590,16 @@ def draw_simulation_figures(grr_before: dict, grr_after: dict, grr_afterN: dict)
 #                                   MAIN FUNC                                  #
 # ---------------------------------------------------------------------------- #
 
+def escape_str(v:str):
+    
+    v = v.replace(r"_",r"\_")
+    v = v.replace(r"&", r"\&")
+    v = v.replace(r"%", r"\%")
+    v = v.replace(r"~", r"\~")
+    v = v.replace(r"#", r"\#")
+    
+    return v
+
 def preprocess_diff_dicts(
     diffs:list[dict]
     ) -> list[dict]:
@@ -597,11 +607,7 @@ def preprocess_diff_dicts(
     def mapper(v):
         
         if isinstance(v, str):
-            v = v.replace(r"_",r"\_")
-            v = v.replace(r"&", r"\&")
-            v = v.replace(r"%", r"\%")
-            v = v.replace(r"~", r"\~")
-            v = v.replace(r"#", r"\#")
+            v = escape_str(v)
         
         if isinstance(v, int|float):
             v = f"{v:.10f}".rstrip("0").rstrip(".")
@@ -636,7 +642,7 @@ def build_report(
     # metadata
     building_info = pd.read_excel(before_rebexcelpath, sheet_name="건물정보", usecols=range(6), nrows=1).iloc[0]
     metadata = MetaData(
-        building_info["건물명"]     ,
+        escape_str(building_info["건물명"])     ,
         f"{grrbefore["building"]["total_area"]:.1f}",
         building_info["주소"],
         building_info["허가일자"]   , 
