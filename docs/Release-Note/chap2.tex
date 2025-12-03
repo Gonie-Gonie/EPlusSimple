@@ -1,0 +1,49 @@
+
+\chapter{버전별 변경사항}
+
+\newversionsection{0.5.2}{2025-11-28}
+
+\begin{itemize}
+    \item \textbf{추가된 기능}
+    \begin{itemize}
+        \item 수정된 ASHRAE 140 케이스 600 모델을 예시파일로 추가.
+    \end{itemize}
+    
+    \item \textbf{변경된 기능}
+    \par -
+
+    \item \textbf{수정된 기능}
+    \par -
+    
+    \item \textbf{제거된 기능}
+    \par -
+\end{itemize}
+
+
+\newversionsection{0.5.1}{2025-11-17}
+*\textit{V0.5.0을 기준으로 작성되었습니다.}
+
+\begin{itemize}
+    \item \textbf{추가된 기능}
+    \begin{itemize}
+        \item 공급설비의 종류로 전기바닥난방(electric\_radiant\_floor)을 추가 (electric\_radiator와 동일하게, 이름 외 별도 속성 변수 없음).
+    \end{itemize}
+    
+    \item \textbf{변경된 기능}
+    \begin{itemize}
+        \item 냉난방 설비의 자동 용량 산정 (Autosizing) 기간을 1월 15일부터 8월 15일까지에서 1월 한달간 및 8월 한달간으로 변경. 이로 인해 용량 미입력시 자동 계산되던 설비의 용량이 변화할 수 있음.
+        \item 패키지에어컨이 EnergyPlus의 AirConditioner:VariableRefrigerantFlow 객체를 사용 (기존에는 ZoneHVAC:WindowAirConditioner사용; 공조기+EHP와 동일한 객체 사용하도록 변경).
+        \item 패키지에어컨 및 EHP 사용시 냉방 코일의 현열비 및 정격 풍량을 자동 산정하지 않고 각각 0.7, 10L/$s\cdot m^2$으로 고정.
+    \end{itemize}
+
+    \item \textbf{수정된 기능}
+    \begin{itemize}
+        \item 패키지에어컨 사용시 냉방에너지가 계산되지 않던 (EnergyPlus 시뮬레이션에서 항상 가동하지 않던) 오류 수정.
+        \item EHP 사용시 특정 조건에서 발생하던 EnergyPlus 실행 오류 수정.
+        \item 난방유 사용시 grr 파일에서 결과에 집계되지 않던 오류 수정.
+        \item EnergyPlus 실행 후 err 파일을 읽을 수 없던 경우 발생하던 오류를 EnergyPlusError Exception으로 예외처리 가능하도록 수정.
+    \end{itemize}
+    
+    \item \textbf{제거된 기능}
+    \par -
+\end{itemize}

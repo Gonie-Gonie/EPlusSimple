@@ -105,7 +105,7 @@ if %BUILD_ERROR% neq 0 (
 )
 echo     ...Regression Test Report build successful.
 
-echo [5/7] Building Excel Interface User Guide...
+echo [5/7] Building Excel Interface User Guide and Release Note...
 
 :: latexmk는 .tex 파일이 있는 곳에서 실행하는 것이 가장 안정적입니다.
 pushd docs
@@ -115,6 +115,26 @@ pushd docs
 if not exist "..\dist\docs\ExcelInterfaceUserGuide" mkdir "..\dist\docs\ExcelInterfaceUserGuide"
 
 %LATEX_COMPILER% -pdf -outdir=../dist/docs "mainEIUG.tex"
+
+set "BUILD_ERROR=%errorlevel%"
+popd
+
+:: 빠져나온 후에 저장된 errorlevel 값으로 성공/실패를 판정합니다.
+if %BUILD_ERROR% neq 0 (
+    echo [ERROR] LaTeX build failed. Please check the log file.
+    pause
+    exit /b
+)
+echo     ...Excel Interface User Guide build successful.
+
+:: latexmk는 .tex 파일이 있는 곳에서 실행하는 것이 가장 안정적입니다.
+pushd docs
+
+:: -pdf: PDF 파일을 생성합니다.
+:: -outdir: 출력 폴더를 지정합니다. 최상위 폴더 기준이므로 ../dist/docs 입니다.
+if not exist "..\dist\docs\Release-Note" mkdir "..\dist\docs\Release-Note"
+
+%LATEX_COMPILER% -pdf -outdir=../dist/docs "mainRN.tex"
 
 set "BUILD_ERROR=%errorlevel%"
 popd
@@ -140,6 +160,7 @@ copy "runExcelLauncher.bat" "%RELEASE_DIR%\runExcelLauncher.bat" > nul
 copy "dist\docs\mainTRM.pdf" "%RELEASE_DIR%\docs\TechnicalReferenceManual.pdf" > nul
 copy "dist\docs\mainRTR.pdf" "%RELEASE_DIR%\docs\RegressionTestReport.pdf" > nul
 copy "dist\docs\mainEIUG.pdf" "%RELEASE_DIR%\docs\ExcelInterfaceUserGuide.pdf" > nul
+copy "dist\docs\mainEIUG.pdf" "%RELEASE_DIR%\docs\ReleaseNote.pdf" > nul
 
 :: Copy src modules (conditionally)
 echo     ...Copying src modules...
