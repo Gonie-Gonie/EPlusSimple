@@ -16,4 +16,22 @@
 
 \chapter{대상건물}
 
+\section{ASHRAE 140-modified}
+
+본 연구의 시뮬레이션 검증을 위해 사용된 모델은 \textbf{ASHRAE Standard 140-2023}(Method of Test for Evaluating Building Performance Simulation Software)의 Base Case 600이다. 이는 건물 에너지 해석 프로그램의 외피 열전달 및 창호 태양열 취득 알고리즘을 진단하기 위한 기초적인 저열용량(Low-Mass) 모델로, 본 시뮬레이터의 입력 데이터 양식에 맞추어 일부 운전 조건과 형식을 수정하여 적용하였다.
+
+\subsection{기준 모델 개요 (Base Case 600)}
+
+기준 모델은 남측에 대면적 창호가 설치된 직육면체 형태의 단일 존(Single Zone) 건물이다. ASHRAE Standard 140-2023에서 규정하는 해당 건물의 기하학적 형상, 물리적 특성, 운전 조건 및 설비 시스템 설정은 다음과 같다.
+
+\begin{itemize}
+  \item \textbf{기하학적 형상(Geometry)}\\$8m \times 6m \times 2.7m$ 크기의 직육면체 구조이며, 남측 벽면에 총 $12m^2$($6m^2$ 창호 2개소)의 투명 이중창(Clear Double-Pane Glazing System)이 배치되어 있다.
+  \item \textbf{구조체 물성(Material)}\\ASHRAE 140의 'Lightweight' 기준을 따르는 저열용량 구조체로 설정되었다. 외벽은 Wood Siding, Fiberglass Quilt, Plasterboard의 적층 구조를 가지며, 바닥과 천장 또한 단열재와 목재 마감을 포함한 경량 자재의 물성을 적용하였다.
+  \item \textbf{창호 특성(Glazing)}\\남측 창호는 투명 이중 유리로 구성되며, 열관류율(U-value) 약 $2.1 W/m^2 \cdot K$, 태양열취득계수(SHGC) 0.769의 광학적 성능을 갖는다.
+  \item \textbf{운전 조건(Operations)}\\실내 온도는 난방 $20^\circ C$, 냉방 $27^\circ C$의 불감대(Deadband) 제어 방식을 따르며, 침기율(Infiltration)은 $0.5 ACH$로 설정된다.
+  \item \textbf{이상적 설비 시스템(Idealized Mechanical System) 구현}\\ASHRAE 140은 설비 효율에 의한 변수를 배제한 이상적 냉난방 시스템(Ideal System)을 가정한다. 이를 구현하기 위해 본 모델의 히트펌프 효율(COP)은 $1.0$으로 고정하였으며, 설비 용량을 $10^6 W$로 설정하여 부하 미처리가 발생하지 않고 모든 열부하를 제거할 수 있도록 하였다.
+\end{itemize}
+
+\vspace{1cm}
+
 추후 기술 (\cite{judkoff2006model})
