@@ -120,8 +120,9 @@ def apply_profilechange(tex:str) -> str:
     replacement = df2latex(df)
     
     # replace in tex
-    pattern = r"% ASHRAE 140-modified 용도프로필별 결과\n\\begin\{tabular\}.*?\\end\{tabular\}"
-    replaced_tex = re.sub(pattern, lambda m: replacement, tex, flags=re.DOTALL)
+    replacepointstr = r"% PythonReplacePoint: ASHRAE 140-modified 프로필별 결과"
+    pattern = replacepointstr + r"\n\\begin\{tabular\}.*?\\end\{tabular\}"
+    replaced_tex = re.sub(pattern, lambda m: "\n".join([replacepointstr, replacement]), tex, flags=re.DOTALL)
     
     return replaced_tex
 
@@ -177,8 +178,9 @@ def apply_weatherchange(tex:str) -> str:
     replacement = df2latex(df)
     
     # replace in tex
-    pattern = r"% ASHRAE 140-modified 지역별 결과\n\\begin\{tabular\}.*?\\end\{tabular\}"
-    replaced_tex = re.sub(pattern, lambda m: replacement, tex, flags=re.DOTALL)
+    replacepointstr = r"% PythonReplacePoint: ASHRAE 140-modified 지역별 결과"
+    pattern = replacepointstr + r"\n\\begin\{tabular\}.*?\\end\{tabular\}"
+    replaced_tex = re.sub(pattern, lambda m: "\n".join([replacepointstr, replacement]), tex, flags=re.DOTALL)
     
     return replaced_tex
 
