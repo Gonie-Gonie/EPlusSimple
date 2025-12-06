@@ -88,7 +88,7 @@ def grrs2df(grrs_dict: dict[str, GreenRetrofitResult]):
 
 def df2latex(df: pd.DataFrame) -> str:
     latex_str = df.to_latex(float_format="%.1f", escape=False)
-    latex_str = re.sub(r"(\\multicolumn\{\d+\})\{[lrc]\}", r"\1{c}", latex_str)
+    latex_str = re.sub(r"(\\multicolumn\{\d+\})\{[lrc]\}", r"\1{|c}", latex_str)
     return latex_str
 
 # ---------------------------------------------------------------------------- #
