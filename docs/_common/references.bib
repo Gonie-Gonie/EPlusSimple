@@ -232,12 +232,44 @@
   edition={10th},
   note={Ch. 8: Software Testing}
 }
-% EP
-@techreport{energyplus2024validation,
-  title={EnergyPlus Testing and Validation},
-  author={{National Renewable Energy Laboratory}},
-  year={2024},
-  institution={U.S. Department of Energy},
-  url={https://energyplus.net/testing},
-  note={Reference for building simulation engine validation}
+% 3. EnergyPlus의 검증 및 테스트 문서 (공식 문서)
+% EnergyPlus가 회귀 테스트를 수행한다는 근거 자료입니다.
+@manual{EnergyPlusValidation,
+  author       = {{U.S. Department of Energy}},
+  title        = {EnergyPlus™ Documentation: Tips and Tricks for Using EnergyPlus - Validation and Testing},
+  year         = {2024},
+  version      = {24.2.0},
+  url          = {https://bigladdersoftware.com/epx/docs/9-2/tips-and-tricks-using-energyplus/validation-and-testing.html},
+  note         = {Describes the automated regression testing process using ASHRAE 140.}
+}
+
+% 4. (선택사항) EnergyPlus 회귀 테스트 도구 (GitHub 소스)
+% 기술적인 신뢰성을 위해 구체적인 도구를 언급할 경우 사용합니다.
+@misc{EnergyPlusRegressionTool,
+  author       = {{National Renewable Energy Laboratory}},
+  title        = {EnergyPlusRegressionTool: Tools for running regressions on EnergyPlus outputs},
+  year         = {2024},
+  publisher    = {GitHub},
+  journal      = {GitHub repository},
+  url          = {https://github.com/NREL/EnergyPlusRegressionTool},
+  note         = {Open-source tool used by NREL for EnergyPlus quality assurance.}
+}
+@manual{ASHRAE140_2023,
+  title        = {ANSI/ASHRAE Standard 140-2023: Standard Method of Test for Evaluation of Building Energy Analysis Computer Programs},
+  author       = {{ASHRAE}},
+  year         = {2023},
+  organization = {American Society of Heating, Refrigerating and Air-Conditioning Engineers},
+  address      = {Atlanta, GA},
+  url          = {https://www.ashrae.org},
+  note         = {Access requires ASHRAE purchase or subscription},
+}
+% ASHRAE 140 형상 이미지
+@inproceedings{riquelme2019validation,
+  title={Validation and Application of a Numerical Code for Estimate Energy Performance of Complex Glazing Systems Based on Semi-transparent Organic Photovoltaics Elements},
+  author={Riquelme, Santiago and Mendes, Nathan and Mauro Moura, Lu{\'\i}s},
+  booktitle={Building Simulation 2019},
+  volume={16},
+  pages={4617--4624},
+  year={2019},
+  organization={IBPSA}
 }

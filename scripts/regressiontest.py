@@ -62,11 +62,11 @@ def grrs2df(grrs_dict: dict[str, GreenRetrofitResult]):
 
         # 연료별
         for col_name, key in FUEL.items():
-            row[("연료별", col_name)] = d["summary_per_area"]["site_uses"][key]
+            row[("연료별 소요량", col_name)] = d["summary_per_area"]["site_uses"][key]
 
         # 용도별
         for col_name, key in USE.items():
-            row[("용도별", col_name)] = d["summary_per_area"]["site_uses"][key]
+            row[("용도별 소요량", col_name)] = d["summary_per_area"]["site_uses"][key]
 
         # 합계
         for col_name, (group, key) in SUM.items():
