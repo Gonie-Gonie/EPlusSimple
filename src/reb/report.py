@@ -741,20 +741,23 @@ def parse_hvacoperationchange(
     checklist2:현장조사체크리스트,
     ) -> tuple[str]:
     
+    func_certaincoolingsetpoint = lambda x: x if isinstance(x, int|float) else 26
+    func_certainheatingsetpoint = lambda x: x if isinstance(x, int|float) else 20
+    
     # heating
     if checklist1.일반존.난방설비1 is None:
         heatingtime1     = "사용안함"
         heatingsetpoint1 = "(없음)"
     else:
         heatingtime1 = f"{checklist1.일반존.난방설비1.사용기간} {checklist1.일반존.난방설비1.사용시간}"
-        heatingsetpoint1 = f"{checklist1.일반존.난방설비1.설정온도:.1f}$^\\circ C$"
+        heatingsetpoint1 = f"{func_certainheatingsetpoint(checklist1.일반존.난방설비1.설정온도):.1f}$^\\circ C$"
         
     if checklist2.일반존.난방설비1 is None:
         heatingtime2     = "사용안함"
         heatingsetpoint2 = "(없음)"
     else:
         heatingtime2 = f"{checklist2.일반존.난방설비1.사용기간} {checklist2.일반존.난방설비1.사용시간}"
-        heatingsetpoint2 = f"{checklist2.일반존.난방설비1.설정온도:.1f}$^\\circ C$"
+        heatingsetpoint2 = f"{func_certainheatingsetpoint(checklist2.일반존.난방설비1.설정온도):.1f}$^\\circ C$"
     
     if heatingtime1 == heatingtime2:
         heatingtime = "변화 없음."
@@ -772,14 +775,14 @@ def parse_hvacoperationchange(
         coolingsetpoint1 = "(없음)"
     else:
         coolingtime1 = f"{checklist1.일반존.냉방설비1.사용기간} {checklist1.일반존.냉방설비1.사용시간}"
-        coolingsetpoint1 = f"{checklist1.일반존.냉방설비1.설정온도:.1f}$^\\circ C$"
+        coolingsetpoint1 = f"{func_certaincoolingsetpoint(checklist1.일반존.냉방설비1.설정온도):.1f}$^\\circ C$"
         
     if checklist2.일반존.냉방설비1 is None:
         coolingtime2     = "사용안함"
         coolingsetpoint2 = "(없음)"
     else:
         coolingtime2 = f"{checklist2.일반존.냉방설비1.사용기간} {checklist2.일반존.냉방설비1.사용시간}"
-        coolingsetpoint2 = f"{checklist2.일반존.냉방설비1.설정온도:.1f}$^\\circ C$"
+        coolingsetpoint2 = f"{func_certaincoolingsetpoint(checklist2.일반존.냉방설비1.설정온도):.1f}$^\\circ C$"
     
     if coolingtime1 == coolingtime2:
         coolingtime = "변화 없음."
@@ -800,21 +803,23 @@ def parse_occupantchange(
     
     if isinstance(checklist1, 어린이집체크리스트):
         
+        func_nanto0 =  lambda x: 0 if pd.isna(x) else x
+        
         df = pd.DataFrame(
             [
                 [
-                    checklist1.일반존.기본보육교사  + checklist1.일반존.기본보육원생,
-                    checklist1.일반존.연장보육A교사 + checklist1.일반존.연장보육A원생,
-                    checklist1.일반존.연장보육B교사 + checklist1.일반존.연장보육B원생,
-                    checklist1.일반존.야간보육교사  + checklist1.일반존.야간보육원생,
-                    checklist1.일반존.주말보육교사  + checklist1.일반존.주말보육원생,
+                    func_nanto0(checklist1.일반존.기본보육교사  + checklist1.일반존.기본보육원생),
+                    func_nanto0(checklist1.일반존.연장보육A교사 + checklist1.일반존.연장보육A원생),
+                    func_nanto0(checklist1.일반존.연장보육B교사 + checklist1.일반존.연장보육B원생),
+                    func_nanto0(checklist1.일반존.야간보육교사  + checklist1.일반존.야간보육원생),
+                    func_nanto0(checklist1.일반존.주말보육교사  + checklist1.일반존.주말보육원생),
                 ],
                                 [
-                    checklist2.일반존.기본보육교사  + checklist2.일반존.기본보육원생,
-                    checklist2.일반존.연장보육A교사 + checklist2.일반존.연장보육A원생,
-                    checklist2.일반존.연장보육B교사 + checklist2.일반존.연장보육B원생,
-                    checklist2.일반존.야간보육교사  + checklist2.일반존.야간보육원생,
-                    checklist2.일반존.주말보육교사  + checklist2.일반존.주말보육원생,
+                    func_nanto0(checklist2.일반존.기본보육교사  + checklist2.일반존.기본보육원생),
+                    func_nanto0(checklist2.일반존.연장보육A교사 + checklist2.일반존.연장보육A원생),
+                    func_nanto0(checklist2.일반존.연장보육B교사 + checklist2.일반존.연장보육B원생),
+                    func_nanto0(checklist2.일반존.야간보육교사  + checklist2.일반존.야간보육원생),
+                    func_nanto0(checklist2.일반존.주말보육교사  + checklist2.일반존.주말보육원생),
                 ]    
             ],
             columns = ["기본 (-16:00)~~", "연장 (-18:00)~~", "연장 (-19:30)~~","야간 (-21:00)~~","주말~~"],
