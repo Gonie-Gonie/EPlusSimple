@@ -1120,7 +1120,7 @@ class AirHandlingUnit(SupplySystem):
     """
     
     def __str__(self) -> str:
-        return f"AirHandlingUnit {self.name} (ID={self.ID}) using {type(self.source)} {self.source.name}"
+        return f"AirHandlingUnit {self.name} (ID={self.ID}) using {type(self.source).__name__} {self.source.name}"
     
     def __repr__(self) -> str:
         return f"<AirHandlingUnit {self.name} (ID={self.ID}) at {hex(id(self))}>"
@@ -1208,7 +1208,7 @@ class FanCoilUnit(AirHandlingUnit):
     """
     
     def __str__(self) -> str:
-        return f"FanCoilUnit {self.name} (ID={self.ID}) using {type(self.source)} {self.source.name}"
+        return f"FanCoilUnit {self.name} (ID={self.ID}) using {type(self.source).__name__} {self.source.name}"
     
     def __repr__(self) -> str:
         return f"<FanCoilUnit {self.name} (ID={self.ID}) at {hex(id(self))}>"
@@ -1311,7 +1311,7 @@ class Radiator(SupplySystem):
     """
     
     def __str__(self) -> str:
-        return f"Radiator {self.name} (ID={self.ID}) using {type(self.source)} {self.source.name}"
+        return f"Radiator {self.name} (ID={self.ID}) using {type(self.source).__name__} {self.source.name}"
     
     def __repr__(self) -> str:
         return f"<Radiator {self.name} (ID={self.ID}) at {hex(id(self))}>"
@@ -1507,7 +1507,7 @@ class RadiantFloor(SupplySystem):
     """
     
     def __str__(self) -> str:
-        return f"Radiant floor {self.name} (ID={self.ID}) using {type(self.source)} {self.source.name}"
+        return f"Radiant floor {self.name} (ID={self.ID}) using {type(self.source).__name__} {self.source.name}"
     
     def __repr__(self) -> str:
         return f"<RadiantFloor {self.name} (ID={self.ID}) at {hex(id(self))}>"

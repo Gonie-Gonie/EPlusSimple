@@ -10,19 +10,16 @@ import json
 import shutil
 import subprocess
 from pathlib  import Path
-from collections import Counter
 from dataclasses import dataclass
 
 # third-party modules
 import pandas            as pd
 import matplotlib.pyplot as plt
-from matplotlib.figure import Figure
-from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 from jinja2 import Template
 
 # local modules
-from .comparison import compare_rebexcel
+from epsimple import GreenRetrofitModel, Zone
 from .auxiliary  import find_weatherdata
 from .postprocess import (
     현장조사체크리스트,
@@ -662,7 +659,82 @@ def summarytable(
     
     return df1, df2
 
+def parse_activechange(
+    grm1:GreenRetrofitModel,
+    grm2:GreenRetrofitModel,
+    ) -> tuple[str]:
+    
+    # heating and cooling hvac
+    def hvac2str(zone:Zone) -> str:
+        
+        if zone.heating_supply is None:
+            heatingstr =  ""
+        else:
+            heatingstr =  f"{zone.heating_supply}\n{zone.heating_supply.source}"
+            
+        if zone.cooling_supply is None:
+            coolingstr =  ""
+        else:
+            coolingstr =  f"{zone.cooling_supply}\n{zone.cooling_supply.source}"
 
+        return heatingstr, coolingstr
+    
+    hvacdict1 = {
+        zone.name: hvac2str(zone)
+        for zone in grm1.zone
+    }
+    hvacdict2 = {
+        zone.name: hvac2str(zone)
+        for zone in grm2.zone
+    }
+    
+    heatingchanged = 0
+    coolingchanged = 0
+    for zonename in hvacdict1.keys():
+        if zonename in hvacdict2.keys() and (hvacdict1[zonename][0] != hvacdict2[zonename][0]):
+            heatingchanged += 1
+        if zonename in hvacdict2.keys() and (hvacdict1[zonename][1] != hvacdict2[zonename][1]):
+            coolingchanged += 1
+    
+    if heatingchanged == 0:
+        heatingchangestr = "변화 없음."
+    else:
+        heatingchangestr = f"{heatingchanged}개 실에 영향을 주는 교체 있음."
+        
+    if coolingchanged == 0:
+        coolingchangestr = "변화 없음."
+    else:
+        coolingchangestr = f"{coolingchanged}개 실에 영향을 주는 교체 있음."
+    
+    # ventilation
+    ventdict1 = {
+        zone.name: zone.ventilation_system
+        for zone in grm1.zone
+    }
+    ventdict2 = {
+        zone.name: zone.ventilation_system
+        for zone in grm2.zone
+    }
+    
+    ventadded   = 0 
+    ventchanged = 0
+    for zonename in ventdict1.keys():
+        if zonename in ventdict2.keys():
+            if ventdict1[zonename] is None and ventdict2[zonename] is not None:
+                ventadded += 1
+            elif str(ventdict1[zonename]) != str(ventdict2[zonename]):
+                ventchanged += 1
+    
+    if ventadded == 0 and ventchanged == 0:
+        ventchangedstr = "변화 없음."
+    elif ventadded == 0 and ventchanged > 0:
+        ventchangedstr = f"{ventchanged}개 실에서 전열교환기 교체됨."
+    elif ventadded > 0 and ventchanged == 0:
+        ventchangedstr = f"{ventadded}개 실에서 전열교환기 추가됨."
+    else:
+        ventchangedstr =  f"{ventadded}개 실에 전열교환기 추가, {ventchanged}개 실에서 전열교환기 교체됨."
+    
+    return heatingchangestr, coolingchangestr, ventchangedstr
 
 def build_report(
     before_rebexcelpath:str,
@@ -718,6 +790,21 @@ def build_report(
         },
     }
     
+    # active change
+    activechange_before2after = parse_activechange(grmbefore, grmafter)
+    activechange_after2afterN = parse_activechange(grmafter, grmafterN)
+    activechangedict = {
+        "before2after":{
+            "heating": activechange_before2after[0],
+            "cooling": activechange_before2after[1],
+            "ventilation": activechange_before2after[2],
+        },
+        "after2afterN":{
+            "heating": activechange_after2afterN[0],
+            "cooling": activechange_after2afterN[1],
+            "ventilation": activechange_after2afterN[2],
+        }
+    }
     
     # get figures (by results summary)
     fig_use_co2 = draw_energysimulation_figures(grrbefore, grrafter, grrafterN)
@@ -746,6 +833,7 @@ def build_report(
     context = {
         "metadata": metadata,
         "passivechange": passivechangedict,
+        "activechange": activechangedict,
         "summarytabletex" : [df.style.format(lambda x: f"{x:,.1f}~~").to_latex(**summarytablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline") for df in summarytable(grrbefore, grrafter, grrafterN)],
         "degreedays": {k:v for k,v in zip(["HDD2018","HDD2023","CDD2018","CDD2023"], degreedays)}|{"HDDchange": ("증가" if (degreedays[1]-degreedays[0])>0 else "감소"),"CDDchange": ("증가" if (degreedays[3]-degreedays[2])>0 else "감소")},
         "comment": commentdict
