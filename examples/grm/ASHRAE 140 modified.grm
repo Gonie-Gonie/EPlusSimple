@@ -129,12 +129,6 @@
         "ventilation_systems": [],
         "photovoltaic_systems": []
     },
-    "profiles": [],
-    "profile_components": {
-        "schedules": [],
-        "rulesets": [],
-        "day_schedules": []
-    },
     "materials": [
         {
             "id": "MTRL-0x000000",

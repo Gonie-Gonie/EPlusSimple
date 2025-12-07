@@ -62,11 +62,11 @@ def grrs2df(grrs_dict: dict[str, GreenRetrofitResult]):
 
         # 연료별
         for col_name, key in FUEL.items():
-            row[("연료별", col_name)] = d["summary_per_area"]["site_uses"][key]
+            row[("연료별 소요량", col_name)] = d["summary_per_area"]["site_uses"][key]
 
         # 용도별
         for col_name, key in USE.items():
-            row[("용도별", col_name)] = d["summary_per_area"]["site_uses"][key]
+            row[("용도별 소요량", col_name)] = d["summary_per_area"]["site_uses"][key]
 
         # 합계
         for col_name, (group, key) in SUM.items():
@@ -88,7 +88,7 @@ def grrs2df(grrs_dict: dict[str, GreenRetrofitResult]):
 
 def df2latex(df: pd.DataFrame) -> str:
     latex_str = df.to_latex(float_format="%.1f", escape=False)
-    latex_str = re.sub(r"(\\multicolumn\{\d+\})\{[lrc]\}", r"\1{c}", latex_str)
+    latex_str = re.sub(r"(\\multicolumn\{\d+\})\{[lrc]\}", r"\1{|c}", latex_str)
     return latex_str
 
 # ---------------------------------------------------------------------------- #
@@ -120,8 +120,9 @@ def apply_profilechange(tex:str) -> str:
     replacement = df2latex(df)
     
     # replace in tex
-    pattern = r"% ASHRAE 140-modified 용도프로필별 결과\n\\begin\{tabular\}.*?\\end\{tabular\}"
-    replaced_tex = re.sub(pattern, lambda m: replacement, tex, flags=re.DOTALL)
+    replacepointstr = r"% PythonReplacePoint: ASHRAE 140-modified 프로필별 결과"
+    pattern = replacepointstr + r"\n\\begin\{tabular\}.*?\\end\{tabular\}"
+    replaced_tex = re.sub(pattern, lambda m: "\n".join([replacepointstr, replacement]), tex, flags=re.DOTALL)
     
     return replaced_tex
 
@@ -177,8 +178,9 @@ def apply_weatherchange(tex:str) -> str:
     replacement = df2latex(df)
     
     # replace in tex
-    pattern = r"% ASHRAE 140-modified 지역별 결과\n\\begin\{tabular\}.*?\\end\{tabular\}"
-    replaced_tex = re.sub(pattern, lambda m: replacement, tex, flags=re.DOTALL)
+    replacepointstr = r"% PythonReplacePoint: ASHRAE 140-modified 지역별 결과"
+    pattern = replacepointstr + r"\n\\begin\{tabular\}.*?\\end\{tabular\}"
+    replaced_tex = re.sub(pattern, lambda m: "\n".join([replacepointstr, replacement]), tex, flags=re.DOTALL)
     
     return replaced_tex
 

@@ -8,7 +8,50 @@
 
 \chapter{실험의 구성}
 
-추후 기술
+\section{ASHRAE 140-modified 사례분석}
+
+본 실험은 \ref{section:targetbuilding-ashrae140-modified}에서 기술하는 표준 건물을 활용하여, 용도프로필별, 기상데이터별 표준적인 시뮬레이션을 수행하고,
+이를 통해 외부 및 내부 부하에 따른 용도별 에너지사용량의 차이를 제시한다.
+
+용도프로필 20개는 \simulator 에서 사용 가능한 모든 용도프로필을 사용하였다.
+
+기상데이터는 각 시도청소재지 18개소를 선정하였다 \parencref{table:weatherdata-points}.
+
+\begin{defaulttable}
+  \caption{기상데이터 선택 지점}
+  \label{table:weatherdata-points}
+
+  \begin{tabular}{c c c r r}
+    \toprule
+    \textbf{지역구분} & \textbf{지점} & \textbf{선정이유} & \textbf{냉방도일($18^\circ C$)} & \textbf{난방도일($18^\circ C$)} \\
+    \midrule
+    중부1 & 강원특별자치도 철원군 & 한랭지역 & - & - \\
+    중부1 & 강원특별자치도 춘천시 & 강원특별자치도청 소재 & - & - \\
+    중부1 & 경기도 의정부시 & 경기도청 북부청사 소재 & - & - \\
+    \midrule
+    중부2 & 경상북도 안동시 & 경상북도청 소재 & - & - \\
+    중부2 & 대전광역시 서구 & 대전광역시청 소재 & - & - \\
+    중부2 & 서울특별시 중구 & 서울특별시청 소재 & - & - \\
+    중부2 & 세종특별자치시 세종시 & 세종특별자치시청 소재 & - & - \\
+    중부2 & 인천광역시 남동구 & 인천광역시청 소재 & - & - \\
+    중부2 & 전북특별자치도 전주시 완산구 & 전북특별자치도청 소재 & - & - \\
+    중부2 & 충청남도 홍성군 & 충청남도청 소재 & - & - \\
+    중부2 & 충청북도 청주시 상당구 & 충청북도청 소재 & - & - \\
+    \midrule
+    남부 & 경상남도 창원시 의창구 & 경상남도청 소재 & - & - \\
+    남부 & 광주광역시 서구 & 광주광역시청 소재 & - & - \\
+    남부 & 대구광역시 중구 & 대구광역시청 소재 & - & - \\
+    남부 & 부산광역시 연제구 & 부산광역시청 소재 & - & - \\
+    남부 & 울산광역시 남구 & 울산광역시청 소재 & - & - \\
+    남부 & 전라남도 무안군 & 전라남도청 소재 & - & - \\
+    \midrule
+    제주 & 강원특별자치도 춘천시 & 강원도청 소재 & - & - \\
+    \bottomrule
+
+  \end{tabular}
+\end{defaulttable}
+
+본 실험의 결과는 \ref{chapter:ashrae140-modified}에서 기술한다.
 
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
@@ -16,4 +59,20 @@
 
 \chapter{대상건물}
 
-추후 기술 (\cite{judkoff2006model})
+\section{ASHRAE 140-modified}
+\label{section:targetbuilding-ashrae140-modified}
+
+이 모델은 ASHRAE Standard 140-2023(Method of Test for Evaluating Building Performance Simulation Software)의 Base Case 600을 \simulator 의 입력에 맞게 일부 수정한 것이다\cite{ASHRAE140_2023}. 이는 남측 벽면에 총 $12m^2$($6m^2$ 창호 2개소)의 투명 이중창이 있는 $8m \times 6m \times 2.7m$ 크기의 직육면체 형태의 단일 존 건물이다 \parencref{fig:ashrae140-2023-case600shape}.
+
+\begin{defaultfigure}
+  \includegraphics[width=0.6\textwidth]{ANSI-ASHRAE-140-2011-Case-600-900_W640.jpg}
+  \caption{ASHRAE Standard 140에서 제시된 Case 600 건물 \cite{riquelme2019validation}}
+  \label{fig:ashrae140-2023-case600shape}
+\end{defaultfigure}
+
+ASHRAE Standard 140-2023에서 변경된 내용은 아래와 같다.
+\begin{itemize}
+  \item 소규모사무실 용도프로필 사용
+  \item 냉난방 COP 3.0의 전기히트펌프 사용
+  \item 조명밀도는 $10W/m^2$, 침기율은 $1.5ACH_{50}$
+\end{itemize}

@@ -12,22 +12,27 @@
 \pagestyle{plain} 
 
 % ---------------------------------------------------------------------------- %
+%                              DEDICATED PREAMBLE                              %
+% ---------------------------------------------------------------------------- %
+
+\newcommand{\newversionsection}[2]{
+  \newpage
+  \phantomsection
+  \section*{Version #1 (#2)}
+  \addcontentsline{toc}{section}{Version #1 (#2)}
+}
+
+% ---------------------------------------------------------------------------- %
 %                                 PRELIMINARIES                                %
 % ---------------------------------------------------------------------------- %
 
 % --- 표지 ---
-\maketitlepage{Regression Test Report}
+\maketitlepage{Release Note}
 
 % --- 서문 ---
 \section*{서문}
-본 문서는 \simulator~\releaseversion 의 동작을 검증하기 위해 작성된 버전 검증 보고서입니다.
+본 문서는 high-fidelity 동적에너지 시뮬레이션에 기반한 그린리모델링 의사결정 지원 도구, \simulator 의 버전 관리 방법 및, \releaseversion~및 그 이하의 버전별 변경사항을 기술합니다.
 
-본 문서는 아래와 같은 순서로 기술되어 있습니다.
-\begin{itemize}
-  \item 제1부[{\bfseries 서론}]에서는, 본 검증의 목적을 기술합니다.
-  \item 제2부[{\bfseries 테스트 방법}]에서는, 대상건물과 실험의 조건들에 대하여 기술합니다.
-  \item 제3부[{\bfseries 테스트 결과}]에서는, \releaseversion 으로 수행한 실험 결과를 기술합니다.
-\end{itemize}
 
 % --- 목차 ---
 \pagenumbering{roman}
@@ -45,9 +50,10 @@
 
 % --- 본문 ---
 \mainmatter
-\include{RegressionTestReport/part1}
-\include{RegressionTestReport/part2}
-\include{RegressionTestReport/part3}
+\include{Release-Note/chap1.tex}
+\include{Release-Note/chap2.tex}
+
+% --- 부록 --- 
 
 % ---------------------------------------------------------------------------- %
 %                                  BACKMATTER                                  %

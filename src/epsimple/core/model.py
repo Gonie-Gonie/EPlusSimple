@@ -356,24 +356,6 @@ class GreenRetrofitModel:
         surface_construction_dict["open"]    = OpenConsruction()
         surface_construction_dict["unknown"] = UnknownConstruction()
         
-        # profile
-        day_schedule_dict = {
-            day_schedule_input.id: DaySchedule.from_json(day_schedule_input)
-            for day_schedule_input in input.profile_components.day_schedules
-        }
-        ruleset_dict = {
-            ruleset_input.id: RuleSet.from_json(ruleset_input, day_schedule_dict)
-            for ruleset_input in input.profile_components.rulesets
-        }
-        schedule_dict = {
-            schedule_input.id: Schedule.from_json(schedule_input, ruleset_dict)
-            for schedule_input in input.profile_components.schedules
-        }
-        profile_dict = {
-            profile_input.id: Profile.from_json(profile_input, schedule_dict)
-            for profile_input in input.profiles
-        }
-        
         # system
         source_system_dict = {
             system_input.id: SourceSystem.from_json(system_input)
@@ -398,7 +380,6 @@ class GreenRetrofitModel:
                 zone_input                    ,
                 surface_construction_dict     ,
                 fenestration_construction_dict,
-                profile_dict                  ,
                 supply_system_dict            ,
                 ventilation_system_dict       ,
                 floor=floor_input.floor_number,
