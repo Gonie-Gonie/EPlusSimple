@@ -707,19 +707,19 @@ def build_report(
     # comparison summary
     if len(perf_diff12) > 0:
         diff_counts12 = perf_diff12.drop_duplicates(["type", "zonename"]).groupby("type")["zonename"].nunique().to_dict()
-        diffstr12 = ", ".join(f"{v}개 실에서 {k}" for k, v in diff_counts12.items())
+        diffstr12 = "\n".join(f"\\item {v}개 실에서 {k}" for k, v in diff_counts12.items())
     else:
-        diffstr12 = "없음"
+        diffstr12 = "\\item 없음"
     if len(perf_diff23) > 0:
         diff_counts23 = perf_diff23.drop_duplicates(["type", "zonename"]).groupby("type")["zonename"].nunique().to_dict()
-        diffstr23 = ", ".join(f"{v}개 실에서 {k}" for k, v in diff_counts23.items())
+        diffstr23 = "\n".join(f"\\item {v}개 실에서 {k}" for k, v in diff_counts23.items())
     else:
-        diffstr23 = "없음"
+        diffstr23 = "\\item 없음"
     if len(oper_diff23) > 0:
         diff_counts23oper = oper_diff23.drop_duplicates(["type", "zonename"]).groupby("type")["zonename"].nunique().to_dict()
-        diffstr23oper = ", ".join(f"{v}개 실에서 {k}" for k, v in diff_counts23oper.items())
+        diffstr23oper = "\n".join(f"\\item {v}개 실에서 {k}" for k, v in diff_counts23oper.items())
     else:
-        diffstr23oper = "없음"
+        diffstr23oper = "\\item 없음"
     
     # get figures (by results summary)
     fig_use_co2 = draw_energysimulation_figures(grrbefore, grrafter, grrafterN)

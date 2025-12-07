@@ -144,31 +144,11 @@
 \topbar{그린리모델링 사업으로 인한 변화 내용}
 
 \section{성능 변화}
-{\scriptsize
-\setlength{\tabcolsep}{8pt}
-{% if perf_diff12 %}
-\begin{tcolorbox}[mysection, breakable]
-\centering
-
-\begin{tabular}{l|l|l|c|c|c}
-\hline
-존 이름 & 구분 & 항목 & 이전 값 & 이후 값 & 단위 \\ \hline
-{% for d in perf_diff12 %}
-    {% if not loop.first and d.type != loop.previtem.type %}
-        \hline
-    {% endif %}
-    {{ d.zonename }} & {{ d.type }} & {{ d.prop }} & {{ d.before }} & {{ d.after }} & {{ d.unit }} \\
-{% endfor %}
-\hline
-\end{tabular}
-\end{tcolorbox}
-
-{% else %}
 \begin{tcolorbox}[mysection]
-\textit{변경내역 없음.}
+\begin{itemize}
+{{diffstr.d12}}
+\end{itemize}
 \end{tcolorbox}
-{% endif %}
-}
 
 \section{기후 변화}
 \noindent
@@ -183,71 +163,23 @@ $\rightarrow$  냉방도일\footnote{매 시간별로 외기온도가 기준온�
 \topbar{그린리모델링 사업 이후 변화 내용}
 
 \section{성능 변화}
-{\scriptsize
-\setlength{\tabcolsep}{8pt}
-{% if perf_diff23 %}
-\begin{tcolorbox}[mysection, breakable]
-\centering
-
-\begin{tabular}{l|l|l|c|c|c}
-\hline
-존 이름 & 구분 & 항목 & 이전 값 & 이후 값 & 단위 \\ \hline
-{% for d in perf_diff23 %}
-    {% if not loop.first and d.type != loop.previtem.type %}
-        \hline
-    {% endif %}
-    {{ d.zonename }} & {{ d.type }} & {{ d.prop }} & {{ d.before }} & {{ d.after }} & {{ d.unit }} \\
-{% endfor %}
-\hline
-\end{tabular}
-\end{tcolorbox}
-
-{% else %}
 \begin{tcolorbox}[mysection]
-\textit{변경내역 없음.}
-\end{tcolorbox}
-{% endif %}
-}
-
-\section{운영특성 변화}
-{\scriptsize
-\setlength{\tabcolsep}{8pt}
-{% if oper_diff23 %}
-\begin{tcolorbox}[mysection, breakable]
-\centering
-
-\begin{tabular}{l|l|l|c|c|c}
-\hline
-존 이름 & 구분 & 항목 & 이전 값 & 이후 값 & 단위 \\ \hline
-{% for d in oper_diff23 %}
-    {% if not loop.first and d.type != loop.previtem.type %}
-        \hline
-    {% endif %}
-    {{ d.zonename }} & {{ d.type }} & {{ d.prop }} & {{ d.before }} & {{ d.after }} & {{ d.unit }} \\
-{% endfor %}
-\hline
-\end{tabular}
-
-\vspace{3mm}
-\normalsize
-\raggedright
-\textbf{재실인원 관련 현장조사 의견}: {{comment.occupant}} \par
-\textbf{냉난방 관련 현장조사 의견}: {{comment.hvac}}
-
+\begin{itemize}
+{{diffstr.d23}}
+\end{itemize}
 \end{tcolorbox}
 
-{% else %}
+\section{재실인원 변화}
 \begin{tcolorbox}[mysection]
-\normalsize
-\textit{변경내역 없음.} \par
-\vspace{3mm}
-\raggedright
-\textbf{재실인원 관련 현장조사 의견}: {{comment.occupant}} \par
+무언가..\par
+\textbf{재실인원 관련 현장조사 의견}: {{comment.occupant}}
+\end{tcolorbox}
+
+\section{냉난방 이용 변화}
+\begin{tcolorbox}[mysection]
+무언가..\par
 \textbf{냉난방 관련 현장조사 의견}: {{comment.hvac}}
 \end{tcolorbox}
-{% endif %}
-}
-
 
 \clearpage
 \topbar{용도별, 열원별, 월별 시뮬레이션 결과}
