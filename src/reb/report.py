@@ -817,14 +817,15 @@ def parse_occupantchange(
                     checklist2.일반존.주말보육교사  + checklist2.일반존.주말보육원생,
                 ]    
             ],
-            columns = ["기본~~", "연장A~~", "연장B~~","야간~~","주말~~"],
+            columns = ["기본 (-16:00)~~", "연장 (-18:00)~~", "연장 (-19:30)~~","야간 (-21:00)~~","주말~~"],
             index   = ["GR 직후", "2025년"] 
         )
+        
         연인원변화 = sum([h*p for h,p in zip([8.5, 2, 1.5, 1.5], df.values[1])])/sum([h*p for h,p in zip([8.5, 2, 1.5, 1.5], df.values[0])]) -1
         연인원변화tex = f"연인원 {abs(연인원변화*100):.1f}\\% {'증가' if 연인원변화 >0 else '감소'}\\footnote{{연인원은 증가할수록 난방에너지는 줄고, 냉방에너지는 늘어날 가능성 있음.}}"
         
         tablestyle = {
-            "column_format":"p{3cm}" + "|>{\\raggedleft\\arraybackslash}p{2cm}" * 5,
+            "column_format":"p{2cm}" + "|>{\\raggedleft\\arraybackslash}p{2.3cm}" * 5,
             "clines":"all;data",  
             "hrules":True,
             }
@@ -834,7 +835,36 @@ def parse_occupantchange(
     
     else:
         
-        return ""
+        집중진료연인원1 = ((checklist1.일반존.집중진료오전방문객 * checklist1.일반존.집중진료오전체류시간) + (checklist1.일반존.집중진료오후방문객 * checklist1.일반존.집중진료오후체류시간))/60 * len(checklist1.일반존.집중진료요일.split(","))
+        집중진료연인원2 = ((checklist2.일반존.집중진료오전방문객 * checklist2.일반존.집중진료오전체류시간) + (checklist2.일반존.집중진료오후방문객 * checklist2.일반존.집중진료오후체류시간))/60 * len(checklist2.일반존.집중진료요일.split(","))
+        
+        df = pd.DataFrame(
+            [
+                [
+                    f"{checklist1.일반존.운영시간.replace("~","-")}~~",
+                    f"{checklist1.일반존.직원}명 상주~~",
+                    f"주 {집중진료연인원1:.0f}명$\\cdot$시간~~",
+                    f"{checklist1.특화존2.사용관사수}개소~~",
+                ],
+                [
+                    f"{checklist2.일반존.운영시간.replace("~","-")}~~",
+                    f"{checklist2.일반존.직원}명 상주~~",
+                    f"주 {집중진료연인원1:.0f}명$\\cdot$시간~~",
+                    f"{checklist2.특화존2.사용관사수}개소~~",
+                ]    
+            ],
+            columns = ["운영시간~~", "직원~~", "집중진료 방문객~~","이용 관사 수~~"],
+            index   = ["GR 직후", "2025년"] 
+        )
+        
+        tablestyle = {
+            "column_format":"p{2cm}" + "|>{\\raggedleft\\arraybackslash}p{3cm}" * 4,
+            "clines":"all;data",  
+            "hrules":True,
+            }
+        tex =  df.style.to_latex(**tablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline")
+        
+        return tex
 
 def build_report(
     before_rebexcelpath:str,
