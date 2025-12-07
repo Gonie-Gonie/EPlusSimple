@@ -320,7 +320,7 @@ def draw_energysimulation_figures(
     
     # ENERGY_TYPES 순서대로 입력
     draw_3step_bargraph(
-        "연간 단위면적당 에너지소요량",
+        "면적당 에너지소요량 (연간)",
         [
             [
                 sum([
@@ -331,13 +331,13 @@ def draw_energysimulation_figures(
             ]
             for result in [grrbefore, grrafter, grrafterN]
         ],
-        ["GR이전","GR이후","N년차"],
-        ylabel = "에너지 소요량 (kWh/$\\mathrm{m^2\\cdot}$년)",
+        ["GR이전","GR이후","(운영특성 반영)"],
+        ylabel = "에너지 (kWh/$\\mathrm{m^2\\cdot}$년)",
         ax = axs[0]
     )
     
     draw_3step_bargraph(
-        "온실가스 배출량",
+        "면적당 온실가스 배출량 (연간)",
         [
             [
                 sum([
@@ -348,8 +348,8 @@ def draw_energysimulation_figures(
             ]
             for result in [grrbefore, grrafter, grrafterN]
         ],
-        ["GR이전","GR이후","N년차"],
-        ylabel = r"$\mathrm{CO_2}$ 배출량 (kg/$\mathrm{m^2\cdot}$년)",
+        ["GR이전","GR이후","(운영특성 반영)"],
+        ylabel = r"$\mathrm{CO_2,eq}$ (kg/$\mathrm{m^2\cdot}$년)",
         ax = axs[1]
     )
 
@@ -480,7 +480,7 @@ def _draw_monthly_stacked_bars(
     handles = []
     labels = []
     for et_key, et_label in ENERGY_TYPES:
-        for l_idx, label in enumerate(["GR 이전", "GR 이후", "GR N년차"]):
+        for l_idx, label in enumerate(["GR 이전", "GR 이후", "(운영특성 반영)"]):
             color = DEFAULT_COLORS_BEFORE[et_key]
             handles.append(Patch(ec=color, lw=0.8,
                                  fc=[color, color+'40', color+'40'][l_idx],
@@ -506,7 +506,7 @@ def _draw_annual_by_purpose(ax: plt.Axes, grr_before: dict, grr_after: dict, grr
     for idx, (label, dataset) in enumerate([
         ("GR 이전", grr_before),
         ("GR 이후", grr_after),
-        ("GR N년차", grr_afterN),
+        ("(운영특성 반영)", grr_afterN),
     ]):
         bottoms = np.zeros(len(GRAPH_ORDER))
         for et_key, et_label in ENERGY_TYPES:
@@ -530,7 +530,7 @@ def _draw_annual_by_purpose(ax: plt.Axes, grr_before: dict, grr_after: dict, grr
 
     ax.set_xticks(x)
     ax.set_xticklabels([lbl.replace('/', '/\n') for _, lbl in GRAPH_ORDER])
-    ax.set_ylabel("연간 합계")
+    ax.set_ylabel("연간 합계 (kWh/$\\mathrm{m^2\\cdot}$연)")
     ax.set_title("연간 용도별 에너지소요량")
     ax.grid(axis="y", linestyle="--", alpha=0.4)
     # ax.legend(fontsize=8, ncols=3)
@@ -547,12 +547,12 @@ def _draw_total_monthly_line(ax: plt.Axes, grr_before: dict, grr_after: dict, gr
 
     ax.plot(months, before_vals, color=PALETTE[0], marker="o", label="GR 이전")
     ax.plot(months, after_vals, color=PALETTE[1], marker="o", linestyle="-", label="GR 이후")
-    ax.plot(months, afterN_vals, color=PALETTE[2], marker="o", linestyle=(0, (4, 6)), mfc='none', label="GR N년차")
+    ax.plot(months, afterN_vals, color=PALETTE[2], marker="o", linestyle=(0, (4, 6)), mfc='none', label="(운영특성 반영)")
 
     ax.set_ylim(bottom=0)
     ax.set_xticks(months)
     ax.set_xticklabels([f"{m}월" for m in months])
-    ax.set_ylabel("월별 총합")
+    ax.set_ylabel("월별 합계 (kWh/$\\mathrm{m^2\\cdot}$월)")
     ax.set_title("월별 에너지소요량")
     ax.grid(axis="both", linestyle="--", alpha=0.4)
     ax.legend(fontsize=8, loc="upper right")
@@ -661,17 +661,17 @@ def build_report(
     # comparison summary
     if len(perf_diff12) > 0:
         diff_counts12 = perf_diff12.drop_duplicates(["type", "zonename"]).groupby("type")["zonename"].nunique().to_dict()
-        diffstr12 = ", ".join(f"{k} {v}개 존" for k, v in diff_counts12.items())
+        diffstr12 = ", ".join(f"{k} {v}개 실" for k, v in diff_counts12.items())
     else:
         diffstr12 = "없음"
     if len(perf_diff23) > 0:
         diff_counts23 = perf_diff23.drop_duplicates(["type", "zonename"]).groupby("type")["zonename"].nunique().to_dict()
-        diffstr23 = ", ".join(f"{k} {v}개 존" for k, v in diff_counts23.items())
+        diffstr23 = ", ".join(f"{k} {v}개 실" for k, v in diff_counts23.items())
     else:
         diffstr23 = "없음"
     if len(oper_diff23) > 0:
         diff_counts23oper = oper_diff23.drop_duplicates(["type", "zonename"]).groupby("type")["zonename"].nunique().to_dict()
-        diffstr23oper = ", ".join(f"{k} {v}개 존" for k, v in diff_counts23oper.items())
+        diffstr23oper = ", ".join(f"{k} {v}개 실" for k, v in diff_counts23oper.items())
     else:
         diffstr23oper = "없음"
     
