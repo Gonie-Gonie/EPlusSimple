@@ -174,13 +174,12 @@
 
 \section{기후 변화}
 \noindent
-\begin{center}
+\begin{tcolorbox}[mysection]
   \includegraphics[width=\textwidth]{weather_compare.png}
-\end{center}
-\begin{itemize}
-  \item 난방도일\footnote{매 시간별로 외기온도가 기준온도($18^\circ C$)에 비해 추운 정도를 모두 더한 값 (24로 나누어 날짜로 환산함)}이 {{degreedays.HDDchange}}하였으므로, \textbf{난방에너지도 {{degreedays.HDDchange}}할 가능성}이 있음.
-  \item 냉방도일\footnote{매 시간별로 외기온도가 기준온도($18^\circ C$)에 비해 더운 정도를 모두 더한 값 (24로 나누어 날짜로 환산함)}이 {{degreedays.CDDchange}}하였으므로, \textbf{냉방에너지도 {{degreedays.CDDchange}}할 가능성}이 있음.
-\end{itemize}
+$\rightarrow$ 난방도일\footnote{매 시간별로 외기온도가 기준온도($18^\circ C$)에 비해 추운 정도를 모두 더한 값 (24로 나누어 날짜로 환산함)}이 {{degreedays.HDDchange}}하였으므로, \textbf{난방에너지도 {{degreedays.HDDchange}}할 가능성}이 있음.\\
+$\rightarrow$  냉방도일\footnote{매 시간별로 외기온도가 기준온도($18^\circ C$)에 비해 더운 정도를 모두 더한 값 (24로 나누어 날짜로 환산함)}이 {{degreedays.CDDchange}}하였으므로, \textbf{냉방에너지도 {{degreedays.CDDchange}}할 가능성}이 있음.
+\vspace{3mm}
+\end{tcolorbox}
 
 \clearpage
 \topbar{그린리모델링 사업 이후 변화 내용}
@@ -241,12 +240,16 @@
 
 
 \clearpage
-\topbar{시뮬레이션 결과 상세}
+\topbar{용도별, 열원별, 월별 시뮬레이션 결과}
 
-\begin{tcolorbox}[mysection]
-\begin{center}
-  \includegraphics[width=\textwidth]{simulation_results.png}
-\end{center}
+\begin{tcolorbox}[
+  mysection,
+  width=0.85\paperwidth,
+  enlarge left by={-0.425\paperwidth +0.5\textwidth},
+  boxsep=0pt, left=0pt, right=0pt
+  ]
+  \includegraphics[width=\linewidth]{simulation_results.png}
+
 \end{tcolorbox}
 
 \end{document}
