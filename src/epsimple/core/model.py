@@ -326,7 +326,21 @@ class GreenRetrofitModel:
             return lightdensity_areasum / areasum
         else:
             return 0
+    
+    @property
+    def averaged_infiltration(self) -> float:
         
+        volsum = 0
+        infiltration_volsum = 0
+        
+        for zone in self.zone:
+            volsum += zone.area * zone.height
+            infiltration_volsum += zone.infiltration * zone.area * zone.height
+        
+        if volsum > 0:
+            return infiltration_volsum / volsum
+        else:
+            return 0
         
     """ useful methods (unique components)
     """

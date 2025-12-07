@@ -708,11 +708,13 @@ def build_report(
             "wallU": round(grmbefore.averaged_exteriorwall_Uvalue,3),
             "winU" : round(grmbefore.averaged_window_Uvalue,3),
             "ld"   : round(grmbefore.averaged_lightdensity,2),
+            "infil": round(grmbefore.averaged_infiltration*0.07,2),
         },
         "after": {
             "wallU": round(grmafter.averaged_exteriorwall_Uvalue,3),
             "winU" : round(grmafter.averaged_window_Uvalue,3),
             "ld"   : round(grmafter.averaged_lightdensity,2),
+            "infil": round(grmafter.averaged_infiltration*0.07,2),
         },
     }
     
