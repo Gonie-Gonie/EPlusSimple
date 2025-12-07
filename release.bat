@@ -160,7 +160,7 @@ copy "runExcelLauncher.bat" "%RELEASE_DIR%\runExcelLauncher.bat" > nul
 copy "dist\docs\mainTRM.pdf" "%RELEASE_DIR%\docs\Technical Reference Manual.pdf" > nul
 copy "dist\docs\mainRTR.pdf" "%RELEASE_DIR%\docs\Regression Test Report.pdf" > nul
 copy "dist\docs\mainEIUG.pdf" "%RELEASE_DIR%\docs\Excel Interface User Guide.pdf" > nul
-copy "dist\docs\mainEIUG.pdf" "%RELEASE_DIR%\docs\Release Note.pdf" > nul
+copy "dist\docs\mainRN.pdf" "%RELEASE_DIR%\docs\Release Note.pdf" > nul
 
 :: Copy src modules (conditionally)
 echo     ...Copying src modules...
