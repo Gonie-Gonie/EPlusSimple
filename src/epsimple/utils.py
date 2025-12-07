@@ -362,6 +362,7 @@ def _preprocess_excel_dict(
         df_valid = df[VALID_COLUMNS[sheetname]]
         
         # Delete unused rows (unintended rows)
+        df_valid = df_valid.replace(r'^\s*$', pd.NA, regex=True)
         df_valid = df_valid.loc[~df_valid.isna().all(axis=1),:]
         
         # Rename columns (removing units, translating Korean to English)

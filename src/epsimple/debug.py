@@ -568,6 +568,34 @@ class SecondSupplyForOtherZone(ExcelException):
         
         return exceptions
 
+class DualRadiantFloor(ExcelException):
+    
+    def __init__(self, zonename:str) -> None:
+        
+        super().__init__("실", zonename)
+        self.message = f"실 '{zonename}'의 난방 공급 설비와 난방 공급 설비2가 모두 바닥난방입니다. (주된 보일러를 사용하는 바닥난방만 남겨주세요)"
+        
+    @staticmethod
+    def inspect(exceldata:dict[str, pd.DataFrame]) -> list[DualRadiantFloor]:
+        
+        exceptions = []
+        for _, row in exceldata["실"].iterrows():
+            
+            if pd.isna(row["난방 공급 설비"]) or pd.isna(row["난방 공급 설비2"]):
+                continue
+            
+            supply_systems = exceldata["공급설비"].set_index("이름")
+            supply1_type = supply_systems.loc[row["난방 공급 설비"], "유형"]
+            supply2_type = supply_systems.loc[row["난방 공급 설비2"], "유형"]
+            
+            if (supply1_type == "바닥난방") and (supply2_type == "바닥난방"):
+                exceptions.append(
+                    DualRadiantFloor(
+                        row["이름"]
+                    )
+                )
+        
+        return exceptions
 
 class ChecklistZoneSubCategory(str, Enum):
     GENERAL_ZONE  = "일반존"
@@ -620,11 +648,7 @@ class InvalidSetpointSchedule(ExcelException):
     def __init__(self, zonename:str, profilename:str, hvacname1, hvacname2, input1, input2) -> None:
         
         super().__init__("현장조사", zonename, subcategory=ChecklistZoneSubCategory(profilename))
-        self.message = "\n".join([
-            f"{profilename} {zonename}의 {hvacname1}과 {hvacname2}에 사용된 설정온도 스케줄이 유효하지 않습니다.",
-            f"-{hvacname1}: {input1}",
-            f"-{hvacname2}: {input2}",
-        ])
+        self.message = f"{profilename} {zonename}의 {hvacname1}과 {hvacname2}에 사용된 설정온도 스케줄이 유효하지 않습니다. ({hvacname1}: {input1}, {hvacname2}: {input2})"
         
     @staticmethod
     def inspect(exceldata:dict[str, pd.DataFrame]) -> list[InvalidSetpointSchedule]:
@@ -682,8 +706,49 @@ class InvalidSetpointSchedule(ExcelException):
                         )
         
         return exceptions
-            
-            
+    
+class InvalidOccupantSubCategory(str, Enum):
+    TooManyOigeunJikwon  = "외근직원이직원보다많음"
+
+ 
+class InvalidOccupantSchedule(ExcelException):
+    
+    def __init__(self, checklistzonename:str, subcategory:str, extramessage:str):
+        
+        super().__init__("현장조사", checklistzonename, subcategory=InvalidOccupantSubCategory(subcategory))
+        self.message = f"{checklistzonename}의 재실자 수 규칙에 맞지 않습니다: {extramessage}"
+        
+    @staticmethod
+    def inspect_보건소(exceldata:dict[str, pd.DataFrame]) -> list[InvalidOccupantSchedule]:
+        
+        exceptions = []
+        
+        if exceldata["현장조사"].iloc[5,4] < exceldata["현장조사"].iloc[6,4]:
+            exceptions.append(InvalidOccupantSchedule(
+                "일반존",
+                "외근직원이직원보다많음",
+                f"외근 직원 수({exceldata["현장조사"].iloc[6,4]}명)가 전체 직원 수({exceldata["현장조사"].iloc[5,4]})보다 많습니다"
+            ))
+        
+        return exceptions
+    
+    @staticmethod
+    def inspect_어린이집(exceldata:dict[str, pd.DataFrame]) -> list[InvalidOccupantSchedule]:
+        
+        exceptions = []
+        
+        return exceptions
+    
+    @staticmethod
+    def inspect(exceldata:dict[str, pd.DataFrame]) -> list[InvalidOccupantSchedule]:
+        
+        match exceldata["현장조사"].iloc[0,0]:
+            case "보건소":
+                exceptions =  InvalidOccupantSchedule.inspect_보건소(exceldata)
+            case "어린이집":
+                exceptions =  InvalidOccupantSchedule.inspect_어린이집(exceldata)
+        
+        return exceptions
 
 # ---------------------------------------------------------------------------- #
 #                                 JSON WARNINGS                                #
@@ -958,6 +1023,7 @@ EXCEL_REBINESPECTORS = [
     SecondSupplyForOtherZone,
     NoHVACSchedule,
     InvalidSetpointSchedule,
+    InvalidOccupantSchedule,
     # warnings
     OnlyOtherZoneExist,
 ]

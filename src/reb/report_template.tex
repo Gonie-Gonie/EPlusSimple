@@ -21,10 +21,15 @@
 \setstretch{1.25}
 \usepackage[most]{tcolorbox}
 \usepackage{longtable}
+\usepackage{tikzpagenodes}
+\tcbuselibrary{skins}
 
 {% raw %}
 \graphicspath{{figures/}}
 {% endraw %}
+
+% page color
+\pagecolor[rgb]{0.95,0.95,0.95}   % 전체 배경색 (밝은 회색)
 
 \titleformat{\section}{\large\bfseries}{\thesection.}{0.5em}{}
 \titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{0.5em}{}
@@ -34,17 +39,54 @@
   {\makebox[1.5em][c]{\rule{0.8em}{0.8em}}}  % <-- 네모 (검정색 사각형)
   {0.5em}{}           % 간격
 
+% 본문 담길 흰색 박스
+\tcbset{
+  mysection/.style={
+      colback=white,
+      colframe=white,
+      sharp corners,
+      boxrule=0pt,
+      enhanced,
+      left=8mm,
+      right=8mm,
+      top=6mm,
+      bottom=6mm,
+      before skip=12pt,
+      after skip=12pt,
+      drop shadow,
+  }
+}
+
+% 제목 바
+\definecolor{topbarcolor}{RGB}{18,84,156}   % 예: GR 보고서 계열
+\newcommand{\topbar}[1]{
+    \begin{tikzpicture}[remember picture,overlay]
+        \node[anchor=north west, inner sep=0pt] at (current page.north west) {
+            \begin{tcolorbox}[
+                width=\paperwidth,
+                height=32pt,         % 높이 조절
+                colback=topbarcolor,
+                colframe=topbarcolor,
+                boxrule=0pt,
+                sharp corners,
+                left=0pt, right=0pt, top=6pt, bottom=6pt,
+            ]
+            \centering
+            \textcolor{white}{\large \bfseries #1}
+            \end{tcolorbox}
+        };
+    \end{tikzpicture}
+    \vspace{-2cm}
+}
 % ======================
 % 문서 본문
 % ======================
 \title{건물 리모델링 성능 보고서}
 
 \begin{document}
-\begin{center}
-    \Large\bfseries GR 정성평가: {{metadata.name}}
-\end{center}
 
 % ==================== 갑지 ====================
+\topbar{GR 정성평가 성능 보고서}
 
 \section{건물 개요}
 
@@ -55,43 +97,36 @@
 \setlength{\tabcolsep}{0pt}
 \renewcommand{\arraystretch}{1.3}
 
-\begin{table}[h!]
-\centering
-% 양쪽 끝 세로선은 빼고(요구사항), 가운데만 세로선
+\begin{tcolorbox}[mysection]
+  \centering
 \begin{tabular}{L|C}
 \hline
-면적 & {{metadata.area}}$\mathrm{m^2}$ \\ \hline
-허가연도 & {{metadata.date}} \\ \hline
+건물명 & {{metadata.name}} \\ \hline
 주소(시군구) & {{metadata.addr}} \\ \hline
+연면적 & {{metadata.area}}$\mathrm{m^2}$ \\ \hline
+허가연도 & {{metadata.date}} \\ \hline
 \end{tabular}
-\end{table}
+\end{tcolorbox}
 
-\section{리모델링 및 운영특성 변경 내역 요약}
+\section{그린리모델링 공사내역 및 운영 변경 요약}
+\begin{tcolorbox}[mysection]
 \begin{itemize}
-    \item 리모델링 전후 성능 변화: {{diffsummary[0]}}
-    \item 리모델링 N년차 성능 변화: {{diffsummary[1]}}
-    \item 리모델링 N년차 운영 변화: {{diffsummary[2]}}
+    \item 그린리모델링 공사 내역: {{diffsummary[0]}}
+    \item 그린리모델링 이후 운영 과정에서의 개별 공사 내역: {{diffsummary[1]}}
+    \item 그린리모델링 이후 운영 과정에서의 프로필 변화 내역: {{diffsummary[2]}}
 \end{itemize}
+\end{tcolorbox}
 
 \section{시뮬레이션 결과}
+\begin{tcolorbox}[mysection]
 \begin{center}
   \includegraphics[width=\textwidth]{energy_summary.png}
 \end{center}
-% \begin{figure}[h!]
-%     \centering
-%     \begin{minipage}[b]{0.49\textwidth}
-%         \includegraphics[width=\textwidth]{energy_summary.png}
-%     \end{minipage}
-%     \hfill
-%     \begin{minipage}[b]{0.49\textwidth}
-%         \includegraphics[width=\textwidth]{energy_summary_co2.png}
-%     \end{minipage}
-% \end{figure}
-
+  
+\end{tcolorbox}
 
 \section{결론}
-\begin{tcolorbox}[colback=gray!5,colframe=black!60,boxrule=0.6pt,
-                  left=4mm,right=4mm,top=2mm,bottom=2mm]
+\begin{tcolorbox}[mysection]
 \textbf{ {{metadata.name}} }은,
 
 ① 성능 변화 및 기상데이터의 변화를 고려할 때, \underline{${{EUIdiff[0]}}\,\mathrm{kWh/m^2}$} 절감될 것으로 분석되었다.
@@ -105,35 +140,33 @@
 
 % ==================== 을지 ====================
 
-\newpage
+\clearpage
+\topbar{GR 이전 -> 이후 변화 내용}
+
 \section{성능 변화 내역 (GR 이전 → GR 이후)}
 {\scriptsize
 \setlength{\tabcolsep}{8pt}
 {% if perf_diff12 %}
-\begin{longtable}{l!{\color{gray!60}\vrule width 0.3pt}
-                  l!{\color{gray!60}\vrule width 0.3pt}
-                  l!{\color{gray!60}\vrule width 0.3pt}
-                  c!{\color{gray!60}\vrule width 0.3pt}
-                  c!{\color{gray!60}\vrule width 0.3pt}
-                  c}
-\toprule
-존 이름 & 구분 & 항목 & 이전 값 & 이후 값 & 단위 \\
-\midrule
-\endfirsthead
-\toprule
-존 이름 & 구분 & 항목 & 이전 값 & 이후 값 & 단위 \\
-\midrule
-\endhead
+\begin{tcolorbox}[mysection, breakable]
+\centering
+
+\begin{tabular}{l|l|l|c|c|c}
+\hline
+존 이름 & 구분 & 항목 & 이전 값 & 이후 값 & 단위 \\ \hline
 {% for d in perf_diff12 %}
-{% if not loop.first and d.type != loop.previtem.type %}
-\arrayrulecolor[gray]{0.85}\midrule\arrayrulecolor{black}
-{% endif %}
-{{ d.zonename }} & {{ d.type }} & {{ d.prop }} & {{ d.before }} & {{ d.after }} & {{ d.unit }} \\
+    {% if not loop.first and d.type != loop.previtem.type %}
+        \hline
+    {% endif %}
+    {{ d.zonename }} & {{ d.type }} & {{ d.prop }} & {{ d.before }} & {{ d.after }} & {{ d.unit }} \\
 {% endfor %}
-\bottomrule
-\end{longtable}
+\hline
+\end{tabular}
+\end{tcolorbox}
+
 {% else %}
+\begin{tcolorbox}[mysection]
 \textit{변경내역 없음.}
+\end{tcolorbox}
 {% endif %}
 }
 
@@ -142,38 +175,35 @@
 \begin{center}
   \includegraphics[width=\textwidth]{weather_compare.png}
 \end{center}
-% \includegraphics[width=0.6\textwidth]{weather_compare_monthly.png}%
-% \hfill
-% \includegraphics[width=0.38\textwidth]{weather_compare_degreeday.png}
+
+
+\clearpage
+\topbar{GR 이후 -> 에다가 운영특성까지 변화 내용}
 
 \section{성능 변화 내역 (GR 이후 → GR N년차)}
 {\scriptsize
 \setlength{\tabcolsep}{8pt}
 {% if perf_diff23 %}
-\begin{longtable}{l!{\color{gray!60}\vrule width 0.3pt}
-                  l!{\color{gray!60}\vrule width 0.3pt}
-                  l!{\color{gray!60}\vrule width 0.3pt}
-                  c!{\color{gray!60}\vrule width 0.3pt}
-                  c!{\color{gray!60}\vrule width 0.3pt}
-                  c}
-\toprule
-존 이름 & 구분 & 항목 & 이전 값 & 이후 값 & 단위 \\
-\midrule
-\endfirsthead
-\toprule
-존 이름 & 구분 & 항목 & 이전 값 & 이후 값 & 단위 \\
-\midrule
-\endhead
+\begin{tcolorbox}[mysection, breakable]
+\centering
+
+\begin{tabular}{l|l|l|c|c|c}
+\hline
+존 이름 & 구분 & 항목 & 이전 값 & 이후 값 & 단위 \\ \hline
 {% for d in perf_diff23 %}
-{% if not loop.first and d.type != loop.previtem.type %}
-\arrayrulecolor[gray]{0.85}\midrule\arrayrulecolor{black}
-{% endif %}
-{{ d.zonename }} & {{ d.type }} & {{ d.prop }} & {{ d.before }} & {{ d.after }} & {{ d.unit }} \\
+    {% if not loop.first and d.type != loop.previtem.type %}
+        \hline
+    {% endif %}
+    {{ d.zonename }} & {{ d.type }} & {{ d.prop }} & {{ d.before }} & {{ d.after }} & {{ d.unit }} \\
 {% endfor %}
-\bottomrule
-\end{longtable}
+\hline
+\end{tabular}
+\end{tcolorbox}
+
 {% else %}
+\begin{tcolorbox}[mysection]
 \textit{변경내역 없음.}
+\end{tcolorbox}
 {% endif %}
 }
 
@@ -181,38 +211,37 @@
 {\scriptsize
 \setlength{\tabcolsep}{8pt}
 {% if oper_diff23 %}
-\begin{longtable}{l!{\color{gray!60}\vrule width 0.3pt}
-                  l!{\color{gray!60}\vrule width 0.3pt}
-                  l!{\color{gray!60}\vrule width 0.3pt}
-                  c!{\color{gray!60}\vrule width 0.3pt}
-                  c!{\color{gray!60}\vrule width 0.3pt}
-                  c}
-\toprule
-존 이름 & 구분 & 항목 & 이전 값 & 이후 값 & 단위 \\
-\midrule
-\endfirsthead
-\toprule
-존 이름 & 구분 & 항목 & 이전 값 & 이후 값 & 단위 \\
-\midrule
-\endhead
+\begin{tcolorbox}[mysection, breakable]
+\centering
+
+\begin{tabular}{l|l|l|c|c|c}
+\hline
+존 이름 & 구분 & 항목 & 이전 값 & 이후 값 & 단위 \\ \hline
 {% for d in oper_diff23 %}
-{% if not loop.first and d.prop != loop.previtem.prop %}
-\arrayrulecolor[gray]{0.85}\midrule\arrayrulecolor{black}
-{% endif %}
-{{ d.zonename }} & {{ d.type }} & {{ d.prop }} & {{ d.before }} & {{ d.after }} & {{ d.unit }} \\
+    {% if not loop.first and d.type != loop.previtem.type %}
+        \hline
+    {% endif %}
+    {{ d.zonename }} & {{ d.type }} & {{ d.prop }} & {{ d.before }} & {{ d.after }} & {{ d.unit }} \\
 {% endfor %}
-\bottomrule
-\end{longtable}
+\hline
+\end{tabular}
+\end{tcolorbox}
+
 {% else %}
+\begin{tcolorbox}[mysection]
 \textit{변경내역 없음.}
+\end{tcolorbox}
 {% endif %}
 }
 
-\newpage
-\section{시뮬레이션 결과 (상세)}
 
+\clearpage
+\topbar{시뮬레이션 결과 상세}
+
+\begin{tcolorbox}[mysection]
 \begin{center}
   \includegraphics[width=\textwidth]{simulation_results.png}
 \end{center}
+\end{tcolorbox}
 
 \end{document}

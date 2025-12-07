@@ -290,22 +290,8 @@ def draw_3step_bargraph(
         for et_idx, (et_key, et_label) in enumerate(ENERGY_TYPES):
             color = DEFAULT_COLORS_BEFORE[et_key]
             subbar_pos = pos - subbar_width*(num_subbars/2-et_idx-0.5)
-            #? step별로 구분
-            # ax.bar(subbar_pos, val[et_idx], width=subbar_width,
-            #        ec=color, lw=0.8,
-            #        fc=[color, color+'40', color+'40'][n],
-            #        hatch=[None, '//////', None][n])
-            # bar = ax.bar(subbar_pos, val[et_idx], width=subbar_width,
-            #        ec='k', fc='none', zorder=5, lw=1.0)
-            #? 모두 같은 스타일
             bar = ax.bar(subbar_pos, val[et_idx], width=subbar_width,
                    ec='k', fc=color+'90', lw=1)
-            #? 테두리 없이
-            # bar = ax.bar(subbar_pos, val[et_idx], width=subbar_width,
-            #        fc=color, lw=0)
-        
-            # 막대 위에 값 표시 (padding을 3 정도로 살짝 띄움)
-            # ax.bar_label(bar, fmt="%.1f", padding=3 + 10*(et_idx%2), fontsize=9)
 
     # --- 축 및 레이블 수정 ---
     # x축 눈금 위치를 막대 위치(0, 1, 2)와 동일하게 설정
@@ -502,8 +488,6 @@ def _draw_monthly_stacked_bars(
             labels.append(f"{et_label} {label}")
 
     legend_ncol = 4
-    # handles = np.array(handles).reshape(-1, legend_ncol).T.flatten().tolist()
-    # labels = np.array(labels).reshape(-1, legend_ncol).T.flatten().tolist()
 
     fig.legend(
         handles=handles,

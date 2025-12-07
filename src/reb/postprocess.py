@@ -1474,10 +1474,11 @@ class 현장조사체크리스트(ABC):
     @staticmethod
     def apply_dualhvac(
         em       :EnergyModel            ,
+        grm      :GreenRetrofitModel     ,
         exceldata:dict[str, pd.DataFrame],
         ) -> None:
         
-        zonedata = exceldata["실"].loc[~pd.isna(exceldata["실"].iloc[:,0])].iloc[:,:11]
+        zonedata = exceldata["실"].loc[~pd.isna(exceldata["실"].iloc[:,0])].iloc[:,:11].sort_values(by="층", ascending=True).reset_index(drop=True)
         processed_excel = _preprocess_excel_dict(exceldata)
         source_json  = _convert_source_systems(processed_excel["생산설비"])
         supply_json = _convert_supply_systems(processed_excel["공급설비"], processed_excel["생산설비"])
@@ -1493,8 +1494,9 @@ class 현장조사체크리스트(ABC):
             v.name = f"$FOR_SECOND${v.name}"
             
         # 난방 공급 설비2
-        for (_, row), zone in zip(zonedata.iterrows(), em.zone):
+        for  zone, grmzone in zip( em.zone, grm.zone):
             
+            row = zonedata.query("이름==@grmzone.name").iloc[0]
             if pd.isna(row["난방 공급 설비2"]):
                 continue
             
@@ -1574,7 +1576,7 @@ class 어린이집체크리스트:
         }
         
         em = grm.to_dragon()
-        현장조사체크리스트.apply_dualhvac(em, exceldata)
+        현장조사체크리스트.apply_dualhvac(em, grm, exceldata)
         
         self.일반존.apply_to([
                 zone for zone in em.zone
@@ -1637,7 +1639,7 @@ class 보건소체크리스트:
         }
         
         em = grm.to_dragon()
-        현장조사체크리스트.apply_dualhvac(em, exceldata)
+        현장조사체크리스트.apply_dualhvac(em, grm, exceldata)
         
         self.일반존.apply_to([
                 zone for zone in em.zone
