@@ -664,6 +664,7 @@ def build_report(
     before_grrpath:str,
     after_grrpath :str,
     afterN_grrpath:str,
+    commentdict   :pd.DataFrame,
     pdfpath:str,
     ) -> None:
     
@@ -742,7 +743,8 @@ def build_report(
         "perf_diff23": preprocess_diff_dicts(list(perf_diff23.T.to_dict().values())),
         "oper_diff23": preprocess_diff_dicts(list(oper_diff23.T.to_dict().values())),
         "summarytabletex" : [df.style.format(lambda x: f"{x:,.1f}~~").to_latex(**summarytablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline") for df in summarytable(grrbefore, grrafter, grrafterN)],
-        "degreedays": {k:v for k,v in zip(["HDD2018","HDD2023","CDD2018","CDD2023"], degreedays)}|{"HDDchange": ("증가" if (degreedays[1]-degreedays[0])>0 else "감소"),"CDDchange": ("증가" if (degreedays[3]-degreedays[2])>0 else "감소")}
+        "degreedays": {k:v for k,v in zip(["HDD2018","HDD2023","CDD2018","CDD2023"], degreedays)}|{"HDDchange": ("증가" if (degreedays[1]-degreedays[0])>0 else "감소"),"CDDchange": ("증가" if (degreedays[3]-degreedays[2])>0 else "감소")},
+        "comment": commentdict
     }
     
     # build
