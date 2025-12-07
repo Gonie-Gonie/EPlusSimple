@@ -97,7 +97,8 @@
 \setlength{\tabcolsep}{0pt}
 \renewcommand{\arraystretch}{1.3}
 
-\begin{tcolorbox}[mysection]
+\begin{tcolorbox}[mysection,
+  boxsep=0pt]
   \centering
 \begin{tabular}{L|C}
 \hline
@@ -108,16 +109,7 @@
 \end{tabular}
 \end{tcolorbox}
 
-\section{그린리모델링 공사내역 및 운영 변경 요약}
-\begin{tcolorbox}[mysection]
-\begin{itemize}
-    \item 그린리모델링 공사 내역: {{diffsummary[0]}}
-    \item 그린리모델링 이후 운영 과정에서의 개별 공사 내역: {{diffsummary[1]}}
-    \item 그린리모델링 이후 운영 과정에서의 프로필 변화 내역: {{diffsummary[2]}}
-\end{itemize}
-\end{tcolorbox}
-
-\section{시뮬레이션 결과}
+\section{열원별 에너지소요량 및 온실가스 배출량 비교}
 \begin{tcolorbox}[mysection]
 \begin{center}
   \includegraphics[width=\textwidth]{energy_summary.png}
@@ -125,123 +117,105 @@
   
 \end{tcolorbox}
 
-\section{결론}
+\section{총 에너지소요량, 온실가스 배출량 및 감축량 비교}
+\begin{tcolorbox}[
+  mysection,
+  boxsep=0pt,      % 내부 기본 붕 뜬 여백 제거 (표 넣을 때 중요)
+  left=2.5mm,        % 왼쪽 여백 추가
+  right=5mm,       % 오른쪽 여백 추가
+  top=3mm,         % 위쪽 살짝
+  bottom=3mm       % 아래쪽 살짝
+  ]
+\small
+{{summarytabletex[0]}}
+\vspace{4mm}
+{{summarytabletex[1]}}
+\end{tcolorbox}
+
+\section{현장조사 종합의견}
 \begin{tcolorbox}[mysection]
-\textbf{ {{metadata.name}} }은,
-
-① 성능 변화 및 기상데이터의 변화를 고려할 때, \underline{${{EUIdiff[0]}}\,\mathrm{kWh/m^2}$} 절감될 것으로 분석되었다.
-
-② 운영특성 및 추가적인 성능 변화를 고려할 때, 
-\underline{${{EUIdiff[1]}}\,\mathrm{kWh/m^2}$} 절감될 것으로 분석되었다. 
-
-③ 이는 운영특성 및 성능 변화로 그린리모델링 효과가 
-\underline{${{EUIdiff[2]}}\,\mathrm{kWh/m^2}$} 줄어든 것이다.
+\textbf{만족도}: 이곳은 패시브협회의 의견에 따라 기술되는 부분입니다. {{comment.satisfaction}} \par
+\textbf{결론}: 이곳은 패시브협회의 의견에 따라 기술되는 부분입니다. {{comment.conclusion}}
 \end{tcolorbox}
 
 % ==================== 을지 ====================
 
 \clearpage
-\topbar{GR 이전 -> 이후 변화 내용}
+\topbar{그린리모델링 사업으로 인한 변화 내용}
 
-\section{성능 변화 내역 (GR 이전 → GR 이후)}
-{\scriptsize
-\setlength{\tabcolsep}{8pt}
-{% if perf_diff12 %}
-\begin{tcolorbox}[mysection, breakable]
-\centering
-
-\begin{tabular}{l|l|l|c|c|c}
-\hline
-존 이름 & 구분 & 항목 & 이전 값 & 이후 값 & 단위 \\ \hline
-{% for d in perf_diff12 %}
-    {% if not loop.first and d.type != loop.previtem.type %}
-        \hline
-    {% endif %}
-    {{ d.zonename }} & {{ d.type }} & {{ d.prop }} & {{ d.before }} & {{ d.after }} & {{ d.unit }} \\
-{% endfor %}
-\hline
-\end{tabular}
-\end{tcolorbox}
-
-{% else %}
+\section{Passive 성능 변화}
 \begin{tcolorbox}[mysection]
-\textit{변경내역 없음.}
+\begin{itemize}
+  \item 외벽 평균열관류율\footnote{외벽의 단열수준을 나타내는 지표로, 에너지절약설계기준에서 0.17 $W/m^2K$ 이하(서울)가 요구됨.}: {{passivechange.before.wallU}} $W/m^2K$ $\rightarrow$ {{passivechange.after.wallU}} $W/m^2K$
+  \item 창호 평균열관류율\footnote{창호의 단열수준을 나타내는 지표로, 에너지절약설계기준에서 기준 1.3 $W/m^2K$ 이하(서울)가 요구됨.}: {{passivechange.before.winU}} $W/m^2K$ $\rightarrow$ {{passivechange.after.winU}} $W/m^2K$
+  \item 평균 조명밀도\footnote{조명에 의한 발열수준을 나타내는 지표로, 에너지절약형 친환경주택의 건설기준에서 6 $W/m^2$ 이하가 요구됨.}: {{passivechange.before.ld}} $W/m^2$ $\rightarrow$ {{passivechange.after.ld}} $W/m^2$
+  \item 평균 침기율\footnote{바람 유입의 수준을 나타내는 지표로, 한시간동안 외풍에 의해 교체되는 실내 공기의 비율을 의미함.}: {{passivechange.before.infil}} 회/시간 $\rightarrow$ {{passivechange.after.infil}} 회/시간
+\end{itemize}
+\vspace{1mm}
 \end{tcolorbox}
-{% endif %}
-}
 
-\section{기상 변화 내역 (GR 이전 → GR 이후)}
+\section{Active 성능 변화}
+\begin{tcolorbox}[mysection]
+  \begin{itemize}
+    \item 난방설비: {{activechange.before2after.heating}}
+    \item 냉방설비: {{activechange.before2after.cooling}}
+    \item 환기설비\footnote{환기설비 추가시, 난방에너지는 감소하고, 냉방에너지는 일부 증가할 수 있음.}: {{activechange.before2after.ventilation}}
+  \end{itemize}
+\vspace{1mm}
+\end{tcolorbox}
+
+\section{기후 변화}
 \noindent
-\begin{center}
+\begin{tcolorbox}[mysection]
   \includegraphics[width=\textwidth]{weather_compare.png}
-\end{center}
-
+$\rightarrow$ 난방도일\footnote{매 시간별로 외기온도가 기준온도($18^\circ C$)에 비해 추운 정도를 모두 더한 값 (24로 나누어 날짜로 환산함)}이 {{degreedays.HDDchange}}하였으므로, \textbf{난방에너지도 {{degreedays.HDDchange}}할 가능성}이 있음.\\
+$\rightarrow$  냉방도일\footnote{매 시간별로 외기온도가 기준온도($18^\circ C$)에 비해 더운 정도를 모두 더한 값 (24로 나누어 날짜로 환산함)}이 {{degreedays.CDDchange}}하였으므로, \textbf{냉방에너지도 {{degreedays.CDDchange}}할 가능성}이 있음.
+\vspace{3mm}
+\end{tcolorbox}
 
 \clearpage
-\topbar{GR 이후 -> 에다가 운영특성까지 변화 내용}
+\topbar{그린리모델링 사업 이후 변화 내용}
 
-\section{성능 변화 내역 (GR 이후 → GR N년차)}
-{\scriptsize
-\setlength{\tabcolsep}{8pt}
-{% if perf_diff23 %}
-\begin{tcolorbox}[mysection, breakable]
-\centering
-
-\begin{tabular}{l|l|l|c|c|c}
-\hline
-존 이름 & 구분 & 항목 & 이전 값 & 이후 값 & 단위 \\ \hline
-{% for d in perf_diff23 %}
-    {% if not loop.first and d.type != loop.previtem.type %}
-        \hline
-    {% endif %}
-    {{ d.zonename }} & {{ d.type }} & {{ d.prop }} & {{ d.before }} & {{ d.after }} & {{ d.unit }} \\
-{% endfor %}
-\hline
-\end{tabular}
-\end{tcolorbox}
-
-{% else %}
+\section{Active 성능 변화}
 \begin{tcolorbox}[mysection]
-\textit{변경내역 없음.}
-\end{tcolorbox}
-{% endif %}
-}
-
-\section{운영특성 변화 내역 (GR 이후 → GR N년차)}
-{\scriptsize
-\setlength{\tabcolsep}{8pt}
-{% if oper_diff23 %}
-\begin{tcolorbox}[mysection, breakable]
-\centering
-
-\begin{tabular}{l|l|l|c|c|c}
-\hline
-존 이름 & 구분 & 항목 & 이전 값 & 이후 값 & 단위 \\ \hline
-{% for d in oper_diff23 %}
-    {% if not loop.first and d.type != loop.previtem.type %}
-        \hline
-    {% endif %}
-    {{ d.zonename }} & {{ d.type }} & {{ d.prop }} & {{ d.before }} & {{ d.after }} & {{ d.unit }} \\
-{% endfor %}
-\hline
-\end{tabular}
+  \begin{itemize}
+    \item 난방설비: {{activechange.after2afterN.heating}}
+    \item 냉방설비: {{activechange.after2afterN.cooling}}
+    \item 환기설비\footnote{환기설비 추가시, 난방에너지는 감소하고, 냉방에너지는 일부 증가할 수 있음.}: {{activechange.after2afterN.ventilation}}
+  \end{itemize}
+\vspace{1mm}
 \end{tcolorbox}
 
-{% else %}
+\section{재실인원 변화}
 \begin{tcolorbox}[mysection]
-\textit{변경내역 없음.}
+{{occupantchangetex}}
+\vspace{3mm}
+\textbf{재실인원 관련 현장조사 의견}: 이곳은 패시브협회의 의견에 따라 기술되는 부분입니다. {{comment.occupant}}
 \end{tcolorbox}
-{% endif %}
-}
 
+\section{냉난방 이용 변화 (주된 실 및 설비에 대하여만 기술함)}
+\begin{tcolorbox}[mysection]
+  \begin{itemize}
+    \item 난방 사용시간: {{hvacoperchange.heatingtime}}
+    \item 난방 설정온도: {{hvacoperchange.heatingsetpoint}}
+    \item 냉방 사용시간: {{hvacoperchange.coolingtime}}
+    \item 냉방 설정온도: {{hvacoperchange.coolingsetpoint}}
+  \end{itemize}
+\vspace{3mm}
+\textbf{냉난방 관련 현장조사 의견}: 이곳은 패시브협회의 의견에 따라 기술되는 부분입니다. {{comment.hvac}}
+\end{tcolorbox}
 
 \clearpage
-\topbar{시뮬레이션 결과 상세}
+\topbar{용도별, 열원별, 월별 시뮬레이션 결과}
 
-\begin{tcolorbox}[mysection]
-\begin{center}
-  \includegraphics[width=\textwidth]{simulation_results.png}
-\end{center}
+\begin{tcolorbox}[
+  mysection,
+  width=0.85\paperwidth,
+  enlarge left by={-0.425\paperwidth +0.5\textwidth},
+  boxsep=0pt, left=0pt, right=0pt
+  ]
+  \includegraphics[width=\linewidth]{simulation_results.png}
+
 \end{tcolorbox}
 
 \end{document}

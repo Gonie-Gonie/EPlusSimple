@@ -21,6 +21,7 @@ from reb.report import build_report, MetaData
 rebexcel_dir = r"B:\공유 드라이브\01 진행과제\(안전원) 시뮬레이터\12 개발\scripts\run_REB_excel\input_excel"
 grr_dir      = r"B:\공유 드라이브\01 진행과제\(안전원) 시뮬레이터\12 개발\scripts\run_REB_excel\result_grr"
 report_dir   = r"B:\공유 드라이브\01 진행과제\(안전원) 시뮬레이터\12 개발\scripts\run_REB_excel\report"
+comment_path = r"B:\공유 드라이브\01 진행과제\(안전원) 시뮬레이터\12 개발\scripts\run_REB_excel\comment.csv"
 
 # ---------------------------------------------------------------------------- #
 #                                   MAIN FUNC                                  #
@@ -92,7 +93,19 @@ def find_building_sets(
     
     return [d for d in buildingdict.values() if d["valid"]], [d for d in buildingdict.values() if not d["valid"]] 
 
-
+def find_comment(
+    commentdf:pd.DataFrame,
+    buildingfilename:str,
+    ) -> dict:
+    
+    buildingid = int(buildingfilename[:3])
+    buildingname = buildingfilename[4:]
+    
+    commentdict = commentdf[(commentdf["고유번호"] == buildingid) & (commentdf["건축물명"] == buildingname)].iloc[0,2:].to_dict()
+    
+    commentdict = {k: v.replace(r"\n","\\") for k, v in commentdict.items()}
+    return commentdict
+    
 
 def main(
     rebexcel_dir:str,
@@ -100,6 +113,7 @@ def main(
     report_dir  :str,
     ) -> None:    
     
+    commentdf = pd.read_csv(comment_path, encoding="cp949")
     validlist, invalidlist = find_building_sets(
         rebexcel_dir,
         grr_dir     ,
@@ -121,9 +135,11 @@ def main(
                 f.write("")
         
         try:
+            commentdict = find_comment(commentdf, d["name"])
             build_report(
                 *d["excel"].values(),
                 *d["grr"].values()  ,
+                commentdict,
                 pdfpath
             )
             

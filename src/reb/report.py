@@ -10,20 +10,23 @@ import json
 import shutil
 import subprocess
 from pathlib  import Path
-from collections import Counter
 from dataclasses import dataclass
 
 # third-party modules
 import pandas            as pd
 import matplotlib.pyplot as plt
-from matplotlib.figure import Figure
-from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 from jinja2 import Template
 
 # local modules
-from .comparison import compare_rebexcel
+from epsimple import GreenRetrofitModel, Zone
 from .auxiliary  import find_weatherdata
+from .postprocess import (
+    현장조사체크리스트,
+    어린이집체크리스트,
+    보건소체크리스트,
+)
+from .core import rebexcel_to_idf_and_grm
 
 # settings
 PLOTFONTSIZE = 11
@@ -177,8 +180,8 @@ def draw_weather_monthlycomparision(
     ax.set_xticks(range(1,13))
     ax.set_xticklabels(MONTH_LBLS, fontsize=9)
     ax.set_xlim(0.5, 12.5 + shift)
-    ax.set_title("월간 외기 온도", fontsize=11, weight="bold")
-    ax.set_ylabel("건구 온도 (°C)")
+    ax.set_title("월평균 외기 온도 및 범위", fontsize=11, weight="bold")
+    ax.set_ylabel("온도 (°C)")
     ax.grid(axis="both", linestyle="--", alpha=0.4)
     ax.set_axisbelow(True)
     all_values = pd.concat([
@@ -226,27 +229,29 @@ def draw_weather_degreedays(
 
     # --- Figure 구성 ---
     x_positions = [0, 1, 3, 4]  # HDD1, HDD2, CDD1, CDD2
-    heights = [hdd1, hdd2, cdd1, cdd2]
+    degreedays = [hdd1, hdd2, cdd1, cdd2]
     colors_seq = [colors[0], colors[1], colors[0], colors[1]]
 
-    bars = ax.bar(x_positions, heights, width=0.8, color=colors_seq, alpha=0.8)
+    bars = ax.bar(x_positions, degreedays, width=0.8, color=colors_seq, alpha=0.8)
 
     # --- x축 그룹 라벨 ---
     ax.set_xticks([0.5, 3.5])
-    ax.set_xticklabels(["HDD", "CDD"], fontsize=10)
+    ax.set_xticklabels(["난방도일", "냉방도일"], fontsize=10)
     ax.set_ylabel("도일 (°C·day)")
-    ax.set_title(f"연간 HDD/CDD 비교 ({base_temp:.1f}°C 기준)",
+    ax.set_title(f"연간 냉난방부하(도일) 비교",
                  fontsize=11, weight="bold")
     ax.grid(axis="y", linestyle="--", alpha=0.4)
 
     # --- 막대 위 값 표시 ---
     ax.bar_label(bars, fmt="%.0f", padding=3, fontsize=9)
-    ax.set_ylim(0, max(heights)*1.15)
+    ax.set_ylim(0, max(degreedays)*1.15)
 
     # --- 범례 ---
     custom = [plt.Rectangle((0,0),1,1,color=colors[0],alpha=0.8),
               plt.Rectangle((0,0),1,1,color=colors[1],alpha=0.8)]
     ax.legend(custom, [f"{l.split('_')[1]}년" for l in [label1, label2]], fontsize=9, ncols=2, loc='upper center', bbox_to_anchor=(0.5, -0.1))
+    
+    return degreedays
 
 
 def draw_weather_figures(
@@ -261,14 +266,14 @@ def draw_weather_figures(
         after_weatherdata_filepath ,
         ax = axs[0]
     )
-    draw_weather_degreedays(
+    degreedays = draw_weather_degreedays(
         before_weatherdata_filepath,
         after_weatherdata_filepath ,
         ax = axs[1]
     )
     fig.get_layout_engine().set(wspace=0.1)
     
-    return fig
+    return fig, degreedays
 
 
 def draw_3step_bargraph(
@@ -320,7 +325,7 @@ def draw_energysimulation_figures(
     
     # ENERGY_TYPES 순서대로 입력
     draw_3step_bargraph(
-        "연간 단위면적당 에너지소요량",
+        "면적당 에너지소요량 (연간)",
         [
             [
                 sum([
@@ -331,13 +336,13 @@ def draw_energysimulation_figures(
             ]
             for result in [grrbefore, grrafter, grrafterN]
         ],
-        ["GR이전","GR이후","N년차"],
-        ylabel = "에너지 소요량 (kWh/$\\mathrm{m^2\\cdot}$년)",
+        ["GR이전","GR이후","(운영특성 반영)"],
+        ylabel = "에너지 (kWh/$\\mathrm{m^2\\cdot}$년)",
         ax = axs[0]
     )
     
     draw_3step_bargraph(
-        "온실가스 배출량",
+        "면적당 온실가스 배출량 (연간)",
         [
             [
                 sum([
@@ -348,8 +353,8 @@ def draw_energysimulation_figures(
             ]
             for result in [grrbefore, grrafter, grrafterN]
         ],
-        ["GR이전","GR이후","N년차"],
-        ylabel = r"$\mathrm{CO_2}$ 배출량 (kg/$\mathrm{m^2\cdot}$년)",
+        ["GR이전","GR이후","(운영특성 반영)"],
+        ylabel = r"$\mathrm{CO_2,eq}$ (kg/$\mathrm{m^2\cdot}$년)",
         ax = axs[1]
     )
 
@@ -480,7 +485,7 @@ def _draw_monthly_stacked_bars(
     handles = []
     labels = []
     for et_key, et_label in ENERGY_TYPES:
-        for l_idx, label in enumerate(["GR 이전", "GR 이후", "GR N년차"]):
+        for l_idx, label in enumerate(["GR 이전", "GR 이후", "(운영특성 반영)"]):
             color = DEFAULT_COLORS_BEFORE[et_key]
             handles.append(Patch(ec=color, lw=0.8,
                                  fc=[color, color+'40', color+'40'][l_idx],
@@ -506,7 +511,7 @@ def _draw_annual_by_purpose(ax: plt.Axes, grr_before: dict, grr_after: dict, grr
     for idx, (label, dataset) in enumerate([
         ("GR 이전", grr_before),
         ("GR 이후", grr_after),
-        ("GR N년차", grr_afterN),
+        ("(운영특성 반영)", grr_afterN),
     ]):
         bottoms = np.zeros(len(GRAPH_ORDER))
         for et_key, et_label in ENERGY_TYPES:
@@ -530,7 +535,7 @@ def _draw_annual_by_purpose(ax: plt.Axes, grr_before: dict, grr_after: dict, grr
 
     ax.set_xticks(x)
     ax.set_xticklabels([lbl.replace('/', '/\n') for _, lbl in GRAPH_ORDER])
-    ax.set_ylabel("연간 합계")
+    ax.set_ylabel("연간 합계 (kWh/$\\mathrm{m^2\\cdot}$연)")
     ax.set_title("연간 용도별 에너지소요량")
     ax.grid(axis="y", linestyle="--", alpha=0.4)
     # ax.legend(fontsize=8, ncols=3)
@@ -547,12 +552,12 @@ def _draw_total_monthly_line(ax: plt.Axes, grr_before: dict, grr_after: dict, gr
 
     ax.plot(months, before_vals, color=PALETTE[0], marker="o", label="GR 이전")
     ax.plot(months, after_vals, color=PALETTE[1], marker="o", linestyle="-", label="GR 이후")
-    ax.plot(months, afterN_vals, color=PALETTE[2], marker="o", linestyle=(0, (4, 6)), mfc='none', label="GR N년차")
+    ax.plot(months, afterN_vals, color=PALETTE[2], marker="o", linestyle=(0, (4, 6)), mfc='none', label="(운영특성 반영)")
 
     ax.set_ylim(bottom=0)
     ax.set_xticks(months)
     ax.set_xticklabels([f"{m}월" for m in months])
-    ax.set_ylabel("월별 총합")
+    ax.set_ylabel("월별 합계 (kWh/$\\mathrm{m^2\\cdot}$월)")
     ax.set_title("월별 에너지소요량")
     ax.grid(axis="both", linestyle="--", alpha=0.4)
     ax.legend(fontsize=8, loc="upper right")
@@ -590,6 +595,16 @@ def draw_simulation_figures(grr_before: dict, grr_after: dict, grr_afterN: dict)
 #                                   MAIN FUNC                                  #
 # ---------------------------------------------------------------------------- #
 
+def escape_str(v:str):
+    
+    v = v.replace(r"_",r"\_")
+    v = v.replace(r"&", r"\&")
+    v = v.replace(r"%", r"\%")
+    v = v.replace(r"~", r"\~")
+    v = v.replace(r"#", r"\#")
+    
+    return v
+
 def preprocess_diff_dicts(
     diffs:list[dict]
     ) -> list[dict]:
@@ -597,10 +612,7 @@ def preprocess_diff_dicts(
     def mapper(v):
         
         if isinstance(v, str):
-            v = v.replace(r"_",r"\_")
-            v = v.replace(r"&", r"\&")
-            v = v.replace(r"%", r"\%")
-            v = v.replace(r"~", r"\~")
+            v = escape_str(v)
         
         if isinstance(v, int|float):
             v = f"{v:.10f}".rstrip("0").rstrip(".")
@@ -614,6 +626,251 @@ def preprocess_diff_dicts(
     ]
     
 
+def summarytable(
+    grrbefore:dict,
+    grrafter :dict,
+    grrafterN:dict,
+    ) -> pd.DataFrame:
+    
+    df1 = pd.DataFrame(
+        [
+            [
+                grrbefore["summary_per_area"]["site_uses"]["total_annual"],
+                grrafter["summary_per_area"]["site_uses"]["total_annual"],
+                grrafterN["summary_per_area"]["site_uses"]["total_annual"],
+            ],
+            [
+                grrbefore["summary_per_area"]["co2"]["total_annual"],
+                grrafter["summary_per_area"]["co2"]["total_annual"],
+                grrafterN["summary_per_area"]["co2"]["total_annual"],
+            ],
+        ],
+        columns=["GR 이전(①)", "GR 이후(②)", "운영특성 반영시(③)"],
+        index  =["에너지[$kWh/m^2$]", "온실가스[$kgCO_{2,eq}/m^2$]"]
+    )
+    
+    df2 = pd.DataFrame(
+        columns=["GR 감축량(①-②)","운영특성 반영 감축량(①-③)","운영특성 반영 영향(③-②)"],
+        index  =["에너지[$kWh/m^2$]", "온실가스[$kgCO_{2,eq}/m^2$]"]
+        )
+    df2["GR 감축량(①-②)"] = df1["GR 이전(①)"] - df1["GR 이후(②)"]
+    df2["운영특성 반영 감축량(①-③)"] = df1["GR 이전(①)"] - df1["운영특성 반영시(③)"]
+    df2["운영특성 반영 영향(③-②)"] = df1["운영특성 반영시(③)"] - df1["GR 이후(②)"]
+    
+    return df1, df2
+
+def parse_activechange(
+    grm1:GreenRetrofitModel,
+    grm2:GreenRetrofitModel,
+    ) -> tuple[str]:
+    
+    # heating and cooling hvac
+    def hvac2str(zone:Zone) -> str:
+        
+        if zone.heating_supply is None:
+            heatingstr =  ""
+        else:
+            heatingstr =  f"{zone.heating_supply}\n{zone.heating_supply.source}"
+            
+        if zone.cooling_supply is None:
+            coolingstr =  ""
+        else:
+            coolingstr =  f"{zone.cooling_supply}\n{zone.cooling_supply.source}"
+
+        return heatingstr, coolingstr
+    
+    hvacdict1 = {
+        zone.name: hvac2str(zone)
+        for zone in grm1.zone
+    }
+    hvacdict2 = {
+        zone.name: hvac2str(zone)
+        for zone in grm2.zone
+    }
+    
+    heatingchanged = 0
+    coolingchanged = 0
+    for zonename in hvacdict1.keys():
+        if zonename in hvacdict2.keys() and (hvacdict1[zonename][0] != hvacdict2[zonename][0]):
+            heatingchanged += 1
+        if zonename in hvacdict2.keys() and (hvacdict1[zonename][1] != hvacdict2[zonename][1]):
+            coolingchanged += 1
+    
+    if heatingchanged == 0:
+        heatingchangestr = "변화 없음."
+    else:
+        heatingchangestr = f"{heatingchanged}개 실에 영향을 주는 교체 있음."
+        
+    if coolingchanged == 0:
+        coolingchangestr = "변화 없음."
+    else:
+        coolingchangestr = f"{coolingchanged}개 실에 영향을 주는 교체 있음."
+    
+    # ventilation
+    ventdict1 = {
+        zone.name: zone.ventilation_system
+        for zone in grm1.zone
+    }
+    ventdict2 = {
+        zone.name: zone.ventilation_system
+        for zone in grm2.zone
+    }
+    
+    ventadded   = 0 
+    ventchanged = 0
+    for zonename in ventdict1.keys():
+        if zonename in ventdict2.keys():
+            if ventdict1[zonename] is None and ventdict2[zonename] is not None:
+                ventadded += 1
+            elif str(ventdict1[zonename]) != str(ventdict2[zonename]):
+                ventchanged += 1
+    
+    if ventadded == 0 and ventchanged == 0:
+        ventchangedstr = "변화 없음."
+    elif ventadded == 0 and ventchanged > 0:
+        ventchangedstr = f"{ventchanged}개 실에서 전열교환기 교체됨."
+    elif ventadded > 0 and ventchanged == 0:
+        ventchangedstr = f"{ventadded}개 실에서 전열교환기 추가됨."
+    else:
+        ventchangedstr =  f"{ventadded}개 실에 전열교환기 추가, {ventchanged}개 실에서 전열교환기 교체됨."
+    
+    return heatingchangestr, coolingchangestr, ventchangedstr
+
+def parse_hvacoperationchange(
+    checklist1:현장조사체크리스트,
+    checklist2:현장조사체크리스트,
+    ) -> tuple[str]:
+    
+    func_certaincoolingsetpoint = lambda x: x if isinstance(x, int|float) else 26
+    func_certainheatingsetpoint = lambda x: x if isinstance(x, int|float) else 20
+    
+    # heating
+    if checklist1.일반존.난방설비1 is None:
+        heatingtime1     = "사용안함"
+        heatingsetpoint1 = "(없음)"
+    else:
+        heatingtime1 = f"{checklist1.일반존.난방설비1.사용기간} {checklist1.일반존.난방설비1.사용시간}"
+        heatingsetpoint1 = f"{func_certainheatingsetpoint(checklist1.일반존.난방설비1.설정온도):.1f}$^\\circ C$"
+        
+    if checklist2.일반존.난방설비1 is None:
+        heatingtime2     = "사용안함"
+        heatingsetpoint2 = "(없음)"
+    else:
+        heatingtime2 = f"{checklist2.일반존.난방설비1.사용기간} {checklist2.일반존.난방설비1.사용시간}"
+        heatingsetpoint2 = f"{func_certainheatingsetpoint(checklist2.일반존.난방설비1.설정온도):.1f}$^\\circ C$"
+    
+    if heatingtime1 == heatingtime2:
+        heatingtime = "변화 없음."
+    else:
+        heatingtime = f"{heatingtime1} $\\rightarrow$ {heatingtime2}"
+    
+    if heatingsetpoint1 == heatingsetpoint2:
+        heatingsetpoint = "변화 없음."
+    else:
+        heatingsetpoint = f"{heatingsetpoint1} $\\rightarrow$ {heatingsetpoint2}"
+    
+    # cooling
+    if checklist1.일반존.냉방설비1 is None:
+        coolingtime1     = "사용안함"
+        coolingsetpoint1 = "(없음)"
+    else:
+        coolingtime1 = f"{checklist1.일반존.냉방설비1.사용기간} {checklist1.일반존.냉방설비1.사용시간}"
+        coolingsetpoint1 = f"{func_certaincoolingsetpoint(checklist1.일반존.냉방설비1.설정온도):.1f}$^\\circ C$"
+        
+    if checklist2.일반존.냉방설비1 is None:
+        coolingtime2     = "사용안함"
+        coolingsetpoint2 = "(없음)"
+    else:
+        coolingtime2 = f"{checklist2.일반존.냉방설비1.사용기간} {checklist2.일반존.냉방설비1.사용시간}"
+        coolingsetpoint2 = f"{func_certaincoolingsetpoint(checklist2.일반존.냉방설비1.설정온도):.1f}$^\\circ C$"
+    
+    if coolingtime1 == coolingtime2:
+        coolingtime = "변화 없음."
+    else:
+        coolingtime = f"{coolingtime1} $\\rightarrow$ {coolingtime2}"
+    
+    if coolingsetpoint1 == coolingsetpoint2:
+        coolingsetpoint = "변화 없음."
+    else:
+        coolingsetpoint = f"{coolingsetpoint1} $\\rightarrow$ {coolingsetpoint2}"
+    
+    return heatingtime, heatingsetpoint, coolingtime, coolingsetpoint
+
+def parse_occupantchange(
+    checklist1:현장조사체크리스트,
+    checklist2:현장조사체크리스트,
+    ):
+    
+    if isinstance(checklist1, 어린이집체크리스트):
+        
+        func_nanto0 =  lambda x: 0 if pd.isna(x) else x
+        
+        df = pd.DataFrame(
+            [
+                [
+                    func_nanto0(checklist1.일반존.기본보육교사  + checklist1.일반존.기본보육원생),
+                    func_nanto0(checklist1.일반존.연장보육A교사 + checklist1.일반존.연장보육A원생),
+                    func_nanto0(checklist1.일반존.연장보육B교사 + checklist1.일반존.연장보육B원생),
+                    func_nanto0(checklist1.일반존.야간보육교사  + checklist1.일반존.야간보육원생),
+                    func_nanto0(checklist1.일반존.주말보육교사  + checklist1.일반존.주말보육원생),
+                ],
+                                [
+                    func_nanto0(checklist2.일반존.기본보육교사  + checklist2.일반존.기본보육원생),
+                    func_nanto0(checklist2.일반존.연장보육A교사 + checklist2.일반존.연장보육A원생),
+                    func_nanto0(checklist2.일반존.연장보육B교사 + checklist2.일반존.연장보육B원생),
+                    func_nanto0(checklist2.일반존.야간보육교사  + checklist2.일반존.야간보육원생),
+                    func_nanto0(checklist2.일반존.주말보육교사  + checklist2.일반존.주말보육원생),
+                ]    
+            ],
+            columns = ["기본 (-16:00)~~", "연장 (-18:00)~~", "연장 (-19:30)~~","야간 (-21:00)~~","주말~~"],
+            index   = ["GR 직후", "2025년"] 
+        )
+        
+        연인원변화 = sum([h*p for h,p in zip([8.5, 2, 1.5, 1.5], df.values[1])])/sum([h*p for h,p in zip([8.5, 2, 1.5, 1.5], df.values[0])]) -1
+        연인원변화tex = f"연인원 {abs(연인원변화*100):.1f}\\% {'증가' if 연인원변화 >0 else '감소'}\\footnote{{연인원은 증가할수록 난방에너지는 줄고, 냉방에너지는 늘어날 가능성 있음.}}"
+        
+        tablestyle = {
+            "column_format":"p{2cm}" + "|>{\\raggedleft\\arraybackslash}p{2.3cm}" * 5,
+            "clines":"all;data",  
+            "hrules":True,
+            }
+        tex = 연인원변화tex + "\\par\n\\vspace{2mm}\n" + df.style.format(lambda x: f"{x}명~~").to_latex(**tablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline")
+        
+        return tex
+    
+    else:
+        
+        집중진료연인원1 = ((checklist1.일반존.집중진료오전방문객 * checklist1.일반존.집중진료오전체류시간) + (checklist1.일반존.집중진료오후방문객 * checklist1.일반존.집중진료오후체류시간))/60 * len(checklist1.일반존.집중진료요일.split(","))
+        집중진료연인원2 = ((checklist2.일반존.집중진료오전방문객 * checklist2.일반존.집중진료오전체류시간) + (checklist2.일반존.집중진료오후방문객 * checklist2.일반존.집중진료오후체류시간))/60 * len(checklist2.일반존.집중진료요일.split(","))
+        
+        df = pd.DataFrame(
+            [
+                [
+                    f"{checklist1.일반존.운영시간.replace("~","-")}~~",
+                    f"{checklist1.일반존.직원}명 상주~~",
+                    f"주 {집중진료연인원1:.0f}명$\\cdot$시간~~",
+                    f"{checklist1.특화존2.사용관사수}개소~~",
+                ],
+                [
+                    f"{checklist2.일반존.운영시간.replace("~","-")}~~",
+                    f"{checklist2.일반존.직원}명 상주~~",
+                    f"주 {집중진료연인원1:.0f}명$\\cdot$시간~~",
+                    f"{checklist2.특화존2.사용관사수}개소~~",
+                ]    
+            ],
+            columns = ["운영시간~~", "직원~~", "집중진료 방문객~~","이용 관사 수~~"],
+            index   = ["GR 직후", "2025년"] 
+        )
+        
+        tablestyle = {
+            "column_format":"p{2cm}" + "|>{\\raggedleft\\arraybackslash}p{3cm}" * 4,
+            "clines":"all;data",  
+            "hrules":True,
+            }
+        tex =  df.style.to_latex(**tablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline")
+        
+        return tex
+
 def build_report(
     before_rebexcelpath:str,
     after_rebexcelpath :str,
@@ -621,6 +878,7 @@ def build_report(
     before_grrpath:str,
     after_grrpath :str,
     afterN_grrpath:str,
+    commentdict   :pd.DataFrame,
     pdfpath:str,
     ) -> None:
     
@@ -632,41 +890,68 @@ def build_report(
     with open(afterN_grrpath, "r") as f:
         grrafterN = json.load(f)
     
+    # checklist
+    checklistbefore = 현장조사체크리스트.from_excel(before_rebexcelpath)
+    checklistafter  = 현장조사체크리스트.from_excel(after_rebexcelpath)
+    checklistafterN = 현장조사체크리스트.from_excel(afterN_rebexcelpath)
+    
+    # model
+    idfbefore,grmbefore = rebexcel_to_idf_and_grm(before_rebexcelpath)
+    idfafter ,grmafter  = rebexcel_to_idf_and_grm(after_rebexcelpath)
+    idfafterN,grmafterN = rebexcel_to_idf_and_grm(afterN_rebexcelpath)
+    
     # metadata
     building_info = pd.read_excel(before_rebexcelpath, sheet_name="건물정보", usecols=range(6), nrows=1).iloc[0]
     metadata = MetaData(
-        building_info["건물명"]     ,
+        escape_str(building_info["건물명"])     ,
         f"{grrbefore["building"]["total_area"]:.1f}",
         building_info["주소"],
         building_info["허가일자"]   , 
     )
     
-    # get comparison result
-    perf_diff12, oper_diff12 = compare_rebexcel(
-        before_rebexcelpath,
-        after_rebexcelpath ,
-    )
-    perf_diff23, oper_diff23 = compare_rebexcel(
-        after_rebexcelpath,
-        afterN_rebexcelpath ,
-    )
+    # passive change
+    passivechangedict = {
+        "before": {
+            "wallU": round(grmbefore.averaged_exteriorwall_Uvalue,3),
+            "winU" : round(grmbefore.averaged_window_Uvalue,3),
+            "ld"   : round(grmbefore.averaged_lightdensity,2),
+            "infil": round(grmbefore.averaged_infiltration*0.07,2),
+        },
+        "after": {
+            "wallU": round(grmafter.averaged_exteriorwall_Uvalue,3),
+            "winU" : round(grmafter.averaged_window_Uvalue,3),
+            "ld"   : round(grmafter.averaged_lightdensity,2),
+            "infil": round(grmafter.averaged_infiltration*0.07,2),
+        },
+    }
     
-    # comparison summary
-    if len(perf_diff12) > 0:
-        diff_counts12 = perf_diff12.drop_duplicates(["type", "zonename"]).groupby("type")["zonename"].nunique().to_dict()
-        diffstr12 = ", ".join(f"{k} {v}개 존" for k, v in diff_counts12.items())
-    else:
-        diffstr12 = "없음"
-    if len(perf_diff23) > 0:
-        diff_counts23 = perf_diff23.drop_duplicates(["type", "zonename"]).groupby("type")["zonename"].nunique().to_dict()
-        diffstr23 = ", ".join(f"{k} {v}개 존" for k, v in diff_counts23.items())
-    else:
-        diffstr23 = "없음"
-    if len(oper_diff23) > 0:
-        diff_counts23oper = oper_diff23.drop_duplicates(["type", "zonename"]).groupby("type")["zonename"].nunique().to_dict()
-        diffstr23oper = ", ".join(f"{k} {v}개 존" for k, v in diff_counts23oper.items())
-    else:
-        diffstr23oper = "없음"
+    # active change
+    activechange_before2after = parse_activechange(grmbefore, grmafter)
+    activechange_after2afterN = parse_activechange(grmafter, grmafterN)
+    activechangedict = {
+        "before2after":{
+            "heating": activechange_before2after[0],
+            "cooling": activechange_before2after[1],
+            "ventilation": activechange_before2after[2],
+        },
+        "after2afterN":{
+            "heating": activechange_after2afterN[0],
+            "cooling": activechange_after2afterN[1],
+            "ventilation": activechange_after2afterN[2],
+        }
+    }
+    
+    # hvacoperation change
+    hvacoperationchange = parse_hvacoperationchange(checklistafter, checklistafterN)
+    hvacoperationchangedict = {
+        "heatingtime" : hvacoperationchange[0].replace("~","-"),
+        "heatingsetpoint": hvacoperationchange[1],
+        "coolingtime": hvacoperationchange[2].replace("~","-"),
+        "coolingsetpoint": hvacoperationchange[3],
+    }
+    
+    # occupant change
+    occupantchange = parse_occupantchange(checklistafter, checklistafterN)
     
     # get figures (by results summary)
     fig_use_co2 = draw_energysimulation_figures(grrbefore, grrafter, grrafterN)
@@ -680,24 +965,27 @@ def build_report(
     # get figures (by weather)
     before_weatherdata_filepath = find_weatherdata(building_info["주소"], "이전")
     after_weatherdata_filepath  = find_weatherdata(building_info["주소"], "이후")
-    fig_weather = draw_weather_figures(
+    fig_weather, degreedays = draw_weather_figures(
         before_weatherdata_filepath,
         after_weatherdata_filepath ,
     )
     fig_weather.savefig(FIG_DIR / "weather_compare.png", dpi=400, format="png", bbox_inches="tight")
     
     # arrange the results
+    summarytablestyle = {
+    "column_format":"p{3.5cm}" + "|>{\\raggedleft\\arraybackslash}p{4cm}" * 3,
+    "clines":"all;data",  
+    "hrules":True,
+    }
     context = {
         "metadata": metadata,
-        "diffsummary": [diffstr12, diffstr23, diffstr23oper],
-        "perf_diff12": preprocess_diff_dicts(list(perf_diff12.T.to_dict().values())),
-        "perf_diff23": preprocess_diff_dicts(list(perf_diff23.T.to_dict().values())),
-        "oper_diff23": preprocess_diff_dicts(list(oper_diff23.T.to_dict().values())),
-        "EUIdiff" : [
-            round(grrbefore["summary_per_area"]["site_uses"]["total_annual"] - grrafter["summary_per_area"]["site_uses"]["total_annual"],2),
-            round(grrbefore["summary_per_area"]["site_uses"]["total_annual"] - grrafterN["summary_per_area"]["site_uses"]["total_annual"],2),
-            round(grrafterN["summary_per_area"]["site_uses"]["total_annual"] - grrafter["summary_per_area"]["site_uses"]["total_annual"],2),
-        ]
+        "passivechange": passivechangedict,
+        "activechange": activechangedict,
+        "hvacoperchange": hvacoperationchangedict,
+        "occupantchangetex": occupantchange,
+        "summarytabletex" : [df.style.format(lambda x: f"{x:,.1f}~~").to_latex(**summarytablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline") for df in summarytable(grrbefore, grrafter, grrafterN)],
+        "degreedays": {k:v for k,v in zip(["HDD2018","HDD2023","CDD2018","CDD2023"], degreedays)}|{"HDDchange": ("증가" if (degreedays[1]-degreedays[0])>0 else "감소"),"CDDchange": ("증가" if (degreedays[3]-degreedays[2])>0 else "감소")},
+        "comment": commentdict
     }
     
     # build
