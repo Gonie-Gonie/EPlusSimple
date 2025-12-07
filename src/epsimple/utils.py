@@ -236,12 +236,6 @@ GRJSON_FORMAT =  {
         "ventilation_systems": [],
         "photovoltaic_systems": [],
     },
-    "profiles":[],
-    "profile_components":{
-        "schedules"    : [],
-        "rulesets"     : [],
-        "day_schedules": [],
-    },
     "materials":[],
     "surface_constructions"     :[],
     "fenestration_constructions":[],
