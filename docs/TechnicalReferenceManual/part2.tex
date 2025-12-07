@@ -32,6 +32,7 @@
     \textbf{docs/} & 엔진 관련 명세 & - \\
     \hspace{0.5em} $\llcorner$ \texttt{TechnicalReferenceManual} & \simulator 의 구조 및 알고리즘 명세 (본 문서) & \ref{subsection:dirstructure-documentationTRM} \\
     \hspace{0.5em} $\llcorner$ \texttt{RegressionTestReport} & 버전 검증용 테스트 파일 실행 결과 & \ref{subsection:dirstructure-documentationRTR} \\
+    \hspace{0.5em} $\llcorner$ \texttt{ReleaseNote} & 버전 관리 규칙 및 업데이트 내용 & \ref{subsection:dirstructure-documentationRN} \\
     \hspace{0.5em} $\llcorner$ \texttt{ExcelInterfaceUseGuide} & Excel 기반 입력파일 작성 안내 & \ref{subsection:dirstructure-documentationEIUG} \\
     \addlinespace
 
@@ -213,7 +214,7 @@ def convert(input_filepath, src, dst, *, output_filepath=None) -> None
 
 \subsection{Python 및 그 모듈} \label{subsection:dirstructure-python}
 \simulator \는 2023년 말 출시되어 현재 가장 널리 쓰이는 버전 중 하나인 \texttt{Python 3.12}\cite{python312}를 사용한다.
-Python은 연 1회의 버전 업데이트(매년 10월)를 원칙으로 하며, 강력한 하위 호환성을 유지하되 노후화된 기능은 DeprecationWarning을 거쳐 단계적으로 폐지하는 안정적인 수명 주기를 가지므로, 상위 버전의 Python을 대신 사용하는 것은 긍정적으로 고려될 수 있다.
+Python은 연 1회의 버전 업데이트(매년 10월)를 원칙으로 하며, 강력한 하위 호환성을 유지하되 노후화된 기능은 DeprecationWarning을 거쳐 단계적으로 폐지하는 안정적인 수명 주기를 가지므로, 상위 버전의 Python을 사용하는 것은 고려될 수 있다.
 
 \pymodule 을 비롯한 내장된 Python 모듈에서 기능 구현을 위해 사용된 라이브러리는 \textcref{table:portablepython-dependencies}\와 같다.
 
@@ -308,7 +309,7 @@ Python은 연 1회의 버전 업데이트(매년 10월)를 원칙으로 하며, 
 
 \subsection{EnergyPlus} \label{subsection:dirstructure-energyplus}
 \simulator 에서 EnergyPlus 실행파일 변환 및 실행을 담당하는 idragon 모듈은 2024년 9월 말에 출시된 \texttt{EnergyPlus 24.2}\cite{energyplus242} 버전에 맞추어 개발되었다.
-EnergyPlus는 매년 3월과 9월, 반기별로 정기 업데이트를 수행하며, 입력 파일(.idf)의 포맷 변경이 잦아 버전 간 직접 호환성은 매우 낮으므로 (내장된 IDFVersionUpdater를 이용한 idf 버전 변환을 지원) 다른 버전의 EnergyPlus 사용은 권장되지 않는다.
+EnergyPlus는 매년 3월과 9월, 반기별로 정기 업데이트를 수행하며, 입력 파일(.idf)의 포맷 변경이 잦아 버전 간 직접 호환성은 매우 낮으므로 (내장된 IDFVersionUpdater를 이용한 idf 버전 변환을 지원) 다른 버전의 EnergyPlus 사용은 허용되지 않는다.
 
 
 % ---------------------------------------------------------------------------- %
@@ -319,15 +320,18 @@ EnergyPlus는 매년 3월과 9월, 반기별로 정기 업데이트를 수행하
 
 \subsection{기술문서} 
 
-\subsubsection{TechnicalReferenceManual} \label{subsection:dirstructure-documentationTRM}
+\subsubsection{Technical Reference Manual} \label{subsection:dirstructure-documentationTRM}
 본 문서이다.
 
-\subsubsection{RegressionTestReport} \label{subsection:dirstructure-documentationRTR}
+\subsubsection{Regression Test Report} \label{subsection:dirstructure-documentationRTR}
 Regression Test Report는 소프트웨어의 기능 추가나 코드 수정, 혹은 종속 라이브러리의 업데이트가 기존에 정상적으로 작동하던 기능에 의도치 않은 오류(Regression)를 유발하지 않았음을 검증하고 기록한 문서이다\cite{energyplus2024validation}\cite{sommerville2015software}.
 이 보고서에서는 표준 테스트용 시뮬레이션을 수행한 결과값, 실행 속도 등을 정량적으로 제시하므로, 이전 버전과 현재 버전 간의 차이를 비교, 엔진의 수치적 정합성과 시스템 안정성을 확인 가능하다.
 
-\subsubsection{ExcelInterfaceUserGuide} \label{subsection:dirstructure-documentationEIUG}
-추후 기술
+\subsubsection{Release Note} \label{subsection:dirstructure-documentationRN}
+\simulator 의 버전별 호환성 등 버전 관리 규칙을 명세하고, 각 버전별 업데이트 내용을 추가, 변경, 수정, 제거 4가지 항목으로 구분하여 기술한다.
+
+\subsubsection{Excel Interface User Guide} \label{subsection:dirstructure-documentationEIUG}
+추후 작성 예정임.
 
 \subsection{예시파일} \label{subsection:dirstructure-example}
 추후 기술
@@ -678,7 +682,6 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
   \jsontablerow{name                    }{\TypeTag{S}}{ \ReqTag{R} }{}{}{}{}
   \jsontablerow{height                  }{\TypeTag{F}}{ \ReqTag{R} }{}{}{(0,$Inf$)}{m}
   \jsontablerow{profile                 }{\TypeTag{S}}{ \ReqTag{R} }{}{}{\needtobeexplain}{}
-  \jsontablerow{profile_id              }{\TypeTag{S}}{ \ReqTag{CR}}{}{\texttt{profile} = ``custom''}{\hyperref[subsubsection:ioref:profile]{\texttt{profile}}의 \texttt{id}}{}
   \jsontablerow{light_density           }{\TypeTag{F}}{ \ReqTag{R} }{}{}{[0,$Inf$)}{W/m^{2}}
   \jsontablerow{infiltration            }{\TypeTag{F}}{ \ReqTag{R} }{}{}{[0,$Inf$)}{ACH50}
   \jsontablerow{supply_system_heating_id}{\TypeTag{S}}{ \ReqTag{R} }{}{}{\hyperref[subsubsection:ioref:supplysystem]{\texttt{supply\_system}}의 \texttt{id}}{}
@@ -693,7 +696,7 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 
 \paragraph{height} 존의 높이. 실의 부피 계산에 이용된다.
 
-\paragraph{profile} 존의 용도프로필. 기본으로 제공되는 항목, 또는 ``custom'' 중에서 입력 가능하다. 
+\paragraph{profile} 존의 용도프로필. 기본으로 제공되는 항목 중에서 입력 가능하다. 
 
 \paragraph{profile\_id} 존에 적용된 custom 용도프로필의 ID. 
 
@@ -903,131 +906,6 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 \end{defaultfigure}
 
 \paragraph{tilt} 패널의 경사각. 0$^\circ$는 수평면, 90$^\circ$는 수직면을 의미한다.
-
-\subsubsection{profile} \label{subsubsection:ioref:profile}
-존의 내부부하 및 발열을 나타내는 프로필이다.
-
-\jsontable{profile}{
-  \jsontablerow{id             }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
-  \jsontablerow{name           }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
-  \jsontablerow{hvac_availability_id}{\TypeTag{S}}{\ReqTag{R}}{}{}{\hyperref[subsubsection:ioref:schedule]{\texttt{schedule}}의 \texttt{id}}{}
-  \jsontablerow{hotwater_id}{\TypeTag{S}}{\ReqTag{O}}{\texttt{null}}{}{\hyperref[subsubsection:ioref:schedule]{\texttt{schedule}}의 \texttt{id}}{}
-  \jsontablerow{occupant_id}{\TypeTag{S}}{\ReqTag{O}}{\texttt{null}}{}{\hyperref[subsubsection:ioref:schedule]{\texttt{schedule}}의 \texttt{id}}{}
-  \jsontablerow{lighting_id}{\TypeTag{S}}{\ReqTag{O}}{\texttt{null}}{}{\hyperref[subsubsection:ioref:schedule]{\texttt{schedule}}의 \texttt{id}}{}
-  \jsontablerow{equipment_id}{\TypeTag{S}}{\ReqTag{O}}{\texttt{null}}{}{\hyperref[subsubsection:ioref:schedule]{\texttt{schedule}}의 \texttt{id}}{}
-  \jsontablerow{heating_setpoint_id }{\TypeTag{S}}{\needtobeexplain}{\texttt{null}}{}{\hyperref[subsubsection:ioref:schedule]{\texttt{schedule}}의 \texttt{id}}{}
-  \jsontablerow{cooling_setpoint_id }{\TypeTag{S}}{\needtobeexplain}{\texttt{null}}{}{\hyperref[subsubsection:ioref:schedule]{\texttt{schedule}}의 \texttt{id}}{}
-}
-
-\paragraph{id} 프로필의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
-
-\paragraph{name} 사용자 편의를 위해 제공되는 프로필 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
-
-\paragraph{hvac\_availability\_id} 설비 운영 프로필의 식별자.
-
-\paragraph{hotwater\_id} 급탕부하 스케줄. 해당 값을 입력하지 않을 경우 (\texttt{null}), 급탕부하가 없는 것으로 취급된다.
-
-\paragraph{occupant\_id} 인체발열 스케줄. 해당 값을 입력하지 않을 경우 (\texttt{null}), 인체발열이 없는 것으로 취급된다.
-
-\paragraph{lighting\_id} 조명발열 스케줄. 해당 값을 입력하지 않을 경우 (\texttt{null}), 조명발열이 없는 것으로 취급된다.
-
-\paragraph{equipment\_id} 기기발열 스케줄. 해당 값을 입력하지 않을 경우 (\texttt{null}), 기기발열이 없는 것으로 취급된다.
-
-\paragraph{heating\_setpoint\_id} 난방 설정온도 스케줄. 난방 설비를 가동하는 경우(\texttt{hvac\_availability\_id}의 모든 값이 0이 아닐 때)요구된다.
-
-\paragraph{cooling\_setpoint\_id} 냉방 설정온도 스케줄. 냉방 설비를 가동하는 경우(\texttt{hvac\_availability\_id}의 모든 값이 0이 아닐 때)요구된다.
-
-\subsubsection{profile\_component} \label{subsubsection:ioref:profile_component}
-프로필을 구성하는 각 요소들(\texttt{scheduels},\texttt{rulesets},\texttt{day\_schedules})을 포함하는 개체이다.
-
-\jsontable{profile\_component}{
-  \jsontablerow{schedules    }{[ \hyperref[subsubsection:ioref:schedule]{\texttt{schedule}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
-  \jsontablerow{rulesets     }{[ \hyperref[subsubsection:ioref:ruleset]{\texttt{ruleset}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
-  \jsontablerow{day_schedules}{[ \hyperref[subsubsection:ioref:dayschedule]{\texttt{day\_schedule}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
-}
-
-\subsubsection{schedule} \label{subsubsection:ioref:schedule}
-ㅁㅁ
-\jsontable{schedule}{
-  \jsontablerow{id     }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
-  \jsontablerow{name   }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
-  \jsontablerow{periods}{[ \hyperref[subsubsection:ioref:period]{\texttt{period}} ]}{\ReqTag{R}}{}{}{}{}
-}
-
-\paragraph{id} 스케줄의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
-
-\paragraph{name} 사용자 편의를 위해 제공되는 스케줄 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
-
-\subsubsection{period} \label{subsubsection:ioref:period}
-주간 규칙을 적용할 기간을 명시한다.
-\jsontable{period}{
-  \jsontablerow{start     }{\TypeTag{S}}{\ReqTag{R}}{}{}{\needtobeexplain}{}
-  \jsontablerow{end       }{\TypeTag{S}}{\ReqTag{R}}{}{}{\needtobeexplain}{}
-  \jsontablerow{ruleset_id}{\TypeTag{S}}{\ReqTag{R}}{}{}{\hyperref[subsubsection:ioref:ruleset]{\texttt{ruleset}}의 \texttt{id}}{}
-}
-
-\paragraph{start} 기간이 시작하는 날짜. ``MM/DD''의 형태로 표기한다(예: 3월 17일 $\rightarrow$ ``03/17''). 참고로, 입력한 날짜는 기간에 포함된다.
-
-\paragraph{end} 기간이 끝나는 날짜. ``MM/DD''의 형태로 표기한다(예: 3월 17일 $\rightarrow$ ``03/17''). 참고로, 입력한 날짜는 기간에 포함된다.
-
-\paragraph{ruleset\_id} 적용할 주간 규칙의 ID.
-
-\subsubsection{ruleset} \label{subsubsection:ioref:ruleset}
-주간 규칙이다.
-\jsontable{ruleset}{
-  \jsontablerow{id          }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
-  \jsontablerow{name        }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
-  \jsontablerow{weekdays_id }{\TypeTag{S}}{\ReqTag{R}}{}{}{\hyperref[subsubsection:ioref:dayschedule]{\texttt{day\_schedule}}의 \texttt{id}}{}
-  \jsontablerow{weekends_id }{\TypeTag{S}}{\ReqTag{R}}{}{}{\hyperref[subsubsection:ioref:dayschedule]{\texttt{day\_schedule}}의 \texttt{id}}{}
-  \jsontablerow{monday_id   }{\TypeTag{S}}{\ReqTag{O}}{\texttt{null}}{}{\hyperref[subsubsection:ioref:dayschedule]{\texttt{day\_schedule}}의 \texttt{id}}{}
-  \jsontablerow{tuesday_id  }{\TypeTag{S}}{\ReqTag{O}}{\texttt{null}}{}{\hyperref[subsubsection:ioref:dayschedule]{\texttt{day\_schedule}}의 \texttt{id}}{}
-  \jsontablerow{wednesday_id}{\TypeTag{S}}{\ReqTag{O}}{\texttt{null}}{}{\hyperref[subsubsection:ioref:dayschedule]{\texttt{day\_schedule}}의 \texttt{id}}{}
-  \jsontablerow{thursday_id }{\TypeTag{S}}{\ReqTag{O}}{\texttt{null}}{}{\hyperref[subsubsection:ioref:dayschedule]{\texttt{day\_schedule}}의 \texttt{id}}{}
-  \jsontablerow{friday_id   }{\TypeTag{S}}{\ReqTag{O}}{\texttt{null}}{}{\hyperref[subsubsection:ioref:dayschedule]{\texttt{day\_schedule}}의 \texttt{id}}{}
-  \jsontablerow{saturday_id }{\TypeTag{S}}{\ReqTag{O}}{\texttt{null}}{}{\hyperref[subsubsection:ioref:dayschedule]{\texttt{day\_schedule}}의 \texttt{id}}{}
-  \jsontablerow{sunday_id   }{\TypeTag{S}}{\ReqTag{O}}{\texttt{null}}{}{\hyperref[subsubsection:ioref:dayschedule]{\texttt{day\_schedule}}의 \texttt{id}}{}
-}
-
-\paragraph{id} 주간규칙의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
-
-\paragraph{name} 사용자 편의를 위해 제공되는 주간규칙 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
-
-\paragraph{weekdays\_id} 주중(월-금)에 적용되는 일간스케줄.
-
-\paragraph{weekends\_id} 주말(토,일)에 적용되는 일간스케줄.
-
-\paragraph{monday\_id} 월요일에 적용되는 일간스케줄. \texttt{null}이 아닌 경우, \texttt{weekdays\_id}보다 우선하여 적용된다.
-
-\paragraph{tuesday\_id} 화요일에 적용되는 일간스케줄. \texttt{null}이 아닌 경우, \texttt{weekdays\_id}보다 우선하여 적용된다.
-
-\paragraph{wednesday\_id} 수요일에 적용되는 일간스케줄. \texttt{null}이 아닌 경우, \texttt{weekdays\_id}보다 우선하여 적용된다.
-
-\paragraph{thursday\_id} 목요일에 적용되는 일간스케줄. \texttt{null}이 아닌 경우, \texttt{weekdays\_id}보다 우선하여 적용된다.
-
-\paragraph{friday\_id} 금요일에 적용되는 일간스케줄. \texttt{null}이 아닌 경우, \texttt{weekdays\_id}보다 우선하여 적용된다.
-
-\paragraph{saturday\_id} 토요일에 적용되는 일간스케줄. \texttt{null}이 아닌 경우, \texttt{weekends\_id}보다 우선하여 적용된다.
-
-\paragraph{sunday\_id} 일요일에 적용되는 일간스케줄. \texttt{null}이 아닌 경우, \texttt{weekends\_id}보다 우선하여 적용된다.
-
-\paragraph{holiday\_id} 공휴일에 적용되는 일간스케줄. \texttt{null}인 경우, \texttt{sunday\_id}의 일간스케줄이 기본으로 적용된다.
-
-\subsubsection{day\_schedule} \label{subsubsection:ioref:dayschedule}
-일간스케줄이다.
-\jsontable{day\_schedule}{
-  \jsontablerow{id    }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
-  \jsontablerow{name  }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
-  \jsontablerow{type  }{\TypeTag{E}}{\ReqTag{R}}{}{}{}{}
-  \jsontablerow{values}{[ \TypeTag{F} ]}{\ReqTag{R}}{}{}{144}{}
-}
-
-\paragraph{id} 일간스케줄의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
-
-\paragraph{name} 사용자 편의를 위해 제공되는 일간스케줄 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
-
-\paragraph{type} 일간스케줄 종류. 시뮬레이션에 직접 사용되지 않는다.
-
-\paragraph{values} 시간별 스케줄 값. 각 값은 10분간의 값을 의미하며, 크기가 144개인 시간별 값(array)로 입력한다(1일;24시간;1440분).
 
 \subsubsection{material} \label{subsubsection:ioref:material}
 
