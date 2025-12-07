@@ -177,8 +177,8 @@ def draw_weather_monthlycomparision(
     ax.set_xticks(range(1,13))
     ax.set_xticklabels(MONTH_LBLS, fontsize=9)
     ax.set_xlim(0.5, 12.5 + shift)
-    ax.set_title("월간 외기 온도", fontsize=11, weight="bold")
-    ax.set_ylabel("건구 온도 (°C)")
+    ax.set_title("월평균 외기 온도 및 범위", fontsize=11, weight="bold")
+    ax.set_ylabel("온도 (°C)")
     ax.grid(axis="both", linestyle="--", alpha=0.4)
     ax.set_axisbelow(True)
     all_values = pd.concat([
@@ -226,27 +226,29 @@ def draw_weather_degreedays(
 
     # --- Figure 구성 ---
     x_positions = [0, 1, 3, 4]  # HDD1, HDD2, CDD1, CDD2
-    heights = [hdd1, hdd2, cdd1, cdd2]
+    degreedays = [hdd1, hdd2, cdd1, cdd2]
     colors_seq = [colors[0], colors[1], colors[0], colors[1]]
 
-    bars = ax.bar(x_positions, heights, width=0.8, color=colors_seq, alpha=0.8)
+    bars = ax.bar(x_positions, degreedays, width=0.8, color=colors_seq, alpha=0.8)
 
     # --- x축 그룹 라벨 ---
     ax.set_xticks([0.5, 3.5])
-    ax.set_xticklabels(["HDD", "CDD"], fontsize=10)
+    ax.set_xticklabels(["난방도일", "냉방도일"], fontsize=10)
     ax.set_ylabel("도일 (°C·day)")
-    ax.set_title(f"연간 HDD/CDD 비교 ({base_temp:.1f}°C 기준)",
+    ax.set_title(f"연간 냉난방부하(도일) 비교",
                  fontsize=11, weight="bold")
     ax.grid(axis="y", linestyle="--", alpha=0.4)
 
     # --- 막대 위 값 표시 ---
     ax.bar_label(bars, fmt="%.0f", padding=3, fontsize=9)
-    ax.set_ylim(0, max(heights)*1.15)
+    ax.set_ylim(0, max(degreedays)*1.15)
 
     # --- 범례 ---
     custom = [plt.Rectangle((0,0),1,1,color=colors[0],alpha=0.8),
               plt.Rectangle((0,0),1,1,color=colors[1],alpha=0.8)]
     ax.legend(custom, [f"{l.split('_')[1]}년" for l in [label1, label2]], fontsize=9, ncols=2, loc='upper center', bbox_to_anchor=(0.5, -0.1))
+    
+    return degreedays
 
 
 def draw_weather_figures(
@@ -261,14 +263,14 @@ def draw_weather_figures(
         after_weatherdata_filepath ,
         ax = axs[0]
     )
-    draw_weather_degreedays(
+    degreedays = draw_weather_degreedays(
         before_weatherdata_filepath,
         after_weatherdata_filepath ,
         ax = axs[1]
     )
     fig.get_layout_engine().set(wspace=0.1)
     
-    return fig
+    return fig, degreedays
 
 
 def draw_3step_bargraph(
@@ -621,6 +623,40 @@ def preprocess_diff_dicts(
     ]
     
 
+def summarytable(
+    grrbefore:dict,
+    grrafter :dict,
+    grrafterN:dict,
+    ) -> pd.DataFrame:
+    
+    df1 = pd.DataFrame(
+        [
+            [
+                grrbefore["summary_per_area"]["site_uses"]["total_annual"],
+                grrafter["summary_per_area"]["site_uses"]["total_annual"],
+                grrafterN["summary_per_area"]["site_uses"]["total_annual"],
+            ],
+            [
+                grrbefore["summary_per_area"]["co2"]["total_annual"],
+                grrafter["summary_per_area"]["co2"]["total_annual"],
+                grrafterN["summary_per_area"]["co2"]["total_annual"],
+            ],
+        ],
+        columns=["GR 이전(①)", "GR 이후(②)", "운영특성 반영시(③)"],
+        index  =["에너지[$kWh/m^2$]", "온실가스[$kgCO_{2,eq}/m^2$]"]
+    )
+    
+    df2 = pd.DataFrame(
+        columns=["기대한 감축량(①-②)","운영특성 반영 감축량(①-③)","운영특성 반영 영향(③-②)"],
+        index  =["에너지[$kWh/m^2$]", "온실가스[$kgCO_{2,eq}/m^2$]"]
+        )
+    df2["기대한 감축량(①-②)"] = df1["GR 이전(①)"] - df1["GR 이후(②)"]
+    df2["운영특성 반영 감축량(①-③)"] = df1["GR 이전(①)"] - df1["운영특성 반영시(③)"]
+    df2["운영특성 반영 영향(③-②)"] = df1["운영특성 반영시(③)"] - df1["GR 이후(②)"]
+    
+    return df1, df2
+
+
 def build_report(
     before_rebexcelpath:str,
     after_rebexcelpath :str,
@@ -687,24 +723,26 @@ def build_report(
     # get figures (by weather)
     before_weatherdata_filepath = find_weatherdata(building_info["주소"], "이전")
     after_weatherdata_filepath  = find_weatherdata(building_info["주소"], "이후")
-    fig_weather = draw_weather_figures(
+    fig_weather, degreedays = draw_weather_figures(
         before_weatherdata_filepath,
         after_weatherdata_filepath ,
     )
     fig_weather.savefig(FIG_DIR / "weather_compare.png", dpi=400, format="png", bbox_inches="tight")
     
     # arrange the results
+    summarytablestyle = {
+    "column_format":"p{3.5cm}" + "|>{\\raggedleft\\arraybackslash}p{4cm}" * 3,
+    "clines":"all;data",  
+    "hrules":True,
+    }
     context = {
         "metadata": metadata,
         "diffsummary": [diffstr12, diffstr23, diffstr23oper],
         "perf_diff12": preprocess_diff_dicts(list(perf_diff12.T.to_dict().values())),
         "perf_diff23": preprocess_diff_dicts(list(perf_diff23.T.to_dict().values())),
         "oper_diff23": preprocess_diff_dicts(list(oper_diff23.T.to_dict().values())),
-        "EUIdiff" : [
-            round(grrbefore["summary_per_area"]["site_uses"]["total_annual"] - grrafter["summary_per_area"]["site_uses"]["total_annual"],2),
-            round(grrbefore["summary_per_area"]["site_uses"]["total_annual"] - grrafterN["summary_per_area"]["site_uses"]["total_annual"],2),
-            round(grrafterN["summary_per_area"]["site_uses"]["total_annual"] - grrafter["summary_per_area"]["site_uses"]["total_annual"],2),
-        ]
+        "summarytabletex" : [df.style.format(lambda x: f"{x:,.1f}~~").to_latex(**summarytablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline") for df in summarytable(grrbefore, grrafter, grrafterN)],
+        "degreedays": {k:v for k,v in zip(["HDD2018","HDD2023","CDD2018","CDD2023"], degreedays)}|{"HDDchange": ("증가" if (degreedays[1]-degreedays[0])>0 else "감소"),"CDDchange": ("증가" if (degreedays[3]-degreedays[2])>0 else "감소")}
     }
     
     # build
