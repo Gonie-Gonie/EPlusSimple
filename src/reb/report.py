@@ -736,6 +736,70 @@ def parse_activechange(
     
     return heatingchangestr, coolingchangestr, ventchangedstr
 
+def parse_hvacoperationchange(
+    checklist1:현장조사체크리스트,
+    checklist2:현장조사체크리스트,
+    ) -> tuple[str]:
+    
+    # heating
+    if checklist1.일반존.난방설비1 is None:
+        heatingtime1     = "사용안함"
+        heatingsetpoint1 = "(없음)"
+    else:
+        heatingtime1 = f"{checklist1.일반존.난방설비1.사용기간} {checklist1.일반존.난방설비1.사용시간}"
+        heatingsetpoint1 = f"{checklist1.일반존.난방설비1.설정온도:.1f}$^\\circ C$"
+        
+    if checklist2.일반존.난방설비1 is None:
+        heatingtime2     = "사용안함"
+        heatingsetpoint2 = "(없음)"
+    else:
+        heatingtime2 = f"{checklist2.일반존.난방설비1.사용기간} {checklist2.일반존.난방설비1.사용시간}"
+        heatingsetpoint2 = f"{checklist2.일반존.난방설비1.설정온도:.1f}$^\\circ C$"
+    
+    if heatingtime1 == heatingtime2:
+        heatingtime = "변화 없음."
+    else:
+        heatingtime = f"{heatingtime1} $\\rightarrow$ {heatingtime2}"
+    
+    if heatingsetpoint1 == heatingsetpoint2:
+        heatingsetpoint = "변화 없음."
+    else:
+        heatingsetpoint = f"{heatingsetpoint1} $\\rightarrow$ {heatingsetpoint2}"
+    
+    # cooling
+    if checklist1.일반존.냉방설비1 is None:
+        coolingtime1     = "사용안함"
+        coolingsetpoint1 = "(없음)"
+    else:
+        coolingtime1 = f"{checklist1.일반존.냉방설비1.사용기간} {checklist1.일반존.냉방설비1.사용시간}"
+        coolingsetpoint1 = f"{checklist1.일반존.냉방설비1.설정온도:.1f}$^\\circ C$"
+        
+    if checklist2.일반존.냉방설비1 is None:
+        coolingtime2     = "사용안함"
+        coolingsetpoint2 = "(없음)"
+    else:
+        coolingtime2 = f"{checklist2.일반존.냉방설비1.사용기간} {checklist2.일반존.냉방설비1.사용시간}"
+        coolingsetpoint2 = f"{checklist2.일반존.냉방설비1.설정온도:.1f}$^\\circ C$"
+    
+    if coolingtime1 == coolingtime2:
+        coolingtime = "변화 없음."
+    else:
+        coolingtime = f"{coolingtime1} $\\rightarrow$ {coolingtime2}"
+    
+    if coolingsetpoint1 == coolingsetpoint2:
+        coolingsetpoint = "변화 없음."
+    else:
+        coolingsetpoint = f"{coolingsetpoint1} $\\rightarrow$ {coolingsetpoint2}"
+    
+    return heatingtime, heatingsetpoint, coolingtime, coolingsetpoint
+
+def parse_occupantchange(
+    checklist1:현장조사체크리스트,
+    checklist2:현장조사체크리스트,
+    ):
+    
+    pass
+
 def build_report(
     before_rebexcelpath:str,
     after_rebexcelpath :str,
@@ -806,6 +870,18 @@ def build_report(
         }
     }
     
+    # hvacoperation change
+    hvacoperationchange = parse_hvacoperationchange(checklistafter, checklistafterN)
+    hvacoperationchangedict = {
+        "heatingtime" : hvacoperationchange[0].replace("~","-"),
+        "heatingsetpoint": hvacoperationchange[1],
+        "coolingtime": hvacoperationchange[2].replace("~","-"),
+        "coolingsetpoint": hvacoperationchange[3],
+    }
+    
+    # occupant change
+    occupantchange = parse_occupangechange(checklistafter, checklistafterN)
+    
     # get figures (by results summary)
     fig_use_co2 = draw_energysimulation_figures(grrbefore, grrafter, grrafterN)
     os.makedirs(FIG_DIR, exist_ok=True)
@@ -834,6 +910,7 @@ def build_report(
         "metadata": metadata,
         "passivechange": passivechangedict,
         "activechange": activechangedict,
+        "hvacoperchange": hvacoperationchangedict,
         "summarytabletex" : [df.style.format(lambda x: f"{x:,.1f}~~").to_latex(**summarytablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline") for df in summarytable(grrbefore, grrafter, grrafterN)],
         "degreedays": {k:v for k,v in zip(["HDD2018","HDD2023","CDD2018","CDD2023"], degreedays)}|{"HDDchange": ("증가" if (degreedays[1]-degreedays[0])>0 else "감소"),"CDDchange": ("증가" if (degreedays[3]-degreedays[2])>0 else "감소")},
         "comment": commentdict
