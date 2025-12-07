@@ -29,6 +29,7 @@ from .postprocess import (
     어린이집체크리스트,
     보건소체크리스트,
 )
+from .core import rebexcel_to_idf_and_grm
 
 # settings
 PLOTFONTSIZE = 11
@@ -687,6 +688,11 @@ def build_report(
     checklistafter  = 현장조사체크리스트.from_excel(after_rebexcelpath)
     checklistafterN = 현장조사체크리스트.from_excel(afterN_rebexcelpath)
     
+    # model
+    idfbefore,grmbefore = rebexcel_to_idf_and_grm(before_rebexcelpath)
+    idfafter ,grmafter  = rebexcel_to_idf_and_grm(after_rebexcelpath)
+    idfafterN,grmafterN = rebexcel_to_idf_and_grm(afterN_rebexcelpath)
+    
     # metadata
     building_info = pd.read_excel(before_rebexcelpath, sheet_name="건물정보", usecols=range(6), nrows=1).iloc[0]
     metadata = MetaData(
@@ -696,32 +702,20 @@ def build_report(
         building_info["허가일자"]   , 
     )
     
-    # get comparison result
-    perf_diff12, oper_diff12 = compare_rebexcel(
-        before_rebexcelpath,
-        after_rebexcelpath ,
-    )
-    perf_diff23, oper_diff23 = compare_rebexcel(
-        after_rebexcelpath,
-        afterN_rebexcelpath ,
-    )
+    # passive change
+    passivechangedict = {
+        "before": {
+            "wallU": round(grmbefore.averaged_exteriorwall_Uvalue,3),
+            "winU" : round(grmbefore.averaged_window_Uvalue,3),
+            "ld"   : round(grmbefore.averaged_lightdensity,2),
+        },
+        "after": {
+            "wallU": round(grmafter.averaged_exteriorwall_Uvalue,3),
+            "winU" : round(grmafter.averaged_window_Uvalue,3),
+            "ld"   : round(grmafter.averaged_lightdensity,2),
+        },
+    }
     
-    # comparison summary
-    if len(perf_diff12) > 0:
-        diff_counts12 = perf_diff12.drop_duplicates(["type", "zonename"]).groupby("type")["zonename"].nunique().to_dict()
-        diffstr12 = "\n".join(f"\\item {v}개 실에서 {k}" for k, v in diff_counts12.items())
-    else:
-        diffstr12 = "\\item 없음"
-    if len(perf_diff23) > 0:
-        diff_counts23 = perf_diff23.drop_duplicates(["type", "zonename"]).groupby("type")["zonename"].nunique().to_dict()
-        diffstr23 = "\n".join(f"\\item {v}개 실에서 {k}" for k, v in diff_counts23.items())
-    else:
-        diffstr23 = "\\item 없음"
-    if len(oper_diff23) > 0:
-        diff_counts23oper = oper_diff23.drop_duplicates(["type", "zonename"]).groupby("type")["zonename"].nunique().to_dict()
-        diffstr23oper = "\n".join(f"\\item {v}개 실에서 {k}" for k, v in diff_counts23oper.items())
-    else:
-        diffstr23oper = "\\item 없음"
     
     # get figures (by results summary)
     fig_use_co2 = draw_energysimulation_figures(grrbefore, grrafter, grrafterN)
@@ -749,10 +743,7 @@ def build_report(
     }
     context = {
         "metadata": metadata,
-        "diffstr" : {"d12": diffstr12, "d23":diffstr23, "d23o": diffstr23oper},
-        "perf_diff12": preprocess_diff_dicts(list(perf_diff12.T.to_dict().values())),
-        "perf_diff23": preprocess_diff_dicts(list(perf_diff23.T.to_dict().values())),
-        "oper_diff23": preprocess_diff_dicts(list(oper_diff23.T.to_dict().values())),
+        "passivechange": passivechangedict,
         "summarytabletex" : [df.style.format(lambda x: f"{x:,.1f}~~").to_latex(**summarytablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline") for df in summarytable(grrbefore, grrafter, grrafterN)],
         "degreedays": {k:v for k,v in zip(["HDD2018","HDD2023","CDD2018","CDD2023"], degreedays)}|{"HDDchange": ("증가" if (degreedays[1]-degreedays[0])>0 else "감소"),"CDDchange": ("증가" if (degreedays[3]-degreedays[2])>0 else "감소")},
         "comment": commentdict

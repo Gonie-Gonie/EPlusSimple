@@ -55,7 +55,7 @@ from . import (
     NoneSource        ,
     # shape
     Surface                 ,
-    SurfaceType             ,
+    Window                  ,
     SurfaceBoundaryCondition,
     Zone                    ,
 )
@@ -256,6 +256,78 @@ class GreenRetrofitModel:
     def area(self) -> float:
         return sum(zone.area for zone in self.zone)
     
+    @property
+    def exteriorwalls(self) -> list[Surface]:
+        return [
+            surf for surf in sum([zone.surface for zone in self.zone], start=[])
+            if surf.boundary == SurfaceBoundaryCondition.OUTDOOR
+        ]
+        
+    @property
+    def exteriorwindows(self) -> list[Window]:
+        return [
+            fene for fene
+            in sum([wall.fenestrations for wall in self.exteriorwalls], start=[])
+            if isinstance(fene, Window)
+        ]
+    
+    @property
+    def averaged_exteriorwall_Uvalue(self) -> float:
+        
+        areasum = 0
+        UAsum   = 0
+        for wall in self.exteriorwalls:
+            
+            areasum += wall.area
+            
+            if wall.construction is UnknownConstruction():
+                UAsum += wall.area * SurfaceConstruction.get_regulated_construction(
+                    self.vintage    ,
+                    wall.type    ,
+                    wall.boundary,
+                    self.climate    ,
+                    is_residential=False,
+                ).get_U()
+                
+            else:
+                UAsum += wall.area * wall.construction.get_U()
+        
+        if areasum > 0:
+            return UAsum / areasum
+        else:
+            return 0
+    
+    @property
+    def averaged_window_Uvalue(self) -> float:
+        
+        areasum = 0
+        UAsum   = 0
+        
+        for win in self.exteriorwindows:
+            areasum += win.area
+            UAsum   += win.area * win.construction.u
+        
+        if areasum > 0:
+            return UAsum / areasum
+        else:
+            return 0
+        
+    @property
+    def averaged_lightdensity(self) -> float:
+        
+        areasum = 0
+        lightdensity_areasum = 0
+        
+        for zone in self.zone:
+            areasum += zone.area
+            lightdensity_areasum += zone.light_density * zone.area
+        
+        if areasum > 0:
+            return lightdensity_areasum / areasum
+        else:
+            return 0
+        
+        
     """ useful methods (unique components)
     """
     
