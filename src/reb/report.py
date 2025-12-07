@@ -662,6 +662,7 @@ def summarytable(
     return df1, df2
 
 
+
 def build_report(
     before_rebexcelpath:str,
     after_rebexcelpath :str,
@@ -681,6 +682,7 @@ def build_report(
     with open(afterN_grrpath, "r") as f:
         grrafterN = json.load(f)
     
+    # checklist
     checklistbefore = 현장조사체크리스트.from_excel(before_rebexcelpath)
     checklistafter  = 현장조사체크리스트.from_excel(after_rebexcelpath)
     checklistafterN = 현장조사체크리스트.from_excel(afterN_rebexcelpath)
