@@ -650,10 +650,10 @@ def summarytable(
     )
     
     df2 = pd.DataFrame(
-        columns=["기대한 감축량(①-②)","운영특성 반영 감축량(①-③)","운영특성 반영 영향(③-②)"],
+        columns=["GR 감축량(①-②)","운영특성 반영 감축량(①-③)","운영특성 반영 영향(③-②)"],
         index  =["에너지[$kWh/m^2$]", "온실가스[$kgCO_{2,eq}/m^2$]"]
         )
-    df2["기대한 감축량(①-②)"] = df1["GR 이전(①)"] - df1["GR 이후(②)"]
+    df2["GR 감축량(①-②)"] = df1["GR 이전(①)"] - df1["GR 이후(②)"]
     df2["운영특성 반영 감축량(①-③)"] = df1["GR 이전(①)"] - df1["운영특성 반영시(③)"]
     df2["운영특성 반영 영향(③-②)"] = df1["운영특성 반영시(③)"] - df1["GR 이후(②)"]
     
@@ -798,7 +798,43 @@ def parse_occupantchange(
     checklist2:현장조사체크리스트,
     ):
     
-    pass
+    if isinstance(checklist1, 어린이집체크리스트):
+        
+        df = pd.DataFrame(
+            [
+                [
+                    checklist1.일반존.기본보육교사  + checklist1.일반존.기본보육원생,
+                    checklist1.일반존.연장보육A교사 + checklist1.일반존.연장보육A원생,
+                    checklist1.일반존.연장보육B교사 + checklist1.일반존.연장보육B원생,
+                    checklist1.일반존.야간보육교사  + checklist1.일반존.야간보육원생,
+                    checklist1.일반존.주말보육교사  + checklist1.일반존.주말보육원생,
+                ],
+                                [
+                    checklist2.일반존.기본보육교사  + checklist2.일반존.기본보육원생,
+                    checklist2.일반존.연장보육A교사 + checklist2.일반존.연장보육A원생,
+                    checklist2.일반존.연장보육B교사 + checklist2.일반존.연장보육B원생,
+                    checklist2.일반존.야간보육교사  + checklist2.일반존.야간보육원생,
+                    checklist2.일반존.주말보육교사  + checklist2.일반존.주말보육원생,
+                ]    
+            ],
+            columns = ["기본~~", "연장A~~", "연장B~~","야간~~","주말~~"],
+            index   = ["GR 직후", "2025년"] 
+        )
+        연인원변화 = sum([h*p for h,p in zip([8.5, 2, 1.5, 1.5], df.values[1])])/sum([h*p for h,p in zip([8.5, 2, 1.5, 1.5], df.values[0])]) -1
+        연인원변화tex = f"연인원 {abs(연인원변화*100):.1f}\\% {'증가' if 연인원변화 >0 else '감소'}\\footnote{{연인원은 증가할수록 난방에너지는 줄고, 냉방에너지는 늘어날 가능성 있음.}}"
+        
+        tablestyle = {
+            "column_format":"p{3cm}" + "|>{\\raggedleft\\arraybackslash}p{2cm}" * 5,
+            "clines":"all;data",  
+            "hrules":True,
+            }
+        tex = 연인원변화tex + "\\par\n\\vspace{2mm}\n" + df.style.format(lambda x: f"{x}명~~").to_latex(**tablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline")
+        
+        return tex
+    
+    else:
+        
+        return ""
 
 def build_report(
     before_rebexcelpath:str,
@@ -880,7 +916,7 @@ def build_report(
     }
     
     # occupant change
-    occupantchange = parse_occupangechange(checklistafter, checklistafterN)
+    occupantchange = parse_occupantchange(checklistafter, checklistafterN)
     
     # get figures (by results summary)
     fig_use_co2 = draw_energysimulation_figures(grrbefore, grrafter, grrafterN)
@@ -911,6 +947,7 @@ def build_report(
         "passivechange": passivechangedict,
         "activechange": activechangedict,
         "hvacoperchange": hvacoperationchangedict,
+        "occupantchangetex": occupantchange,
         "summarytabletex" : [df.style.format(lambda x: f"{x:,.1f}~~").to_latex(**summarytablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline") for df in summarytable(grrbefore, grrafter, grrafterN)],
         "degreedays": {k:v for k,v in zip(["HDD2018","HDD2023","CDD2018","CDD2023"], degreedays)}|{"HDDchange": ("증가" if (degreedays[1]-degreedays[0])>0 else "감소"),"CDDchange": ("증가" if (degreedays[3]-degreedays[2])>0 else "감소")},
         "comment": commentdict
