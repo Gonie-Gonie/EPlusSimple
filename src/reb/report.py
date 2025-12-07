@@ -24,6 +24,11 @@ from jinja2 import Template
 # local modules
 from .comparison import compare_rebexcel
 from .auxiliary  import find_weatherdata
+from .postprocess import (
+    현장조사체크리스트,
+    어린이집체크리스트,
+    보건소체크리스트,
+)
 
 # settings
 PLOTFONTSIZE = 11
@@ -676,6 +681,10 @@ def build_report(
     with open(afterN_grrpath, "r") as f:
         grrafterN = json.load(f)
     
+    checklistbefore = 현장조사체크리스트.from_excel(before_rebexcelpath)
+    checklistafter  = 현장조사체크리스트.from_excel(after_rebexcelpath)
+    checklistafterN = 현장조사체크리스트.from_excel(afterN_rebexcelpath)
+    
     # metadata
     building_info = pd.read_excel(before_rebexcelpath, sheet_name="건물정보", usecols=range(6), nrows=1).iloc[0]
     metadata = MetaData(
@@ -698,17 +707,17 @@ def build_report(
     # comparison summary
     if len(perf_diff12) > 0:
         diff_counts12 = perf_diff12.drop_duplicates(["type", "zonename"]).groupby("type")["zonename"].nunique().to_dict()
-        diffstr12 = ", ".join(f"{k} {v}개 실" for k, v in diff_counts12.items())
+        diffstr12 = ", ".join(f"{v}개 실에서 {k}" for k, v in diff_counts12.items())
     else:
         diffstr12 = "없음"
     if len(perf_diff23) > 0:
         diff_counts23 = perf_diff23.drop_duplicates(["type", "zonename"]).groupby("type")["zonename"].nunique().to_dict()
-        diffstr23 = ", ".join(f"{k} {v}개 실" for k, v in diff_counts23.items())
+        diffstr23 = ", ".join(f"{v}개 실에서 {k}" for k, v in diff_counts23.items())
     else:
         diffstr23 = "없음"
     if len(oper_diff23) > 0:
         diff_counts23oper = oper_diff23.drop_duplicates(["type", "zonename"]).groupby("type")["zonename"].nunique().to_dict()
-        diffstr23oper = ", ".join(f"{k} {v}개 실" for k, v in diff_counts23oper.items())
+        diffstr23oper = ", ".join(f"{v}개 실에서 {k}" for k, v in diff_counts23oper.items())
     else:
         diffstr23oper = "없음"
     
@@ -738,7 +747,7 @@ def build_report(
     }
     context = {
         "metadata": metadata,
-        "diffsummary": [diffstr12, diffstr23, diffstr23oper],
+        "diffstr" : {"d12": diffstr12, "d23":diffstr23, "d23o": diffstr23oper},
         "perf_diff12": preprocess_diff_dicts(list(perf_diff12.T.to_dict().values())),
         "perf_diff23": preprocess_diff_dicts(list(perf_diff23.T.to_dict().values())),
         "oper_diff23": preprocess_diff_dicts(list(oper_diff23.T.to_dict().values())),

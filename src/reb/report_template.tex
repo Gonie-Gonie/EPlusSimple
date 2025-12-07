@@ -97,7 +97,8 @@
 \setlength{\tabcolsep}{0pt}
 \renewcommand{\arraystretch}{1.3}
 
-\begin{tcolorbox}[mysection]
+\begin{tcolorbox}[mysection,
+  boxsep=0pt]
   \centering
 \begin{tabular}{L|C}
 \hline
@@ -106,15 +107,6 @@
 연면적 & {{metadata.area}}$\mathrm{m^2}$ \\ \hline
 허가연도 & {{metadata.date}} \\ \hline
 \end{tabular}
-\end{tcolorbox}
-
-\section{그린리모델링 사업 및 이후 변화 내역 요약}
-\begin{tcolorbox}[mysection]
-\begin{itemize}
-    \item 그린리모델링 \textbf{사업에 포함된 공사}: {{diffsummary[0]}}
-    \item 사업 이후의 \textbf{별도 공사}: {{diffsummary[1]}}
-    \item 사업 이후의 \textbf{운영특성 변화}: {{diffsummary[2]}}
-\end{itemize}
 \end{tcolorbox}
 
 \section{열원별 에너지소요량 및 온실가스 배출량 비교}
@@ -138,6 +130,12 @@
 {{summarytabletex[0]}}
 \vspace{4mm}
 {{summarytabletex[1]}}
+\end{tcolorbox}
+
+\section{현장조사 종합의견}
+\begin{tcolorbox}[mysection]
+\textbf{만족도}: {{comment.satisfaction}} \par
+\textbf{결론}: {{comment.conclusion}}
 \end{tcolorbox}
 
 % ==================== 을지 ====================
@@ -229,11 +227,23 @@ $\rightarrow$  냉방도일\footnote{매 시간별로 외기온도가 기준온�
 {% endfor %}
 \hline
 \end{tabular}
+
+\vspace{3mm}
+\normalsize
+\raggedright
+\textbf{재실인원 관련 현장조사 의견}: {{comment.occupant}} \par
+\textbf{냉난방 관련 현장조사 의견}: {{comment.hvac}}
+
 \end{tcolorbox}
 
 {% else %}
 \begin{tcolorbox}[mysection]
-\textit{변경내역 없음.}
+\normalsize
+\textit{변경내역 없음.} \par
+\vspace{3mm}
+\raggedright
+\textbf{재실인원 관련 현장조사 의견}: {{comment.occupant}} \par
+\textbf{냉난방 관련 현장조사 의견}: {{comment.hvac}}
 \end{tcolorbox}
 {% endif %}
 }
@@ -250,30 +260,6 @@ $\rightarrow$  냉방도일\footnote{매 시간별로 외기온도가 기준온�
   ]
   \includegraphics[width=\linewidth]{simulation_results.png}
 
-\end{tcolorbox}
-
-
-\clearpage
-\topbar{현장조사 의견서}
-
-\section{냉난방 운영특성}
-\begin{tcolorbox}[mysection]
-{{comment.hvac}}
-\end{tcolorbox}
-
-\section{재실인원 관련 운영특성}
-\begin{tcolorbox}[mysection]
-{{comment.occupant}}
-\end{tcolorbox}
-
-\section{GR사업 만족도}
-\begin{tcolorbox}[mysection]
-{{comment.satisfaction}}
-\end{tcolorbox}
-
-\section{결론}
-\begin{tcolorbox}[mysection]
-{{comment.conclusion}}
 \end{tcolorbox}
 
 \end{document}
