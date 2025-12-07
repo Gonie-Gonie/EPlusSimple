@@ -1,0 +1,237 @@
+{
+    "building": {
+        "name": "ASHRAE 140 modified",
+        "north_axis": 0,
+        "address": "서울특별시 관악구",
+        "vintage": [
+            2000,
+            1,
+            1
+        ],
+        "num_aboveground_floors": 1,
+        "num_underground_floors": 0,
+        "floors": [
+            {
+                "floor_number": 1,
+                "zones": [
+                    {
+                        "id": "ZONE-0x000000",
+                        "name": "실",
+                        "height": 2.7,
+                        "profile": "소규모사무실",
+                        "light_density": 10,
+                        "infiltration": 1.5,
+                        "supply_system_heating_id": "SUPL-0x000000",
+                        "supply_system_cooling_id": "SUPL-0x000000",
+                        "ventilation_system_id": null,
+                        "surfaces": [
+                            {
+                                "id": "SURF-0x000000",
+                                "name": "실_바닥",
+                                "type": "floor",
+                                "boundary_condition": "ground",
+                                "area": 48.0,
+                                "construction_id": "CTSF-0x000001",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x000001",
+                                "name": "실_북벽",
+                                "type": "wall",
+                                "boundary_condition": "outdoors",
+                                "area": 21.6,
+                                "azimuth": 0.0,
+                                "construction_id": "CTSF-0x000000",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x000002",
+                                "name": "실_서벽",
+                                "type": "wall",
+                                "boundary_condition": "outdoors",
+                                "area": 16.2,
+                                "azimuth": 90.0,
+                                "construction_id": "CTSF-0x000000",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x000003",
+                                "name": "실_남벽",
+                                "type": "wall",
+                                "boundary_condition": "outdoors",
+                                "area": 21.6,
+                                "azimuth": 180.0,
+                                "construction_id": "CTSF-0x000000",
+                                "fenestrations": [
+                                    {
+                                        "id": "FNST-0x000000",
+                                        "name": "실_남벽_창_1",
+                                        "type": "window",
+                                        "area": 6,
+                                        "blind": null,
+                                        "construction_id": "CTFN-0x000000"
+                                    },
+                                    {
+                                        "id": "FNST-0x000001",
+                                        "name": "실_남벽_창_2",
+                                        "type": "window",
+                                        "area": 6,
+                                        "blind": null,
+                                        "construction_id": "CTFN-0x000000"
+                                    }
+                                ]
+                            },
+                            {
+                                "id": "SURF-0x000004",
+                                "name": "실_동벽",
+                                "type": "wall",
+                                "boundary_condition": "outdoors",
+                                "area": 16.2,
+                                "azimuth": 270.0,
+                                "construction_id": "CTSF-0x000000",
+                                "fenestrations": []
+                            },
+                            {
+                                "id": "SURF-0x000005",
+                                "name": "실_천장",
+                                "type": "ceiling",
+                                "boundary_condition": "outdoors",
+                                "area": 48.0,
+                                "coolroof_reflectance": null,
+                                "construction_id": "CTSF-0x000002",
+                                "fenestrations": []
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "supply_systems": [
+            {
+                "id": "SUPL-0x000000",
+                "name": "실내기-실",
+                "type": "air_handling_unit",
+                "source_system_id": "SRCE-0x000000"
+            }
+        ],
+        "source_systems": [
+            {
+                "id": "SRCE-0x000000",
+                "name": "실외기",
+                "type": "heatpump",
+                "capacity_cooling": null,
+                "capacity_heating": null,
+                "cop_cooling": 3.0,
+                "cop_heating": 3.0,
+                "fuel_type": "electricity"
+            }
+        ],
+        "ventilation_systems": [],
+        "photovoltaic_systems": []
+    },
+    "materials": [
+        {
+            "id": "MTRL-0x000000",
+            "name": "Plasterboard",
+            "conductivity": 0.16,
+            "density": 950.0,
+            "specific_heat": 840
+        },
+        {
+            "id": "MTRL-0x000001",
+            "name": "Fiberglass quilt",
+            "conductivity": 0.04,
+            "density": 12.0,
+            "specific_heat": 840
+        },
+        {
+            "id": "MTRL-0x000002",
+            "name": "Wood siding",
+            "conductivity": 0.14,
+            "density": 530.0,
+            "specific_heat": 900
+        },
+        {
+            "id": "MTRL-0x000003",
+            "name": "Timber flooring",
+            "conductivity": 0.14,
+            "density": 650.0,
+            "specific_heat": 1200
+        },
+        {
+            "id": "MTRL-0x000004",
+            "name": "Insulation",
+            "conductivity": 0.04,
+            "density": 0.01,
+            "specific_heat": 100
+        },
+        {
+            "id": "MTRL-0x000005",
+            "name": "Roofdeck",
+            "conductivity": 0.14,
+            "density": 530.0,
+            "specific_heat": 900
+        }
+    ],
+    "surface_constructions": [
+        {
+            "id": "CTSF-0x000000",
+            "name": "외벽",
+            "layers": [
+                {
+                    "material_id": "MTRL-0x000002",
+                    "thickness": 0.009000000000000001
+                },
+                {
+                    "material_id": "MTRL-0x000001",
+                    "thickness": 0.066
+                },
+                {
+                    "material_id": "MTRL-0x000000",
+                    "thickness": 0.012
+                }
+            ]
+        },
+        {
+            "id": "CTSF-0x000001",
+            "name": "바닥",
+            "layers": [
+                {
+                    "material_id": "MTRL-0x000004",
+                    "thickness": 1.0030000000000001
+                },
+                {
+                    "material_id": "MTRL-0x000003",
+                    "thickness": 0.025
+                }
+            ]
+        },
+        {
+            "id": "CTSF-0x000002",
+            "name": "천장",
+            "layers": [
+                {
+                    "material_id": "MTRL-0x000005",
+                    "thickness": 0.019
+                },
+                {
+                    "material_id": "MTRL-0x000001",
+                    "thickness": 0.1118
+                },
+                {
+                    "material_id": "MTRL-0x000000",
+                    "thickness": 0.01
+                }
+            ]
+        }
+    ],
+    "fenestration_constructions": [
+        {
+            "id": "CTFN-0x000000",
+            "name": "Clear Double-Pane Glazing",
+            "is_transparent": true,
+            "u": 2.1,
+            "g": 0.769
+        }
+    ]
+}

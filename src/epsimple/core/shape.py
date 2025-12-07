@@ -722,23 +722,17 @@ class Zone:
         input:SimpleNamespace,
         surface_construction_dict     :dict[str, SurfaceConstruction],
         fenestration_construction_dict:dict[str, FenestrationConstruction],
-        profile_dict           :dict[str, Profile          ],
         supply_system_dict     :dict[str, SupplySystem     ],
         ventilation_system_dict:dict[str, VentilationSystem],
         *,
         floor:int|None=None,
         ) -> Zone:
         
-        if input.profile == "custom":
-            profile = profile_dict[input.profile_id]
-        else:
-            profile = Profile._DB[input.profile]
-        
         return Zone(
             input.name,
             input.height,
             [Surface.from_json(surf_input, surface_construction_dict, fenestration_construction_dict) for surf_input in input.surfaces],
-            profile,
+            Profile._DB[input.profile],
             input.light_density,
             input.infiltration,
             supply_system_dict.get(input.supply_system_heating_id),

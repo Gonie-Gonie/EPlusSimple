@@ -5,7 +5,7 @@
 % --- 한글 및 기본 설정 패키지 ---
 \usepackage{kotex}                     % 한글 지원
 \usepackage{graphicx}                  % 그림 포함
-\usepackage{xcolor}                    % 색상 지원
+\usepackage[table]{xcolor}                    % 색상 지원
 
 % --- 제목/번호/목차 관련 ---
 \usepackage{titling}                   % 커스텀 표지 지원
@@ -14,12 +14,14 @@
 \setstretch{1.5}                       % 기본 줄간격 1.5배
 \setlength{\parskip}{0.6em}            % 단락 사이 간격
 \setlength{\parindent}{1em}            % 단락 들여쓰기
+\usepackage{indentfirst}               % 첫 단락 들여쓰기
 
 % --- 수식 및 수학 패키지 ---
 \usepackage{amsmath}                   % 수학 공식
+\usepackage{amssymb}
 \numberwithin{equation}{chapter}       % 챕터별 수식번호
 
-% --- 표, 그림 관련 패키지 ---
+% --- 표 관련 패키지 ---
 \usepackage{booktabs}                  % \toprule 등 고급 표
 \usepackage{longtable}                 % 페이지 나누는 표
 \usepackage{tabularx}                  % 가변 폭 표
@@ -30,8 +32,12 @@
 \usepackage{array}
 \newcolumntype{Y}{>{\centering\arraybackslash}X}
 
+% --- 그림 관련 패키지 ---
+\usepackage{subcaption}                % 서브캡션
+
 % --- 기타 디자인 ---
 \usepackage[most]{tcolorbox}                 % 박스 디자인
+\tcbuselibrary{listings,skins}
 
 % --- 레이아웃, 그림폴더 등 ---
 \usepackage[margin=2cm,headheight=1cm]{geometry}
@@ -47,12 +53,7 @@
 % --- 링크 ---
 \usepackage[colorlinks, linkcolor=blue, citecolor=red]{hyperref} % 하이퍼링크
 \usepackage[capitalise]{cleveref}      % cref 레퍼런스
-\hypersetup{
-  pdftitle={시뮬레이터 기술문서},
-  pdfauthor={서울대학교 건축에너지연구실},
-  pdfkeywords={},
-  bookmarksopen=true
-}
+
 % ---------------------------------------------------------------------------- %
 %                                   SETTINGS                                   %
 % ---------------------------------------------------------------------------- %
@@ -62,6 +63,11 @@
 \renewcommand{\listfigurename}{그림 목록}
 \renewcommand{\listtablename}{표 목록}
 \renewcommand{\bibname}{참고문헌}
+% 캡션 레이블 한글화 (Figure → 그림, Table → 표), 볼드
+\renewcommand{\figurename}{그림}
+\renewcommand{\tablename}{표}
+\captionsetup[table]{labelfont=bf, labelsep=period}
+\captionsetup[figure]{labelfont=bf, labelsep=period}
 
 % --- 그림, 표, 식, 장, 절 인용 표기 --- 
 \crefname{figure}{그림}{그림}
@@ -74,6 +80,9 @@
 \crefformat{chapter}{#2#1장#3}
 \crefformat{section}{#2#1절#3}
 \crefformat{subsection}{#2#1절#3}
+% 인용 표기 통일하기 위함
+\newcommand{\parencref}[1]{\textbf{[\cref{#1}]}}
+\newcommand{\textcref}[1]{\textbf{\cref{#1}}}
 
 % --- secnum, 제목 스타일, 단락 스타일 등 ---
 \setcounter{secnumdepth}{3}            % subsubsection까지 번호 매김
@@ -109,28 +118,11 @@
 \definecolor{theungDu_color}{RGB}{176, 224, 230}   
 \definecolor{형진_color}{RGB}{255, 220, 230}   
 
-\let\originaltodo\todo
-\renewcommand{\todo}[2]{%
-  \ifthenelse{\equal{#1}{형곤}}%
-    {\originaltodo[color=gonie_color, size=tiny]{\textbf{#1}: #2}}%
-  {%
-  \ifthenelse{\equal{#1}{철홍}}%
-    {\originaltodo[color=hongI_color, size=tiny]{\textbf{#1}: #2}}%
-  {%
-  \ifthenelse{\equal{#1}{승주}}%
-    {\originaltodo[color=theungDu_color, size=tiny]{\textbf{#1}: #2}}%
-  {%
-  \ifthenelse{\equal{#1}{형진}}%
-    {\originaltodo[color=형진_color, size=tiny]{\textbf{#1}: #2}}%
-  {%
-    \originaltodo[color=gray!20, size=tiny]{\textbf{#1}: #2} % 기본값
-  }}}}%
-}
 % ---------------------------------------------------------------------------- %
-%                                     STYLE                                    %
+%                                 ENVIRONMENTS                                 %
 % ---------------------------------------------------------------------------- %
 
-% --- 그림, 표 환경 커스텀 ---
+% 그림
 \newenvironment{defaultfigure}
   {%
   \vspace{0.3em}
@@ -139,17 +131,57 @@
   }
   {\end{figure}}
 
-\renewcommand{\arraystretch}{1.5}
+% 표
 \newenvironment{defaulttable}
-  {\begin{table}[htbp]\centering\small}
+  {\begin{table}[htbp]\centering\small\renewcommand{\arraystretch}{1.5}}
   {\end{table}}
 
+\newenvironment{defaultlongtable}[1] % [1]은 컬럼 정의(예: {l c r})를 받겠다는 뜻
+  {
+    \small                           % 1. 폰트 작게
+    \renewcommand{\arraystretch}{1.0} % 2. 줄간격: 전역설정(1.5)보다 좁게(1.2) 해서 밀도 높임
+    \begin{longtable}{#1}            % 3. 넘겨받은 컬럼 정의(#1)를 longtable에 전달
+  }
+  {
+    \end{longtable}
+  }
+
+% 표?
 \newenvironment{variabletable}
   {\begin{defaulttable}}
   {\end{defaulttable}}
 
-% 단위 표시
-\newcommand{\unitsty}[1]{{\small $#1$}}
+% 코드박스
+\newtcblisting{pycodebox}{
+  colback=gray!5,
+  colframe=gray!40,
+  boxrule=0.5pt,
+  left=5pt, right=5pt, top=5pt, bottom=5pt,
+  listing only,
+  listing options={
+    basicstyle=\ttfamily\small\linespread{0.85}\selectfont,
+    breaklines=true,
+    numbers=left,                    % ★ 줄번호 표시
+    numberstyle=\tiny\color{gray},   % 줄번호 스타일
+    numbersep=11pt,                   % 줄번호와 코드 사이 간격
+    aboveskip=1pt,
+    belowskip=1pt,
+    lineskip=0pt,
+  }
+}
+
+% --- API 및 CLI 명세용 박스 스타일 정의 ---
+\newtcolorbox{codebox}[2][]{%
+    colback=gray!5,      % 본문 배경: 아주 연한 회색
+    colframe=black!75,   % 테두리 및 제목 배경: 진한 회색 (가독성 확보)
+    coltitle=white,      % 제목 글자색: 흰색
+    fonttitle=\bfseries, % 제목 폰트: 볼드
+    boxrule=0.5pt,       % 테두리 두께
+    left=5pt, right=5pt, top=5pt, bottom=5pt,
+    title={#2},          % 제목 인자
+    #1                   % 추가 옵션 수용
+}
+
 % ---------------------------------------------------------------------------- %
 %                                     NAMES                                    %
 % ---------------------------------------------------------------------------- %
@@ -160,8 +192,15 @@
 % --- 반복되는 용어/alias 정의 ---
 \newcommand{\ep}{EnergyPlus}
 \newcommand{\simulator}{EPlusSimple}
-
 \newcommand{\pymodule}{epsimple}
+\hypersetup{
+  pdftitle={\simulator~Document},
+  pdfauthor={서울대학교 건축에너지연구실},
+  pdfkeywords={},
+  bookmarksopen=true
+}
+% --- 단위 정의, 표시 ---
+\newcommand{\unitsty}[1]{{\small $#1$}}
 \newcommand{\unit}[1]{
   \begingroup
   \ifthenelse{\equal{#1}{density}}{$kg/m^3$}{%
@@ -170,4 +209,30 @@
   \endgroup
 }
 
-% --- 
+% ---------------------------------------------------------------------------- %
+%                                   FUNCTIONS                                  %
+% ---------------------------------------------------------------------------- %
+
+% 표지
+\newcommand{\maketitlepage}[1]{%
+\begin{titlepage}
+  \centering
+  
+  {\scshape\large \simulator~Version~\releaseversion~Documentation\par}
+  \vspace{6em}
+
+  {\bfseries\Huge #1\par}
+  \vspace{1em}
+
+  {\itshape\Large Building Simulation Lab., Seoul National University\par}
+
+  \vfill
+  \includegraphics[height=0.25\textwidth]{snu_ui.png}
+
+  \vfill
+  {\large \releasedate\par}
+  \vspace{0.5em}
+  {\small \simulator\는 국토교통부, 국토안전관리원의 지원으로 개발되었습니다.}
+\end{titlepage}
+}
+

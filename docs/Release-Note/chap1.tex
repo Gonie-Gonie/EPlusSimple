@@ -1,0 +1,26 @@
+\chapter{버전 관리 방법}
+
+\section{버전 번호 구성}
+\simulator 의 버전 번호는 세 부분, 또는 네 부분으로 구성됩니다 \parencref{fig:releaseversion_meaning}.
+첫번째에서 세번째 숫자는 각각 Major, Minor, Patch 번호입니다.
+네 번째 숫자가 존재하는 경우 Hotfix 번호입니다.
+
+\begin{defaultfigure}
+  \includegraphics[width=\textwidth]{ReleaseVersionMeaning.png}
+  \caption{Release Version 구성 요소}
+  \label{fig:releaseversion_meaning}
+\end{defaultfigure}
+
+\paragraph{Major 버전}
+Major 버전은 호환되지 않은 입력파일의 구조변경이 포함될 때 증가됩니다.
+엔진의 전반적인 구성과 계산 방식이 변경될 수 있습니다.
+
+\paragraph{Minor 버전}
+Minor 버전은 새로운 기능이 추가, 기존 기능의 변경이 중대할 때 증가됩니다.
+하위 버전과의 호환성은 보장되지 않습니다.
+
+\paragraph{Patch 버전}
+Patch 버전은 \textcolor{red}{하위 버전과의 호환성을 보장}하면서 오류 수정과 성능 개선, 기능 변경이 포함될 때 증가됩니다.
+
+\paragraph{Hotfix 버전}
+Hotfix 버전은 긴급한 오류 수정이 필요할 때 증가됩니다.

@@ -1,0 +1,62 @@
+
+% ---------------------------------------------------------------------------- %
+%                              DOCUMENT DEFINITION                             %
+% ---------------------------------------------------------------------------- %
+
+% --- 문서 스타일 정의 ---
+\documentclass[oneside,openany,a4paper,12pt]{book}
+\input{./_common/preamble.tex}
+
+% --- 문서 시작 ---
+\begin{document}
+\pagestyle{plain} 
+
+% ---------------------------------------------------------------------------- %
+%                                 PRELIMINARIES                                %
+% ---------------------------------------------------------------------------- %
+
+% --- 표지 ---
+\maketitlepage{Regression Test Report}
+
+% --- 서문 ---
+\section*{서문}
+본 문서는 \simulator~\releaseversion 의 동작을 검증하기 위해 작성된 버전 검증 보고서입니다.
+
+본 문서는 아래와 같은 순서로 기술되어 있습니다.
+\begin{itemize}
+  \item 제1부[{\bfseries 서론}]에서는, 본 검증의 목적을 기술합니다.
+  \item 제2부[{\bfseries 테스트 방법}]에서는, 대상건물과 실험의 조건들에 대하여 기술합니다.
+  \item 제3부[{\bfseries 테스트 결과}]에서는, \releaseversion 으로 수행한 실험 결과를 기술합니다.
+\end{itemize}
+
+% --- 목차 ---
+\pagenumbering{roman}
+\tableofcontents       
+\listoffigures          
+\listoftables          
+
+% ---------------------------------------------------------------------------- %
+%                                  MAINMATTER                                  %
+% ---------------------------------------------------------------------------- %
+
+% --- 페이지 초기화 ---
+\clearpage      
+\pagenumbering{arabic}
+
+% --- 본문 ---
+\mainmatter
+\include{RegressionTestReport/part1}
+\include{RegressionTestReport/part2}
+\include{RegressionTestReport/part3}
+
+% ---------------------------------------------------------------------------- %
+%                                  BACKMATTER                                  %
+% ---------------------------------------------------------------------------- %
+
+% --- 참고문헌 ---
+\backmatter
+\bibliographystyle{plain}
+\bibliography{_common/references}
+
+% --- 문서 끝 ---
+\end{document}

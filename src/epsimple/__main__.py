@@ -14,7 +14,7 @@ from .api import (
     run_grjson  ,
     run_grexcel ,
     get_database,
-    convert     ,
+    convert_inputformat     ,
 )
 from .constants import (
     PackageInfo
@@ -122,7 +122,7 @@ if __name__ == "__main__":
         
         # convert format of an input file
         case "convert":
-            convert(args.input_filepath, args.src, args.dst, output_filepath = args.output_filepath)
+            convert_inputformat(args.input_filepath, args.src, args.dst, output_filepath = args.output_filepath)
         
         # else
         case _:
