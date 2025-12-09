@@ -844,7 +844,7 @@ def parse_occupantchange(
                     func_nanto0(checklist2.일반존.주말보육교사  + checklist2.일반존.주말보육원생),
                 ]    
             ],
-            columns = ["기본 (-16:00)~~", "연장 (-18:00)~~", "연장 (-19:30)~~","야간 (-21:00)~~","주말~~"],
+            columns = ["기본 (-16:00)", "연장 (-18:00)", "연장 (-19:30)","야간 (-21:00)","주말"],
             index   = ["GR 직후", "2025년"] 
         )
         
@@ -852,11 +852,11 @@ def parse_occupantchange(
         연인원변화tex = f"연인원 {abs(연인원변화*100):.1f}\\% {'증가' if 연인원변화 >0 else '감소'}\\footnote{{연인원은 증가할수록 난방에너지는 줄고, 냉방에너지는 늘어날 가능성 있음.}}"
         
         tablestyle = {
-            "column_format":"p{2cm}" + "|>{\\raggedleft\\arraybackslash}p{2.3cm}" * 5,
+            "column_format":">{\\centering\\arraybackslash}p{2.3cm}" + "|>{\\centering\\arraybackslash}p{2.7cm}" * 5,
             "clines":"all;data",  
             "hrules":True,
             }
-        tex = 연인원변화tex + "\\par\n\\vspace{2mm}\n" + df.style.format(lambda x: f"{x}명~~").to_latex(**tablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline")
+        tex = 연인원변화tex + "\\par\n\\vspace{2mm}\n" + df.style.format(lambda x: f"{x}명").to_latex(**tablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline")
         
         return tex
     
@@ -868,24 +868,24 @@ def parse_occupantchange(
         df = pd.DataFrame(
             [
                 [
-                    f"{checklist1.일반존.운영시간.replace("~","-")}~~",
-                    f"{checklist1.일반존.직원}명 상주~~",
-                    f"주 {집중진료연인원1:.0f}명$\\cdot$시간~~",
-                    f"{checklist1.특화존2.사용관사수}개소~~",
+                    f"{checklist1.일반존.운영시간.replace("~","-")}",
+                    f"{checklist1.일반존.직원}명 상주",
+                    f"주 {집중진료연인원1:.0f}명$\\cdot$시간",
+                    f"{checklist1.특화존2.사용관사수}개소",
                 ],
                 [
-                    f"{checklist2.일반존.운영시간.replace("~","-")}~~",
-                    f"{checklist2.일반존.직원}명 상주~~",
-                    f"주 {집중진료연인원1:.0f}명$\\cdot$시간~~",
-                    f"{checklist2.특화존2.사용관사수}개소~~",
+                    f"{checklist2.일반존.운영시간.replace("~","-")}",
+                    f"{checklist2.일반존.직원}명 상주",
+                    f"주 {집중진료연인원1:.0f}명$\\cdot$시간",
+                    f"{checklist2.특화존2.사용관사수}개소",
                 ]    
             ],
-            columns = ["운영시간~~", "직원~~", "집중진료 방문객~~","이용 관사 수~~"],
+            columns = ["운영시간", "직원", "집중진료 방문객","이용 관사 수"],
             index   = ["GR 직후", "2025년"] 
         )
         
         tablestyle = {
-            "column_format":"p{2cm}" + "|>{\\raggedleft\\arraybackslash}p{3cm}" * 4,
+            "column_format":">{\\centering\\arraybackslash}p{3.3cm}" + "|>{\\centering\\arraybackslash}p{3.25cm}" * 4,
             "clines":"all;data",  
             "hrules":True,
             }
@@ -991,7 +991,7 @@ def build_report(
     
     # arrange the results
     summarytablestyle = {
-    "column_format":"p{4cm}" + "|>{\\centering\\arraybackslash}p{4.5cm}" * 3,
+    "column_format":">{\\centering\\arraybackslash}p{4cm}" + "|>{\\centering\\arraybackslash}p{4.5cm}" * 3,
     "clines":"all;data",  
     "hrules":True,
     }
@@ -1001,7 +1001,7 @@ def build_report(
         "activechange": activechangedict,
         "hvacoperchange": hvacoperationchangedict,
         "occupantchangetex": occupantchange,
-        "summarytabletex" : [df.style.format(lambda x: f"{x:>5,.1f}").to_latex(**summarytablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline") for df in summarytable(grrbefore, grrafter, grrafterN)],
+        "summarytabletex" : [df.style.format(lambda x: f"{x:>6,.1f}").to_latex(**summarytablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline") for df in summarytable(grrbefore, grrafter, grrafterN)],
         "degreedays": {k:v for k,v in zip(["HDD2018","HDD2023","CDD2018","CDD2023"], degreedays)}|{"HDDchange": ("증가" if (degreedays[1]-degreedays[0])>0 else "감소"),"CDDchange": ("증가" if (degreedays[3]-degreedays[2])>0 else "감소")},
         "comment": commentdict
     }
