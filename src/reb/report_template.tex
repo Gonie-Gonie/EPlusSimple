@@ -1,4 +1,5 @@
 \documentclass[a4paper,10pt]{article}
+\usepackage[left=1.5cm, right=1.5cm, top=3cm, bottom=1.5cm]{geometry}
 
 % ======================
 % 한글 처리 (유일하게 필요한 패키지)
@@ -11,8 +12,6 @@
 % ======================
 \usepackage{graphicx}
 \usepackage{booktabs}
-\usepackage{geometry}
-\geometry{margin=2.5cm}
 \usepackage{setspace}
 \usepackage{caption}
 \usepackage{titlesec}
@@ -39,6 +38,9 @@
   {\makebox[1.5em][c]{\rule{0.8em}{0.8em}}}  % <-- 네모 (검정색 사각형)
   {0.5em}{}           % 간격
 
+% font color
+\color[HTML]{3B3838}
+
 % 본문 담길 흰색 박스
 \tcbset{
   mysection/.style={
@@ -53,7 +55,8 @@
       bottom=6mm,
       before skip=12pt,
       after skip=12pt,
-      drop shadow,
+      interior style={top color=white, bottom color=black!3!white},
+      fuzzy halo=2mm with black!20!white,
   }
 }
 
@@ -64,7 +67,7 @@
         \node[anchor=north west, inner sep=0pt] at (current page.north west) {
             \begin{tcolorbox}[
                 width=\paperwidth,
-                height=32pt,         % 높이 조절
+                height=50pt,         % 높이 조절
                 colback=topbarcolor,
                 colframe=topbarcolor,
                 boxrule=0pt,
@@ -72,7 +75,8 @@
                 left=0pt, right=0pt, top=6pt, bottom=6pt,
             ]
             \centering
-            \textcolor{white}{\large \bfseries #1}
+            \vspace{3mm}
+            \textcolor{white}{\huge \bfseries #1}
             \end{tcolorbox}
         };
     \end{tikzpicture}
@@ -86,7 +90,7 @@
 \begin{document}
 
 % ==================== 갑지 ====================
-\topbar{GR 정성평가 성능 보고서}
+\topbar{그린리모델링 정성평가 결과서}
 
 \section{건물 개요}
 

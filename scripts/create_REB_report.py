@@ -143,6 +143,8 @@ def main(
                 pdfpath
             )
             
+            break
+            
         finally:
             if os.path.exists(workingpath):
                 os.remove(workingpath)
