@@ -315,7 +315,7 @@ def draw_3step_bargraph(
     # bar_label이 잘 보이도록 y축 상단에 15% 여유 공간 추가
     ax.set_ylim(top=max([max(val) for val in values]) * 1.1)
 
-def draw_energysimulation_figures(
+def draw_summary3step_figures(
     grrbefore:dict,
     grrafter :dict,
     grrafterN:dict,
@@ -325,11 +325,11 @@ def draw_energysimulation_figures(
     
     # ENERGY_TYPES 순서대로 입력
     draw_3step_bargraph(
-        "면적당 에너지소요량 (연간)",
+        "면적당 1차에너지소요량 (연간)",
         [
             [
                 sum([
-                    sum(result["site_uses"][cat][et_key])
+                    sum(result["source_uses"][cat][et_key])
                     for cat, _ in GRAPH_ORDER
                 ])
                 for et_key, _ in ENERGY_TYPES
@@ -337,7 +337,7 @@ def draw_energysimulation_figures(
             for result in [grrbefore, grrafter, grrafterN]
         ],
         ["GR이전","GR이후","(운영특성 반영)"],
-        ylabel = "에너지 (kWh/$\\mathrm{m^2\\cdot}$년)",
+        ylabel = "1차에너지 (kWh/$\\mathrm{m^2\\cdot}$년)",
         ax = axs[0]
     )
     
@@ -405,7 +405,7 @@ def _draw_monthly_stacked_bar(
     grr_before: dict,
     grr_after: dict,
     grr_afterN: dict,
-    datatype: str = "site_uses",
+    datatype: str = "source_uses",
     ax: plt.Figure | None = None
 ) -> plt.Figure:
     """HTML의 월별 stacked bar (ex. 난방, 냉방 등)"""
@@ -445,7 +445,7 @@ def _draw_monthly_stacked_bar(
     ax.set_xticks(month_labels)
     ax.set_xticklabels([f"{m}월" for m in month_labels])
     ax.set_ylabel("(kWh/$\\mathrm{m^2\\cdot}$월)")
-    ax.set_title(f"월간 단위면적당 에너지소요량 - {category_label}")
+    ax.set_title(f"월간 단위면적당 1차에너지소요량 - {category_label}")
     ax.grid(axis="y", linestyle="--", alpha=0.4)
     # legend는 나중에 한 번에
     # ax.legend(fontsize=8, ncols=2)
@@ -470,7 +470,7 @@ def _draw_monthly_stacked_bars(
     grr_before: dict,
     grr_after: dict,
     grr_afterN: dict,
-    datatype: str = "site_uses"
+    datatype: str = "source_uses"
 ) -> None:
     
     axs = fig.subplots(3, 2)
@@ -497,12 +497,11 @@ def _draw_monthly_stacked_bars(
     fig.legend(
         handles=handles,
         labels=labels,
-        loc='outside upper center', ncol=legend_ncol,
-        # bbox_to_anchor=(0.5, 0.95)
+        loc='outside lower center', ncol=legend_ncol,
     )
 
 
-def _draw_annual_by_purpose(ax: plt.Axes, grr_before: dict, grr_after: dict, grr_afterN: dict, datatype="site_uses") -> None:
+def _draw_annual_by_purpose(ax: plt.Axes, grr_before: dict, grr_after: dict, grr_afterN: dict, datatype="source_uses") -> None:
     """HTML의 연간 용도별 stacked bar (bar-annual-by-purpose)"""
     x = np.arange(len(GRAPH_ORDER))
     width = 0.25
@@ -536,13 +535,10 @@ def _draw_annual_by_purpose(ax: plt.Axes, grr_before: dict, grr_after: dict, grr
     ax.set_xticks(x)
     ax.set_xticklabels([lbl.replace('/', '/\n') for _, lbl in GRAPH_ORDER])
     ax.set_ylabel("연간 합계 (kWh/$\\mathrm{m^2\\cdot}$연)")
-    ax.set_title("연간 용도별 에너지소요량")
+    ax.set_title("연간 용도별 1차에너지소요량")
     ax.grid(axis="y", linestyle="--", alpha=0.4)
-    # ax.legend(fontsize=8, ncols=3)
-    # fig.tight_layout()
 
-
-def _draw_total_monthly_line(ax: plt.Axes, grr_before: dict, grr_after: dict, grr_afterN: dict, datatype="site_uses") -> None:
+def _draw_total_monthly_line(ax: plt.Axes, grr_before: dict, grr_after: dict, grr_afterN: dict, datatype="source_uses") -> None:
     """HTML의 line-total (월별 총합 비교)"""
     months = np.arange(1, 13)
 
@@ -558,24 +554,36 @@ def _draw_total_monthly_line(ax: plt.Axes, grr_before: dict, grr_after: dict, gr
     ax.set_xticks(months)
     ax.set_xticklabels([f"{m}월" for m in months])
     ax.set_ylabel("월별 합계 (kWh/$\\mathrm{m^2\\cdot}$월)")
-    ax.set_title("월별 에너지소요량")
+    ax.set_title("월별 1차에너지소요량")
     ax.grid(axis="both", linestyle="--", alpha=0.4)
     ax.legend(fontsize=8, loc="upper right")
     # fig.tight_layout()
 
 
-def draw_simulation_figures(grr_before: dict, grr_after: dict, grr_afterN: dict) -> dict[str, plt.Figure]:
+def draw_simulation_figures(grr_before: dict, grr_after: dict, grr_afterN: dict):
     """
-    HTML에서 표시되는 모든 주요 그림들을 matplotlib로 생성하여 반환
+    matplotlib로 두 개의 Figure(메인 그래프, 요약 그래프)를 생성하여 반환
+    Returns:
+        fig1 (Figure): 용도별, 월별 사용량 비교 (상단 큰 그래프)
+        fig2 (Figure): 연간 용도별 비교 및 월별 총합 라인 (하단 요약 그래프)
     """
     
-    master_fig = plt.figure(figsize=(9, 3*4), constrained_layout=True)
+    # --- Figure 1: 월별 스택 바 (메인) ---
+    # 기존 비율(3:1.2)을 고려하여 세로 길이를 적절히 배분 (예: 높이 8)
+    fig1 = plt.figure(figsize=(9, 8), constrained_layout=True)
+    
+    # 기존 helper 함수가 Figure 객체를 받아 subplot을 추가한다고 가정
+    _draw_monthly_stacked_bars(fig1, grr_before, grr_after, grr_afterN)
+    
+    fig1.suptitle('용도별, 월별 사용량 비교', fontsize=16, fontweight='bold')
 
-    figs = master_fig.subfigures(2, 1, height_ratios=[3, 1.2], hspace=0.05)
 
-    _draw_monthly_stacked_bars(figs[0], grr_before, grr_after, grr_afterN)
-
-    summary_axs = figs[1].subplots(1, 2)
+    # --- Figure 2: 요약 (하단 2개 그래프) ---
+    # 높이를 작게 설정 (예: 높이 4)
+    fig2 = plt.figure(figsize=(9, 4), constrained_layout=True)
+    
+    # 1행 2열로 서브플롯 생성
+    summary_axs = fig2.subplots(1, 2)
 
     # (2) 연간 용도별 비교
     _draw_annual_by_purpose(summary_axs[0], grr_before, grr_after, grr_afterN)
@@ -583,13 +591,27 @@ def draw_simulation_figures(grr_before: dict, grr_after: dict, grr_afterN: dict)
     # (3) 월별 총합 라인 그래프
     _draw_total_monthly_line(summary_axs[1], grr_before, grr_after, grr_afterN)
 
-    figs[0].suptitle('용도별, 월별 사용량 비교', y=1.04, fontsize=16, fontweight='bold')
-    master_fig.get_layout_engine().set(h_pad=0.1, wspace=0.05)
-    figs[1].suptitle('요약', fontsize=16, fontweight='bold')
+    fig2.suptitle('요약', fontsize=16, fontweight='bold')
     
-    master_fig.align_ylabels(master_fig.axes)
+    handles = []
+    labels = []
+    for et_key, et_label in ENERGY_TYPES:
+        for l_idx, label in enumerate(["GR 이전", "GR 이후", "(운영특성 반영)"]):
+            color = DEFAULT_COLORS_BEFORE[et_key]
+            handles.append(Patch(ec=color, lw=0.8,
+                                 fc=[color, color+'40', color+'40'][l_idx],
+                                 hatch=[None, '//////', None][l_idx]))
+            labels.append(f"{et_label} {label}")
 
-    return master_fig
+    legend_ncol = 4
+
+    fig2.legend(
+        handles=handles,
+        labels=labels,
+        loc='outside lower center', ncol=legend_ncol,
+    )
+    
+    return fig1, fig2
 
 # ---------------------------------------------------------------------------- #
 #                                   MAIN FUNC                                  #
@@ -635,9 +657,9 @@ def summarytable(
     df1 = pd.DataFrame(
         [
             [
-                grrbefore["summary_per_area"]["site_uses"]["total_annual"],
-                grrafter["summary_per_area"]["site_uses"]["total_annual"],
-                grrafterN["summary_per_area"]["site_uses"]["total_annual"],
+                grrbefore["summary_per_area"]["source_uses"]["total_annual"],
+                grrafter["summary_per_area"]["source_uses"]["total_annual"],
+                grrafterN["summary_per_area"]["source_uses"]["total_annual"],
             ],
             [
                 grrbefore["summary_per_area"]["co2"]["total_annual"],
@@ -645,17 +667,17 @@ def summarytable(
                 grrafterN["summary_per_area"]["co2"]["total_annual"],
             ],
         ],
-        columns=["GR 이전(①)", "GR 이후(②)", "운영특성 반영시(③)"],
-        index  =["에너지[$kWh/m^2$]", "온실가스[$kgCO_{2,eq}/m^2$]"]
+        columns=["GR 이전 (①)", "GR 이후 (②)", "운영특성 반영시 (③)"],
+        index  =["1차에너지[$kWh/m^2$]", "온실가스[$kgCO_{2,eq}/m^2$]"]
     )
     
     df2 = pd.DataFrame(
-        columns=["GR 감축량(①-②)","운영특성 반영 감축량(①-③)","운영특성 반영 영향(③-②)"],
-        index  =["에너지[$kWh/m^2$]", "온실가스[$kgCO_{2,eq}/m^2$]"]
+        columns=["GR 감축량 (①-②)","운영특성 반영 감축량 (①-③)","운영특성 반영 영향 (③-②)"],
+        index  =["1차에너지[$kWh/m^2$]", "온실가스[$kgCO_{2,eq}/m^2$]"]
         )
-    df2["GR 감축량(①-②)"] = df1["GR 이전(①)"] - df1["GR 이후(②)"]
-    df2["운영특성 반영 감축량(①-③)"] = df1["GR 이전(①)"] - df1["운영특성 반영시(③)"]
-    df2["운영특성 반영 영향(③-②)"] = df1["운영특성 반영시(③)"] - df1["GR 이후(②)"]
+    df2["GR 감축량 (①-②)"] = df1["GR 이전 (①)"] - df1["GR 이후 (②)"]
+    df2["운영특성 반영 감축량 (①-③)"] = df1["GR 이전 (①)"] - df1["운영특성 반영시 (③)"]
+    df2["운영특성 반영 영향 (③-②)"] = df1["운영특성 반영시 (③)"] - df1["GR 이후 (②)"]
     
     return df1, df2
 
@@ -953,14 +975,10 @@ def build_report(
     # occupant change
     occupantchange = parse_occupantchange(checklistafter, checklistafterN)
     
-    # get figures (by results summary)
-    fig_use_co2 = draw_energysimulation_figures(grrbefore, grrafter, grrafterN)
-    os.makedirs(FIG_DIR, exist_ok=True)
-    fig_use_co2.savefig(FIG_DIR / "energy_summary.png", dpi=400, format="png", bbox_inches="tight")
-    
     # get figures
-    fig_simresults = draw_simulation_figures(grrbefore, grrafter, grrafterN)
-    fig_simresults.savefig(FIG_DIR / "simulation_results.png", dpi=400, format="png", bbox_inches="tight")
+    fig_detail, fig_summary = draw_simulation_figures(grrbefore, grrafter, grrafterN)
+    fig_detail.savefig(FIG_DIR / "simulation_results.png", dpi=400, format="png", bbox_inches="tight")
+    fig_summary.savefig(FIG_DIR / "energy_summary.png", dpi=400, format="png", bbox_inches="tight")
     
     # get figures (by weather)
     before_weatherdata_filepath = find_weatherdata(building_info["주소"], "이전")
@@ -973,7 +991,7 @@ def build_report(
     
     # arrange the results
     summarytablestyle = {
-    "column_format":"p{3.5cm}" + "|>{\\raggedleft\\arraybackslash}p{4cm}" * 3,
+    "column_format":"p{4cm}" + "|>{\\centering\\arraybackslash}p{4.5cm}" * 3,
     "clines":"all;data",  
     "hrules":True,
     }
@@ -983,7 +1001,7 @@ def build_report(
         "activechange": activechangedict,
         "hvacoperchange": hvacoperationchangedict,
         "occupantchangetex": occupantchange,
-        "summarytabletex" : [df.style.format(lambda x: f"{x:,.1f}~~").to_latex(**summarytablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline") for df in summarytable(grrbefore, grrafter, grrafterN)],
+        "summarytabletex" : [df.style.format(lambda x: f"{x:>5,.1f}").to_latex(**summarytablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline") for df in summarytable(grrbefore, grrafter, grrafterN)],
         "degreedays": {k:v for k,v in zip(["HDD2018","HDD2023","CDD2018","CDD2023"], degreedays)}|{"HDDchange": ("증가" if (degreedays[1]-degreedays[0])>0 else "감소"),"CDDchange": ("증가" if (degreedays[3]-degreedays[2])>0 else "감소")},
         "comment": commentdict
     }
