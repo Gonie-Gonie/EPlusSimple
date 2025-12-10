@@ -815,8 +815,25 @@ def parse_hvacoperationchange(
         coolingsetpoint = "변화 없음."
     else:
         coolingsetpoint = f"{coolingsetpoint1} $\\rightarrow$ {coolingsetpoint2}"
+        
+    df = pd.DataFrame(
+            [
+                [heatingtime1, heatingsetpoint1, coolingtime1, coolingsetpoint1],
+                [heatingtime2, heatingsetpoint2, coolingtime2, coolingsetpoint2], 
+            ],
+            columns = ["난방 사용시간", "난방 설정온도", "냉방 사용시간", "냉방 설정온도"],
+            index   = ["GR 직후", "2025년"], 
+    )
     
-    return heatingtime, heatingsetpoint, coolingtime, coolingsetpoint
+    tablestyle = {
+        "column_format":">{\\centering\\arraybackslash}p{3.3cm}" + "|>{\\centering\\arraybackslash}p{3.25cm}" * 4,
+        "clines":"all;data",  
+        "hrules":True,
+        }
+    tex =  df.style.to_latex(**tablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline").replace("~","-")
+        
+    
+    return tex
 
 def parse_occupantchange(
     checklist1:현장조사체크리스트,
@@ -889,7 +906,7 @@ def parse_occupantchange(
             "clines":"all;data",  
             "hrules":True,
             }
-        tex =  df.style.to_latex(**tablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline")
+        tex =  df.style.to_latex(**tablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline").replace("~","-")
         
         return tex
 
@@ -1014,17 +1031,10 @@ def build_report(
         "after2afterN": bool_to_적용(get_activechange_bool(grmafter, grmafterN)),
     }
     
-    # hvacoperation change
-    hvacoperationchange = parse_hvacoperationchange(checklistafter, checklistafterN)
-    hvacoperationchangedict = {
-        "heatingtime" : hvacoperationchange[0].replace("~","-"),
-        "heatingsetpoint": hvacoperationchange[1],
-        "coolingtime": hvacoperationchange[2].replace("~","-"),
-        "coolingsetpoint": hvacoperationchange[3],
-    }
-    
     # occupant change
     occupantchange = parse_occupantchange(checklistafter, checklistafterN)
+    # hvacoperation change
+    hvacoperationchange = parse_hvacoperationchange(checklistafter, checklistafterN)
     
     # get figures
     fig_detail, fig_summary = draw_simulation_figures(grrbefore, grrafter, grrafterN)
@@ -1051,7 +1061,7 @@ def build_report(
         "imagesrc": (Path(__file__).parent / "imagesrc").resolve().as_posix(),
         "passivechange": passivechangedict,
         "activechange": activechangedict,
-        "hvacoperchange": hvacoperationchangedict,
+        "hvacoperchangetex": hvacoperationchange,
         "occupantchangetex": occupantchange,
         "summarytabletex" : [df.style.format(lambda x: f"{x:>6,.1f}").to_latex(**summarytablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline") for df in summarytable(grrbefore, grrafter, grrafterN)],
         "degreedays": {k:v for k,v in zip(["HDD2018","HDD2023","CDD2018","CDD2023"], degreedays)}|{"HDDchange": ("증가" if (degreedays[1]-degreedays[0])>0 else "감소"),"CDDchange": ("증가" if (degreedays[3]-degreedays[2])>0 else "감소")},
