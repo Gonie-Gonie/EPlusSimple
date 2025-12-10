@@ -826,7 +826,7 @@ def parse_hvacoperationchange(
     )
     
     tablestyle = {
-        "column_format":">{\\centering\\arraybackslash}p{3.3cm}" + "|>{\\centering\\arraybackslash}p{3.25cm}" * 4,
+        "column_format":">{\\centering\\arraybackslash}p{3cm}" + "|>{\\centering\\arraybackslash}p{3.325cm}" * 4,
         "clines":"all;data",  
         "hrules":True,
         }
@@ -869,7 +869,7 @@ def parse_occupantchange(
         연인원변화tex = f"연인원 {abs(연인원변화*100):.1f}\\% {'증가' if 연인원변화 >0 else '감소'}\\footnote{{연인원은 증가할수록 난방에너지는 줄고, 냉방에너지는 늘어날 가능성 있음.}}"
         
         tablestyle = {
-            "column_format":">{\\centering\\arraybackslash}p{2.3cm}" + "|>{\\centering\\arraybackslash}p{2.7cm}" * 5,
+            "column_format":">{\\centering\\arraybackslash}p{3cm}" + "|>{\\centering\\arraybackslash}p{2.66cm}" * 5,
             "clines":"all;data",  
             "hrules":True,
             }
@@ -902,7 +902,7 @@ def parse_occupantchange(
         )
         
         tablestyle = {
-            "column_format":">{\\centering\\arraybackslash}p{3.3cm}" + "|>{\\centering\\arraybackslash}p{3.25cm}" * 4,
+            "column_format":">{\\centering\\arraybackslash}p{3cm}" + "|>{\\centering\\arraybackslash}p{3.325cm}" * 4,
             "clines":"all;data",  
             "hrules":True,
             }
