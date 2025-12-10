@@ -103,7 +103,9 @@ def find_comment(
     
     commentdict = commentdf[(commentdf["고유번호"] == buildingid) & (commentdf["건축물명"].map(lambda s: s.replace(" ","")) == buildingname.replace(" ",""))].iloc[0,2:].to_dict()
     
+    commentdict["point"] = "★" * commentdict["point"] + "☆" * (7 - commentdict["point"])
     commentdict = {k: v.replace(r"\n","\\") for k, v in commentdict.items()}
+    
     return commentdict
     
 
