@@ -1023,12 +1023,16 @@ def build_report(
     # passive change
     passivechangedict = {
         "before2after": bool_to_적용(get_passivechange_bool(grmbefore, grmafter)),
+        "countbefore2after": sum(get_passivechange_bool(grmbefore, grmafter)),
         "after2afterN": bool_to_적용(get_passivechange_bool(grmafter, grmafterN)),
+        "countafter2afterN": sum(get_passivechange_bool(grmafter, grmafterN)),
     }
     # active change
     activechangedict = {
         "before2after": bool_to_적용(get_activechange_bool(grmbefore, grmafter)),
+        "countbefore2after": sum(get_activechange_bool(grmbefore, grmafter)),
         "after2afterN": bool_to_적용(get_activechange_bool(grmafter, grmafterN)),
+        "countafter2afterN": sum(get_activechange_bool(grmafter, grmafterN)),
     }
     
     # occupant change
