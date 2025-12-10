@@ -893,6 +893,44 @@ def parse_occupantchange(
         
         return tex
 
+def bool_to_적용(b:bool|list[bool]) -> str|list[str]:
+    
+    if isinstance(b, list):
+        return [bool_to_적용(bi) for bi in b]
+    
+    return "적용" if b else "미적용"
+    
+def get_passivechange_bool(
+    grm1:GreenRetrofitModel,
+    grm2:GreenRetrofitModel,
+    ) -> list[bool]:
+    
+    bools = [False]*5 # 벽체, 지붕, 바닥, 창호, 쿨루프
+    
+    # 벽체
+    if round(grm1.averaged_exteriorwall_Uvalue,3) != round(grm2.averaged_exteriorwall_Uvalue,3):
+        bools[0] = True
+        
+    # 지붕
+    if round(grm1.averaged_exteriorroof_Uvalue,3) != round(grm2.averaged_exteriorroof_Uvalue,3):
+        bools[1] = True
+    
+    # 바닥
+    if round(grm1.averaged_exteriorfloor_Uvalue,3) != round(grm2.averaged_exteriorfloor_Uvalue,3):
+        bools[2] = True
+    
+    # 창호
+    if round(grm1.averaged_window_Uvalue,3) != round(grm2.averaged_window_Uvalue,3):
+        bools[3] = True
+    
+    # 쿨루프
+    coolroof1 = [roof for roof in grm1.exteriorroofs if roof.reflectance is not None]
+    coolroof2 = [roof for roof in grm2.exteriorroofs if roof.reflectance is not None]
+    if len(coolroof1) < len(coolroof2):
+        bools[4] = True
+        
+    return bools
+
 def build_report(
     before_rebexcelpath:str,
     after_rebexcelpath :str,
@@ -933,18 +971,8 @@ def build_report(
     
     # passive change
     passivechangedict = {
-        "before": {
-            "wallU": round(grmbefore.averaged_exteriorwall_Uvalue,3),
-            "winU" : round(grmbefore.averaged_window_Uvalue,3),
-            "ld"   : round(grmbefore.averaged_lightdensity,2),
-            "infil": round(grmbefore.averaged_infiltration*0.07,2),
-        },
-        "after": {
-            "wallU": round(grmafter.averaged_exteriorwall_Uvalue,3),
-            "winU" : round(grmafter.averaged_window_Uvalue,3),
-            "ld"   : round(grmafter.averaged_lightdensity,2),
-            "infil": round(grmafter.averaged_infiltration*0.07,2),
-        },
+        "before2after": bool_to_적용(get_passivechange_bool(grmbefore, grmafter)),
+        "after2afterN": bool_to_적용(get_passivechange_bool(grmafter, grmafterN)),
     }
     
     # active change
@@ -997,6 +1025,7 @@ def build_report(
     }
     context = {
         "metadata": metadata,
+        "imagesrc": (Path(__file__).parent / "imagesrc").resolve().as_posix(),
         "passivechange": passivechangedict,
         "activechange": activechangedict,
         "hvacoperchange": hvacoperationchangedict,

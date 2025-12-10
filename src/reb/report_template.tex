@@ -23,9 +23,7 @@
 \usepackage{tikzpagenodes}
 \tcbuselibrary{skins}
 
-{% raw %}
-\graphicspath{{figures/}}
-{% endraw %}
+\graphicspath{ {figures/} { {{- imagesrc -}}/}}
 
 % page color
 \pagecolor[rgb]{0.95,0.95,0.95}   % 전체 배경색 (밝은 회색)
@@ -154,13 +152,15 @@
 
 \section{건축}
 \begin{tcolorbox}[mysection]
-\begin{itemize}
-  \item 외벽 평균열관류율\footnote{외벽의 단열수준을 나타내는 지표로, 에너지절약설계기준에서 0.17 $W/m^2K$ 이하(서울)가 요구됨.}: {{passivechange.before.wallU}} $W/m^2K$ $\rightarrow$ {{passivechange.after.wallU}} $W/m^2K$
-  \item 창호 평균열관류율\footnote{창호의 단열수준을 나타내는 지표로, 에너지절약설계기준에서 기준 1.3 $W/m^2K$ 이하(서울)가 요구됨.}: {{passivechange.before.winU}} $W/m^2K$ $\rightarrow$ {{passivechange.after.winU}} $W/m^2K$
-  \item 평균 조명밀도\footnote{조명에 의한 발열수준을 나타내는 지표로, 에너지절약형 친환경주택의 건설기준에서 6 $W/m^2$ 이하가 요구됨.}: {{passivechange.before.ld}} $W/m^2$ $\rightarrow$ {{passivechange.after.ld}} $W/m^2$
-  \item 평균 침기율\footnote{바람 유입의 수준을 나타내는 지표로, 한시간동안 외풍에 의해 교체되는 실내 공기의 비율을 의미함.}: {{passivechange.before.infil}} 회/시간 $\rightarrow$ {{passivechange.after.infil}} 회/시간
-\end{itemize}
-\vspace{1mm}
+\includegraphics[width=0.17\linewidth]{ 벽체단열보강-{{passivechange.before2after[0]}}.png }
+\hfill
+\includegraphics[width=0.17\linewidth]{ 지붕단열보강-{{passivechange.before2after[1]}}.png }
+\hfill
+\includegraphics[width=0.17\linewidth]{ 바닥단열보강-{{passivechange.before2after[2]}}.png }
+\hfill
+\includegraphics[width=0.17\linewidth]{ 창호교체-{{passivechange.before2after[3]}}.png }
+\hfill
+\includegraphics[width=0.17\linewidth]{ 쿨루프-{{passivechange.before2after[4]}}.png }
 \end{tcolorbox}
 
 \section{설비}

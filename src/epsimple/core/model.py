@@ -57,6 +57,7 @@ from . import (
     Surface                 ,
     Window                  ,
     SurfaceBoundaryCondition,
+    SurfaceType             ,
     Zone                    ,
 )
 from ..utils import (
@@ -260,7 +261,21 @@ class GreenRetrofitModel:
     def exteriorwalls(self) -> list[Surface]:
         return [
             surf for surf in sum([zone.surface for zone in self.zone], start=[])
-            if surf.boundary == SurfaceBoundaryCondition.OUTDOOR
+            if (surf.boundary == SurfaceBoundaryCondition.OUTDOOR) and (surf.type == SurfaceType.WALL)
+        ]
+        
+    @property
+    def exteriorroofs(self) -> list[Surface]:
+        return [
+            surf for surf in sum([zone.surface for zone in self.zone], start=[])
+            if (surf.boundary == SurfaceBoundaryCondition.OUTDOOR) and (surf.type == SurfaceType.CEILING)
+        ]
+    
+    @property
+    def exteriorfloors(self) -> list[Surface]:
+        return [
+            surf for surf in sum([zone.surface for zone in self.zone], start=[])
+            if (surf.boundary == SurfaceBoundaryCondition.OUTDOOR or surf.boundary == SurfaceBoundaryCondition.GROUND) and (surf.type == SurfaceType.FLOOR)
         ]
         
     @property
@@ -291,6 +306,58 @@ class GreenRetrofitModel:
                 
             else:
                 UAsum += wall.area * wall.construction.get_U()
+        
+        if areasum > 0:
+            return UAsum / areasum
+        else:
+            return 0
+    
+    @property
+    def averaged_exteriorroof_Uvalue(self) -> float:
+        
+        areasum = 0
+        UAsum   = 0
+        
+        for roof in self.exteriorroofs:
+            areasum += roof.area
+            
+            if roof.construction is UnknownConstruction():
+                UAsum += roof.area * SurfaceConstruction.get_regulated_construction(
+                    self.vintage    ,
+                    roof.type    ,
+                    roof.boundary,
+                    self.climate    ,
+                    is_residential=False,
+                ).get_U()
+                
+            else:
+                UAsum += roof.area * roof.construction.get_U()
+        
+        if areasum > 0:
+            return UAsum / areasum
+        else:
+            return 0
+    
+    @property
+    def averaged_exteriorfloor_Uvalue(self) -> float:
+        
+        areasum = 0
+        UAsum   = 0
+        
+        for floor in self.exteriorfloors:
+            areasum += floor.area
+            
+            if floor.construction is UnknownConstruction():
+                UAsum += floor.area * SurfaceConstruction.get_regulated_construction(
+                    self.vintage    ,
+                    floor.type    ,
+                    floor.boundary,
+                    self.climate    ,
+                    is_residential=False,
+                ).get_U()
+                
+            else:
+                UAsum += floor.area * floor.construction.get_U()
         
         if areasum > 0:
             return UAsum / areasum
