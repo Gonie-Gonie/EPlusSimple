@@ -11,7 +11,7 @@ import re
 import pandas as pd
 
 # local modules
-from reb.report import build_report, MetaData
+from reb.report import build_report, MetaData, escape_str
 
 
 # ---------------------------------------------------------------------------- #
@@ -104,7 +104,7 @@ def find_comment(
     commentdict = commentdf[(commentdf["고유번호"] == buildingid) & (commentdf["건축물명"].map(lambda s: s.replace(" ","")) == buildingname.replace(" ",""))].iloc[0,2:].to_dict()
     
     commentdict["point"] = "★" * commentdict["point"] + "☆" * (7 - commentdict["point"])
-    commentdict = {k: v.replace(r"\n","\\") for k, v in commentdict.items()}
+    commentdict = {k: escape_str(v.replace(r"\n","\\")) for k, v in commentdict.items()}
     
     return commentdict
     
