@@ -387,7 +387,7 @@ class GreenRetrofitModel:
         
         for zone in self.zone:
             areasum += zone.area
-            lightdensity_areasum += zone.light_density * zone.area
+            lightdensity_areasum += zone.light_density * zone.area if zone.light_density is not None else 0
         
         if areasum > 0:
             return lightdensity_areasum / areasum
