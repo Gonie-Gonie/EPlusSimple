@@ -601,7 +601,7 @@ def draw_simulation_figures(grr_before: dict, grr_after: dict, grr_afterN: dict)
 
     # --- Figure 2: 요약 (하단 2개 그래프) ---
     # 높이를 작게 설정 (예: 높이 4)
-    fig2 = plt.figure(figsize=(9, 4), constrained_layout=True)
+    fig2 = plt.figure(figsize=(9, 3), constrained_layout=True)
     
     # 1행 2열로 서브플롯 생성
     summary_axs = fig2.subplots(1, 2)
