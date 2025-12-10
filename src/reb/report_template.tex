@@ -70,7 +70,7 @@
                 height=50pt,
                 boxrule=0pt,
                 sharp corners,
-                left=0pt, right=0pt, top=6pt, bottom=6pt,
+                left=0pt, right=10mm, top=6pt, bottom=6pt,
                 enhanced, % 그라데이션 필수 옵션
                 colframe=gradStart, % 테두리는 시작색과 맞춤 (흰색 선 방지)
                 interior style={
@@ -78,7 +78,7 @@
                     right color=gradEnd    % 오른쪽 색상
                 }
             ]
-            \centering
+            \raggedleft
             \vspace{3mm}
             \textcolor{white}{\huge \bfseries #1}
             \end{tcolorbox}
@@ -116,7 +116,7 @@
 \end{tabular}
 \end{tcolorbox}
 
-\section{열원별 1차에너지소요량 및 온실가스 배출량 비교}
+\section{열원별 1차에너지소요량 및 온실가스 배출량 비교 (시뮬레이션)}
 \begin{tcolorbox}[mysection, top=0mm, bottom=0mm,]
 \begin{center}
   \includegraphics[width=\textwidth]{energy_summary.png}
@@ -149,30 +149,42 @@
 \clearpage
 \topbar{그린리모델링 사업 전후 에너지사용량 영향 요소}
 
-\section{건축 ({{passivechange.countbefore2after}}개 항목)}
+\section{그린리모델링 요소 (건축 {{passivechange.countbefore2after}}개, 설비 {{activechange.countbefore2after}}개)}
 \begin{tcolorbox}[mysection]
-\includegraphics[width=0.14\linewidth]{ 벽체단열보강-{{passivechange.before2after[0]}}.png }
+\includegraphics[width=0.09\linewidth]{ 벽체단열보강-{{passivechange.before2after[0]}}.png }
 \hfill
-\includegraphics[width=0.14\linewidth]{ 지붕단열보강-{{passivechange.before2after[1]}}.png }
+\includegraphics[width=0.09\linewidth]{ 지붕단열보강-{{passivechange.before2after[1]}}.png }
 \hfill
-\includegraphics[width=0.14\linewidth]{ 바닥단열보강-{{passivechange.before2after[2]}}.png }
+\includegraphics[width=0.09\linewidth]{ 바닥단열보강-{{passivechange.before2after[2]}}.png }
 \hfill
-\includegraphics[width=0.14\linewidth]{ 창호교체-{{passivechange.before2after[3]}}.png }
+\includegraphics[width=0.09\linewidth]{ 창호교체-{{passivechange.before2after[3]}}.png }
 \hfill
-\includegraphics[width=0.14\linewidth]{ 쿨루프-{{passivechange.before2after[4]}}.png }
-\end{tcolorbox}
+\includegraphics[width=0.09\linewidth]{ 쿨루프-{{passivechange.before2after[4]}}.png }
+\hfill
+\includegraphics[width=0.09\linewidth]{ 고효율난방설비-{{activechange.before2after[0]}}.png }
+\hfill
+\includegraphics[width=0.09\linewidth]{ 고효율냉방설비-{{activechange.before2after[1]}}.png }
+\hfill
+\includegraphics[width=0.09\linewidth]{ 전열교환기설치-{{activechange.before2after[2]}}.png }
+\hfill
+\includegraphics[width=0.09\linewidth]{ 고효율조명-{{activechange.before2after[3]}}.png }
+\hfill
+\includegraphics[width=0.09\linewidth]{ 태양광-{{activechange.before2after[4]}}.png }
+\vspace{3mm}
 
-\section{설비 ({{activechange.countbefore2after}}개 항목)}
-\begin{tcolorbox}[mysection]
-\includegraphics[width=0.14\linewidth]{ 고효율난방설비-{{activechange.before2after[0]}}.png }
-\hfill
-\includegraphics[width=0.14\linewidth]{ 고효율냉방설비-{{activechange.before2after[1]}}.png }
-\hfill
-\includegraphics[width=0.14\linewidth]{ 전열교환기설치-{{activechange.before2after[2]}}.png }
-\hfill
-\includegraphics[width=0.14\linewidth]{ 고효율조명-{{activechange.before2after[3]}}.png }
-\hfill
-\includegraphics[width=0.14\linewidth]{ 태양광-{{activechange.before2after[4]}}.png }
+\begin{itemize}
+  \item 외벽 평균열관류율\footnote{외벽의 단열수준을 나타내는 지표로, 에너지절약설계기준에서 0.17 $W/m^2K$ 이하(서울)가 요구됨.}: {{passivechange.before.wallU}} $W/m^2K$ $\rightarrow$ {{passivechange.after.wallU}} $W/m^2K$
+  \item 지붕 평균열관류율: {{passivechange.before.roofU}} $W/m^2K$ $\rightarrow$ {{passivechange.after.roofU}} $W/m^2K$
+  \item 바닥 평균열관류율: {{passivechange.before.floorU}} $W/m^2K$ $\rightarrow$ {{passivechange.after.floorU}} $W/m^2K$
+  \item 창호 평균열관류율\footnote{창호의 단열수준을 나타내는 지표로, 에너지절약설계기준에서 기준 1.3 $W/m^2K$ 이하(서울)가 요구됨.}: {{passivechange.before.winU}} $W/m^2K$ $\rightarrow$ {{passivechange.after.winU}} $W/m^2K$
+  \item 난방설비: {{activechange.before2afterdetail.heating}}
+  \item 냉방설비: {{activechange.before2afterdetail.cooling}}
+  \item 환기설비\footnote{환기설비 추가시, 난방에너지는 감소하고, 냉방에너지는 일부 증가할 수 있음.}: {{activechange.before2afterdetail.ventilation}}
+  \item 평균 조명밀도\footnote{조명에 의한 발열수준을 나타내는 지표로, 에너지절약형 친환경주택의 건설기준에서 6 $W/m^2$ 이하가 요구됨.}: {{passivechange.before.ld}} $W/m^2$ $\rightarrow$ {{passivechange.after.ld}} $W/m^2$
+\end{itemize}
+\vspace{1mm}
+
+
 \end{tcolorbox}
 
 \section{기후}
@@ -187,30 +199,39 @@ $\rightarrow$  냉방도일\footnote{매 시간별로 외기온도가 기준온�
 \clearpage
 \topbar{그린리모델링 사업 이후 에너지사용량 영향 요인}
 
-\section{건축 ({{passivechange.countafter2afterN}}개 항목)}
+\section{그린리모델링 요소 (건축 {{passivechange.countafter2afterN}}개, 설비 {{activechange.countafter2afterN}}개)}
 \begin{tcolorbox}[mysection]
-\includegraphics[width=0.14\linewidth]{ 벽체단열보강-{{passivechange.after2afterN[0]}}.png }
+\includegraphics[width=0.09\linewidth]{ 벽체단열보강-{{passivechange.after2afterN[0]}}.png }
 \hfill
-\includegraphics[width=0.14\linewidth]{ 지붕단열보강-{{passivechange.after2afterN[1]}}.png }
+\includegraphics[width=0.09\linewidth]{ 지붕단열보강-{{passivechange.after2afterN[1]}}.png }
 \hfill
-\includegraphics[width=0.14\linewidth]{ 바닥단열보강-{{passivechange.after2afterN[2]}}.png }
+\includegraphics[width=0.09\linewidth]{ 바닥단열보강-{{passivechange.after2afterN[2]}}.png }
 \hfill
-\includegraphics[width=0.14\linewidth]{ 창호교체-{{passivechange.after2afterN[3]}}.png }
+\includegraphics[width=0.09\linewidth]{ 창호교체-{{passivechange.after2afterN[3]}}.png }
 \hfill
-\includegraphics[width=0.14\linewidth]{ 쿨루프-{{passivechange.after2afterN[4]}}.png }
-\end{tcolorbox}
+\includegraphics[width=0.09\linewidth]{ 쿨루프-{{passivechange.after2afterN[4]}}.png }
+\hfill
+\includegraphics[width=0.09\linewidth]{ 고효율난방설비-{{activechange.after2afterN[0]}}.png }
+\hfill
+\includegraphics[width=0.09\linewidth]{ 고효율냉방설비-{{activechange.after2afterN[1]}}.png }
+\hfill
+\includegraphics[width=0.09\linewidth]{ 전열교환기설치-{{activechange.after2afterN[2]}}.png }
+\hfill
+\includegraphics[width=0.09\linewidth]{ 고효율조명-{{activechange.after2afterN[3]}}.png }
+\hfill
+\includegraphics[width=0.09\linewidth]{ 태양광-{{activechange.after2afterN[4]}}.png }
+\vspace{3mm}
 
-\section{설비 ({{activechange.countafter2afterN}}개 항목)}
-\begin{tcolorbox}[mysection]
-\includegraphics[width=0.14\linewidth]{ 고효율난방설비-{{activechange.after2afterN[0]}}.png }
-\hfill
-\includegraphics[width=0.14\linewidth]{ 고효율냉방설비-{{activechange.after2afterN[1]}}.png }
-\hfill
-\includegraphics[width=0.14\linewidth]{ 전열교환기설치-{{activechange.after2afterN[2]}}.png }
-\hfill
-\includegraphics[width=0.14\linewidth]{ 고효율조명-{{activechange.after2afterN[3]}}.png }
-\hfill
-\includegraphics[width=0.14\linewidth]{ 태양광-{{activechange.after2afterN[4]}}.png }
+\begin{itemize}
+  \item 외벽 평균열관류율: {{passivechange.after.wallU}} $W/m^2K$ $\rightarrow$ {{passivechange.afterN.wallU}} $W/m^2K$
+  \item 지붕 평균열관류율: {{passivechange.before.roofU}} $W/m^2K$ $\rightarrow$ {{passivechange.after.roofU}} $W/m^2K$
+  \item 바닥 평균열관류율: {{passivechange.before.floorU}} $W/m^2K$ $\rightarrow$ {{passivechange.after.floorU}} $W/m^2K$
+  \item 창호 평균열관류율: {{passivechange.after.winU}} $W/m^2K$ $\rightarrow$ {{passivechange.afterN.winU}} $W/m^2K$
+  \item 난방설비: {{activechange.after2afterNdetail.heating}}
+  \item 냉방설비: {{activechange.after2afterNdetail.cooling}}
+  \item 환기설비: {{activechange.after2afterNdetail.ventilation}}
+  \item 평균 조명밀도: {{passivechange.after.ld}} $W/m^2$ $\rightarrow$ {{passivechange.afterN.ld}} $W/m^2$
+\end{itemize}
 \end{tcolorbox}
 
 \section{운영특성}
@@ -219,8 +240,10 @@ $\rightarrow$  냉방도일\footnote{매 시간별로 외기온도가 기준온�
 \vspace{3mm}
 {{hvacoperchangetex}}
 \vspace{3mm}
-\textbf{현장조사 의견 (재실)}: {{comment.occupant}} \par
-\textbf{현장조사 의견 (냉난방)}: {{comment.hvac}}
+\begin{itemize}
+  \item \textbf{현장조사 의견 (재실)}: {{comment.occupant}}
+  \item \textbf{현장조사 의견 (냉난방)}: {{comment.hvac}} 
+\end{itemize}
 \end{tcolorbox}
 
 
@@ -240,6 +263,8 @@ $\rightarrow$  냉방도일\footnote{매 시간별로 외기온도가 기준온�
   enlarge left by={-0.425\paperwidth +0.5\textwidth},
   boxsep=0pt, left=0pt, right=0pt
   ]
+  \includegraphics[width=\linewidth]{page3_summary.png}
+  \vspace{3mm}
   \includegraphics[width=\linewidth]{simulation_results.png}
 
 \end{tcolorbox}

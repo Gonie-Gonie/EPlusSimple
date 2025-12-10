@@ -305,7 +305,7 @@ def draw_3step_bargraph(
     ax.set_xticklabels(index, fontsize=10)
     
     ax.set_ylabel(ylabel)
-    ax.set_title(title, fontsize=11, weight="bold")
+    ax.set_title(title, fontsize=11)
     ax.grid(axis="y", linestyle="--", alpha=0.4)
     ax.set_axisbelow(True)
     
@@ -314,6 +314,17 @@ def draw_3step_bargraph(
     
     # bar_label이 잘 보이도록 y축 상단에 15% 여유 공간 추가
     ax.set_ylim(top=max([max(val) for val in values]) * 1.1)
+    
+    ax.legend(
+        fontsize=8,
+        handles=[
+            Patch(ec='k', fc=DEFAULT_COLORS_BEFORE[et_key]+'90')
+            # Patch(color=DEFAULT_COLORS_BEFORE[et_key])
+            for et_key, _ in ENERGY_TYPES
+        ],
+        labels=[et_label for _, et_label in ENERGY_TYPES],
+        loc='upper right', ncol=4,
+    )
 
 def draw_summary3step_figures(
     grrbefore:dict,
@@ -538,26 +549,36 @@ def _draw_annual_by_purpose(ax: plt.Axes, grr_before: dict, grr_after: dict, grr
     ax.set_title("연간 용도별 1차에너지소요량")
     ax.grid(axis="y", linestyle="--", alpha=0.4)
 
-def _draw_total_monthly_line(ax: plt.Axes, grr_before: dict, grr_after: dict, grr_afterN: dict, datatype="source_uses") -> None:
-    """HTML의 line-total (월별 총합 비교)"""
+def _draw_total_monthly_bar(ax: plt.Axes, grr_before: dict, grr_after: dict, grr_afterN: dict, datatype="source_uses") -> None:
+    """HTML의 bar-total (월별 총합 비교 - 막대그래프)"""
     months = np.arange(1, 13)
+    
+    # 막대 너비 설정
+    width = 0.25 
 
     before_vals = grr_before["summary_per_area"][datatype]["total_monthly"]
     after_vals = grr_after["summary_per_area"][datatype]["total_monthly"]
     afterN_vals = grr_afterN["summary_per_area"][datatype]["total_monthly"]
 
-    ax.plot(months, before_vals, color=PALETTE[0], marker="o", label="GR 이전")
-    ax.plot(months, after_vals, color=PALETTE[1], marker="o", linestyle="-", label="GR 이후")
-    ax.plot(months, afterN_vals, color=PALETTE[2], marker="o", linestyle=(0, (4, 6)), mfc='none', label="(운영특성 반영)")
+    # x축 위치를 조정하여 막대를 그립니다 (왼쪽, 가운데, 오른쪽)
+    # zorder=3을 주어 그리드 위로 막대가 올라오게 합니다.
+    ax.bar(months - width, before_vals, width=width, color=PALETTE[0], label="GR 이전", zorder=3)
+    ax.bar(months, after_vals, width=width, color=PALETTE[1], label="GR 이후", zorder=3)
+    
+    # (운영특성 반영)은 기존 스타일(점선/빈 원)을 반영하여 빗금(hatch)이나 테두리 스타일로 표현
+    ax.bar(months + width, afterN_vals, width=width, 
+           color='white', edgecolor=PALETTE[2], hatch='////', linewidth=1.0, 
+           label="(운영특성 반영)", zorder=3)
 
     ax.set_ylim(bottom=0)
     ax.set_xticks(months)
     ax.set_xticklabels([f"{m}월" for m in months])
     ax.set_ylabel("월별 합계 (kWh/$\\mathrm{m^2\\cdot}$월)")
     ax.set_title("월별 1차에너지소요량")
-    ax.grid(axis="both", linestyle="--", alpha=0.4)
-    ax.legend(fontsize=8, loc="upper right")
-    # fig.tight_layout()
+    
+    # 그리드가 막대 뒤로 가도록 설정
+    ax.grid(axis="y", linestyle="--", alpha=0.4, zorder=0) 
+    ax.legend(fontsize=8, loc="upper right", ncol=3)
 
 
 def draw_simulation_figures(grr_before: dict, grr_after: dict, grr_afterN: dict):
@@ -585,33 +606,63 @@ def draw_simulation_figures(grr_before: dict, grr_after: dict, grr_afterN: dict)
     # 1행 2열로 서브플롯 생성
     summary_axs = fig2.subplots(1, 2)
 
-    # (2) 연간 용도별 비교
-    _draw_annual_by_purpose(summary_axs[0], grr_before, grr_after, grr_afterN)
-
     # (3) 월별 총합 라인 그래프
-    _draw_total_monthly_line(summary_axs[1], grr_before, grr_after, grr_afterN)
+    _draw_total_monthly_bar(summary_axs[0], grr_before, grr_after, grr_afterN)
 
-    fig2.suptitle('요약', fontsize=16, fontweight='bold')
-    
-    handles = []
-    labels = []
-    for et_key, et_label in ENERGY_TYPES:
-        for l_idx, label in enumerate(["GR 이전", "GR 이후", "(운영특성 반영)"]):
-            color = DEFAULT_COLORS_BEFORE[et_key]
-            handles.append(Patch(ec=color, lw=0.8,
-                                 fc=[color, color+'40', color+'40'][l_idx],
-                                 hatch=[None, '//////', None][l_idx]))
-            labels.append(f"{et_label} {label}")
-
-    legend_ncol = 4
-
-    fig2.legend(
-        handles=handles,
-        labels=labels,
-        loc='outside lower center', ncol=legend_ncol,
+    draw_3step_bargraph(
+        "면적당 1차에너지소요량 (연간)",
+        [
+            [
+                sum([
+                    sum(result["source_uses"][cat][et_key])
+                    for cat, _ in GRAPH_ORDER
+                ])
+                for et_key, _ in ENERGY_TYPES
+            ]
+            for result in [grr_before, grr_after, grr_afterN]
+        ],
+        ["GR이전","GR이후","(운영특성 반영)"],
+        ylabel = "1차에너지 (kWh/$\\mathrm{m^2\\cdot}$년)",
+        ax = summary_axs[1]
     )
     
     return fig1, fig2
+
+def draw_page3_summaryfigure(
+    grr_before: dict,
+    grr_after: dict,
+    grr_afterN: dict,
+    ) -> plt.Figure:
+    
+    fig = plt.figure(figsize=(9, 3), constrained_layout=True)
+    axes = fig.subplots(1, 2)
+    
+    _draw_annual_by_purpose(
+        axes[0],
+        grr_before, grr_after, grr_afterN,  "source_uses"
+    )
+    
+    draw_3step_bargraph(
+        "면적당 온실가스 배출량 (연간)",
+        [
+            [
+                sum([
+                    sum(result["co2"][cat][et_key])
+                    for cat, _ in GRAPH_ORDER
+                ])
+                for et_key, _ in ENERGY_TYPES
+            ]
+            for result in [grr_before, grr_after, grr_afterN]
+        ],
+        ["GR이전","GR이후","(운영특성 반영)"],
+        ylabel = r"$\mathrm{CO_2,eq}$ (kg/$\mathrm{m^2\cdot}$년)",
+        ax = axes[1]
+    )
+    
+    fig.suptitle('요약', fontsize=16, fontweight='bold')
+    
+    return fig
+    
 
 # ---------------------------------------------------------------------------- #
 #                                   MAIN FUNC                                  #
@@ -865,15 +916,12 @@ def parse_occupantchange(
             index   = ["GR 직후", "2025년"] 
         )
         
-        연인원변화 = sum([h*p for h,p in zip([8.5, 2, 1.5, 1.5], df.values[1])])/sum([h*p for h,p in zip([8.5, 2, 1.5, 1.5], df.values[0])]) -1
-        연인원변화tex = f"연인원 {abs(연인원변화*100):.1f}\\% {'증가' if 연인원변화 >0 else '감소'}\\footnote{{연인원은 증가할수록 난방에너지는 줄고, 냉방에너지는 늘어날 가능성 있음.}}"
-        
         tablestyle = {
             "column_format":">{\\centering\\arraybackslash}p{3cm}" + "|>{\\centering\\arraybackslash}p{2.66cm}" * 5,
             "clines":"all;data",  
             "hrules":True,
             }
-        tex = 연인원변화tex + "\\par\n\\vspace{2mm}\n" + df.style.format(lambda x: f"{x}명").to_latex(**tablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline")
+        tex = df.style.format(lambda x: f"{x}명").to_latex(**tablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline")
         
         return tex
     
@@ -1022,17 +1070,51 @@ def build_report(
     
     # passive change
     passivechangedict = {
+        "before": {
+            "wallU": round(grmbefore.averaged_exteriorwall_Uvalue,3),
+            "roofU": round(grmbefore.averaged_exteriorroof_Uvalue,3),
+            "floorU": round(grmbefore.averaged_exteriorfloor_Uvalue,3),
+            "winU" : round(grmbefore.averaged_window_Uvalue,3),
+            "ld"   : round(grmbefore.averaged_lightdensity,2),
+        },
+        "after": {
+            "wallU": round(grmafter.averaged_exteriorwall_Uvalue,3),
+            "roofU": round(grmafter.averaged_exteriorroof_Uvalue,3),
+            "floorU": round(grmafter.averaged_exteriorfloor_Uvalue,3),
+            "winU" : round(grmafter.averaged_window_Uvalue,3),
+            "ld"   : round(grmafter.averaged_lightdensity,2),
+        },
+        "afterN": {
+            "wallU": round(grmafterN.averaged_exteriorwall_Uvalue,3),
+            "roofU": round(grmafterN.averaged_exteriorroof_Uvalue,3),
+            "floorU": round(grmafterN.averaged_exteriorfloor_Uvalue,3),
+            "winU" : round(grmafterN.averaged_window_Uvalue,3),
+            "ld"   : round(grmafterN.averaged_lightdensity,2),
+            "infil": round(grmafterN.averaged_infiltration*0.07,2),
+        },
         "before2after": bool_to_적용(get_passivechange_bool(grmbefore, grmafter)),
         "countbefore2after": sum(get_passivechange_bool(grmbefore, grmafter)),
         "after2afterN": bool_to_적용(get_passivechange_bool(grmafter, grmafterN)),
         "countafter2afterN": sum(get_passivechange_bool(grmafter, grmafterN)),
     }
     # active change
+    activechange_before2after = parse_activechange(grmbefore, grmafter)
+    activechange_after2afterN = parse_activechange(grmafter, grmafterN)
     activechangedict = {
         "before2after": bool_to_적용(get_activechange_bool(grmbefore, grmafter)),
         "countbefore2after": sum(get_activechange_bool(grmbefore, grmafter)),
         "after2afterN": bool_to_적용(get_activechange_bool(grmafter, grmafterN)),
         "countafter2afterN": sum(get_activechange_bool(grmafter, grmafterN)),
+        "before2afterdetail":{
+            "heating": activechange_before2after[0],
+            "cooling": activechange_before2after[1],
+            "ventilation": activechange_before2after[2],
+        },
+        "after2afterNdetail":{
+            "heating": activechange_after2afterN[0],
+            "cooling": activechange_after2afterN[1],
+            "ventilation": activechange_after2afterN[2],
+        }
     }
     
     # occupant change
@@ -1053,7 +1135,9 @@ def build_report(
         after_weatherdata_filepath ,
     )
     fig_weather.savefig(FIG_DIR / "weather_compare.png", dpi=400, format="png", bbox_inches="tight")
-    
+    fig_page3_summary = draw_page3_summaryfigure(grrbefore, grrafter, grrafterN)
+    fig_page3_summary.savefig(FIG_DIR / "page3_summary.png", dpi=400, format="png", bbox_inches="tight")
+        
     # arrange the results
     summarytablestyle = {
     "column_format":">{\\centering\\arraybackslash}p{4cm}" + "|>{\\centering\\arraybackslash}p{4.5cm}" * 3,

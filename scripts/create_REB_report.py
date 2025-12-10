@@ -144,7 +144,7 @@ def main(
                 commentdict,
                 pdfpath
             )
-            
+        
         finally:
             if os.path.exists(workingpath):
                 os.remove(workingpath)
