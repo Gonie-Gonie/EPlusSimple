@@ -931,6 +931,40 @@ def get_passivechange_bool(
         
     return bools
 
+def get_activechange_bool(
+    grm1:GreenRetrofitModel,
+    grm2:GreenRetrofitModel,
+    ) -> list[bool]:
+    
+    bools = [False]*5 # 난방, 냉방, 환기, 조명, 태양광
+    
+    heatingchanged, coolingchanged, ventchanged = parse_activechange(grm1, grm2)
+    
+    if heatingchanged != "변화 없음.":
+        bools[0] = True
+    if coolingchanged != "변화 없음.":
+        bools[1] = True
+    if ventchanged != "변화 없음.":
+        bools[2] = True
+        
+    # 조명
+    if round(grm1.averaged_lightdensity,3) != round(grm2.averaged_lightdensity,3):
+        bools[3] = True
+        
+    # 태양광
+    if len(grm1.pv) != len(grm2.pv):
+        bools[4] = True
+    elif any(
+        round(pv1.efficiency,3) != round(pv2.efficiency,3) or
+        round(pv1.area,3) != round(pv2.area,3) or
+        round(pv1.azimuth,2) != round(pv2.azimuth,2) or
+        round(pv1.tilt,2) != round(pv2.tilt,2)
+        for pv1, pv2 in zip(grm1.pv, grm2.pv)
+    ):
+        bools[4] = True
+    
+    return bools
+
 def build_report(
     before_rebexcelpath:str,
     after_rebexcelpath :str,
@@ -974,21 +1008,10 @@ def build_report(
         "before2after": bool_to_적용(get_passivechange_bool(grmbefore, grmafter)),
         "after2afterN": bool_to_적용(get_passivechange_bool(grmafter, grmafterN)),
     }
-    
     # active change
-    activechange_before2after = parse_activechange(grmbefore, grmafter)
-    activechange_after2afterN = parse_activechange(grmafter, grmafterN)
     activechangedict = {
-        "before2after":{
-            "heating": activechange_before2after[0],
-            "cooling": activechange_before2after[1],
-            "ventilation": activechange_before2after[2],
-        },
-        "after2afterN":{
-            "heating": activechange_after2afterN[0],
-            "cooling": activechange_after2afterN[1],
-            "ventilation": activechange_after2afterN[2],
-        }
+        "before2after": bool_to_적용(get_activechange_bool(grmbefore, grmafter)),
+        "after2afterN": bool_to_적용(get_activechange_bool(grmafter, grmafterN)),
     }
     
     # hvacoperation change

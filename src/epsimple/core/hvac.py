@@ -1822,7 +1822,7 @@ class PhotoVoltaicSystem:
     """
     
     def __str__(self) -> str:
-        return f"{self.area:.1f}m2 PV panel {self.name} (ID={self.ID}): eff={self.efficiency*Unit.NONE2PRC:.1f}%, azim={self.azimuth:.1f}°, tilt={self.tilt:.1f}°"
+        return f"{self.area:.1f}m2 PV panel {self.name}: eff={self.efficiency*Unit.NONE2PRC:.1f}%, azim={self.azimuth:.1f}°, tilt={self.tilt:.1f}°"
     
     def __repr__(self) -> str:
         return f"<PhotoVoltaicSystem {self.name} (ID={self.ID}) at {hex(id(self))}>"
