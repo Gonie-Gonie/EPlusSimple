@@ -26,6 +26,7 @@ from epsimple.utils import (
     _preprocess_excel_dict ,
     _convert_supply_systems,
     _convert_source_systems,
+    _replace_nan_to_none   ,
 )
 from epsimple.core.hvac import (
     SupplySystem,
@@ -1480,8 +1481,8 @@ class 현장조사체크리스트(ABC):
         
         zonedata = exceldata["실"].loc[~pd.isna(exceldata["실"].iloc[:,0])].iloc[:,:11].sort_values(by="층", ascending=True).reset_index(drop=True)
         processed_excel = _preprocess_excel_dict(exceldata)
-        source_json  = _convert_source_systems(processed_excel["생산설비"])
-        supply_json = _convert_supply_systems(processed_excel["공급설비"], processed_excel["생산설비"])
+        source_json = _replace_nan_to_none(_convert_source_systems(processed_excel["생산설비"]))
+        supply_json = _replace_nan_to_none(_convert_supply_systems(processed_excel["공급설비"], processed_excel["생산설비"]))
         
         source_dict = {sys.ID: sys for sys in [SourceSystem.from_json(SimpleNamespace(**d)) for d in source_json]}
         supply_dict = {sys.ID: sys for sys in [SupplySystem.from_json(SimpleNamespace(**d), source_dict) for d in supply_json]}
