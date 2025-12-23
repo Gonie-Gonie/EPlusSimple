@@ -116,6 +116,7 @@ def main(
     ) -> None:    
     
     commentdf = pd.read_csv(comment_path, encoding="cp949")
+    commentdf["건축물명"] = commentdf["건축물명"].map(lambda x: x.strip())
     validlist, invalidlist = find_building_sets(
         rebexcel_dir,
         grr_dir     ,
