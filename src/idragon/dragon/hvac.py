@@ -2819,8 +2819,8 @@ class PhotoVoltaicPanel:
                 self.azimuth,
                 self.tilt,
                 0,0,10,
-                math.sqrt(self.area)/2,
-                math.sqrt(self.area)/2,
+                math.sqrt(self.area),
+                math.sqrt(self.area),
             ]),
             # spec
             IdfObject("PhotovoltaicPerformance:Simple",[

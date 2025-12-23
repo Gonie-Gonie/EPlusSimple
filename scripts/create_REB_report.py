@@ -101,7 +101,7 @@ def find_comment(
     buildingid = int(buildingfilename[:3])
     buildingname = buildingfilename[4:]
     
-    commentdict = commentdf[(commentdf["고유번호"] == buildingid) & (commentdf["건축물명"] == buildingname)].iloc[0,2:].to_dict()
+    commentdict = commentdf[(commentdf["고유번호"] == buildingid) & (commentdf["건축물명"].map(lambda x: x.replace(" ","")) == buildingname.replace(" ",""))].iloc[0,2:].to_dict()
     
     commentdict = {k: v.replace(r"\n","\\") for k, v in commentdict.items()}
     return commentdict
@@ -114,6 +114,7 @@ def main(
     ) -> None:    
     
     commentdf = pd.read_csv(comment_path, encoding="cp949")
+    commentdf["건축물명"] = commentdf["건축물명"].map(lambda x: x.strip())
     validlist, invalidlist = find_building_sets(
         rebexcel_dir,
         grr_dir     ,
