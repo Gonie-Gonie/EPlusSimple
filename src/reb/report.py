@@ -340,7 +340,10 @@ def draw_summary3step_figures(
         [
             [
                 sum([
-                    sum(result["source_uses"][cat][et_key])
+                    # cat이 'generators'이면 음수(-)로, 아니면 양수(+)로 합산
+                    -sum(result["source_uses"][cat][et_key]) if cat == "generators" 
+                    else sum(result["source_uses"][cat][et_key])
+                    
                     for cat, _ in GRAPH_ORDER
                 ])
                 for et_key, _ in ENERGY_TYPES
@@ -357,7 +360,10 @@ def draw_summary3step_figures(
         [
             [
                 sum([
-                    sum(result["co2"][cat][et_key])
+                    # 온실가스도 동일하게 발전량은 차감 효과(Net CO2)로 계산
+                    -sum(result["co2"][cat][et_key]) if cat == "generators"
+                    else sum(result["co2"][cat][et_key])
+                    
                     for cat, _ in GRAPH_ORDER
                 ])
                 for et_key, _ in ENERGY_TYPES
