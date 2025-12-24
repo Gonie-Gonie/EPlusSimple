@@ -326,70 +326,6 @@ def draw_3step_bargraph(
         loc='upper right', ncol=4,
     )
 
-def draw_summary3step_figures(
-    grrbefore:dict,
-    grrafter :dict,
-    grrafterN:dict,
-    ) -> tuple[plt.Figure]:
-
-    fig, axs = plt.subplots(1, 2, figsize=(8, 3), layout='constrained')
-    
-    # ENERGY_TYPES 순서대로 입력
-    draw_3step_bargraph(
-        "면적당 1차에너지소요량 (연간)",
-        [
-            [
-                sum([
-                    # cat이 'generators'이면 음수(-)로, 아니면 양수(+)로 합산
-                    -sum(result["source_uses"][cat][et_key]) if cat == "generators" 
-                    else sum(result["source_uses"][cat][et_key])
-                    
-                    for cat, _ in GRAPH_ORDER
-                ])
-                for et_key, _ in ENERGY_TYPES
-            ]
-            for result in [grrbefore, grrafter, grrafterN]
-        ],
-        ["GR이전","GR이후","(운영특성 반영)"],
-        ylabel = "1차에너지 (kWh/$\\mathrm{m^2\\cdot}$년)",
-        ax = axs[0]
-    )
-    
-    draw_3step_bargraph(
-        "면적당 온실가스 배출량 (연간)",
-        [
-            [
-                sum([
-                    # 온실가스도 동일하게 발전량은 차감 효과(Net CO2)로 계산
-                    -sum(result["co2"][cat][et_key]) if cat == "generators"
-                    else sum(result["co2"][cat][et_key])
-                    
-                    for cat, _ in GRAPH_ORDER
-                ])
-                for et_key, _ in ENERGY_TYPES
-            ]
-            for result in [grrbefore, grrafter, grrafterN]
-        ],
-        ["GR이전","GR이후","(운영특성 반영)"],
-        ylabel = r"$\mathrm{CO_2,eq}$ (kg/$\mathrm{m^2\cdot}$년)",
-        ax = axs[1]
-    )
-
-    fig.legend(
-        handles=[
-            Patch(ec='k', fc=DEFAULT_COLORS_BEFORE[et_key]+'90')
-            # Patch(color=DEFAULT_COLORS_BEFORE[et_key])
-            for et_key, _ in ENERGY_TYPES
-        ],
-        labels=[et_label for _, et_label in ENERGY_TYPES],
-        loc='outside lower center', ncol=4,
-        # bbox_to_anchor=(0.5, 0.95)
-    )
-
-    fig.get_layout_engine().set(wspace=0.1)
-    
-    return fig
-
 # ---------------------------------------------------------------------------
 # New functions: Python versions of HTML Chart.js visualizations
 # ---------------------------------------------------------------------------
@@ -620,7 +556,10 @@ def draw_simulation_figures(grr_before: dict, grr_after: dict, grr_afterN: dict)
         [
             [
                 sum([
-                    sum(result["source_uses"][cat][et_key])
+                    # cat이 'generators'이면 음수(-)로, 아니면 양수(+)로 합산
+                    -sum(result["source_uses"][cat][et_key]) if cat == "generators" 
+                    else sum(result["source_uses"][cat][et_key])
+                    
                     for cat, _ in GRAPH_ORDER
                 ])
                 for et_key, _ in ENERGY_TYPES
@@ -653,7 +592,10 @@ def draw_page3_summaryfigure(
         [
             [
                 sum([
-                    sum(result["co2"][cat][et_key])
+                    # cat이 'generators'이면 음수(-)로, 아니면 양수(+)로 합산
+                    -sum(result["co2"][cat][et_key]) if cat == "generators" 
+                    else sum(result["co2"][cat][et_key])
+                    
                     for cat, _ in GRAPH_ORDER
                 ])
                 for et_key, _ in ENERGY_TYPES
