@@ -942,19 +942,29 @@ class GreenRetrofitResult:
     
     def summarize(self, df:pd.DataFrame, *, gross:bool) -> dict:
         
+        # 컬럼 구분
+        use_cols = ["heating", "cooling", "lighting", "circulation", "hotwater"]
+        gen_cols = ["generators"]
+        
         # total
         monthly_use = [
             round(sum(x),GreenRetrofitResult.VALID_DIGITS)
-            for x in zip(*list(df[["heating", "cooling", "lighting", "circulation", "hotwater"]].values.flatten()))
+            for x in zip(*list(df[use_cols].values.flatten()))
         ]
         monthly_gen = [
             round(sum(x),GreenRetrofitResult.VALID_DIGITS)
-            for x in zip(*list(df[["generators"]].values.flatten()))
+            for x in zip(*list(df[gen_cols].values.flatten()))
         ]
         monthly_sum = [use-gen for use, gen in zip(monthly_use, monthly_gen)]
 
         # fuel sum
-        fuel_sum = df.apply(lambda row: sum(sum(x) for x in row), axis=1).to_dict()
+        fuel_sum = df.apply(
+            lambda row: (
+                sum(sum(row[c]) for c in use_cols) -  # 소비 용도 합산
+                sum(sum(row[c]) for c in gen_cols)    # 발전 용도 차감
+            ), 
+            axis=1
+        ).to_dict()
         fuel_sum_gross = {k: round(v*self.area, GreenRetrofitResult.VALID_DIGITS) for k,v in fuel_sum.items()}
         
         # usage sum

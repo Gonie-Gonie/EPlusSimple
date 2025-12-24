@@ -296,7 +296,7 @@ def draw_3step_bargraph(
             color = DEFAULT_COLORS_BEFORE[et_key]
             subbar_pos = pos - subbar_width*(num_subbars/2-et_idx-0.5)
             bar = ax.bar(subbar_pos, val[et_idx], width=subbar_width,
-                   ec='k', fc=color+'90', lw=1)
+                   ec=None, fc=color+'90', lw=1)
 
     # --- 축 및 레이블 수정 ---
     # x축 눈금 위치를 막대 위치(0, 1, 2)와 동일하게 설정
