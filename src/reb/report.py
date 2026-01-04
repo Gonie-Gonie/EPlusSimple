@@ -49,6 +49,8 @@ TEMPLATEPATH = Path(__file__).parent / "report_template.tex"
 BUILD_DIR    = Path(__file__).parents[2] / "dist" / "reb-report"
 FIG_DIR      = BUILD_DIR / "figures"
 
+os.makedirs(BUILD_DIR, exist_ok=True)
+os.makedirs(FIG_DIR, exist_ok=True)
 
 # ---------------------------------------------------------------------------- #
 #                                   METADATA                                   #
@@ -68,7 +70,7 @@ class MetaData:
 MONTH_LBLS = ([f"{m}월" for m in range(1, 13)])
 DEFAULT_COLORS = ("tab:blue", "tab:orange")  # epw1, epw2 색상
 # PALETTE = ['#FF0305', '#363AFF', '#FF8820', '#FFFE03', '#98C1EF', '#A4C761']
-PALETTE = ['#FF1F5B', '#009ADE', '#F28522', '#AF59BA', '#FFC61E', '#00CD6C', '#A1B1BA', '#A6761D']
+PALETTE = ['#e15759', '#4e79a7', '#F28e3b', '#b07aa1', '#FFC61E', '#00CD6C', '#A1B1BA', '#A6761D']
 
 # ---------------------------------------------------------------------------- #
 #                               FIGURE FUNCTIONS                               #
@@ -305,7 +307,7 @@ def draw_3step_bargraph(
     ax.set_xticklabels(index, fontsize=10)
     
     ax.set_ylabel(ylabel)
-    ax.set_title(title, fontsize=11)
+    ax.set_title(title, fontsize=11, y=1.1)
     ax.grid(axis="y", linestyle="--", alpha=0.4)
     ax.set_axisbelow(True)
     
@@ -318,12 +320,11 @@ def draw_3step_bargraph(
     ax.legend(
         fontsize=8,
         handles=[
-            Patch(ec='k', fc=DEFAULT_COLORS_BEFORE[et_key]+'90')
-            # Patch(color=DEFAULT_COLORS_BEFORE[et_key])
+            Patch(ec=None, fc=DEFAULT_COLORS_BEFORE[et_key]+'90')
             for et_key, _ in ENERGY_TYPES
         ],
         labels=[et_label for _, et_label in ENERGY_TYPES],
-        loc='upper right', ncol=4,
+        loc="upper center", ncol=4, bbox_to_anchor=(0.5, -0.15),
     )
 
 # ---------------------------------------------------------------------------
@@ -379,17 +380,17 @@ def _draw_monthly_stacked_bar(
                label=f"{et_label} (전)",
                fc=color)
         ax.bar(month_labels - 0.25, bvals, width=0.25, bottom=bottom_before,
-               ec='k', fc='none', zorder=5, lw=1.0)
+               ec=None, fc='none', zorder=5, lw=1.0)
         
         ax.bar(month_labels, avals, width=0.25, bottom=bottom_after,
                label=f"{et_label} (후)",
-               ec=color, fc=color+'40', hatch='//////', lw=0.8)
+               ec=None, fc=color+'40', hatch='//////', lw=0.8)
         ax.bar(month_labels, avals, width=0.25, bottom=bottom_after,
-               ec='k', fc='none', zorder=5, lw=1.0)
-        
+               ec=None, fc='none', zorder=5, lw=1.0)
+
         ax.bar(month_labels + 0.25, nvals, width=0.25, bottom=bottom_afterN,
                label=f"{et_label} (N)",
-               ec='k', fc=color+'40', zorder=5, lw=1.0)
+               ec=None, fc=color+'40', zorder=5, lw=1.0)
 
         bottom_before += bvals
         bottom_after += avals
@@ -398,7 +399,7 @@ def _draw_monthly_stacked_bar(
     ax.set_xticks(month_labels)
     ax.set_xticklabels([f"{m}월" for m in month_labels])
     ax.set_ylabel("(kWh/$\\mathrm{m^2\\cdot}$월)")
-    ax.set_title(f"월간 단위면적당 1차에너지소요량 - {category_label}")
+    ax.set_title(f"{category_label}")
     ax.grid(axis="y", linestyle="--", alpha=0.4)
     # legend는 나중에 한 번에
     # ax.legend(fontsize=8, ncols=2)
@@ -440,7 +441,7 @@ def _draw_monthly_stacked_bars(
     for et_key, et_label in ENERGY_TYPES:
         for l_idx, label in enumerate(["GR 이전", "GR 이후", "(운영특성 반영)"]):
             color = DEFAULT_COLORS_BEFORE[et_key]
-            handles.append(Patch(ec=color, lw=0.8,
+            handles.append(Patch(ec=None, lw=0.8,
                                  fc=[color, color+'40', color+'40'][l_idx],
                                  hatch=[None, '//////', None][l_idx]))
             labels.append(f"{et_label} {label}")
@@ -475,11 +476,11 @@ def _draw_annual_by_purpose(ax: plt.Axes, grr_before: dict, grr_after: dict, grr
             ax.bar(x + (idx - 1) * width, vals, width=width,
                    bottom=bottoms,
                    label=f"{et_label} {label}",
-                   ec=color, lw=0.8,
+                   ec=None, lw=0.8,
                    fc=[color, color+'40', color+'40'][idx],
                    hatch=[None, '//////', None][idx])
             ax.bar(x + (idx - 1) * width, vals, width=width,
-                   bottom=bottoms, ec='k', fc='none', zorder=5, lw=1.0)
+                   bottom=bottoms, ec=None, fc='none', zorder=5, lw=1.0)
             bottoms += vals
             ymax = max(ymax, bottoms.max())
 
@@ -516,11 +517,11 @@ def _draw_total_monthly_bar(ax: plt.Axes, grr_before: dict, grr_after: dict, grr
     ax.set_xticks(months)
     ax.set_xticklabels([f"{m}월" for m in months])
     ax.set_ylabel("월별 합계 (kWh/$\\mathrm{m^2\\cdot}$월)")
-    ax.set_title("월별 1차에너지소요량")
+    ax.set_title("월별 1차에너지소요량", y=1.1)
     
     # 그리드가 막대 뒤로 가도록 설정
     ax.grid(axis="y", linestyle="--", alpha=0.4, zorder=0) 
-    ax.legend(fontsize=8, loc="upper right", ncol=3)
+    ax.legend(fontsize=8, loc="upper center", ncol=3, bbox_to_anchor=(0.5, -0.15))
 
 
 def draw_simulation_figures(grr_before: dict, grr_after: dict, grr_afterN: dict):
@@ -537,8 +538,8 @@ def draw_simulation_figures(grr_before: dict, grr_after: dict, grr_afterN: dict)
     
     # 기존 helper 함수가 Figure 객체를 받아 subplot을 추가한다고 가정
     _draw_monthly_stacked_bars(fig1, grr_before, grr_after, grr_afterN)
-    
-    fig1.suptitle('용도별, 월별 사용량 비교', fontsize=16, fontweight='bold')
+
+    fig1.suptitle('월간 단위면적당 1차에너지소요량', fontsize=16, fontweight='bold')
 
 
     # --- Figure 2: 요약 (하단 2개 그래프) ---
@@ -985,7 +986,7 @@ def build_report(
     before_grrpath:str,
     after_grrpath :str,
     afterN_grrpath:str,
-    commentdict   :pd.DataFrame,
+    commentdict   :dict[str,str],
     pdfpath:str,
     ) -> None:
     
@@ -1101,7 +1102,7 @@ def build_report(
         "occupantchangetex": occupantchange,
         "summarytabletex" : [df.style.format(lambda x: f"{x:>6,.1f}").to_latex(**summarytablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline") for df in summarytable(grrbefore, grrafter, grrafterN)],
         "degreedays": {k:v for k,v in zip(["HDD2018","HDD2023","CDD2018","CDD2023"], degreedays)}|{"HDDchange": ("증가" if (degreedays[1]-degreedays[0])>0 else "감소"),"CDDchange": ("증가" if (degreedays[3]-degreedays[2])>0 else "감소")},
-        "comment": commentdict
+        "comment": {k:escape_str(v) for k,v in commentdict.items()}
     }
     
     # build
