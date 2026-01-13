@@ -103,8 +103,14 @@ def find_comment(
     
     commentdict = commentdf[(commentdf["고유번호"] == buildingid) & (commentdf["건축물명"].map(lambda s: s.replace(" ","")) == buildingname.replace(" ",""))].iloc[0,2:].to_dict()
     
-    commentdict["point"] = "★" * int(commentdict["point"]) + "☆" * (7 - int(commentdict["point"]))
-    commentdict = {k: escape_str(v.replace(r"\n","\\")) for k, v in commentdict.items()}
+    pointkeys = ["동절기 실내 온도", "동절기 실내 습도", "하절기 실내 온도", "하절기 실내 습도", "공기질", "음환경", "빛환경"]
+    commentdict["point"] = sum(int(commentdict[key]) for key in pointkeys) / len(pointkeys)
+    for key in pointkeys:
+        commentdict[key] =  "★" * int(commentdict[key]) + "☆" * (7 - int(commentdict[key]))
+    commentdict = {
+        k: f"{v:.1f}" if not isinstance(v, str) else escape_str(v.replace(r"\n","\\"))
+        for k, v in commentdict.items()
+    }
     
     return commentdict
     
@@ -145,6 +151,8 @@ def main(
                 commentdict,
                 pdfpath
             )
+            
+            break
         
         finally:
             if os.path.exists(workingpath):
