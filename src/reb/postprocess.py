@@ -221,15 +221,26 @@ class 설비운영:
         
         # 시간
         starth, startm, endh, endm = parse_duration_hours(self.사용시간)
-        availability_dayschedule = dragon.DaySchedule.from_compact(
-            None,
-            [
-                (starth, startm, 0),
-                (endh  , endm  , 1),
-                (24    , 0     , 0),
-            ],
-            dragon.ScheduleType.ONOFF         
-        )
+        if starth + startm/100 < endh + endm/100:
+            availability_dayschedule = dragon.DaySchedule.from_compact(
+                None,
+                [
+                    (starth, startm, 0),
+                    (endh  , endm  , 1),
+                    (24    , 0     , 0),
+                ],
+                dragon.ScheduleType.ONOFF         
+            )
+        else:
+            availability_dayschedule = dragon.DaySchedule.from_compact(
+                None,
+                [
+                    (endh  , endm  , 1),
+                    (starth, startm, 0),
+                    (24    , 0     , 1),
+                ],
+                dragon.ScheduleType.ONOFF         
+            )
         availability_ruleset = dragon.RuleSet(
             None,
             availability_dayschedule,
