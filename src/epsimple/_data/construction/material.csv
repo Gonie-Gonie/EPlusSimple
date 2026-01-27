@@ -1,3 +1,5 @@
 name,conductivity,density,heat_capacity,
 concrete,2.5,2400,880, 
 insulation,0.05,30,1500,
+gypsumboard,0.18,800,1090,
+glasswool,0.035,19,960,
