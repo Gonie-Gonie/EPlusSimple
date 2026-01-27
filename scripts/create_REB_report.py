@@ -11,7 +11,7 @@ import re
 import pandas as pd
 
 # local modules
-from reb.report import build_report, MetaData
+from reb.report import build_report, MetaData, escape_str
 
 
 # ---------------------------------------------------------------------------- #
@@ -101,9 +101,17 @@ def find_comment(
     buildingid = int(buildingfilename[:3])
     buildingname = buildingfilename[4:]
     
-    commentdict = commentdf[(commentdf["고유번호"] == buildingid) & (commentdf["건축물명"].map(lambda x: x.replace(" ","")) == buildingname.replace(" ",""))].iloc[0,2:].to_dict()
+    commentdict = commentdf[(commentdf["고유번호"] == buildingid) & (commentdf["건축물명"].map(lambda s: s.replace(" ","")) == buildingname.replace(" ",""))].iloc[0,2:].to_dict()
     
-    commentdict = {k: v.replace(r"\n","\\") for k, v in commentdict.items()}
+    pointkeys = ["동절기 실내 온도", "동절기 실내 습도", "하절기 실내 온도", "하절기 실내 습도", "공기질", "음환경", "빛환경"]
+    commentdict["point"] = sum(int(commentdict[key]) for key in pointkeys) / len(pointkeys)
+    for key in pointkeys:
+        commentdict[key] =  "★" * int(commentdict[key]) + "☆" * (7 - int(commentdict[key]))
+    commentdict = {
+        k: f"{v:.1f}" if not isinstance(v, str) else escape_str(v.replace(r"\n","\\"))
+        for k, v in commentdict.items()
+    }
+    
     return commentdict
     
 
@@ -144,6 +152,8 @@ def main(
                 pdfpath
             )
             
+            break
+        
         finally:
             if os.path.exists(workingpath):
                 os.remove(workingpath)

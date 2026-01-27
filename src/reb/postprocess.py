@@ -26,6 +26,7 @@ from epsimple.utils import (
     _preprocess_excel_dict ,
     _convert_supply_systems,
     _convert_source_systems,
+    _replace_nan_to_none   ,
 )
 from epsimple.core.hvac import (
     SupplySystem,
@@ -220,15 +221,26 @@ class 설비운영:
         
         # 시간
         starth, startm, endh, endm = parse_duration_hours(self.사용시간)
-        availability_dayschedule = dragon.DaySchedule.from_compact(
-            None,
-            [
-                (starth, startm, 0),
-                (endh  , endm  , 1),
-                (24    , 0     , 0),
-            ],
-            dragon.ScheduleType.ONOFF         
-        )
+        if starth + startm/100 < endh + endm/100:
+            availability_dayschedule = dragon.DaySchedule.from_compact(
+                None,
+                [
+                    (starth, startm, 0),
+                    (endh  , endm  , 1),
+                    (24    , 0     , 0),
+                ],
+                dragon.ScheduleType.ONOFF         
+            )
+        else:
+            availability_dayschedule = dragon.DaySchedule.from_compact(
+                None,
+                [
+                    (endh  , endm  , 1),
+                    (starth, startm, 0),
+                    (24    , 0     , 1),
+                ],
+                dragon.ScheduleType.ONOFF         
+            )
         availability_ruleset = dragon.RuleSet(
             None,
             availability_dayschedule,
@@ -762,8 +774,8 @@ class 보건소특화존1(hvac존):
         
         for zone in zones:
             
-            lighting_schedule  = zone.profile.lighting  * (occupant_schedule > 0)
-            equipment_schedule = zone.profile.equipment * (occupant_schedule > 0)
+            lighting_schedule  = (occupant_schedule > 0)
+            equipment_schedule = zone.profile.equipment.max * (occupant_schedule > 0)
         
             zone.profile = dragon.Profile(
                 f"{zone.name}_특화존1체크리스트",
@@ -1480,8 +1492,8 @@ class 현장조사체크리스트(ABC):
         
         zonedata = exceldata["실"].loc[~pd.isna(exceldata["실"].iloc[:,0])].iloc[:,:11].sort_values(by="층", ascending=True).reset_index(drop=True)
         processed_excel = _preprocess_excel_dict(exceldata)
-        source_json  = _convert_source_systems(processed_excel["생산설비"])
-        supply_json = _convert_supply_systems(processed_excel["공급설비"], processed_excel["생산설비"])
+        source_json = _replace_nan_to_none(_convert_source_systems(processed_excel["생산설비"]))
+        supply_json = _replace_nan_to_none(_convert_supply_systems(processed_excel["공급설비"], processed_excel["생산설비"]))
         
         source_dict = {sys.ID: sys for sys in [SourceSystem.from_json(SimpleNamespace(**d)) for d in source_json]}
         supply_dict = {sys.ID: sys for sys in [SupplySystem.from_json(SimpleNamespace(**d), source_dict) for d in supply_json]}

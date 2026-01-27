@@ -14,6 +14,7 @@ import subprocess
 from io       import StringIO
 from copy     import deepcopy
 from datetime import datetime
+from pathlib  import Path
 
 # third-party modules
 import pandas as pd
@@ -333,7 +334,7 @@ def _launch_energyplus(
     
     expanded_idfpath = _expand_idf(idfpath, ep_dir)
     
-    output_signature = f"{PackageInfo.NAME}-{uuid.uuid4()}"
+    output_signature = Path(expanded_idfpath).stem
     cmd = [
         os.path.join(ep_dir, r"EnergyPlus.exe"),
         "-r",

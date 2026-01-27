@@ -28,18 +28,19 @@ def rebexcel_to_idf_and_grm(
     # preprocess
     if preprocess:
         processed_filepath = process_excel_file(input_filepath, verbose=False)
+        target_file = processed_filepath
     else:
-        processed_filepath = input_filepath
-    
+        processed_filepath = None
+        target_file = input_filepath
     try:
         # read excel to model
-        grm = GreenRetrofitModel.from_excel(processed_filepath)
+        grm = GreenRetrofitModel.from_excel(target_file)
         
         # read excel to survey
-        survey = 현장조사체크리스트.from_excel(input_filepath)
+        survey = 현장조사체크리스트.from_excel(target_file)
         
         # convert
-        exceldata = pd.read_excel(input_filepath, sheet_name=None)
+        exceldata = pd.read_excel(target_file, sheet_name=None)
         idf = survey.apply_to(grm, exceldata)
     
     finally:

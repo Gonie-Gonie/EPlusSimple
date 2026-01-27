@@ -604,7 +604,7 @@ class Zone:
         surfaces:list[Surface],
         profile :Profile,
         light_density:int|float,
-        infiltration :int|float,
+        infiltration :int|float|None=None,
         heating_supply_system:SupplySystem=None,
         cooling_supply_system:SupplySystem=None,
         ventilation_system   :VentilationSystem=None,

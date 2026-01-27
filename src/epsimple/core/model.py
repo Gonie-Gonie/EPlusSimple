@@ -57,6 +57,7 @@ from . import (
     Surface                 ,
     Window                  ,
     SurfaceBoundaryCondition,
+    SurfaceType             ,
     Zone                    ,
 )
 from ..utils import (
@@ -260,7 +261,21 @@ class GreenRetrofitModel:
     def exteriorwalls(self) -> list[Surface]:
         return [
             surf for surf in sum([zone.surface for zone in self.zone], start=[])
-            if surf.boundary == SurfaceBoundaryCondition.OUTDOOR
+            if (surf.boundary == SurfaceBoundaryCondition.OUTDOOR) and (surf.type == SurfaceType.WALL)
+        ]
+        
+    @property
+    def exteriorroofs(self) -> list[Surface]:
+        return [
+            surf for surf in sum([zone.surface for zone in self.zone], start=[])
+            if (surf.boundary == SurfaceBoundaryCondition.OUTDOOR) and (surf.type == SurfaceType.CEILING)
+        ]
+    
+    @property
+    def exteriorfloors(self) -> list[Surface]:
+        return [
+            surf for surf in sum([zone.surface for zone in self.zone], start=[])
+            if (surf.boundary == SurfaceBoundaryCondition.OUTDOOR or surf.boundary == SurfaceBoundaryCondition.GROUND) and (surf.type == SurfaceType.FLOOR)
         ]
         
     @property
@@ -298,6 +313,58 @@ class GreenRetrofitModel:
             return 0
     
     @property
+    def averaged_exteriorroof_Uvalue(self) -> float:
+        
+        areasum = 0
+        UAsum   = 0
+        
+        for roof in self.exteriorroofs:
+            areasum += roof.area
+            
+            if roof.construction is UnknownConstruction():
+                UAsum += roof.area * SurfaceConstruction.get_regulated_construction(
+                    self.vintage    ,
+                    roof.type    ,
+                    roof.boundary,
+                    self.climate    ,
+                    is_residential=False,
+                ).get_U()
+                
+            else:
+                UAsum += roof.area * roof.construction.get_U()
+        
+        if areasum > 0:
+            return UAsum / areasum
+        else:
+            return 0
+    
+    @property
+    def averaged_exteriorfloor_Uvalue(self) -> float:
+        
+        areasum = 0
+        UAsum   = 0
+        
+        for floor in self.exteriorfloors:
+            areasum += floor.area
+            
+            if floor.construction is UnknownConstruction():
+                UAsum += floor.area * SurfaceConstruction.get_regulated_construction(
+                    self.vintage    ,
+                    floor.type    ,
+                    floor.boundary,
+                    self.climate    ,
+                    is_residential=False,
+                ).get_U()
+                
+            else:
+                UAsum += floor.area * floor.construction.get_U()
+        
+        if areasum > 0:
+            return UAsum / areasum
+        else:
+            return 0
+    
+    @property
     def averaged_window_Uvalue(self) -> float:
         
         areasum = 0
@@ -320,7 +387,7 @@ class GreenRetrofitModel:
         
         for zone in self.zone:
             areasum += zone.area
-            lightdensity_areasum += zone.light_density * zone.area
+            lightdensity_areasum += zone.light_density * zone.area if zone.light_density is not None else 0
         
         if areasum > 0:
             return lightdensity_areasum / areasum
@@ -522,22 +589,34 @@ class GreenRetrofitModel:
         }
         
         # allocate unknowns
+        default_innerwall_construction = SurfaceConstruction(
+            f"{SpecialTag.SPECIAL}DefaultInnerWallConstruction",
+            Material.get_DB("gypsumboard"), 0.0125, 
+            Material.get_DB("glasswool")  , 0.0500,
+            Material.get_DB("gypsumboard"), 0.0125,
+        )
+        dragonized_default_innerwall_construction = default_innerwall_construction.to_dragon()
         unknown_surfaces = []
         for surface in surface_dict.values():
+            unknown_surfaces.append(surface)
+            
             if surface.construction is UnknownConstruction():
-                unknown_surfaces.append(surface)
-                regulated_construction = SurfaceConstruction.get_regulated_construction(
-                    self.vintage    ,
-                    surface.type    ,
-                    surface.boundary,
-                    self.climate    ,
-                    is_residential=False,
-                )
-                surface.construction = regulated_construction
-                
-                dragonized_construction = regulated_construction.to_dragon()
-                surface_construction_dict[dragonized_construction.name] = dragonized_construction
-        
+                if (surface.type == SurfaceType.WALL) and (surface.boundary == SurfaceBoundaryCondition.ZONE):
+                    surface.construction = default_innerwall_construction
+                    surface_construction_dict[dragonized_default_innerwall_construction.name] = dragonized_default_innerwall_construction
+                else:            
+                    regulated_construction = SurfaceConstruction.get_regulated_construction(
+                        self.vintage    ,
+                        surface.type    ,
+                        surface.boundary,
+                        self.climate    ,
+                        is_residential=False,
+                    )
+                    surface.construction = regulated_construction
+                    
+                    dragonized_construction = regulated_construction.to_dragon()
+                    surface_construction_dict[dragonized_construction.name] = dragonized_construction
+            
         # duplicate surfaces by adjacency
         adjacent_pair       = dict()
         copied_surface_dict = dict()
@@ -612,6 +691,21 @@ class GreenRetrofitModel:
             surface.construction = UnknownConstruction()
         
         return dragonized_surfaces_by_zone
+    
+    @staticmethod
+    def get_default_infiltration(zone: Zone) -> float:
+        
+        has_outdoor_window = lambda surf: (
+            surf.boundary == SurfaceBoundaryCondition.OUTDOOR
+        ) and any(
+            isinstance(fen, Window) for fen in surf.fenestrations
+        )
+        
+        if any(has_outdoor_window(surf) for surf in zone.surface):
+            return 1.5
+        
+        else:
+            return 0
     
     def to_dragon(self):
         
@@ -694,7 +788,7 @@ class GreenRetrofitModel:
                     zone.ID,
                     dragonized_surfaces[zone.ID],
                     profile_dict[zone.profile.ID],
-                    zone.infiltration*Unit.ACH502ACH,
+                    (zone.infiltration if zone.infiltration is not None else GreenRetrofitModel.get_default_infiltration(zone))*Unit.ACH502ACH,
                     zone.light_density,
                     supply_dict.get(getattr(zone.cooling_supply,"ID",None), None),
                     supply_dict.get(getattr(zone.heating_supply,"ID",None), None),
@@ -875,19 +969,29 @@ class GreenRetrofitResult:
     
     def summarize(self, df:pd.DataFrame, *, gross:bool) -> dict:
         
+        # 컬럼 구분
+        use_cols = ["heating", "cooling", "lighting", "circulation", "hotwater"]
+        gen_cols = ["generators"]
+        
         # total
         monthly_use = [
             round(sum(x),GreenRetrofitResult.VALID_DIGITS)
-            for x in zip(*list(df[["heating", "cooling", "lighting", "circulation", "hotwater"]].values.flatten()))
+            for x in zip(*list(df[use_cols].values.flatten()))
         ]
         monthly_gen = [
             round(sum(x),GreenRetrofitResult.VALID_DIGITS)
-            for x in zip(*list(df[["generators"]].values.flatten()))
+            for x in zip(*list(df[gen_cols].values.flatten()))
         ]
         monthly_sum = [use-gen for use, gen in zip(monthly_use, monthly_gen)]
 
         # fuel sum
-        fuel_sum = df.apply(lambda row: sum(sum(x) for x in row), axis=1).to_dict()
+        fuel_sum = df.apply(
+            lambda row: (
+                sum(sum(row[c]) for c in use_cols) -  # 소비 용도 합산
+                sum(sum(row[c]) for c in gen_cols)    # 발전 용도 차감
+            ), 
+            axis=1
+        ).to_dict()
         fuel_sum_gross = {k: round(v*self.area, GreenRetrofitResult.VALID_DIGITS) for k,v in fuel_sum.items()}
         
         # usage sum
