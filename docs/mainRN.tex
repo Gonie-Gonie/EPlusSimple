@@ -15,11 +15,26 @@
 %                              DEDICATED PREAMBLE                              %
 % ---------------------------------------------------------------------------- %
 
-\newcommand{\newversionsection}[2]{
+\newcommand{\newversionsection}[6]{
   \newpage
   \phantomsection
   \section*{Version #1 (#2)}
   \addcontentsline{toc}{section}{Version #1 (#2)}
+
+  \begin{itemize}
+    \item \textbf{추가된 기능}
+    #3
+    
+    \item \textbf{변경된 기능}
+    #4
+
+    \item \textbf{수정된 기능}
+    #5
+    
+    \item \textbf{제거된 기능}
+    #6
+\end{itemize}
+
 }
 
 % ---------------------------------------------------------------------------- %
