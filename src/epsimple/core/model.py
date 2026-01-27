@@ -692,6 +692,21 @@ class GreenRetrofitModel:
         
         return dragonized_surfaces_by_zone
     
+    @staticmethod
+    def get_default_infiltration(zone: Zone) -> float:
+        
+        has_outdoor_window = lambda surf: (
+            surf.boundary == SurfaceBoundaryCondition.OUTDOOR
+        ) and any(
+            isinstance(fen, Window) for fen in surf.fenestrations
+        )
+        
+        if any(has_outdoor_window(surf) for surf in zone.surface):
+            return 1.5
+        
+        else:
+            return 0
+    
     def to_dragon(self):
         
         # construction
@@ -773,7 +788,7 @@ class GreenRetrofitModel:
                     zone.ID,
                     dragonized_surfaces[zone.ID],
                     profile_dict[zone.profile.ID],
-                    zone.infiltration*Unit.ACH502ACH,
+                    (zone.infiltration if zone.infiltration is not None else GreenRetrofitModel.get_default_infiltration(zone))*Unit.ACH502ACH,
                     zone.light_density,
                     supply_dict.get(getattr(zone.cooling_supply,"ID",None), None),
                     supply_dict.get(getattr(zone.heating_supply,"ID",None), None),
