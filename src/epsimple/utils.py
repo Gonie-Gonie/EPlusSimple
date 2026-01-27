@@ -12,13 +12,9 @@ import importlib
 import subprocess
 from uuid     import uuid4
 from copy     import deepcopy
-from pathlib  import Path
 from datetime import datetime
-from openpyxl import load_workbook
 from typing   import (
     Any     ,
-    List    ,
-    Optional,
 )
 
 # third-party modules
@@ -416,7 +412,7 @@ def _convert_source_systems(
             source_dict["hotwater_supply"] = bool(source_dict["hotwater_supply"])
          
         # convert unit
-        source_dict["efficiency"]           *= Unit.PRC2NONE
+        source_dict["efficiency"]        *= Unit.PRC2NONE
         source_dict["boiler_efficiency"] *= Unit.PRC2NONE
          
         # Remove unused properties

@@ -145,6 +145,55 @@ def multiply_column_inplace(
         print(f"[곱셈] 시트='{sheet_name}', 컬럼='{col_name}', factor={factor}, 변경셀수={changed}")
     return changed
 
+def convert_all_formulas_to_values_globally(
+    wb_main,
+    wb_values,
+    target_sheets: list[str] = None,
+    verbose: bool = True,
+):
+    """
+    워크북 전체(또는 특정 시트들)의 수식을 찾아 값으로 변환합니다.
+    
+    Args:
+        wb_main: 수식이 포함된 원본 워크북 객체 (수정 대상)
+        wb_values: data_only=True로 로드한 값 전용 워크북 객체 (참조 대상)
+        target_sheets: 변환할 시트 이름 리스트. None이면 모든 시트 대상.
+    """
+    
+    # 대상 시트 설정 (None이면 전체 시트)
+    if target_sheets is None:
+        target_sheets = wb_main.sheetnames
+    
+    total_converted = 0
+    
+    for sheet_name in target_sheets:
+        if sheet_name not in wb_main.sheetnames:
+            continue
+            
+        ws_main = wb_main[sheet_name]
+        ws_values = wb_values[sheet_name]
+        
+        sheet_converted = 0
+        
+        # 시트의 모든 행을 동시에 순회 (zip 사용)
+        # min_row=1, min_col=1 부터 끝까지
+        for row_main, row_values in zip(ws_main.iter_rows(), ws_values.iter_rows()):
+            for cell_main, cell_value in zip(row_main, row_values):
+                
+                # 셀이 수식('f')인 경우에만 동작
+                if cell_main.data_type == 'f':
+                    cell_main.value = cell_value.value
+                    # 수식 플래그가 남아있을 수 있으므로 data_type을 강제로 None이나 값 타입으로 변경될 수 있게 함
+                    # (openpyxl은 value 할당 시 타입을 자동 추론하므로 보통 value 할당만으로 충분함)
+                    sheet_converted += 1
+        
+        if verbose and sheet_converted > 0:
+            print(f"[전역변환] 시트='{sheet_name}', 변환된 수식 개수={sheet_converted}")
+            total_converted += sheet_converted
+
+    if verbose:
+        print(f"[전역변환 완료] 총 {total_converted}개의 수식을 값으로 변경했습니다.")
+
 def convert_formulas_in_column_to_values(
     wb_main,
     wb_values,
@@ -314,41 +363,12 @@ def process_excel_file(
         drop_rows_inplace(wb, sheet_name="재료", col_name="이름", values=["공기층", r"&SPECIAL&이전레이어&"], verbose=verbose)
         
         # 3. 수식을 숫자로 변경
-        convert_formulas_in_column_to_values( 
+        convert_all_formulas_to_values_globally(
             wb_main=wb,
             wb_values=wb_values,
-            sheet_name="건물정보",
-            col_name="north_axis [°]",
-            verbose = verbose,
-        ) # 예시: 이 컬럼에 있는 모든 수식을 값으로 변경
-        convert_formulas_in_column_to_values(
-            wb_main=wb,
-            wb_values=wb_values,
-            sheet_name="면",
-            col_name="면적 [m2]",
-            verbose = verbose,
-        ) # 예시: 이 컬럼에 있는 모든 수식을 값으로 변경
-        convert_formulas_in_column_to_values(
-            wb_main=wb,
-            wb_values=wb_values,
-            sheet_name="개구부",
-            col_name="면적 [m2]",
-            verbose = verbose, 
-        ) # 예시: 이 컬럼에 있는 모든 수식을 값으로 변경
-        convert_formulas_in_column_to_values(
-            wb_main=wb,
-            wb_values=wb_values,
-            sheet_name="생산설비",
-            col_name="냉방COP [W/W]",
-            verbose = verbose, 
-        ) # 예시: 이 컬럼에 있는 모든 수식을 값으로 변경
-        convert_formulas_in_column_to_values(
-            wb_main=wb,
-            wb_values=wb_values,
-            sheet_name="생산설비",
-            col_name="난방COP [W/W]",
-            verbose = verbose, 
-        ) # 예시: 이 컬럼에 있는 모든 수식을 값으로 변경
+            target_sheets=None, # None이면 모든 시트 처리
+            verbose=verbose
+        )
         
         # 4. 특정 열 값 일괄 곱셈
         multiply_column_inplace(
