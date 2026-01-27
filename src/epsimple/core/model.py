@@ -589,22 +589,34 @@ class GreenRetrofitModel:
         }
         
         # allocate unknowns
+        default_innerwall_construction = SurfaceConstruction(
+            f"{SpecialTag.SPECIAL}DefaultInnerWallConstruction",
+            Material.get_DB("gypsumboard"), 0.0125, 
+            Material.get_DB("glasswool")  , 0.0500,
+            Material.get_DB("gypsumboard"), 0.0125,
+        )
+        dragonized_default_innerwall_construction = default_innerwall_construction.to_dragon()
         unknown_surfaces = []
         for surface in surface_dict.values():
+            unknown_surfaces.append(surface)
+            
             if surface.construction is UnknownConstruction():
-                unknown_surfaces.append(surface)
-                regulated_construction = SurfaceConstruction.get_regulated_construction(
-                    self.vintage    ,
-                    surface.type    ,
-                    surface.boundary,
-                    self.climate    ,
-                    is_residential=False,
-                )
-                surface.construction = regulated_construction
-                
-                dragonized_construction = regulated_construction.to_dragon()
-                surface_construction_dict[dragonized_construction.name] = dragonized_construction
-        
+                if (surface.type == SurfaceType.WALL) and (surface.boundary == SurfaceBoundaryCondition.ZONE):
+                    surface.construction = default_innerwall_construction
+                    surface_construction_dict[dragonized_default_innerwall_construction.name] = dragonized_default_innerwall_construction
+                else:            
+                    regulated_construction = SurfaceConstruction.get_regulated_construction(
+                        self.vintage    ,
+                        surface.type    ,
+                        surface.boundary,
+                        self.climate    ,
+                        is_residential=False,
+                    )
+                    surface.construction = regulated_construction
+                    
+                    dragonized_construction = regulated_construction.to_dragon()
+                    surface_construction_dict[dragonized_construction.name] = dragonized_construction
+            
         # duplicate surfaces by adjacency
         adjacent_pair       = dict()
         copied_surface_dict = dict()
