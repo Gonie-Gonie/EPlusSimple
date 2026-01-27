@@ -774,8 +774,8 @@ class 보건소특화존1(hvac존):
         
         for zone in zones:
             
-            lighting_schedule  = zone.profile.lighting  * (occupant_schedule > 0)
-            equipment_schedule = zone.profile.equipment * (occupant_schedule > 0)
+            lighting_schedule  = (occupant_schedule > 0)
+            equipment_schedule = zone.profile.equipment.max * (occupant_schedule > 0)
         
             zone.profile = dragon.Profile(
                 f"{zone.name}_특화존1체크리스트",
