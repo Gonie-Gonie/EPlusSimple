@@ -207,7 +207,7 @@ class 설비운영:
     사용기간:str
     설정온도:int    
     
-    def get_hvac_availability_schedule(self) -> dragon.Schedule:
+    def get_hvac_availability_schedule(self, mode:Literal["heating","cooling"]) -> dragon.Schedule:
         
         # all-off schedule
         alloff_schedule = dragon.Schedule.from_compact(
@@ -248,20 +248,27 @@ class 설비운영:
         )
         
         # 기간
-        duration1, duration2 = parse_duration_month(self.사용기간) 
-        availability_schedule = alloff_schedule.apply(
-            availability_ruleset,
-            start = f"{duration1[0]:02d}01",
-            end   = f"{duration1[1]:02d}{get_end_of_the_month(duration1[1]):02d}",
-            inplace=False
-        )
-        if duration2 is not None:
+        
+        if mode == "heating":
+            availability_schedule = alloff_schedule.apply(
+                availability_ruleset,
+                start = "0101",
+                end   = "0515",
+                inplace=False
+            ) 
             availability_schedule.apply(
                 availability_ruleset,
-                start = f"{duration2[0]:02d}01",
-                end   = f"{duration2[1]:02d}{get_end_of_the_month(duration2[1]):02d}",
+                start = f"0916",
+                end   = f"1231",
                 inplace=True
-        )   
+            )
+        if mode == "cooling":
+            availability_schedule = alloff_schedule.apply(
+                availability_ruleset,
+                start = "0516",
+                end   = "0915",
+                inplace=False
+            )
         
         return availability_schedule
 
@@ -304,7 +311,7 @@ class 설비운영:
             ]
         )
         
-        availability_schedule = self.get_hvac_availability_schedule()
+        availability_schedule = self.get_hvac_availability_schedule(mode)
         operational_setpoint = constant_setpoint * availability_schedule + default_setpoint * (~availability_schedule)
         operational_setpoint.name = hex(id(operational_setpoint))
         
@@ -383,14 +390,14 @@ class hvac존:
         
         if isinstance(zone.heating_supply, dragon.hvac.SupplyGroup):
             zone.heating_supply.availabilities = [
-                self.난방설비1.get_hvac_availability_schedule(),
-                self.난방설비2.get_hvac_availability_schedule(),
+                self.난방설비1.get_hvac_availability_schedule("heating"),
+                self.난방설비2.get_hvac_availability_schedule("heating"),
                 ]
             
         if isinstance(zone.cooling_supply, dragon.hvac.SupplyGroup):
             zone.cooling_supply.availabilities = [
-                self.냉방설비1.get_hvac_availability_schedule(),
-                self.냉방설비2.get_hvac_availability_schedule(),
+                self.냉방설비1.get_hvac_availability_schedule("cooling"),
+                self.냉방설비2.get_hvac_availability_schedule("cooling"),
             ]
     
 
@@ -546,9 +553,9 @@ class 보건소일반존(hvac존):
         
         # 설비 가동스케줄 (개별)
         operation_schedules = []
-        for 설비 in [self.난방설비1, self.난방설비2, self.냉방설비1, self.냉방설비2]:
+        for 설비, mode in zip([self.난방설비1, self.난방설비2, self.냉방설비1, self.냉방설비2],["heating","heating","cooling","cooling"]):
             if 설비 is not None:
-                operation_schedules.append(설비.get_hvac_availability_schedule())
+                operation_schedules.append(설비.get_hvac_availability_schedule(mode))
             else:
                 operation_schedules.append(dragon.Schedule.from_compact(
                     None, [("0101","1231", dragon.RuleSet(
@@ -744,9 +751,9 @@ class 보건소특화존1(hvac존):
         
         # 설비 가동스케줄 (개별)
         operation_schedules = []
-        for 설비 in [self.난방설비1, self.난방설비2, self.냉방설비1, self.냉방설비2]:
+        for 설비,mode in zip([self.난방설비1, self.난방설비2, self.냉방설비1, self.냉방설비2],["heating","heating","cooling","cooling"]):
             if 설비 is not None:
-                operation_schedules.append(설비.get_hvac_availability_schedule())
+                operation_schedules.append(설비.get_hvac_availability_schedule(mode))
             else:
                 operation_schedules.append(dragon.Schedule.from_compact(
                     None, [("0101","1231", dragon.RuleSet(
@@ -850,9 +857,9 @@ class 보건소특화존2(hvac존):
         
         # 설비 가동스케줄 (개별)
         operation_schedules = []
-        for 설비 in [self.난방설비1, self.난방설비2, self.냉방설비1, self.냉방설비2]:
+        for 설비,mode in zip([self.난방설비1, self.난방설비2, self.냉방설비1, self.냉방설비2],["heating","heating","cooling","cooling"]):
             if 설비 is not None:
-                operation_schedules.append(설비.get_hvac_availability_schedule())
+                operation_schedules.append(설비.get_hvac_availability_schedule(mode))
             else:
                 operation_schedules.append(dragon.Schedule.from_compact(
                     None, [("0101","1231", dragon.RuleSet(
@@ -1033,9 +1040,9 @@ class 어린이집일반존(hvac존):
         
         # 설비 가동스케줄 (개별)
         operation_schedules = []
-        for 설비 in [self.난방설비1, self.난방설비2, self.냉방설비1, self.냉방설비2]:
+        for 설비,mode in zip([self.난방설비1, self.난방설비2, self.냉방설비1, self.냉방설비2],["heating","heating","cooling","cooling"]):
             if 설비 is not None:
-                operation_schedules.append(설비.get_hvac_availability_schedule())
+                operation_schedules.append(설비.get_hvac_availability_schedule(mode))
             else:
                 operation_schedules.append(dragon.Schedule.from_compact(
                     None, [("0101","1231", dragon.RuleSet(
@@ -1206,9 +1213,9 @@ class 어린이집특화존1(hvac존):
         
         # 설비 가동스케줄 (개별)
         operation_schedules = []
-        for 설비 in [self.난방설비1, self.난방설비2, self.냉방설비1, self.냉방설비2]:
+        for 설비,mode in zip([self.난방설비1, self.난방설비2, self.냉방설비1, self.냉방설비2],["heating","heating","cooling","cooling"]):
             if 설비 is not None:
-                operation_schedules.append(설비.get_hvac_availability_schedule())
+                operation_schedules.append(설비.get_hvac_availability_schedule(mode))
             else:
                 operation_schedules.append(dragon.Schedule.from_compact(
                     None, [("0101","1231", dragon.RuleSet(
@@ -1400,9 +1407,9 @@ class 어린이집특화존2(hvac존):
         
         # 설비 가동스케줄 (개별)
         operation_schedules = []
-        for 설비 in [self.난방설비1, self.난방설비2, self.냉방설비1, self.냉방설비2]:
+        for 설비,mode in zip([self.난방설비1, self.난방설비2, self.냉방설비1, self.냉방설비2],["heating","heating","cooling","cooling"]):
             if 설비 is not None:
-                operation_schedules.append(설비.get_hvac_availability_schedule())
+                operation_schedules.append(설비.get_hvac_availability_schedule(mode))
             else:
                 operation_schedules.append(dragon.Schedule.from_compact(
                     None, [("0101","1231", dragon.RuleSet(
