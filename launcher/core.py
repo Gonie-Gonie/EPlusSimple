@@ -6,6 +6,7 @@
 # built-in modules
 from pathlib import Path
 from typing import Dict, List, Any, Tuple, Optional
+from multiprocessing import Pool
 
 # third-party modules
 import pandas as pd
@@ -205,39 +206,51 @@ def _run_debugging_phase(
 def _run_simulation_phase(
     filepaths: Dict[str, Path],
     file_before_name: str,
-    files_after_names: List[str]
+    files_after_names: List[str],
+    NumCores: int = 4,
 ) -> Dict[str, Any]:
     """
-    [수정] 디버깅을 통과한 파일들에 대해 시뮬레이션을 실행합니다.
-    (전처리는 이 함수 호출 전에 이미 완료되었다고 가정합니다.)
-
-    Args:
-        filepaths: 시뮬레이션 대상 파일의 경로 딕셔너리 (전처리되었거나 원본).
-        file_before_name: '리모델링 전' 파일의 원본 이름.
-        files_after_names: '리모델링 후' 파일들의 원본 이름 리스트.
-        
-    Returns:
-        시뮬레이션 결과를 템플릿에 전달할 형식으로 가공한 딕셔너리.
+    [병렬화 버전] 최대 4개의 코어를 사용하여 시뮬레이션을 실행합니다.
     """
-    def _execute_single_simulation(filepath: Path) -> Dict[str, Any]:
-        """[수정] 내부 함수: 단일 파일 시뮬레이션 실행 (전처리 로직 제거)"""
-        return run_grexcel(str(filepath), save=False)
-
-    # '리모델링 전' 시뮬레이션 실행
-    result_before = _execute_single_simulation(filepaths[file_before_name])
     
-    # '리모델링 후' 시뮬레이션 실행
-    results_after_list = []
+    # 1. 시뮬레이션을 실행할 전체 경로 리스트 생성
+    # '전' 파일을 맨 앞에 두고, 그 뒤에 '후' 파일들을 붙입니다.
+    target_fnames = [file_before_name]
+    
     if files_after_names:
-        for fname in files_after_names:
-            results_after_list.append(_execute_single_simulation(filepaths[fname]))
+        target_fnames.extend(files_after_names)
+        actual_after_names = files_after_names
     else:
-        results_after_list.append(result_before)
-        files_after_names.append(f"{file_before_name} (후 파일 미지정)")
+        # '후' 파일이 없는 경우 기존 로직 유지
+        target_fnames.append(file_before_name)
+        actual_after_names = [f"{file_before_name} (후 파일 미지정)"]
+
+    target_paths = [filepaths[fname] for fname in target_fnames]
+
+    # 2. 병렬 실행 환경 설정 (최대 4개 코어)
+    # run_grexcel 함수는 최상위 수준(Top-level)에 정의되어 있어야 pickle이 가능합니다.
+    num_cores = min(len(target_paths), NumCores)
+    
+    with Pool(processes=num_cores) as pool:
+        # _execute_single_simulation 대신 직접 run_grexcel을 래핑하여 호출
+        # path를 문자열로 변환하여 전달 (필요시)
+        all_results = pool.map(_execute_single_simulation_wrapper, target_paths)
+
+    # 3. 결과 분리 (첫 번째는 before, 나머지는 afters)
+    result_before = all_results[0]
+    results_after_list = all_results[1:]
 
     return {
         "filename_before": file_before_name,
-        "filenames_after": files_after_names,
+        "filenames_after": actual_after_names,
         "before": result_before,
         "afters": results_after_list,
     }
+
+def _execute_single_simulation_wrapper(filepath: Path) -> Dict[str, Any]:
+    """
+    Pool.map에서 호출하기 위한 래퍼 함수. 
+    내부에서 run_grexcel을 실행합니다.
+    """
+    # 주의: run_grexcel 함수가 정의된 곳에서 import 되어야 함
+    return run_grexcel(str(filepath), save=False)
