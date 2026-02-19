@@ -91,8 +91,8 @@
         </div>
 
         <div class="graph-container summary-comparison-graph">
-            <div id="annualSummaryContainer"></div>
             <div class="graph-title">연간 주요 성능 지표 비교</div>
+            <div id="annualSummaryContainer"></div>
         </div>
     </div>
     {% endif %}
@@ -172,7 +172,7 @@
                     const meta = chart.getDatasetMeta(i);
                     meta.data.forEach((bar, index) => {
                         if (dataset.label.includes("전기")) { 
-                            ctx.fillText((caseIndex + 1).toString(), bar.x, bottom + 12);
+                            ctx.fillText((caseIndex + 1).toString(), bar.x, bottom + 6);
                         }
                     });
                 }
@@ -225,24 +225,92 @@
         if (!data) return;
 
         const datasets = [];
+        
+        // 1. '전' 데이터셋 추가
         energyTypes.forEach(et => {
-            datasets.push({ label: et.label + ' (전)', data: data.before[et.key], backgroundColor: et.color, stack: 'Before' });
-        });
-        data.afters.forEach((dataAfter, index) => {
-            energyTypes.forEach(et => {
-                datasets.push({ label: et.label + ` (후 ${index+1})`, data: dataAfter[et.key], backgroundColor: et.light_color, stack: `After_${index}` });
+            datasets.push({ 
+                label: et.label, // 범례에서 '(전)' 문구 제거하여 깔끔하게 표시
+                data: data.before[et.key], 
+                backgroundColor: et.color, 
+                stack: 'Before' 
             });
         });
-        
+
+        // 2. '후' 데이터셋 추가 (색상은 light_color로 통일)
+        data.afters.forEach((dataAfter, index) => {
+            energyTypes.forEach(et => {
+                datasets.push({ 
+                    label: et.label, // 범례 중복 방지를 위해 라벨 동일하게 유지
+                    data: dataAfter[et.key], 
+                    backgroundColor: et.light_color, 
+                    stack: `After_${index}` 
+                });
+            });
+        });
+
         const chartLabels = graphOrder.map(g => g.name);
 
         chartInstances[canvasId] = new Chart(ctx, {
             type: 'bar',
+            // 케이스 번호를 막대 하단에 그리는 플러그인 적용
+            plugins: [{
+                id: 'annualCaseNumber',
+                afterDatasetsDraw(chart) {
+                    const { ctx, chartArea: { bottom } } = chart;
+                    ctx.save();
+                    ctx.font = 'bold 10px sans-serif';
+                    ctx.fillStyle = '#666';
+                    ctx.textAlign = 'center';
+
+                    // 각 스택 그룹의 X 위치를 찾아서 번호 표시
+                    const metas = chart.getSortedVisibleDatasetMetas();
+                    const stacks = {};
+                    
+                    metas.forEach(meta => {
+                        if (meta.stack && meta.stack.startsWith('After_')) {
+                            const caseIdx = parseInt(meta.stack.split('_')[1], 10) + 1;
+                            if (!stacks[meta.stack]) {
+                                // 각 카테고리(X축)별로 해당 스택의 번호를 하단에 표시
+                                meta.data.forEach(bar => {
+                                    ctx.fillText(caseIdx.toString(), bar.x, bottom + 6);
+                                });
+                                stacks[meta.stack] = true;
+                            }
+                        }
+                    });
+                    ctx.restore();
+                }
+            }],
             data: { labels: chartLabels, datasets: datasets },
             options: {
-                plugins: { legend: { position: 'top', labels: { font: { size: 10 } } } },
-                responsive: true, maintainAspectRatio: false,
-                scales: { y: { stacked: true, beginAtZero: true, title: { display: true, text: yAxisLabel }, grace: '10%' } }
+                plugins: { 
+                    legend: { 
+                        position: 'top', 
+                        labels: { 
+                            font: { size: 10 },
+                            // 범례 중복 제거: 에너지원(전기, 가스 등)별로 하나씩만 표시
+                            filter: function(item, chartData) {
+                                const labels = chartData.datasets.map(ds => ds.label);
+                                return labels.indexOf(item.text) === item.datasetIndex;
+                            }
+                        } 
+                    } 
+                },
+                responsive: true, 
+                maintainAspectRatio: false,
+                scales: { 
+                    x: {
+                        // 번호가 들어갈 공간 확보를 위해 패딩 추가
+                        afterFit: (scale) => { scale.height += 15; }
+                    },
+                    y: { 
+                        stacked: true, 
+                        beginAtZero: true, 
+                        title: { display: true, text: yAxisLabel }, 
+                        grace: '10%' 
+                    } 
+                },
+                layout: { padding: { bottom: 10 } }
             }
         });
     }
@@ -252,25 +320,81 @@
         const ctx = document.getElementById(canvasId).getContext('2d');
         if (!valuesBefore || !valuesAfters || valuesAfters.length === 0) return;
 
+        const pointStyles = ['circle', 'triangle', 'rect', 'star', 'diamond', 'crossRot'];
+
+        function getAfterColor(index, total) {
+            if (total <= 1) return '#377be7';
+            const hue = 215; 
+            const saturation = 70;
+            const lightness = 70 - (index * (40 / (total - 1 || 1))); 
+            return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+        }
+
         const datasets = [{ 
-            label: `리모델링 전 ${baseName}`, data: valuesBefore, 
-            borderColor: '#e76537', backgroundColor: 'rgba(230, 101, 55, 0.08)', 
-            tension: 0.15, fill: true 
+            label: `전`, // "리모델링 전 1차에너지소요량" -> "전"으로 간소화
+            data: valuesBefore, 
+            borderColor: '#e76537', 
+            backgroundColor: 'rgba(230, 101, 55, 0.1)', 
+            tension: 0.15, 
+            fill: true,
+            pointStyle: 'circle',
+            pointRadius: 4,
+            borderWidth: 3,
+            zIndex: 10
         }];
 
         valuesAfters.forEach((valuesAfter, index) => {
+            const color = getAfterColor(index, valuesAfters.length);
             datasets.push({
-                label: `리모델링 후 ${index + 1} ${baseName}`, data: valuesAfter,
-                borderColor: '#377be7', backgroundColor: 'rgba(55, 123, 231, 0.08)',
-                tension: 0.15, fill: true,
-                borderDash: index > 0 ? [5, 5] : [],
+                label: `후 ${index + 1}`, // "리모델링 후 1 1차에너지소요량" -> "후 1"로 간소화
+                data: valuesAfter,
+                borderColor: color,
+                backgroundColor: 'transparent',
+                tension: 0.15, 
+                fill: false,
+                borderDash: [], 
+                pointStyle: pointStyles[index % pointStyles.length], 
+                pointRadius: 4,
+                pointHoverRadius: 7,
+                borderWidth: 1.5
             });
         });
 
         chartInstances[canvasId] = new Chart(ctx, { 
             type: 'line', 
             data: { labels: monthLabels, datasets: datasets }, 
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true, title: { display: true, text: yAxisLabel } } } } 
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                plugins: { 
+                    legend: { 
+                        position: 'top', // 범례를 그래프 위로 이동
+                        align: 'center',
+                        labels: { 
+                            usePointStyle: true,
+                            boxWidth: 8,
+                            padding: 15, // 범례 아이템 간 간격
+                            font: { size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        // 툴팁에는 어떤 에너지원인지 제목(baseName)을 표시해주면 좋습니다.
+                        callbacks: {
+                            title: function() {
+                                return baseName; 
+                            }
+                        }
+                    }
+                }, 
+                scales: { 
+                    y: { 
+                        beginAtZero: true, 
+                        title: { display: true, text: yAxisLabel } 
+                    } 
+                } 
+            } 
         });
     }
     
@@ -310,12 +434,12 @@
             
             graphOrder.forEach(itemInfo => {
                 const dataAfters = allData.afters.map(d => d[dataType]?.[itemInfo.key]);
-                document.getElementById(`title-${itemInfo.key}`).textContent = `${itemInfo.name} ${labels.name} 비교 ${labels.unit}`;
+                document.getElementById(`title-${itemInfo.key}`).textContent = `${itemInfo.name} 월별 ${labels.name} 비교 ${labels.unit}`;
                 drawGroupedStackedBar(`bar-${itemInfo.key}`, `legend-${itemInfo.key}`, allData.before[dataType]?.[itemInfo.key], dataAfters, labels.unit);
             });
             
             const annualData = calculateAnnualData(allData, dataType);
-            document.getElementById('title-annual-by-purpose').textContent = `연간 용도별 ${labels.name} 비교 ${labels.unit}`;
+            document.getElementById('title-annual-by-purpose').textContent = `용도별 연간 ${labels.name} 비교 ${labels.unit}`;
             drawAnnualByPurposeChart('bar-annual-by-purpose', annualData, labels.unit);
 
             const lineLabelBase = `월별 총 ${labels.name}`;
@@ -344,7 +468,7 @@
 
             const valPerAreaBefore = dataBefore.summary_per_area[metric.key]?.total_annual || 0;
             const valGrossBefore = (dataBefore.summary_gross[metric.key]?.total_annual || 0) / 1000;
-            tableHtml += `<tr><td class="case-label">Before</td><td>${valPerAreaBefore.toLocaleString(undefined, {maximumFractionDigits: 1})}</td><td>-</td><td>${valGrossBefore.toLocaleString(undefined, {maximumFractionDigits: 1})}</td><td>-</td></tr>`;
+            tableHtml += `<tr><td class="case-label">Before</td><td>${valPerAreaBefore.toLocaleString(undefined, {maximumFractionDigits: 1, minimumFractionDigits: 1,})}</td><td>-</td><td>${valGrossBefore.toLocaleString(undefined, {maximumFractionDigits: 1, minimumFractionDigits: 1,})}</td><td>-</td></tr>`;
             
             dataAfters.forEach((dataAfter, index) => {
                 const valPerAreaAfter = dataAfter.summary_per_area[metric.key]?.total_annual || 0;
@@ -364,7 +488,7 @@
                     changeHtmlGross = `<span class="${isDown ? 'summary-down' : 'summary-up'}">${isDown ? '▼' : '▲'} ${Math.abs(change).toFixed(1)}%</span>`;
                 }
 
-                tableHtml += `<tr><td class="case-label">After ${index + 1}</td><td>${valPerAreaAfter.toLocaleString(undefined, {maximumFractionDigits: 1})}</td><td>${changeHtmlPerArea}</td><td>${valGrossAfter.toLocaleString(undefined, {maximumFractionDigits: 1})}</td><td>${changeHtmlGross}</td></tr>`;
+                tableHtml += `<tr><td class="case-label">After ${index + 1}</td><td>${valPerAreaAfter.toLocaleString(undefined, {maximumFractionDigits: 1, minimumFractionDigits: 1})}</td><td>${changeHtmlPerArea}</td><td>${valGrossAfter.toLocaleString(undefined, {maximumFractionDigits: 1, minimumFractionDigits: 1})}</td><td>${changeHtmlGross}</td></tr>`;
             });
             tableHtml += `</tbody>`;
         });

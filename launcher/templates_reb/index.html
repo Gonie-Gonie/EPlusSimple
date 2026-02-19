@@ -97,8 +97,8 @@
         </div>
 
         <div class="graph-container summary-comparison-graph">
+            <div class="graph-title">연간 주요 성능 지표 비교</div>
             <div id="annualSummaryContainer"></div>
-            <div class="graph-title">연간 주요 성능 지표 비교 (Total Annual)</div>
         </div>
     </div>
     {% endif %}
@@ -365,7 +365,7 @@ function calculateAnnualData(allData, dataType) {
             const changeHtmlPerAreaAfter = calculateChangeHtml(valPerAreaBefore, valPerAreaAfter);
             const changeHtmlGrossAfter = calculateChangeHtml(valGrossBefore, valGrossAfter);
 
-            tableHtml += `<tr><td class="case-label">[GR 이후]</td><td>${valPerAreaAfter.toLocaleString(undefined, {maximumFractionDigits: 1})}</td><td>${changeHtmlPerAreaAfter}</td><td>${valGrossAfter.toLocaleString(undefined, {maximumFractionDigits: 1})}</td><td>${changeHtmlGrossAfter}</td></tr>`;
+            tableHtml += `<tr><td class="case-label">[GR 이후]</td><td>${valPerAreaAfter.toLocaleString(undefined, {maximumFractionDigits: 1, minimumFractionDigits: 1,})}</td><td>${changeHtmlPerAreaAfter}</td><td>${valGrossAfter.toLocaleString(undefined, {maximumFractionDigits: 1, minimumFractionDigits: 1,})}</td><td>${changeHtmlGrossAfter}</td></tr>`;
             
             // --- [추가] "After N" (GR 이후 (운영특성 반영)) 행 ---
             // dataAfterN 인자를 직접 사용
@@ -376,7 +376,7 @@ function calculateAnnualData(allData, dataType) {
             const changeHtmlPerAreaAfterN = calculateChangeHtml(valPerAreaBefore, valPerAreaAfterN);
             const changeHtmlGrossAfterN = calculateChangeHtml(valGrossBefore, valGrossAfterN);
 
-            tableHtml += `<tr><td class="case-label">[GR 이후 (운영특성 반영)]</td><td>${valPerAreaAfterN.toLocaleString(undefined, {maximumFractionDigits: 1})}</td><td>${changeHtmlPerAreaAfterN}</td><td>${valGrossAfterN.toLocaleString(undefined, {maximumFractionDigits: 1})}</td><td>${changeHtmlGrossAfterN}</td></tr>`;
+            tableHtml += `<tr><td class="case-label">[GR 이후 (운영특성 반영)]</td><td>${valPerAreaAfterN.toLocaleString(undefined, {maximumFractionDigits: 1, minimumFractionDigits: 1,})}</td><td>${changeHtmlPerAreaAfterN}</td><td>${valGrossAfterN.toLocaleString(undefined, {maximumFractionDigits: 1, minimumFractionDigits: 1,})}</td><td>${changeHtmlGrossAfterN}</td></tr>`;
 
             tableHtml += `</tbody>`;
         });
