@@ -349,7 +349,7 @@ function calculateAnnualData(allData, dataType) {
         
         summaryMetrics.forEach(metric => {
             tableHtml += `<thead><tr><th colspan="5" class="metric-title">${metric.name}</th></tr>`;
-            tableHtml += `<tr><th>구분</th><th>값 (${metric.unit_per_area})</th><th>변화율</th><th>총량 (${metric.unit_gross})</th><th>변화율</th></tr></thead><tbody>`;
+            tableHtml += `<tr><th>구분</th><th>면적당 [${metric.unit_per_area}]</th><th>변화율</th><th>총량 [${metric.unit_gross}]</th><th>변화율</th></tr></thead><tbody>`;
 
             // --- "Before" 행 (기존과 동일) ---
             const valPerAreaBefore = dataBefore.summary_per_area[metric.key]?.total_annual || 0;
