@@ -468,7 +468,7 @@
 
             const valPerAreaBefore = dataBefore.summary_per_area[metric.key]?.total_annual || 0;
             const valGrossBefore = (dataBefore.summary_gross[metric.key]?.total_annual || 0) / 1000;
-            tableHtml += `<tr><td class="case-label">Before</td><td>${valPerAreaBefore.toLocaleString(undefined, {maximumFractionDigits: 1, minimumFractionDigits: 1,})}</td><td>-</td><td>${valGrossBefore.toLocaleString(undefined, {maximumFractionDigits: 1, minimumFractionDigits: 1,})}</td><td>-</td></tr>`;
+            tableHtml += `<tr><td class="case-label">Before</td><td>${valPerAreaBefore.toLocaleString(undefined, {maximumFractionDigits: 1, minimumFractionDigits: 1})}</td><td>-</td><td>${valGrossBefore.toLocaleString(undefined, {maximumFractionDigits: 1, minimumFractionDigits: 1})}</td><td>-</td></tr>`;
             
             dataAfters.forEach((dataAfter, index) => {
                 const valPerAreaAfter = dataAfter.summary_per_area[metric.key]?.total_annual || 0;
