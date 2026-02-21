@@ -13,8 +13,8 @@ from flask import Flask
 
 # local modules
 # DO NOT IMPORT RELATIVELY
-from config import TEMPLATE_DIRNAME, COREMODULE_NAME
-source = importlib.import_module(COREMODULE_NAME)
+from .config import TEMPLATE_DIRNAME, COREMODULE_NAME
+source = importlib.import_module(f".{COREMODULE_NAME}", package=__package__)
 
 # ---------------------------------------------------------------------------- #
 #                       APP DEFINITION AND INITIALIZATION                      #
