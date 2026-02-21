@@ -19,3 +19,4 @@
 열람실,constant_temperature_20,constant_temperature_26,library_availability,library_people,library_lighting,all_zero,0.66,0.57,0.63,0.66,0.66,0.6,0.66,0.63,0.54,0.63,0.63,0.63
 체육시설,constant_temperature_20,constant_temperature_26,gym_availability,gym_people,gym_lighting,all_zero,0.78,0.69,0.75,0.78,0.78,0.72,0.78,0.78,0.66,0.75,0.78,0.75
 교실(초중고),constant_temperature_20,constant_temperature_26,classroom_availability,classroom_people,classroom_lighting,classroom_equipment,5.72,5.06,5.5,5.72,5.72,5.28,5.72,5.72,4.84,5.5,5.72,5.5
+교실(어린이집),constant_temperature_20,constant_temperature_26,classroom_availability,classroom_people,classroom_lighting,classroom_equipment,5.72,5.06,5.5,5.72,5.72,5.28,5.72,5.72,4.84,5.5,5.72,5.5
