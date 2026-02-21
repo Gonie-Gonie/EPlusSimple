@@ -6,7 +6,7 @@
 # built-in modules
 import re
 from pathlib import Path
-
+from multiprocessing import Pool
 
 # third-party modules
 import pandas as pd
@@ -20,9 +20,9 @@ from epsimple import (
 )
 
 # paths
-mothergrmpath = Path(__file__).parents[1] / "examples/grm/ASHRAE 140 modified.grm"
-latexpath     = Path(__file__).parents[1] / "docs/RegressionTestReport/part3.tex"
-figuredir     = Path(__file__).parents[1] / "docs/_figures/RTR"
+mothergrmpath = Path(__file__).parents[2] / "examples/grm/ASHRAE 140 modified.grm"
+latexpath     = Path(__file__).parents[2] / "docs/RegressionTestReport/part3.tex"
+figuredir     = Path(__file__).parents[2] / "docs/_figures/RTR"
 
 # ---------------------------------------------------------------------------- #
 #                                   FUNCTIONS                                  #
@@ -95,24 +95,30 @@ def df2latex(df: pd.DataFrame) -> str:
 #                                 PROFILE TEST                                 #
 # ---------------------------------------------------------------------------- #
 
-def test_profile():
+def _worker_profile(profile):
+    """단일 프로필 시뮬레이션을 위한 독립적인 워커 함수"""
+    # 워커 내부에서 매번 새 객체를 로드 (포인터 꼬임/상태 오염 방지)
+    grm = GreenRetrofitModel.from_grjson(mothergrmpath)
     
-    mothergrm = GreenRetrofitModel.from_grjson(mothergrmpath)
+    for zone in grm.zone:
+        zone.profile = profile
+        
+    # 처리 완료 후 딕셔너리로 묶기 편하도록 (key, value) 튜플 형태로 반환
+    return profile.name, grm.run().to_dict()
 
-    def change_profile(grm: GreenRetrofitModel, profile: Profile) -> GreenRetrofitModel:
-        for zone in grm.zone:
-            zone.profile = profile
-        return grm
+def test_profile():
+    profiles = Profile.get_DB("__all__")
+    
+    # Pool()은 기본적으로 시스템의 가용한 전체 CPU 코어 수를 사용합니다.
+    with Pool() as pool:
+        # pool.map은 결과를 입력 순서대로 반환합니다.
+        results = pool.map(_worker_profile, profiles)
+        
+    # [(name1, dict1), (name2, dict2), ...] 형태를 dict로 변환
+    return dict(results)
 
-    profilegrrs = {
-        profile.name: change_profile(mothergrm, profile).run().to_dict()
-        for profile in Profile.get_DB("__all__")
-    }
 
-    return profilegrrs
-
-
-def apply_profilechange(tex:str) -> str:
+def apply_profile_result(tex:str) -> str:
     
     # get profile contents
     grrs = test_profile()
@@ -131,9 +137,14 @@ def apply_profilechange(tex:str) -> str:
 #                                 WEATHER TEST                                 #
 # ---------------------------------------------------------------------------- #
 
+def _worker_weather(address: str):
+    """단일 지역 시뮬레이션을 위한 독립적인 워커 함수"""
+    grm = GreenRetrofitModel.from_grjson(mothergrmpath)
+    grm.address = address
+    return address, grm.run().to_dict()
+
 def test_weather():
     
-    mothergrmp = GreenRetrofitModel.from_grjson(mothergrmpath)
     addrlist = [
         # 중부1
         "강원특별자치도 철원군",
@@ -159,18 +170,12 @@ def test_weather():
         "제주특별자치도 제주시",
     ]
     
-    def change_address(grm: GreenRetrofitModel, address: str) -> GreenRetrofitModel:
-        grm.address = address
-        return grm
-    
-    weathergrrs = {
-        address: change_address(mothergrmp, address).run().to_dict()   
-        for address in addrlist
-    }
-    
-    return weathergrrs
+    with Pool() as pool:
+        results = pool.map(_worker_weather, addrlist)
+        
+    return dict(results)
 
-def apply_weatherchange(tex:str) -> str:
+def apply_weather_result(tex:str) -> str:
     
     # get weather contents
     grrs = test_weather()
@@ -195,8 +200,8 @@ def main():
         tex = file.read()
     
     # apply
-    tex = apply_profilechange(tex)
-    tex = apply_weatherchange(tex)
+    tex = apply_profile_result(tex)
+    tex = apply_weather_result(tex)
     
     # write
     with open(latexpath, "w", encoding="utf-8") as file:

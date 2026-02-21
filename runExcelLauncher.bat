@@ -15,7 +15,7 @@ echo The server is now running. To stop it, close this window or press Ctrl+C.
 echo ==============================
 
 :: 'start' 명령어 없이 직접 실행하여 배치파일이 서버 프로세스를 제어하도록 함
-.\venv\python.exe launcher
+.\venv\python.exe -m launcher
 
 
 :: --- [추가된 부분] ---
