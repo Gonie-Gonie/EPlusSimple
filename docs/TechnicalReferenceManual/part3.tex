@@ -10,20 +10,7 @@
 
 \section{데이터 변환 시뮬레이션의 순서}
 
-\subsection{시뮬레이션 개요}
-시뮬레이션을 하려면, 일단 데이터를 읽고 변환하고 옵션 설정해서 돌리고 결과 나온거 정리해서 return함.
-본 \simulator\는 요구하는 포맷이 있음. @todo 예시 json파일 아래에 넣기
-
-데이터를 읽고, 요구하는 json 파일로 변환하는 과정이 필요함. 이렇게 해서 json을 입력하면 \simulator 엔진으로 시뮬레이션을 수행하고, 결과를 불러와 사용자에게 보여주는 방식임.
-
-\subsection{데이터 체계}
-json구조로 들어온 데이터는, 동일한 python 구조체로 변환되고 그게 dragon이라는 EP친화적 구조체로 변환된 다음 idf로 내보내짐.
-
-\begin{defaultfigure}
-  \includegraphics[scale=0.1]{데이터 schema의 위계.png}
-  \caption{\simulator\ 데이터 체계 및 변환 과정(??)}
-  \label{fig:data_hierarchy}
-\end{defaultfigure}
+\simulator 에서 데이터가 변환되는 절차에 대하여 추후 기술 예정임.
 
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
@@ -324,49 +311,21 @@ json구조로 들어온 데이터는, 동일한 python 구조체로 변환되고
 
 \subsubsection{Timestep} 시뮬레이션의 기본 계산 시간 단위를 의미하며, 1시간(60분)을 몇 회로 분할하여 계산할 것인지 지정한다. 이 값은 실의 열 평형 계산(Zone Heat Balance)에서 열전달 및 부하 계산의 구동 시간 단위로 사용된다. 허용되는 입력 값은 4에서 60까지, 60을 정확히 나눌 수 있는 정수 (1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30, 60)이며, \ep\는 6(10분 단위 계산)을 권장한다 \cite{energyplusior242}. 더 낮은 값을 입력할 경우 연산 시간은 단축되나, 정확도가 저하될 수 있으며, \simulator\는 기본값으로 6을 적용한다. 
 
-\subsubsection{DesignCondition} 냉·난방 부하 산정을 위해 기상데이터에서 대표적인 설계 조건을 정의하는 항목이다. 일반적으로 가장 더운 날(하계 설계일, SummerDesignDay)과 가장 추운 날(동계 설계일, WinterDesignDay)을 설계일로 지정하며, 사용자가 직접 조건을 입력하거나, 기상 파일(EPW)에 내장된 극한일(Extreme) 등의 데이터를 불러오는 방법도 활용할 수 있다 \cite{energyplusior242}.
-\simulator 는 기상 파일(EPW)에 내장된 극한일(Extreme)을 설계 조건으로 정의함. @TODO
-
-
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
 % ---------------------------------------------------------------------------- %
 
 \section{EnergyPlus 구동}
-\subsection{EnergyPlus 실행}
-\subsubsection{EnergyPlus의 독립 구동 방법}
-EnergyPlus 핵심은 EnergyPlus.exe 맞나? 그것임.
-그 전에 expansion 필요하면 expandobject.exe도 실행해주어야 함.
-각각은 아래 option들을 받을 수 있음.
 
-
-\subsection{디렉토리 구조}
-코드 내부적으로는 이렇게 호출하고 있는데,
-디렉토리는 중간에 3개의 temp 폴더가 생김.
-temp 폴더 경로는 C:/users/.../Appdata/Local/Temp/하위에 생김
+본 엔진에서 EnergyPlus를 호출하는 구문, 디렉토리 구조 등에 대하여 추후 기술 예정임.
 
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
 % ---------------------------------------------------------------------------- %
 
 \section{오류의 정의와 처리}
-오류가 날 수도 있는데, 분류별로 보면 입력이 잘못된 경우와 뭐가 잘못된 경우와... \dots
-각각에 대하여는 이렇게 이렇게 처리할 수 있음.
 
-@todo시뮬레이터 사용 과정에서, 발생 가능한 오류의 종류는 다음과 같다: (1) 입력변수가 잘못된 경우, (2) idf 변환 과정이 잘못된 경우, ... (3) EnergyPlus 시뮬레이션이 진행되지 않는 경우.
-각 오류는 다음과 같이 해결할 수 있다.
-
-
-\subsection{입력변수가 잘못된 경우}
-입력변수 오류는 python 객체로 전환될 때 탐지해서 이런식으로 return함. 사용자는 이걸 보고 무엇을 판단할 수 있음.
-지금까지 발견한 오류들?
-(1) 
-
-\subsection{idf 변환 과정이 잘못된 경우}
-@TODO
-
-\subsection{EP가 안돌아가는 경우}
-@TODO report와 건물 파일을 개발자에게 문의
+입력변수 오류, idf 변환 오류, EP 시뮬레이션 오류로 분류하여, 추후 엔진의 반환값을 정리한 후 각 종류와 대응 방법에 대하여 기술 예정임.
 
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
@@ -426,44 +385,23 @@ EnergyPlus의 형상 입력 방식은 크게 detailed geometry와 simplified geo
 \end{defaultfigure}
 
 \subsection{벽체, 지붕, 바닥 변환 방법}
-좌표 생성하고 뒤집고 copy하고 ...
 
-\subsubsection{좌표 생성}
-천장은 높이 받아서 생성하고 나머지도 높이 받아서 만들고 바닥 만들고.
-Azimuth는 hash함수로 랜덤하게 생성함. copy한 얘들끼리 180도 뒤집도록 잘 했음
-
-\subsubsection{clone 객체 생성}
-이걸 뒤집어서 복제할 것임
-
-\subsubsection{연산 옵션 설정}
-EnergyPlus \texttt{Building} 객체의 \texttt{Solar Distribution} 속성을 `\texttt{MinimalShadowing}'으로 설정하며, 모든 \texttt{ShadowCalculation} 객체를 삭제한다.
-
-\subsection{창호, 문 변환 방법}
-벽의 일부로 정사각형을...
-
-\subsection{블라인드 변환 방법}
-20W/m2...으로는 안하겠지만...
+각 면과, 창호, 문, 블라인드 등의 변환 방법에 대하여 추후 기술 예정임.
 
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
 % ---------------------------------------------------------------------------- %
 
 \section{구조체 정의}
-\subsection{EnergyPlus 구조체의 정의 및 변환 방법}
-EnergyPlus는 Material class에서 먼저 재료의 물성치 (열전도율, 밀도, 비열) 입력하고 구조체는 Construction class에서 하나씩 referecing해와서 구조체를 만드는 방식임.
-외부에서부터 내부 방향으로 각 layer가 어떻게 구성되어있는지 입력하는것임 
-우리도 똑같아용..
 
-\subsection{모르는 값 추정}
-기축건물은 구조체를 모르는 경우가 많으며, 성적서 없는 경우도 다수 존재.
-구조체 모르는 경우 법규 연계, 창호는 현장 조사에서 레이어 조사 후 DB에서 값 선택 등 @TODO
-그린리모델링의 대상인 기축건물은 도면 및 시방서의 누락 등으로 인해 건물의 각 부위별 구조체를 모르는 경우가 많으며, 구조체 정보는 존재하더라도, 물성치에 대한 정보(시험성적서 등)가 없는 경우도 다수 존재한다. 이를 위해, 본 @바꿔 시뮬레이터 구조체 모르는 경우 법규 연계, 창호는 현장 조사에서 레이어 조사 후 DB에서 값 선택 등 @TODO
+EnergyPlus 및 \simulator 의 구조체 정의에 대하여 추후 기술 예정임.
+
+
 
 
 \subsubsection{재료}
-ASHRAE 참고
 
-여기다 단위를 쓰겠습니다 \unit{density} \unit{asdfasdf}
+재료의 출처 및 이것이 \simulator 에 적용되는 방법에 대하여 추후 기술 예정임 (아래 표는 database로 제시하고 있는 재료들의 예시).
 
 \renewcommand{\arraystretch}{0.8}
 \begin{longtable}{llcclc}
@@ -554,16 +492,12 @@ ASHRAE 참고
 \end{longtable}
 
 \subsubsection{구조체}
-구조체와 실내외 표면열전달저항 값은 에너지절약설계기준값을 참고. 그냥 콘크리트랑 단열재만 가지고 만듦. RC diagram으로 생각하면 아래 그림과 같은 형태인 것임. 구조체 만들때는 이걸 맞춘거니까 이거 쓰는게 맞음.\par
-참고로 EnergyPlus에서는 실내외 표면열전달저항 동적으로 계산됨. 수식은 아래와 같고, 시뮬레이션 해보니 보통 아래와 같음. 비교해보면 차이는 있긴 함.
-\begin{tcolorbox}[colback=gray!10, colframe=gray!80, boxrule=0.5pt, left=1em, right=1em]
-대충 1년간 hout hin 변화하는 그림 (에절서에 정의된 값이랑 비교할 것) -> 이런 얘기할 때 test건물에 대한 정의는 어떻게 해야 되나? test건물들을 만들어두고 문서 부록에서 기술하여야 할 듯
-\end{tcolorbox}
+
+실내외 열전달기준에 따른 구조체 자동 생성 및 EnergyPlus에서 이 값들이 계산되는 방식 등에 대하여 추후 기술 예정임.
 
 \subsubsection{창호}
-창호는 법규에서 U값은 지정하고 있음. SHGC가 없어서 문제임. 또 현장에서 알 수가 없는 경우가 많음. 그래서 그냥 창호 종류에 따라 U, SHGC값을 선택하도록 만들었음.
-이것도 에절서 긁었는데, 현재 기준에 있는 걸로 긁었음. 참고로 에절서에 있는 창호 종류별 성능은 에절서 제정된 2013년 이후로 바뀐 적 없음.
 
+창호 database에 대하여 추후 입력방식 확정 후 기술 예정임.
 
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
@@ -769,67 +703,18 @@ ASHRAE 참고
 % ---------------------------------------------------------------------------- %
 
 \section{설비 변환 알고리즘}
-\subsection{\simulator~설비 데이터의 구조와 이해}
-공급-생산 이원화함
 
-\subsection{EnergyPlus 설비 데이터의 구조와 이해}
-branch와 loop 개념임
-
-\subsection{공급 및 생산 설비 변환 방법}
-\subsubsection{데이터 구조 변환}
-공급 만들고, 생산 만들면 일단 loop만들고 branch 만듦.
-그거 결합하면 됨.
-필요하면 source의 source도 있음.
-
-\subsubsection{모르는 값 추정}
-default 값 쓰는 걸 기본으로 함. 결정해야 했던 것들도 물론 있음.
-\paragraph{냉각탑} defulat씀. 기본 팬 제어 채택함
-\paragraph{냉동기} defulat씀. 기본 팬 제어 채택함
-\paragraph{보일러} defulat씀. 기본 팬 제어 채택함
-
-\subsection{전열교환기 변환 방법}
-ventilation에 포함
-
-\subsection{태양광패널 변환 방법}
-가상의 surface 만듦.
+냉난방설비시스템의 이원화 구조와, 냉난방설비, 전열교환기 및 태양광시스템의 변환 방법 기본값 등에 대하여 추후 기술 예정임.
 
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
 % ---------------------------------------------------------------------------- %
 
-\chapter{시뮬레이션 결과의 해석} @TODO
+\chapter{시뮬레이션 결과의 해석}
 
 \section{EnergyPlus의 실행 결과물 종류와 의미}
-Table: 어떤 결과 
-CSV:어떤 결과를 의미
-이것을 종합하여, 연료별 table 생성하고 읽어들임.
 
-\subsection{EP 결과 내는 법과 의미}
-Table:Output 활용함. Output은 6가지로 구분되는데, heating, cooling, lighting, fan, pump, cogeneration, ...
-
-\subsubsection{heating}
-뭐뭐뭐뭐를 포함함
-
-\subsubsection{cooling}
-뭐뭐뭐뭐를 포함함
-
-\subsubsection{lighting}
-뭐뭐뭐뭐를 포함함
-
-\subsubsection{fan}
-뭐뭐뭐뭐를 포함함.
-예를들어, 전열교환기를 설치하는 경우 전열교환기 팬이 사용하는 전력은 여기에 들어감.
-nn절에 따라 전열교환기를 모델링하면 전열교환기 1대당 보통 00kW 수준의 전력을 소비함.
-
-\subsubsection{pump}
-뭐뭐뭐뭐를 포함함. 예를들어, ...
-
-\subsubsection{cogeneration}
-뭐뭐뭐뭐를 포함함
-
-\subsection{EP 결과 읽는 법과 의미}
-우리가 원하는 결과는 냉방, 난방, 조명, 유체동력계, 급탕, 발전임.
-각각 heating, cooling, lighting, fan과 pump, domestic hot water, cogeneration에 대응됨.
+EnergyPlus 실행 결과물 종류와 유형, 그리고 그 결과를 \simulator 에서 어떻게 활용하는지에 대하여 추후 기술 예정임.
 
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
@@ -838,7 +723,7 @@ nn절에 따라 전열교환기를 모델링하면 전열교환기 1대당 보�
 \section{그린리모델링을 위한 결과 해석}
 
 \subsection{단위면적당 에너지소비량} \label{subsec:floorarea_definition_for_EUI}
-가장 널리 사용되는 단위면적당 에너지 소요량 (EUI) 씀. 여기서 단위면적당에는 (@memo 전체 연면적? )까지 포함임. 참고로, ECO2는 냉난방 공조 면적을 구분함. 바닥면적은 그냥 공조하는 모든 zone의 바닥면적의 총합임.
+단위면적의 개념에 대하여 추후 기술 예정임.
 
 \subsection{산출 지표들} \label{subsec:result_converting_coeff_definition}
 \simulator\은 계산된 용도별, 열원별, 월별 에너지소요량을 바탕으로, 1차에너지소요량, 온실가스 배출량 및 에너지 비용을 산출하여 제시한다. 각 지표에 대한 변환 계수는 본 엔진에서 지원하는 4가지 연료(전기, 천연가스, 등유, 지역난방)에 대하여 각각 정의되며, 건물 전체의 1차에너지소요량, 온실가스배출량 및 에너지 비용은 4가지 연료에 대한 값의 합으로 정의된다 (식 \ref{eq:1st_energy_calculation} - \ref{eq:cost_calculation}).
@@ -869,7 +754,7 @@ nn절에 따라 전열교환기를 모델링하면 전열교환기 1대당 보�
 1차에너지 환산계수는 관련 법령의 개정에 따라 수정 반영되어야 한다.
 
 \subsubsection{온실가스 배출량}
-연료별 온실가스 배출량 환산 계수는 표 \ref{tbl:coeff_kWh_to_CO2}\와 같다. 온실가스는 CO\textsubscript{2,eq}로 계산하는게 표준임. eq 계산은 어떻게 함. 온실가스 종류별 CO2변환계수(지구온난화지수?)는 아래 표 참고 바람.
+연료별 온실가스 배출량 환산 계수는 표 \ref{tbl:coeff_kWh_to_CO2}\와 같다.
 
 \begin{table}[ht]
   \caption{연료별 사용량의 온실가스 배출량 환산 계수}
@@ -886,7 +771,7 @@ nn절에 따라 전열교환기를 모델링하면 전열교환기 1대당 보�
 \end{table}
 
 \paragraph{전기} 전기의 온실가스 배출량 환산 계수는 매년 환경부 온실가스 종합정보센터에서 공포하고 있다.
-\paragraph{가스 및 등유} 이건 좀 복잡한데, IPCC에서... 이런 수식을 사용하고 있고, 이런 표를 제시하고 있고, 그 값은 아래 표와 같고...
+\paragraph{가스 및 등유} IPCC에서 기술하고 있는 바에 대하여 추후 기술 예정임.
 
 \paragraph{지역난방} 지역난방의 온실가스 배출량 환산 계수는 매년 3월 경 한국지역난방공사에서 공포하고 있다 (그림 \ref{fig:co2_bboombboom}). 배출권거래제 기본계획의 기간(제3차: 2021-2025년, 제4차: 2026-2030)에 따라 다른 환산 계수를 공포하고 있으며, 본 엔진은 제4차 기간을 기준으로 참조하였다.
 
@@ -929,7 +814,7 @@ nn절에 따라 전열교환기를 모델링하면 전열교환기 1대당 보�
 \paragraph{지역난방} 지역난방은 한국지역난방공사의 경영실적 공시에 판매단가를 명시하고 있다 (그림 \ref{fig:districtheating_cost}).
 
 \begin{defaultfigure}
-  \includegraphics[width=\textwidth]{지역난방공사 운영실적 (나중에 표로 바꿔야되나).png}
+  \includegraphics[width=\textwidth]{지역난방공사 운영실적.png}
   \caption{한국지역난방공사 판매단가 공시 예시 (2024년 기준)}
   \label{fig:districtheating_cost}
 \end{defaultfigure}
@@ -943,97 +828,32 @@ nn절에 따라 전열교환기를 모델링하면 전열교환기 1대당 보�
 \chapter{Python 모듈} \label{chapter:pymodule}
 
 \section{개요}
-\pymodule 은 ...
 
-\subsection{모듈 구조}
-\pymodule 밑에 core 있고 dragon 있고... core와 dragon은 동일한 하위폴더로 분류되어있고..
+
 
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
 % ---------------------------------------------------------------------------- %
 
 \section{\pymodule~구조별 상세}
-\pymodule 이랑 idragon이랑 launcher랑 나누어서 서술할 것임.
-
-\subsection{\pymodule}
-\subsubsection{construction}
-구조임
-\subsubsection{profile}
-프로필임
-\subsubsection{hvac}
-시스템임
-\subsubsection{shape}
-모양?임
-\subsubsection{model}
-모델임
-
-\subsection{idragon}
-\subsubsection{construction}
-구조임
-\subsubsection{profile}
-프로필임
-\subsubsection{hvac}
-시스템임
-\subsubsection{shape}
-모양?임
-\subsubsection{model}
-모델임
-\subsection{imugi}
-eppy를 대신하는 모듈. @TODO 어떤것을 위주로 사용되는지 서술 
-
-\subsection{launcher}
-EP 실행하는 모듈임. 모듈 구조는 아래와 같이 되어 있고, 향후 무슨무슨 실행을 고려할 수 있도록 구조화되었음. EP run 도는 부분까지 호출되는 순서는 유의 바람.
-EP 돌아가는거 파싱하는 부분도 있음. 이런 가정 하에서 파싱하는거라서 혹시 이게 안되면 잘 안될지도 모름.
+\
+\pymodule\의 submodule 구조 및 기능에 대하여 추후 기술 예정임.
 
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
 % ---------------------------------------------------------------------------- %
 
 \section{데이터 변환의 구현}
-\subsection{grexcel to grjson}
-불러올 때 column들 filtering해서 들어오고 ID 붙이고...
 
-\subsection{grjson to GreenRetrofitModel}
-일단 reference하는 객체들이 있으니까 만들어놓고 dict에 저장하는 식으로 구현함. surface같은건 마지막에 ref관계 연결해줌. ref를 포함하는 얘들은 나중에 만드는 식으로 하고 fromjson함수에 그 dict들을 추가로 입력으로 받도록 해서 구현함
-
-\subsection{GreenRetrofitModel to EnergyModel}
-모든 GRM 객체는 to\_dragon을 가지고 있음 (zone 빼고). 그걸 가지고 하나씩 변환한다고 생각하면 됨. 일단 surface부터 만들어놓고 형상만들고 거기다가 설비를 갖다붙이는 순서로 만듬. 형상만들때 주의해야 하는게 아래 순서로 작업하는 걸 기억해야 함. 그리고 원본 훼손 안되게 해야 하니까 unknown인 얘들은 다시 복원해야 함.
-
-\subsection{EnergyModel to idf}
-
-\subsubsection{idf 기본 설정}
-기본적으로 돌아가게 하기 위해서 아래 객체들을 먼저 만들어줘야 함.
-\paragraph{Building} 필요함
-\paragraph{SimulationOptions} 필요함
-
-시뮬레이션 오류 없이 실행하기 위해 설정해야하는 class는 아래와 같음.
-\paragraph{something} 을 설정해줘야함
-\paragraph{something} 을 설정해줘야함
-\paragraph{something} 을 설정해줘야함
-
-\subsubsection{DB류 객체들 내보내기}
-material, construction, profile 이런 것들은 미리 다 쌓아둔다.
-
-\subsubsection{실재하는 객체들 하나씩 내보내기}
-zone, surface, 설비같은 것들에 해당. 모든 EnergyModel 객체들은 다 to\_idf\_object 객체 가지고 있음. 기본적으로는 자기자신을 idfobject화 해서 계속 append하는 건데, 어떤 얘들은 좀 연동이 있어서 이걸 고려해야 함.
-
-\subsubsection{후처리}
-할 것들이 좀 있음
-
-\subsubsection{ouptut 관리 등}
-결과물 출력할 수 있게 작업해야 함
+데이터 변환이 실제로 python 코드로 어떻게 구현되는지에 대하여 추후 기술 예정임.
 
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
 % ---------------------------------------------------------------------------- %
 
 \section{EnergyPlus의 실행}
-외부에서 입력이 들어오면, 그림 \ref{fig:eplaunchbycode}\와 같이 EnergyPlus가 호출됨
-\begin{defaultfigure}
-  \includegraphics[height=0.99\textheight, width=\textwidth, keepaspectratio]{실행구조도.png}
-  \caption{외부 호출 시 EnergyPlus launch되는 호출 흐름}
-  \label{fig:eplaunchbycode}
-\end{defaultfigure}
+
+EnergyPlus의 실행이 실제로 python 코드로 어떻게 구현되는지에 대하여 추후 기술 예정임.
 
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
@@ -1041,4 +861,4 @@ zone, surface, 설비같은 것들에 해당. 모든 EnergyModel 객체들은 �
 
 \section{예시코드}
 
-import \pymodule
+python에서 \pymodule\을 활용하는 예시 코드에 대하여 추후 기술 예정임.
