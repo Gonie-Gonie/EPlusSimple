@@ -836,17 +836,17 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 
 \paragraph{fuel\_type} 연료의 종류. 생산설비의 사용 연료를 의미하며, 선택 가능한 항목은 전기(``electricity''), 천연가스/가스(``natural\_gas''), 난방유(``oil''), 지역난방(``district\_heating'')이다.
 
-@TODO
+
 \paragraph{compressor\_type} 압축기의 종류. 
-@TODO
+
 \paragraph{coolingtower\_type} 냉각탑의 종류. 
-@TODO
+
 \paragraph{coolingtower\_control} 냉각탑에 적용된 제어. 
 
 \paragraph{hotwater\_supply} 급탕공급 여부. 급탕을 공급하는 모든 생산설비들은 급탕효율 계산에 이용되며, 모든 설비가 동등하게 급탕 부하를 분담하는 것으로 가정한다.
 
 \paragraph{coolingtower\_capacity} 냉각탑용량. 해당 값을 입력하지 않을 경우 (\texttt{null}) EnergyPlus의 autosizing을 이용한다.
-@TODO
+
 \paragraph{boiler\_efficiency} 연동된 보일러의 효율.
 
 \paragraph{capacity\_cooling} 냉방용량. 해당 값을 입력하지 않을 경우 (\texttt{null}) EnergyPlus의 autosizing을 이용한다.
@@ -856,11 +856,11 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 \paragraph{cop\_cooling} 정격 냉방성능계수(COP). 정격 운전 조건에서의 냉방 출력을 소비 전력으로 나눈 값이다.
 
 \paragraph{cop\_heating} 정격 난방성능계수(COP). 정격 운전 조건에서의 난방 출력을 소비 전력으로 나눈 값이다.
-@TODO
-\paragraph{efficiency} 효율...
+
+\paragraph{efficiency} 보일러의 효율.
 
 \subsubsection{ventilation\_system} \label{subsubsection:ioref:ventilationsystem}
-환기설비다.
+
 
 \jsontable{ventilation\_system}{
   \jsontablerow{id             }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
@@ -975,60 +975,8 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 % ---------------------------------------------------------------------------- %
 
 \section{grexcel 구조 (.xlsx 파일)}
-\subsection{개발규칙}
-\texttt{grexcel}은 사용자에게 가장 친숙한 워크시트 도구인 Excel을 기반으로 
-기본적인 데이터 입력 인터페이스(UI) 역할을 한다. 사용자가 한 페이지 내에서 많은 정보를 확인할 수 있도록 구성되어 있다.
-\par
-@TODO 
-단위도 사용자에게 편한 단위 쓴다. 파란색은 뭐 초록색은 뭐... (@memo 정보 제공 파트에 집중하여 작성)
 
-\subsection{sheet별 명세}
-\subsubsection{건물정보}
-@TODO
-
-\subsubsection{실}
-@TODO
-
-\subsubsection{면}
-@TODO
-
-\subsubsection{개구부}
-@TODO
-
-\subsubsection{구조체\_면}
-@TODO
-
-\subsubsection{구조체\_개구부}
-@TODO
-
-\subsubsection{구조체\_면}
-@TODO
-
-\subsection{재료}
-@TODO
-
-\subsection{공급설비}
-@TODO
-
-\subsection{생산설비}
-@TODO
-
-\subsection{환기설비}
-@TODO
-
-\subsection{PV패널}
-@TODO
-
-\subsection{예시}
-@TODO
-
-
-\subsection{grexcel을 grjson으로 변환하는 과정}
-유효한 컬럼만 떼고...
-컬럼명에서 단위 없애고...
-단위변환하고...
-값변환할 것 하고...
-@TODO  코드 풀어서 설명, 캡쳐 사진 넣기
+에셀 기반 입력 구조에 대하여 추후 기술 예정임.
 
 
 % ---------------------------------------------------------------------------- %
@@ -1036,43 +984,5 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 % ---------------------------------------------------------------------------- %
 
 \section{grresult 구조 (.grr 파일)} \label{section:grr-explanation}
-\subsection{class별 명세}
-\subsubsection{입력정보 및 계산 방식 관련}
-\paragraph{building} 건물 관련 기본 정보를 포함한다.
-\begin{itemize}
-  \item \textbf{total\_area}: 면적당 지표 계산에 사용되는 건물의 연면적($m^2$)을 의미한다. 연면적의 정의는 \ref{subsec:floorarea_definition_for_EUI}에서 기술한다.
-\end{itemize}
 
-\paragraph{constants} 연료별, 용도별, 월별 에너지소요량으로부터, 1차에너지소요량(site2source, $kWh/kWh$), 온실가스 배출량(site2co2, $kgCO_{2,eq}/kWh$) 및 에너지요금(site2cost, $won/kWh$)을 계산하는 데 사용된 변환계수를 포함한다. 각 변환계수의 산출 과정에 대하여는 \ref{subsec:result_converting_coeff_definition}에서 기술한다.
-
-\subsubsection{원시데이터 관련}
-에너지소요량을 비롯한 4가지 지표는 용도별 (6가지), 열원별 (4가지), 월별 (12개월)로 제시된다.
-\begin{itemize}
-  \item 6가지 용도: 난방(heating), 냉방(cooling), 조명(lighting), 팬/펌프/전열교환기(circulation), 급탕(hotwater), 발전(generators)
-  \item 5가지 열원: 전기(ELECTRICITY), 천연가스(NATURALGAS), 등유(OIL), 지역난방(DISTRICTHEATING)
-\end{itemize}
-
-\paragraph{site\_uses} 건물에서 쓰는거 월별로 원별로 용도별로. 이런식으로 구성되어있음.
-\paragraph{source\_uses} 1차에너지에 해당하는 것.
-\paragraph{co2} CO2 배출량
-\paragraph{cost} 비용. 여기까지 다 site\_uses에다가 곱해서 얻어지는 것임
-
-\subsubsection{요약데이터 관련}
-\paragraph{summary\_per\_area} 다 합한 것.
-\paragraph{summary\_gross} 에 면적을 곱한 것. 비용 관련된 부분은 얘를 보는 게 맞을 듯.
-
-\subsection{예시}
-
-아래는 결과 파일 예시이다.
-
-\subsection{다른 도구와의 관계}
-\subsubsection{EnergyPlus(IDFEditor, DesignBuilder, ...)}
-이걸 좀 더 사용자 친화적으로 바꾼 개념임. 형상은 이렇게 이해하면 되고 설비는 이렇게 이해해야 함. EP 설비할 때는 이런걸 이렇게 신경썼을텐데 이 툴을 쓸 때는 이런식으로 접근하면 대응되게 할 수 있음.
-
->> 이거 레벨 한단계 안올리면 결과파일 관련 내용임
-
-\subsubsection{ECO2}
-입력체계는 거의 비슷하다. 원래 하던대로 하면 된다. 단 형상쪽은 좀 주의해야 할 것임. \par
-결과도 비슷한데 환기쪽만 조심하면 됨. ECO2에서 환기는 환기침기부하지만 우리는 그런거 없음. 환기침기부하생기면 냉난방으로 처리하는 거니까 냉난방에 묶여있음. 써큘레이션이라고 팬 펌프 전열교환기만 따로 뽑았음.
-
->> 이거 레벨 한단계 안올리면 결과파일 관련 내용임
+결과파일의 예시와 구조에 대하여 추후 기술 예정임.
