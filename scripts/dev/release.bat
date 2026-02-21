@@ -2,6 +2,16 @@
 set "VERSION=0.6.1"
 
 :: ------------------------------------------------------------------------ ::
+::                          DIR & PATH SETUP                                ::
+:: ------------------------------------------------------------------------ ::
+:: 현재 스크립트 위치(scripts\dev\)에서 두 단계 위로 올라가 최상위(Root) 경로를 구함
+set "ROOT_DIR=%~dp0..\.."
+:: 작업 디렉토리를 프로젝트 최상위로 강제 이동
+cd /d "%ROOT_DIR%"
+
+:: 이제부터 모든 상대 경로(dist, docs, venv 등)는 최상위 폴더 기준으로 정상 작동합니다.
+
+:: ------------------------------------------------------------------------ ::
 ::                           BUILD TARGET                                   ::
 :: ------------------------------------------------------------------------ ::
 ::
@@ -31,7 +41,8 @@ if /I "%BUILD_FOR%" == "reb" (
 
 set "VERSION_STRING=V%VERSION%%VERSION_SUFFIX%"
 set "RELEASE_DIR=dist\%PROJECT_NAME%_%VERSION_STRING%"
-set "OUTPUT_ZIP=%~dp0dist\%PROJECT_NAME%_%VERSION_STRING%.zip"
+set "OUTPUT_ZIP=%CD%\dist\%PROJECT_NAME%_%VERSION_STRING%.zip"
+set "SEVEN_ZIP=%CD%\tools\7z.exe"
 set "FINAL_PROJECT_NAME=%PROJECT_NAME%_%VERSION_STRING%"
 
 echo ======================================================
@@ -214,8 +225,8 @@ if not %errorlevel% equ 0 (
 echo [7/7] Creating archive: %OUTPUT_ZIP%
 :: 압축할 폴더로 직접 이동
 pushd "%RELEASE_DIR%"
-:: 현재 폴더(.)의 모든 내용물을 압축 파일에 추가
-"%~dp0tools\7z.exe" a -tzip "%OUTPUT_ZIP%" . > nul
+:: 최상위 폴더에 있는 tools\7z.exe를 실행하여 압축
+"%SEVEN_ZIP%" a -tzip "%OUTPUT_ZIP%" . > nul
 :: 원래 위치로 복귀
 popd
 
