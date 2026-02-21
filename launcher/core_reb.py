@@ -6,6 +6,7 @@
 # built-in modules
 from pathlib import Path
 from typing import Dict, List, Any, Tuple, Optional
+from multiprocessing import Pool
 
 # third-party modules
 import pandas as pd
@@ -209,43 +210,62 @@ def _run_debugging_phase(
     
     return debug_reports, has_severe_error, final_report_df
 
+def _execute_rebexcel_wrapper(filepath: Path) -> Any:
+    """
+    최상위 수준에 정의되어야 multiprocessing에서 피클링이 가능합니다.
+    """
+    # run_rebexcel의 반환값 중 첫 번째(result 객체)만 사용
+    result, _ = run_rebexcel(str(filepath), save_grr=False, save_idf=False, preprocess=False)
+    return result
+
 def _run_simulation_phase(
     filepaths: Dict[str, Path],
     file_before_name: str,
-    file_after_name : str,
+    file_after_name: str,
     file_afterN_name: str,
 ) -> Dict[str, Any]:
     """
-    [수정] 디버깅을 통과한 파일들에 대해 시뮬레이션을 실행합니다.
-    (전처리는 이 함수 호출 전에 이미 완료되었다고 가정합니다.)
-
-    Args:
-        filepaths: 시뮬레이션 대상 파일의 경로 딕셔너리 (전처리되었거나 원본).
-        file_before_name: '리모델링 전' 파일의 원본 이름.
-        files_after_names: '리모델링 후' 파일들의 원본 이름 리스트.
-        
-    Returns:
-        시뮬레이션 결과를 템플릿에 전달할 형식으로 가공한 딕셔너리.
+    [병렬화 버전] 최대 3개의 코어를 사용하여 시뮬레이션을 실행합니다.
     """
     
-    # '리모델링 전' 시뮬레이션 실행
-    result_before, _ = run_rebexcel(str(filepaths[file_before_name]), save_grr=False, save_idf=False, preprocess=False)
-    # '리모델링 후' 시뮬레이션 실행
+    # 1. 실행할 파일 이름 리스트 구성 (None 체크 및 중복 제거 전략)
+    # 병렬 처리를 위해 일단 '실행해야 할 가능성이 있는' 이름들을 모읍니다.
+    task_names = [file_before_name]
     if file_after_name:
-        result_after, _  = run_rebexcel(str(filepaths[file_after_name]), save_grr=False, save_idf=False,preprocess=False)
+        task_names.append(file_after_name)
+    if file_afterN_name:
+        task_names.append(file_afterN_name)
+
+    # 실제 실행할 경로 리스트 (중복 제거를 통해 자원 낭비 방지)
+    unique_names = list(dict.fromkeys(task_names)) 
+    unique_paths = [filepaths[name] for name in unique_names]
+
+    # 2. 병렬 실행 (최대 3코어 고정)
+    num_cores = min(len(unique_paths), 3)
+    with Pool(processes=num_cores) as pool:
+        executed_results = pool.map(_execute_rebexcel_wrapper, unique_paths)
+
+    # 3. 결과를 이름 기반 딕셔너리로 매핑
+    result_map = dict(zip(unique_names, executed_results))
+
+    # 4. 기존 로직에 따른 결과 할당 (후속 파일이 없을 시 이전 단계 결과 참조)
+    result_before = result_map[file_before_name]
+    
+    if file_after_name:
+        result_after = result_map[file_after_name]
     else:
         result_after = result_before
-    # N년차 시뮬레이션 실행
+
     if file_afterN_name:
-        result_afterN, _  = run_rebexcel(str(filepaths[file_afterN_name]), save_grr=False, save_idf=False,preprocess=False)
+        result_afterN = result_map[file_afterN_name]
     else:
-        result_afterN = result_after    
-    
+        result_afterN = result_after
+
     return {
         "filename_before": file_before_name,
         "filename_after": file_after_name,
         "filename_afterN": file_afterN_name,
         "before": result_before.to_dict(),
-        "after" : result_after.to_dict() ,
+        "after": result_after.to_dict(),
         "afterN": result_afterN.to_dict(),
     }

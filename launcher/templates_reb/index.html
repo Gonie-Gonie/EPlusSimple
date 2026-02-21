@@ -97,8 +97,8 @@
         </div>
 
         <div class="graph-container summary-comparison-graph">
+            <div class="graph-title">연간 주요 성능 지표 비교</div>
             <div id="annualSummaryContainer"></div>
-            <div class="graph-title">연간 주요 성능 지표 비교 (Total Annual)</div>
         </div>
     </div>
     {% endif %}
@@ -308,12 +308,12 @@ function calculateAnnualData(allData, dataType) {
             graphOrder.forEach(itemInfo => {
                 const dataAfter  = allData.after[dataType]?.[itemInfo.key];
                 const dataAfterN = allData.afterN[dataType]?.[itemInfo.key];
-                document.getElementById(`title-${itemInfo.key}`).textContent = `${itemInfo.name} ${labels.name} 비교 ${labels.unit}`;
+                document.getElementById(`title-${itemInfo.key}`).textContent = `${itemInfo.name} 월별 ${labels.name} 비교 ${labels.unit}`;
                 drawGroupedStackedBar(`bar-${itemInfo.key}`, `legend-${itemInfo.key}`, allData.before[dataType]?.[itemInfo.key], dataAfter, dataAfterN, labels.unit);
             });
             
             const annualData = calculateAnnualData(allData, dataType);
-            document.getElementById('title-annual-by-purpose').textContent = `연간 용도별 ${labels.name} 비교 ${labels.unit}`;
+            document.getElementById('title-annual-by-purpose').textContent = `용도별 연간 ${labels.name} 비교 ${labels.unit}`;
             drawAnnualByPurposeChart('bar-annual-by-purpose', annualData, labels.unit);
 
             const lineLabelBase = `월별 총 ${labels.name}`;
@@ -349,7 +349,7 @@ function calculateAnnualData(allData, dataType) {
         
         summaryMetrics.forEach(metric => {
             tableHtml += `<thead><tr><th colspan="5" class="metric-title">${metric.name}</th></tr>`;
-            tableHtml += `<tr><th>구분</th><th>값 (${metric.unit_per_area})</th><th>변화율</th><th>총량 (${metric.unit_gross})</th><th>변화율</th></tr></thead><tbody>`;
+            tableHtml += `<tr><th>구분</th><th>면적당 [${metric.unit_per_area}]</th><th>변화율</th><th>총량 [${metric.unit_gross}]</th><th>변화율</th></tr></thead><tbody>`;
 
             // --- "Before" 행 (기존과 동일) ---
             const valPerAreaBefore = dataBefore.summary_per_area[metric.key]?.total_annual || 0;
@@ -365,7 +365,7 @@ function calculateAnnualData(allData, dataType) {
             const changeHtmlPerAreaAfter = calculateChangeHtml(valPerAreaBefore, valPerAreaAfter);
             const changeHtmlGrossAfter = calculateChangeHtml(valGrossBefore, valGrossAfter);
 
-            tableHtml += `<tr><td class="case-label">[GR 이후]</td><td>${valPerAreaAfter.toLocaleString(undefined, {maximumFractionDigits: 1})}</td><td>${changeHtmlPerAreaAfter}</td><td>${valGrossAfter.toLocaleString(undefined, {maximumFractionDigits: 1})}</td><td>${changeHtmlGrossAfter}</td></tr>`;
+            tableHtml += `<tr><td class="case-label">[GR 이후]</td><td>${valPerAreaAfter.toLocaleString(undefined, {maximumFractionDigits: 1, minimumFractionDigits: 1})}</td><td>${changeHtmlPerAreaAfter}</td><td>${valGrossAfter.toLocaleString(undefined, {maximumFractionDigits: 1, minimumFractionDigits: 1})}</td><td>${changeHtmlGrossAfter}</td></tr>`;
             
             // --- [추가] "After N" (GR 이후 (운영특성 반영)) 행 ---
             // dataAfterN 인자를 직접 사용
@@ -376,7 +376,7 @@ function calculateAnnualData(allData, dataType) {
             const changeHtmlPerAreaAfterN = calculateChangeHtml(valPerAreaBefore, valPerAreaAfterN);
             const changeHtmlGrossAfterN = calculateChangeHtml(valGrossBefore, valGrossAfterN);
 
-            tableHtml += `<tr><td class="case-label">[GR 이후 (운영특성 반영)]</td><td>${valPerAreaAfterN.toLocaleString(undefined, {maximumFractionDigits: 1})}</td><td>${changeHtmlPerAreaAfterN}</td><td>${valGrossAfterN.toLocaleString(undefined, {maximumFractionDigits: 1})}</td><td>${changeHtmlGrossAfterN}</td></tr>`;
+            tableHtml += `<tr><td class="case-label">[GR 이후 (운영특성 반영)]</td><td>${valPerAreaAfterN.toLocaleString(undefined, {maximumFractionDigits: 1, minimumFractionDigits: 1,})}</td><td>${changeHtmlPerAreaAfterN}</td><td>${valGrossAfterN.toLocaleString(undefined, {maximumFractionDigits: 1, minimumFractionDigits: 1})}</td><td>${changeHtmlGrossAfterN}</td></tr>`;
 
             tableHtml += `</tbody>`;
         });
