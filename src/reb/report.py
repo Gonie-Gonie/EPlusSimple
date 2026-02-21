@@ -622,7 +622,7 @@ def escape_str(v:str):
     v = v.replace(r"_",r"\_")
     v = v.replace(r"&", r"\&")
     v = v.replace(r"%", r"\%")
-    v = v.replace(r"~", r"\~")
+    v = v.replace(r"~", r"\textasciitilde{}")
     v = v.replace(r"#", r"\#")
     
     return v

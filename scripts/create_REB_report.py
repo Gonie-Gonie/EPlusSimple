@@ -108,7 +108,7 @@ def find_comment(
     for key in pointkeys:
         commentdict[key] =  "★" * int(commentdict[key]) + "☆" * (7 - int(commentdict[key]))
     commentdict = {
-        k: f"{v:.1f}" if not isinstance(v, str) else escape_str(v.replace(r"\n","\\"))
+        k: f"{v:.1f}" if not isinstance(v, str) else v.replace(r"\n","\\")
         for k, v in commentdict.items()
     }
     
@@ -152,7 +152,6 @@ def main(
                 pdfpath
             )
             
-            break
         
         finally:
             if os.path.exists(workingpath):
