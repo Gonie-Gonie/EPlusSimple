@@ -81,7 +81,7 @@ pushd docs
 :: -outdir: 출력 폴더를 지정합니다. 최상위 폴더 기준이므로 ../dist/docs 입니다.
 if not exist "..\dist\docs\TechnicalReferenceManual" mkdir "..\dist\docs\TechnicalReferenceManual"
 
-%LATEX_COMPILER% -pdf -outdir=../dist/docs "mainTRM.tex"
+%LATEX_COMPILER% -silent -pdf -outdir=../dist/docs "mainTRM.tex"
 
 set "BUILD_ERROR=%errorlevel%"
 popd
@@ -96,6 +96,16 @@ echo     ...Engineering Reference build successful.
 
 echo [4/5] Building Regression Test Report...
 
+echo Running Regression Tests before building report...
+venv\python.exe scripts\dev\regressiontest.py
+
+:: 테스트 스크립트가 에러를 뱉으면 릴리즈 과정을 중단하도록 안전장치 추가
+if %errorlevel% neq 0 (
+    echo [ERROR] Regression test failed! Aborting release.
+    pause
+    exit /b 1
+)
+
 :: latexmk는 .tex 파일이 있는 곳에서 실행하는 것이 가장 안정적입니다.
 pushd docs
 
@@ -103,7 +113,7 @@ pushd docs
 :: -outdir: 출력 폴더를 지정합니다. 최상위 폴더 기준이므로 ../dist/docs 입니다.
 if not exist "..\dist\docs\RegressionTestReport" mkdir "..\dist\docs\RegressionTestReport"
 
-%LATEX_COMPILER% -pdf -outdir=../dist/docs "mainRTR.tex"
+%LATEX_COMPILER% -silent -pdf -outdir=../dist/docs "mainRTR.tex"
 
 set "BUILD_ERROR=%errorlevel%"
 popd
@@ -125,7 +135,7 @@ pushd docs
 :: -outdir: 출력 폴더를 지정합니다. 최상위 폴더 기준이므로 ../dist/docs 입니다.
 if not exist "..\dist\docs\ExcelInterfaceUserGuide" mkdir "..\dist\docs\ExcelInterfaceUserGuide"
 
-%LATEX_COMPILER% -pdf -outdir=../dist/docs "mainEIUG.tex"
+%LATEX_COMPILER% -silent -pdf -outdir=../dist/docs "mainEIUG.tex"
 
 set "BUILD_ERROR=%errorlevel%"
 popd
@@ -145,7 +155,7 @@ pushd docs
 :: -outdir: 출력 폴더를 지정합니다. 최상위 폴더 기준이므로 ../dist/docs 입니다.
 if not exist "..\dist\docs\Release-Note" mkdir "..\dist\docs\Release-Note"
 
-%LATEX_COMPILER% -pdf -outdir=../dist/docs "mainRN.tex"
+%LATEX_COMPILER% -silent -pdf -outdir=../dist/docs "mainRN.tex"
 
 set "BUILD_ERROR=%errorlevel%"
 popd
