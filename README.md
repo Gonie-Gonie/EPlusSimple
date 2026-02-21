@@ -2,7 +2,7 @@
 
 **EPlusSimple** is an open-source building energy simulation engine. It simplifies the complex EnergyPlus workflow by using a spreadsheet-centric data structure and graph-based spatial relationship visualization.
 
-## 🚀 Installation & Setup
+## Installation & Setup
 
 This project is designed to be **portable**. You do not need to install Python or manage libraries manually.
 
@@ -15,7 +15,7 @@ This project is designed to be **portable**. You do not need to install Python o
     Run `setup.bat`. This will create a local portable Python environment (`venv`) and install all required dependencies from `requirements.txt` automatically.
 
 
-## 💻 How to Run
+## How to Run
 
 There are two primary ways to interact with the engine:
 
