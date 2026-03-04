@@ -51,10 +51,36 @@ echo ======================================================
 echo.
 
 
-echo [1/5] Cleaning up previous build and creating release folder...
+
+echo [1/5] Cleaning up previous build and creating release directory...
 if exist "dist" rd /s /q "dist"
 
-echo [2/5] Generating releaseinfo.tex...
+:: Create release directory
+echo ...Build target: %BUILD_FOR%
+mkdir "%RELEASE_DIR%"
+
+:: Copy common files
+xcopy /E /I /Q "venv"     "%RELEASE_DIR%\venv\"
+xcopy /E /I /Q "examples" "%RELEASE_DIR%\examples\"
+copy "runEngine.bat"        "%RELEASE_DIR%\runEngine.bat" > nul
+copy "runExcelLauncher.bat" "%RELEASE_DIR%\runExcelLauncher.bat" > nul
+
+
+
+echo [2/5] Generating Regression Test Result...
+
+echo Running Regression Tests before building report...
+venv\python.exe scripts\dev\regressiontest.py > regtest.log 2>&1
+
+if %errorlevel% neq 0 (
+    echo [ERROR] Regression test failed! Aborting release.
+    pause
+    exit /b 1
+)
+
+
+
+echo [3/5] Generating documentations...
 
 :: 라텍스 컴파일러 지정
 set "LATEX_COMPILER=latexmk"
@@ -71,158 +97,61 @@ set "TODAY=%YYYY%.%MM%.%DD%."
     echo \newcommand{\releasedate}{%TODAY%}
 ) > "docs\releaseinfo.tex"
 
+@echo off
+setlocal enabledelayedexpansion
 
-echo [3/5] Building Engineering Reference...
+:: 문서 리스트 정의: "파일이름(확장자제외)" "출력될표시이름"
+call :BuildAndCopy "mainTRM"  "Technical Reference Manual"
+call :BuildAndCopy "mainRTR"  "Regression Test Report"
+call :BuildAndCopy "mainRN"   "Release Note"
 
-:: latexmk는 .tex 파일이 있는 곳에서 실행하는 것이 가장 안정적입니다.
-pushd docs
 
-:: -pdf: PDF 파일을 생성합니다.
-:: -outdir: 출력 폴더를 지정합니다. 최상위 폴더 기준이므로 ../dist/docs 입니다.
-if not exist "..\dist\docs\TechnicalReferenceManual" mkdir "..\dist\docs\TechnicalReferenceManual"
 
-%LATEX_COMPILER% -silent -pdf -outdir=../dist/docs "mainTRM.tex"
+echo [4/5] Copying source files and setting up configuration...
 
-set "BUILD_ERROR=%errorlevel%"
-popd
-
-:: 빠져나온 후에 저장된 errorlevel 값으로 성공/실패를 판정합니다.
-if %BUILD_ERROR% neq 0 (
-    echo [ERROR] LaTeX build failed. Please check the log file.
-    pause
-    exit /b
-)
-echo     ...Engineering Reference build successful.
-
-echo [4/5] Building Regression Test Report...
-
-echo Running Regression Tests before building report...
-venv\python.exe scripts\dev\regressiontest.py
-
-:: 테스트 스크립트가 에러를 뱉으면 릴리즈 과정을 중단하도록 안전장치 추가
-if %errorlevel% neq 0 (
-    echo [ERROR] Regression test failed! Aborting release.
-    pause
-    exit /b 1
-)
-
-:: latexmk는 .tex 파일이 있는 곳에서 실행하는 것이 가장 안정적입니다.
-pushd docs
-
-:: -pdf: PDF 파일을 생성합니다.
-:: -outdir: 출력 폴더를 지정합니다. 최상위 폴더 기준이므로 ../dist/docs 입니다.
-if not exist "..\dist\docs\RegressionTestReport" mkdir "..\dist\docs\RegressionTestReport"
-
-%LATEX_COMPILER% -silent -pdf -outdir=../dist/docs "mainRTR.tex"
-
-set "BUILD_ERROR=%errorlevel%"
-popd
-
-:: 빠져나온 후에 저장된 errorlevel 값으로 성공/실패를 판정합니다.
-if %BUILD_ERROR% neq 0 (
-    echo [ERROR] LaTeX build failed. Please check the log file.
-    pause
-    exit /b
-)
-echo     ...Regression Test Report build successful.
-
-echo [5/7] Building Excel Interface User Guide and Release Note...
-
-:: latexmk는 .tex 파일이 있는 곳에서 실행하는 것이 가장 안정적입니다.
-pushd docs
-
-:: -pdf: PDF 파일을 생성합니다.
-:: -outdir: 출력 폴더를 지정합니다. 최상위 폴더 기준이므로 ../dist/docs 입니다.
-if not exist "..\dist\docs\ExcelInterfaceUserGuide" mkdir "..\dist\docs\ExcelInterfaceUserGuide"
-
-%LATEX_COMPILER% -silent -pdf -outdir=../dist/docs "mainEIUG.tex"
-
-set "BUILD_ERROR=%errorlevel%"
-popd
-
-:: 빠져나온 후에 저장된 errorlevel 값으로 성공/실패를 판정합니다.
-if %BUILD_ERROR% neq 0 (
-    echo [ERROR] LaTeX build failed. Please check the log file.
-    pause
-    exit /b
-)
-echo     ...Excel Interface User Guide build successful.
-
-:: latexmk는 .tex 파일이 있는 곳에서 실행하는 것이 가장 안정적입니다.
-pushd docs
-
-:: -pdf: PDF 파일을 생성합니다.
-:: -outdir: 출력 폴더를 지정합니다. 최상위 폴더 기준이므로 ../dist/docs 입니다.
-if not exist "..\dist\docs\Release-Note" mkdir "..\dist\docs\Release-Note"
-
-%LATEX_COMPILER% -silent -pdf -outdir=../dist/docs "mainRN.tex"
-
-set "BUILD_ERROR=%errorlevel%"
-popd
-
-:: 빠져나온 후에 저장된 errorlevel 값으로 성공/실패를 판정합니다.
-if %BUILD_ERROR% neq 0 (
-    echo [ERROR] LaTeX build failed. Please check the log file.
-    pause
-    exit /b
-)
-echo     ...Excel Interface User Guide build successful.
-
-echo [6/7] Copying files for distribution...
-echo     ...Build target: %BUILD_FOR%
-mkdir "%RELEASE_DIR%"
-mkdir "%RELEASE_DIR%\docs"
-
-:: Copy common files
-xcopy /E /I /Q "venv"     "%RELEASE_DIR%\venv\"
-xcopy /E /I /Q "examples" "%RELEASE_DIR%\examples\"
-copy "runEngine.bat"        "%RELEASE_DIR%\runEngine.bat" > nul
-copy "runExcelLauncher.bat" "%RELEASE_DIR%\runExcelLauncher.bat" > nul
-copy "dist\docs\mainTRM.pdf" "%RELEASE_DIR%\docs\Technical Reference Manual.pdf" > nul
-copy "dist\docs\mainRTR.pdf" "%RELEASE_DIR%\docs\Regression Test Report.pdf" > nul
-copy "dist\docs\mainEIUG.pdf" "%RELEASE_DIR%\docs\Excel Interface User Guide.pdf" > nul
-copy "dist\docs\mainRN.pdf" "%RELEASE_DIR%\docs\Release Note.pdf" > nul
-
-:: Copy src modules (conditionally)
-echo     ...Copying src modules...
+:: 1. 공통 src 모듈 복사 (항상 복사되는 것들)
+echo     ...Copying common src modules...
 mkdir "%RELEASE_DIR%\src"
 xcopy /E /I /Q "src\epsimple" "%RELEASE_DIR%\src\epsimple\"
 xcopy /E /I /Q "src\idragon"  "%RELEASE_DIR%\src\idragon\"
 
-if /I "%BUILD_FOR%" == "reb" (
-    echo     ...Adding 'reb' src module.
-    xcopy /E /I /Q "src\reb" "%RELEASE_DIR%\src\reb\"
-)
+:: 2. launcher 공통 파일 복사
+echo     ...Copying common launcher files...
+mkdir "%RELEASE_DIR%\src\launcher"
+xcopy /E /I /Q "src\launcher\static" "%RELEASE_DIR%\src\launcher\static\"
+copy "src\launcher\__init__.py" "%RELEASE_DIR%\src\launcher\__init__.py" > nul
+copy "src\launcher\__main__.py" "%RELEASE_DIR%\src\launcher\__main__.py" > nul
 
-:: Copy launcher files (conditionally) and create config.py
-echo     ...Copying launcher files...
-mkdir "%RELEASE_DIR%\launcher"
-xcopy /E /I /Q "launcher\static" "%RELEASE_DIR%\launcher\static\"
-copy "launcher\__init__.py" "%RELEASE_DIR%\launcher\__init__.py" > nul
-copy "launcher\__main__.py" "%RELEASE_DIR%\launcher\__main__.py" > nul
 
-if /I "%BUILD_FOR%" == "kalis" (
-    echo     ...Copying 'kalis' templates and core.
-    xcopy /E /I /Q "launcher\templates" "%RELEASE_DIR%\launcher\templates\"
-    copy "launcher\core.py" "%RELEASE_DIR%\launcher\core.py" > nul
-    
-    echo     ...Generating 'kalis' config.py.
-    (
-        echo TEMPLATE_DIRNAME = "templates"
-        echo COREMODULE_NAME  = "core"
-    ) > "%RELEASE_DIR%\launcher\config.py"
-    
-) else (
-    echo     ...Copying 'reb' templates and core.
-    xcopy /E /I /Q "launcher\templates_reb" "%RELEASE_DIR%\launcher\templates_reb\"
-    copy "launcher\core_reb.py" "%RELEASE_DIR%\launcher\core_reb.py" > nul
-    
-    echo     ...Generating 'reb' config.py.
-    (
-        echo TEMPLATE_DIRNAME = "templates_reb"
-        echo COREMODULE_NAME  = "core_reb"
-    ) > "%RELEASE_DIR%\launcher\config.py"
-)
+if /I "%BUILD_FOR%"=="kalis" goto :CFG_KALIS
+if /I "%BUILD_FOR%"=="reb"   goto :CFG_REB
+echo [ERROR] BUILD_FOR is invalid: [%BUILD_FOR%]
+exit /b 1
+
+:CFG_KALIS
+echo     ...Configuring for [KALIS]...
+:: Kalis 전용 launcher 파일 복사
+xcopy /E /I /Q "src\launcher\templates" "%RELEASE_DIR%\src\launcher\templates\"
+copy "src\launcher\core.py" "%RELEASE_DIR%\src\launcher\core.py" > nul
+set "CFG=%RELEASE_DIR%\src\launcher\config.py"
+> "%CFG%"  echo TEMPLATE_DIRNAME = "templates"
+>>"%CFG%"  echo COREMODULE_NAME  = "core"
+goto :CFG_DONE
+
+:CFG_REB
+echo     ...Configuring for [REB]...
+:: REB 전용 src 모듈 추가 복사
+echo     ...Adding 'reb' src module.
+xcopy /E /I /Q "src\reb" "%RELEASE_DIR%\src\reb\"
+:: REB 전용 launcher 파일 복사
+xcopy /E /I /Q "src\launcher\templates_reb" "%RELEASE_DIR%\src\launcher\templates_reb\"
+copy "src\launcher\core_reb.py" "%RELEASE_DIR%\src\launcher\core_reb.py" > nul
+set "CFG=%RELEASE_DIR%\src\launcher\config.py"
+> "%CFG%"  echo TEMPLATE_DIRNAME = "templates_reb"
+>>"%CFG%"  echo COREMODULE_NAME  = "core_reb"
+goto :CFG_DONE
+
+:CFG_DONE
 
 :: Add src path to the ._pth file for distribution
 echo     ...Updating python ._pth file.
@@ -232,7 +161,8 @@ if not %errorlevel% equ 0 (
 )
 
 
-echo [7/7] Creating archive: %OUTPUT_ZIP%
+
+echo [5/5] Creating archive: %OUTPUT_ZIP%
 :: 압축할 폴더로 직접 이동
 pushd "%RELEASE_DIR%"
 :: 최상위 폴더에 있는 tools\7z.exe를 실행하여 압축
@@ -242,3 +172,44 @@ popd
 
 echo.
 echo ✅ Distribution packaging complete! (%FINAL_PROJECT_NAME%)
+
+
+
+goto :eof
+
+
+
+:: ==========================================
+:: 빌드 및 복사를 수행하는 서브루틴
+:: %1: 소스 파일명 (예: mainTRM)
+:: %2: 결과 파일명 (예: Technical Reference Manual)
+:: ==========================================
+:BuildAndCopy
+set "SRC_NAME=%~1"
+set "DIST_NAME=%~2"
+
+echo.
+echo Building: %DIST_NAME%...
+
+:: 1. 출력 디렉토리 생성 (이미 있으면 통과)
+if not exist "dist\docs" mkdir "dist\docs"
+if not exist "%RELEASE_DIR%\docs" mkdir "%RELEASE_DIR%\docs"
+
+:: 2. LaTeX 빌드
+pushd docs
+%LATEX_COMPILER% -silent -pdf -outdir=../dist/docs "%SRC_NAME%.tex"
+set "BUILD_ERROR=%errorlevel%"
+popd
+
+:: 3. 에러 체크
+if %BUILD_ERROR% neq 0 (
+    echo [ERROR] LaTeX build failed for %DIST_NAME%.
+    pause
+    exit /b %BUILD_ERROR%
+)
+
+:: 4. 배포 폴더로 복사 및 이름 변경
+copy "dist\docs\%SRC_NAME%.pdf" "%RELEASE_DIR%\docs\%DIST_NAME%.pdf" > nul
+
+echo     ...%DIST_NAME% build and copy successful.
+exit /b 0
