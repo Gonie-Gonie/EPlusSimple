@@ -42,7 +42,6 @@ if /I "%BUILD_FOR%" == "reb" (
 set "VERSION_STRING=V%VERSION%%VERSION_SUFFIX%"
 set "RELEASE_DIR=dist\%PROJECT_NAME%_%VERSION_STRING%"
 set "OUTPUT_ZIP=%CD%\dist\%PROJECT_NAME%_%VERSION_STRING%.zip"
-set "SEVEN_ZIP=%CD%\tools\7z.exe"
 set "FINAL_PROJECT_NAME=%PROJECT_NAME%_%VERSION_STRING%"
 
 echo ======================================================
@@ -166,7 +165,7 @@ echo [5/5] Creating archive: %OUTPUT_ZIP%
 :: 압축할 폴더로 직접 이동
 pushd "%RELEASE_DIR%"
 :: 최상위 폴더에 있는 tools\7z.exe를 실행하여 압축
-"%SEVEN_ZIP%" a -tzip "%OUTPUT_ZIP%" . > nul
+tar -a -c -f "%OUTPUT_ZIP%" . > nul
 :: 원래 위치로 복귀
 popd
 
