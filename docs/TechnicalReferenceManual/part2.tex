@@ -40,8 +40,8 @@
     \textbf{venv/} & 필요한 라이브러리가 포함된 독립 실행형 Python & \ref{section:dirstructure-devenv} \\
     \addlinespace
     
-    \texttt{runEngine} & 엔진 실행 스크립트 & \ref{subsection:dirstructure-enginelauncher} \\
-    \texttt{runExcelLauncher} & Excel 기반 입력파일의 실행을 위한 web 기반 GUI 실행 스크립트 & \ref{subsection:dirstructure-excellauncher} \\
+    \texttt{runEngine} & 엔진 실행 스크립트 & - \\
+    \texttt{runExcelLauncher} & Excel 기반 입력파일의 실행을 위한 web 기반 GUI 실행 스크립트 & - \\
     
     \bottomrule
   \end{tabularx}
@@ -68,21 +68,17 @@
 
 \chapter{실행 방법}
 
-\section{명령줄 인터페이스 (CLI) 사용법}
-\label{subsection:dirstructure-enginelauncher}
+\simulator\은 아래 세 가지 방법으로 실행할 수 있다.
+\begin{itemize}
+  \item \textbf{명령줄 인터페이스 (Command Line Interface; CLI)}: runEngine.bat 스크립트 파일을 이용, cmd 콘솔 명령어로 시뮬레이터의 주요 기능을 실행한다. GUI 프로그램 등, 본 엔진과 연동되는 외부 프로그램에 권장되는 방법이다.
+  \item \textbf{Excel 기반 입력파일 실행}: Excel 기반 입력파일(\texttt{.xlsx} 확장자)을 작성하여, 웹 기반 GUI를 통해 시뮬레이터를 실행한다. 본 엔진을 독립적으로 사용하는 사용자에게 권장되는 방법이다.
+  \item \textbf{Python 모듈 직접 사용}: 엔진에 포함된 portable Python, 또는 별도의 환경에서 \pymodule\을 직접 import하여 시뮬레이터를 실행한다. 본 엔진을 parametric 시뮬레이션 등 변칙적으로 활용하려는 연구자 및 개발자에게 권장되는 방법이다.
+\end{itemize}
 
-\subsection{CLI 명령어 명세}
 
-\texttt{\_\_main\_\_.py}는 사용자의 커맨드라인 입력을 파싱하여 앞서 기술한 API 함수들을 호출하는 진입점이다.
+\section{명령줄 인터페이스 (CLI)}
 
-% ---------------------------------------------------------------------------- %
-%                                   1. RUN CMD                                 %
-% ---------------------------------------------------------------------------- %
-\subsubsection{run: 시뮬레이션 실행}
-
-\begin{codebox}{Syntax}
-\texttt{python -m \pymodule{} run [-i INPUT] [-o OUTPUT]}
-\end{codebox}
+\subsection{run: 시뮬레이션 실행}
 
 입력 파일의 확장자를 감지하여 적절한 API(\texttt{run\_grexcel} 혹은 \texttt{run\_grjson})를 호출한다.
 
@@ -91,16 +87,8 @@
     \item \textbf{-o, --output}: 결과 파일 저장 경로 (선택)
 \end{itemize}
 
-% ---------------------------------------------------------------------------- %
-%                                 2. CONVERT CMD                               %
-% ---------------------------------------------------------------------------- %
-\subsubsection{convert: 포맷 변환}
 
-\begin{codebox}{Syntax}
-\texttt{python -m \pymodule{} convert INPUT [-s SRC] [-d DST] [-o OUTPUT]}
-\end{codebox}
-
-\texttt{api.convert} 함수를 래핑(Wrapping)하여 파일 형식을 변환한다.
+\subsection{convert: 포맷 변환}
 
 \begin{itemize}
     \item \textbf{INPUT}: [위치 인자] 변환할 원본 파일 경로
@@ -108,14 +96,8 @@
     \item \textbf{-d, --destination}: 대상 포맷 (excel, json, idf)
 \end{itemize}
 
-% ---------------------------------------------------------------------------- %
-%                                   3. DB CMD                                  %
-% ---------------------------------------------------------------------------- %
-\subsubsection{DB: 데이터베이스 조회}
 
-\begin{codebox}{Syntax}
-\texttt{python -m \pymodule{} DB DATATYPE [-g KEY]}
-\end{codebox}
+\subsection{DB: 데이터베이스 조회}
 
 외부 프로그램(GUI 등)과의 연동을 위해 설계된 명령어로, 조회 결과를 파싱 가능한 JSON 텍스트로 표준 출력(Stdout)한다.
 
@@ -123,19 +105,6 @@
     \item \textbf{DATATYPE}: [위치 인자] 조회할 DB 클래스명 (material, schedule 등)
     \item \textbf{-g, --get}: 조회할 아이템의 Key (구조체는 \texttt{\&}로 연결된 문자열)
 \end{itemize}
-
-\begin{codebox}{Output Format (Standard Output)}
-\small
-명령어 실행 시 아래와 같은 JSON 구조가 출력된다.
-\begin{verbatim}
-{
-    "success": 1,        // 성공(1) 또는 실패(0)
-    "result":  {...},    // 요청한 데이터 딕셔너리 (실패 시 None)
-    "error":   None      // 에러 메시지 트레이스백 (성공 시 None)
-}
-\end{verbatim}
-\end{codebox}
-
 
 
 \section{Excel 기반 입력파일의 실행 방법}
@@ -155,138 +124,6 @@
 
 \section{Python 모듈 직접 사용법}
 
-
-
-\pymodule~모듈의 \texttt{api.py}는 시뮬레이션 엔진의 핵심 기능을 수행하는 4개의 주요 함수를 제공한다.
-
-\subsection{\texttt{run\_grjson}: json구조 입력파일(\texttt{grm} 확장자) 실행}
-
-표준 JSON 구조\footnote{이 구조를 grjson이라 하고, \texttt{.grm} 확장자 사용을 권장한다.}로 작성된 모델 파일을 입력받아 시뮬레이션을 수행,
-사용자 입력에 따라 결과 파일(\texttt{.grr} 확장자)을 저장 후 그 경로를 반환하거나 결과 딕셔너리를 반환한다. 함수 시그니처는 아래와 같다.
-
-\begin{pycodebox}
-run_grjson(
-    input_filepath :str|None=None,
-    output_filepath:str|None=None,
-    *,
-    save           :bool    =True,
-    ) -> str|dict:
-\end{pycodebox}
-
-\paragraph{입력 매개변수}
-\begin{description}
-    \setlength{\itemsep}{0.5em} 
-    \item[\texttt{input\_filepath}] (\texttt{str}, 선택 사항) \\
-    입력 대상 파일의 경로. 인자를 생략하거나 \texttt{None}을 입력하면, 기본값으로 \texttt{``in.grm''}을 사용한다.
-    
-    \item[\texttt{output\_filepath}] (\texttt{str}, 선택 사항) \\
-    처리 결과를 저장할 경로. 인자를 생략하면 \texttt{input\_filepath}의 확장자를 \texttt{.grr}로 변경한 경로를 자동으로 할당한다.
-    
-    \item[\texttt{save}] (\texttt{bool}, 기본값: \texttt{True}) \\
-    결과 파일의 저장 여부. 
-    \begin{itemize}
-        \item \texttt{True}: 결과를 파일로 저장하고, 저장된 파일 경로(\texttt{str})를 반환한다.
-        \item \texttt{False}: 파일을 저장하지 않고, 처리된 데이터를 딕셔너리(\texttt{dict}) 형태로 반환한다.
-    \end{itemize}
-\end{description}
-
-\paragraph{반환값}
-\begin{itemize}
-  \item \texttt{str | dict}: \texttt{save=True}일 경우 결과 파일 경로(\texttt{str}), \texttt{save=False}일 경우 결과 딕셔너리(\texttt{dict})
-\end{itemize}
-
-run\_grjson 함수의 사용 례는 아래와 같다.
-\begin{itemize}
-  \item 입력 파일 경로가 \texttt{model.grm}이고, 결과 파일을 저장할 경로가 \texttt{result.grr}인 경우:
-  \begin{pycodebox}
-result_filepath = run_grjson(
-    input_filepath="model.grm",
-    output_filepath="result.grr",
-    save=True
-  \end{pycodebox}
-  \item 입력 파일 경로가 \texttt{model.grm}이고, 결과를 딕셔너리로 반환받는 경우:
-  \begin{pycodebox}
-result_filepath = run_grjson(
-    input_filepath="model.grm",
-    output_filepath="result.grr",
-    save=True
-  \end{pycodebox}
-\end{itemize}
-
-\subsection{스프레드시트 입력파일 실행 (run\_grexcel)}
-
-사용자 편의를 위해 작성된 엑셀(\texttt{.xlsx}) 모델 파일을 입력받는다. 내부적으로 \texttt{excel2grjson} 유틸리티를 호출하여 JSON으로 변환한 뒤 시뮬레이션을 수행하며, 종료 시 임시 JSON 파일은 삭제된다.
-
-\begin{codebox}{run\_grexcel}
-\small
-\textbf{Definition:}
-\begin{verbatim}
-def run_grexcel(input_filepath, output_filepath=None, *, save=True) -> str
-\end{verbatim}
-\end{codebox}
-
-\begin{table}[htbp]
-    \centering\small
-    \begin{tabularx}{\textwidth}{l l X}
-    \toprule
-    \textbf{매개변수} & \textbf{타입} & \textbf{설명} \\
-    \midrule
-    \texttt{input\_filepath} & \texttt{str} & 입력 엑셀 파일 경로 (\texttt{.xlsx} 확장자, 생략 가능) \\
-    \texttt{output\_filepath} & \texttt{str | None} & 결과 파일(.grr) 저장 경로 (자동 생성 지원) \\
-    \texttt{save} & \texttt{bool} & 결과 파일 저장 여부 (기본값 \texttt{True}) \\
-    \bottomrule
-    \end{tabularx}
-\end{table}
-
-
-\subsection{데이터베이스 조회 함수}
-
-\begin{codebox}{get\_database}
-\small
-\textbf{Definition:}
-\begin{verbatim}
-def get_database(datatype, key, *, as_dict=False) -> object | dict
-\end{verbatim}
-\end{codebox}
-
-\noindent 내장 데이터베이스에서 특정 객체나 속성값을 조회한다.
-
-\begin{table}[htbp]
-    \centering\small
-    \begin{tabularx}{\textwidth}{l l X}
-    \toprule
-    \textbf{매개변수} & \textbf{타입} & \textbf{설명} \\
-    \midrule
-    \texttt{datatype} & \texttt{Literal} & 조회 대상 DB 종류 (\texttt{material}, \texttt{schedule}, \texttt{surface\_construction} 등) \\
-    \texttt{key} & \texttt{str} & 아이템 식별자. 복합 구조체(Construction)의 경우 속성을 \texttt{\&} 기호로 연결하여 문자열로 전달 \\
-    \texttt{as\_dict} & \texttt{bool} & \texttt{True} 설정 시 객체가 아닌 딕셔너리(JSON 호환 포맷) 형태로 반환 \\
-    \bottomrule
-    \end{tabularx}
-\end{table}
-
-\subsection{포맷 변환 함수}
-
-\begin{codebox}{convert}
-\small
-\textbf{Definition:}
-\begin{verbatim}
-def convert(input_filepath, src, dst, *, output_filepath=None) -> None
-\end{verbatim}
-\end{codebox}
-
-\noindent 입력 파일의 형식을 변환한다. 변환 전 \texttt{src}와 \texttt{dst} 간의 호환성을 검사하며, 지원하지 않는 변환 요청 시 \texttt{ValueError}를 발생시킨다.
-
-\begin{table}[htbp]
-    \centering\small
-    \begin{tabularx}{\textwidth}{l l X}
-    \toprule
-    \textbf{매개변수} & \textbf{타입} & \textbf{설명} \\
-    \midrule
-    \texttt{src / dst} & \texttt{Enum} & \texttt{GreenRetrofitDataFormat} (excel, json, idf) \\
-    \texttt{output\_filepath} & \texttt{str} & 지정하지 않을 경우, 원본 파일 경로의 확장자만 변경하여 저장 \\
-    \bottomrule
-    \end{tabularx}
-\end{table}
 
 
 % ---------------------------------------------------------------------------- %
