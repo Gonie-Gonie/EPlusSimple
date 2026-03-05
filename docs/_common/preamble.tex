@@ -45,6 +45,7 @@
 
 % --- 코드류 ---
 \usepackage{listings}
+\usepackage{tikz}
 \usepackage{ifthen}
 
 % --- 주석 --- 
@@ -172,6 +173,16 @@
     belowskip=1pt,
     lineskip=0pt,
   }
+}
+\newcommand{\code}[1]{%
+\tikz[baseline=(X.base)] 
+\node[
+fill=gray!12,
+rounded corners=3pt,
+inner xsep=4pt,
+inner ysep=1pt,
+anchor=base
+] (X) {\texttt{\detokenize{#1}}};
 }
 
 % ---------------------------------------------------------------------------- %

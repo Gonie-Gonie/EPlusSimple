@@ -78,6 +78,11 @@
 
 \section{명령줄 인터페이스 (CLI)}
 
+본 시뮬레이션 엔진은 명령행 인터페이스(Command-Line Interface, CLI)를 통해 실행할 수 있으며, 배포 패키지에는 이를 위한 배치 스크립트(mymodule.bat)가 포함되어 있다. 이 스크립트는 사용자가 Python 환경을 직접 호출할 필요 없이 프로그램을 실행할 수 있도록 하는 실행 래퍼(wrapper) 역할을 한다. 스크립트는 내부적으로 프로젝트에 포함된 가상환경의 Python 실행 파일(venv/python.exe)을 호출하여 Python 모듈 epsimple을 실행한다.
+
+실제 실행 과정은 \code{python -m epsimple} 명령과 동일하며, 이는 Python 모듈의 진입점(entry point)인 \code{__main__.py}를 실행한다. 사용자가 CLI에서 전달한 모든 인자(argument)는 그대로 Python 모듈로 전달되며, 프로그램 실행 중 발생하는 표준 출력(stdout)과 오류 메시지(stderr)는 모두 로그 파일(log.log)로 기록된다. 따라서 사용자는 단순히 배치 파일을 실행하는 것만으로 시뮬레이션 엔진을 구동할 수 있으며, 실행 결과와 오류 메시지는 로그 파일을 통해 확인할 수 있다.
+
+
 \subsection{run: 시뮬레이션 실행}
 
 입력 파일의 확장자를 감지하여 적절한 API(\texttt{run\_grexcel} 혹은 \texttt{run\_grjson})를 호출한다.
