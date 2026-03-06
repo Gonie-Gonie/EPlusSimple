@@ -22,8 +22,8 @@
     
     \hspace{0.5em} $\llcorner$ idragon/ & EnergyPlus 친화적 구조 및 idf 변환 & - \\
     \hspace{1.5em} $\llcorner$ \_energyPlus/ & 내장된 EnergyPlus 엔진 & \ref{section:dirstructure-devenv} \\
-    \hspace{0.5em} $\llcorner$ \pymodule/ & \simulator 친화적 구조 및 중간 변환 & - \\
-    \hspace{0.5em} $\llcorner$ launcher/ & Excel 기반 입력파일의 실행을 위한 web 기반 GUI & \ref{section:dirstructure-excellauncher} \\
+    \hspace{0.5em} $\llcorner$ \pymodule/ & \simulator 친화적 구조 및 중간 변환 & \ref{section:howtorun-pythonmodule} \\
+    \hspace{0.5em} $\llcorner$ launcher/ & Excel 기반 입력파일의 실행을 위한 web 기반 GUI & \ref{section:howtorun-excellauncher} \\
     \addlinespace 
     
     \textbf{docs/} & 엔진 관련 명세 & \ref{section:dirstructure-documentation} \\
@@ -40,8 +40,8 @@
     \textbf{venv/} & 필요한 라이브러리가 포함된 독립 실행형 Python & \ref{section:dirstructure-devenv} \\
     \addlinespace
     
-    \texttt{runEngine} & 엔진 실행 스크립트 & - \\
-    \texttt{runExcelLauncher} & Excel 기반 입력파일의 실행을 위한 web 기반 GUI 실행 스크립트 & - \\
+    \texttt{runEngine} & 엔진 실행 스크립트 & \ref{section:howtorun-cli} \\
+    \texttt{runExcelLauncher} & Excel 기반 입력파일의 실행을 위한 web 기반 GUI 실행 스크립트 & \ref{section:howtorun-excellauncher} \\
     
     \bottomrule
   \end{tabularx}
@@ -77,43 +77,42 @@
 
 
 \section{명령줄 인터페이스 (CLI)}
+\label{section:howtorun-cli}
 
-본 시뮬레이션 엔진은 명령행 인터페이스(Command-Line Interface, CLI)를 통해 실행할 수 있으며, 배포 패키지에는 이를 위한 배치 스크립트(mymodule.bat)가 포함되어 있다. 이 스크립트는 사용자가 Python 환경을 직접 호출할 필요 없이 프로그램을 실행할 수 있도록 하는 실행 래퍼(wrapper) 역할을 한다. 스크립트는 내부적으로 프로젝트에 포함된 가상환경의 Python 실행 파일(venv/python.exe)을 호출하여 Python 모듈 epsimple을 실행한다.
+본 시뮬레이션 엔진은 명령행 인터페이스(Command-Line Interface, CLI)를 통해 실행할 수 있으며, 배포 패키지에는 이를 위한 배치 스크립트\inlinecode{runEngine.bat}가 포함되어 있다.
+이 스크립트는 사용자가 Python 환경을 직접 호출할 필요 없이 프로그램을 실행할 수 있도록 하는 실행 래퍼(wrapper) 역할을 한다.
+스크립트는 내부적으로 프로젝트에 포함된 독립실행형 Python을 호출하여 epsimple 모듈을 실행한다.
 
-실제 실행 과정은 \code{python -m epsimple} 명령과 동일하며, 이는 Python 모듈의 진입점(entry point)인 \code{__main__.py}를 실행한다. 사용자가 CLI에서 전달한 모든 인자(argument)는 그대로 Python 모듈로 전달되며, 프로그램 실행 중 발생하는 표준 출력(stdout)과 오류 메시지(stderr)는 모두 로그 파일(log.log)로 기록된다. 따라서 사용자는 단순히 배치 파일을 실행하는 것만으로 시뮬레이션 엔진을 구동할 수 있으며, 실행 결과와 오류 메시지는 로그 파일을 통해 확인할 수 있다.
+\begin{codeblock}{CLI command signature}
+runEngine <command> [OPTIONS]
+\end{codeblock}
 
+\subsection{시뮬레이션 실행}
 
-\subsection{run: 시뮬레이션 실행}
-
-입력 파일의 확장자를 감지하여 적절한 API(\texttt{run\_grexcel} 혹은 \texttt{run\_grjson})를 호출한다.
-
-\begin{itemize}
-    \item \textbf{-i, --input}: 입력 모델 파일 경로 (필수)
-    \item \textbf{-o, --output}: 결과 파일 저장 경로 (선택)
-\end{itemize}
-
-
-\subsection{convert: 포맷 변환}
-
-\begin{itemize}
-    \item \textbf{INPUT}: [위치 인자] 변환할 원본 파일 경로
-    \item \textbf{-s, --source}: 원본 포맷 (excel, json, idf)
-    \item \textbf{-d, --destination}: 대상 포맷 (excel, json, idf)
-\end{itemize}
+\begin{codeblock}{CLI subcommand signature: `run'}
+runEngine run --input <input_filepath> [--output <output_filepath>]
+\end{codeblock}
 
 
-\subsection{DB: 데이터베이스 조회}
 
-외부 프로그램(GUI 등)과의 연동을 위해 설계된 명령어로, 조회 결과를 파싱 가능한 JSON 텍스트로 표준 출력(Stdout)한다.
+\subsection{포맷 변환}
 
-\begin{itemize}
-    \item \textbf{DATATYPE}: [위치 인자] 조회할 DB 클래스명 (material, schedule 등)
-    \item \textbf{-g, --get}: 조회할 아이템의 Key (구조체는 \texttt{\&}로 연결된 문자열)
-\end{itemize}
+\begin{codeblock}{CLI subcommand signature: `convert'}
+runEngine convert <input_filepath> --source <input_type> --destination <output_type> [--output_filepath <output_filepath>]
+\end{codeblock}
+
+
+
+\subsection{데이터베이스 조회}
+
+\begin{codeblock}{CLI subcommand signature: `DB'}
+runEngine DB <datatype> --get <item_id>
+\end{codeblock}
+
 
 
 \section{Excel 기반 입력파일의 실행 방법}
-\label{section:dirstructure-excellauncher}
+\label{section:howtorun-excellauncher}
 
 \subsection{Excel 기반 입력파일}
 추후 기술
@@ -128,28 +127,20 @@
 
 
 \section{Python 모듈 직접 사용법}
+\label{section:howtorun-pythonmodule}
 
 
-
-% ---------------------------------------------------------------------------- %
-%                                  NEW SECTION                                 %
-% ---------------------------------------------------------------------------- %
 \chapter{입력 및 출력 파일 명세}
 
-\section{\simulator의 데이터 구조}
-본 엔진의 입력 데이터는 건물 데이터와,... 이다 (\ref{fig:grjson_structure}).
+\section{입력파일 (grm)} \label{section:grm-explanation}
+
+본 엔진의 입력 데이터는 건물 데이터와,... 이다 \parencref{fig:grjson_structure}.
 
 \begin{defaultfigure}
   \includegraphics[height=0.99\textheight]{grjson_input_structure_v3.png}
   \caption{\simulator\ 입력변수 체계도}
   \label{fig:grjson_structure}
 \end{defaultfigure}
-
-% ---------------------------------------------------------------------------- %
-%                                  NEW SECTION                                 %
-% ---------------------------------------------------------------------------- %
-
-\section{grjson 구조 (.grm 파일)} \label{section:grm-explanation}
 
 \subsection{규칙}
 
@@ -622,15 +613,15 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 %                                  NEW SECTION                                 %
 % ---------------------------------------------------------------------------- %
 
-\section{grexcel 구조 (.xlsx 파일)}
+\section{입력파일 (xlsx)}
 
-에셀 기반 입력 구조에 대하여 추후 기술 예정임.
+추후 기술
 
 
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
 % ---------------------------------------------------------------------------- %
 
-\section{grresult 구조 (.grr 파일)} \label{section:grr-explanation}
+\section{출력파일 (grr)} \label{section:grr-explanation}
 
 결과파일의 예시와 구조에 대하여 추후 기술 예정임.

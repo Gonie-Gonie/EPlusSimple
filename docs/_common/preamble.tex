@@ -113,12 +113,6 @@
   {\normalfont\itshape\bfseries}
   {\thesubparagraph}{1em}{}
 
-% --- 메모 스타일 ---
-\definecolor{gonie_color}{RGB}{255, 255, 180}  
-\definecolor{hongI_color}{RGB}{200, 255, 200} 
-\definecolor{theungDu_color}{RGB}{176, 224, 230}   
-\definecolor{형진_color}{RGB}{255, 220, 230}   
-
 % ---------------------------------------------------------------------------- %
 %                                 ENVIRONMENTS                                 %
 % ---------------------------------------------------------------------------- %
@@ -153,7 +147,7 @@
   {\end{defaulttable}}
 
 % 코드 표기
-\newtcblisting{pycodebox}[1]{
+\newtcblisting{codeblock}[1]{
   colback=gray!5,
   colframe=gray!40,
   boxrule=0.5pt,
@@ -174,7 +168,7 @@
     lineskip=0pt,
   }
 }
-\newcommand{\code}[1]{%
+\newcommand{\inlinecode}[1]{%
 \tikz[baseline=(X.base)] 
 \node[
 fill=gray!12,
