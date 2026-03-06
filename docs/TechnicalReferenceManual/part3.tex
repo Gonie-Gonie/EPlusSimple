@@ -318,7 +318,7 @@
 \chapter{항목별 idf 변환 방법}
 \label{chap:simulator_geometry}
 
-\section{형상 변환 알고리즘}
+\section{형상}
 
 \subsection{EnergyPlus의 형상 입력 방식}
 
@@ -376,7 +376,7 @@ EnergyPlus의 형상 입력 방식은 크게 detailed geometry와 simplified geo
 %                                  NEW SECTION                                 %
 % ---------------------------------------------------------------------------- %
 
-\section{구조체 정의}
+\section{구조체}
 
 EnergyPlus 및 \simulator 의 구조체 정의에 대하여 추후 기술 예정임.
 
@@ -487,7 +487,7 @@ EnergyPlus 및 \simulator 의 구조체 정의에 대하여 추후 기술 예정
 %                                  NEW SECTION                                 %
 % ---------------------------------------------------------------------------- %
 
-\section{프로필 정의와 활용}
+\section{프로필}
 \subsection{ECO2 프로필의 정의}
 건축물에너지효율등급인증규정은 건물 에너지 모델 구축 과정에서 실의 용도를 프로필로 지정하도록 하고 있으며, 총 20개의 프로필을 제공한다\cite{law:usageprofile}. 국내 용도프로필은 (1)사용시간과 운전 시간, (2)설정 요구량, (3)열발열원, (4)실내공기온도, (5)월간 사용일수에 관한 정보를 담고 있다 (\cref{tab:smallofficeusage}). 
 
@@ -686,7 +686,7 @@ EnergyPlus 및 \simulator 의 구조체 정의에 대하여 추후 기술 예정
 %                                  NEW SECTION                                 %
 % ---------------------------------------------------------------------------- %
 
-\section{설비 변환 알고리즘}
+\section{설비}
 
 냉난방설비시스템의 이원화 구조와, 냉난방설비, 전열교환기 및 태양광시스템의 변환 방법 기본값 등에 대하여 추후 기술 예정임.
 
@@ -706,19 +706,32 @@ EnergyPlus 실행 결과물 종류와 유형, 그리고 그 결과를 \simulator
 
 \section{그린리모델링을 위한 결과 해석}
 
-\subsection{단위면적당 에너지소비량} \label{subsec:floorarea_definition_for_EUI}
-단위면적의 개념에 대하여 추후 기술 예정임.
-
-\subsection{산출 지표들} \label{subsec:result_converting_coeff_definition}
 \simulator\은 계산된 용도별, 열원별, 월별 에너지소요량을 바탕으로, 1차에너지소요량, 온실가스 배출량 및 에너지 비용을 산출하여 제시한다. 각 지표에 대한 변환 계수는 본 엔진에서 지원하는 4가지 연료(전기, 천연가스, 등유, 지역난방)에 대하여 각각 정의되며, 건물 전체의 1차에너지소요량, 온실가스배출량 및 에너지 비용은 4가지 연료에 대한 값의 합으로 정의된다 (식 \ref{eq:1st_energy_calculation} - \ref{eq:cost_calculation}).
 
 \begin{align}
-  \text{건물 전체의 에너지소요량} = \sum_{\text{연료}} \text{연료별 에너지소요량} \times \text{연료별 변환계수} \label{eq:1st_energy_calculation}\\
-  \text{건물 전체의 온실가스 배출량} = \sum_{\text{연료}} \text{연료별 에너지소요량} \times \text{연료별 변환계수} \label{eq:co2_calculation}\\ 
-  \text{건물 전체의 에너지 비용} = \sum_{\text{연료}} \text{연료별 에너지소요량} \times \text{연료별 변환계수} \label{eq:cost_calculation}
+E_{\mathrm{area}} &= \frac{\sum_{f} E_f \, c_f}{A} \\
+G_{\mathrm{area}} &= \frac{\sum_{f} E_f \, g_f}{A} \\
+C_{\mathrm{area}} &= \frac{\sum_{f} E_f \, p_f}{A}
 \end{align}
 
-\subsubsection{1차에너지소요량}
+여기서,
+
+\begin{description}
+\item[$E_{\mathrm{area}}$] 건물 면적당 1차 에너지소요량
+\item[$G_{\mathrm{area}}$] 건물 면적당 온실가스 배출량
+\item[$C_{\mathrm{area}}$] 건물 면적당 에너지 비용
+\item[$E_f$] 연료 $f$의 에너지 사용량
+\item[$c_f$] 연료 $f$의 1차 에너지 변환계수
+\item[$g_f$] 연료 $f$의 온실가스 배출계수
+\item[$p_f$] 연료 $f$의 단위 에너지 비용
+\item[$A$] 건물의 기준 면적
+\item[$f$] 연료 유형 (전력, 가스, 지역난방, 유류)
+\end{description}
+
+\subsection{단위면적} \label{subsec:floorarea_definition_for_EUI}
+단위면적의 개념에 대하여 추후 기술 예정임.
+
+\subsection{1차에너지소요량}
 연료별 1차에너지 환산 계수는 표 \ref{tbl:coeff_kWh_to_1stkWh}\와 같다. 이는 제로에너지건축물 인증제도 운영규정 \cite{law:energy_to_1stenergy} 에서 제시하고 있다. 국내에서는 모든 연료에 대하여 대표적인 환산계수만을 제시하고 있어 \cite{Jeong2021energydeungkeup}, 가스 및 등유에 대하여 동일한 환산계수를 적용하였다.
 
 \begin{table}[ht]
@@ -737,7 +750,7 @@ EnergyPlus 실행 결과물 종류와 유형, 그리고 그 결과를 \simulator
 
 1차에너지 환산계수는 관련 법령의 개정에 따라 수정 반영되어야 한다.
 
-\subsubsection{온실가스 배출량}
+\subsection{온실가스 배출량}
 연료별 온실가스 배출량 환산 계수는 표 \ref{tbl:coeff_kWh_to_CO2}\와 같다.
 
 \begin{table}[ht]
@@ -767,7 +780,7 @@ EnergyPlus 실행 결과물 종류와 유형, 그리고 그 결과를 \simulator
 
 가스 및 등유는 2006년 이후로 개정된 바 없으며, 추후 IPCC 개정에 따라 수정 반영되어야 한다. 전기 및 지역난방의 경우 매년 공포되는 값이므로, 매년 공포되는 내용에 따라 계수가 수정 반영되어야 한다.
 
-\subsubsection{비용}
+\subsection{비용}
 연료별 비용 환산 계수는 표 \ref{tbl:coeff_kWh_to_cost}\와 같다. 에너지 요금 체계는 기본요금, 구간별 단가, 계절별 차등 등 다양한 요소로 구성되어 있어 단일 기준으로 정확히 산정하기는 어렵다. 따라서 복잡한 체계를 단순화하여 대표 환산계수를 적용하는 통계적 접근 방식을 사용하였다.
 
 \begin{table}[ht]

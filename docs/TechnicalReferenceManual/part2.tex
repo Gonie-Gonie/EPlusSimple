@@ -151,12 +151,14 @@ run_grjson(
 \section{입력파일 (grm)}
 \label{section:format-explanation-grm}
 
-본 엔진의 입력 데이터는 건물 데이터와,... 이다 \parencref{fig:grjson_structure}.
+\simulator 의 입력파일은 실제 건물의 물리적 구성 관계를 반영하여 계층적으로 구성되어 있다 \parencref{fig:grm_structure}. 즉, 건물(\texttt{building})을 최상위 객체로 하여 층(\texttt{floor}), 실(\texttt{zone}), 면(\texttt{surface}), 개구부(\texttt{fenestration}) 등과 같은 공간 요소가 실제 건물의 포함 관계와 유사한 형태로 단계적으로 조직된다. 이러한 구조를 통해 건물의 공간적 구성과 시스템 연결 관계를 직관적으로 표현할 수 있다.
+
+한편, 재료(\texttt{material})나 구조체(\texttt{construction})과 같은 물리적 속성은 공간 객체 내부에 직접 중복 정의되지 않고 별도의 객체로 정의된 뒤 참조 방식으로 연결된다. 예를 들어 면(\texttt{surface})은 특정 구조체(\texttt{surface\_construction})를 참조하는 방식으로 구성된다. 이러한 구조는 동일한 정보를 여러 객체에서 재사용할 수 있도록 한다. 또한, 설비 시스템(\texttt{hvac\_system})과 제어 로직(\texttt{control\_logic})은 건물 객체의 하위에 별도의 분류로 정의되어, 공간 요소와는 독립적으로 구성되며, 필요한 경우 공간 요소와 연결될 수 있도록 설계되어 있다. 이는 건물의 물리적 구성과 시스템 구성을 명확히 구분한다.
 
 \begin{defaultfigure}
-  \includegraphics[height=0.99\textheight]{grjson_input_structure_v3.png}
-  \caption{\simulator\ 입력변수 체계도}
-  \label{fig:grjson_structure}
+  \includegraphics[width=0.99\textwidth]{grm-datastructure.png}
+  \caption{\simulator\ 입력파일 체계도}
+  \label{fig:grm_structure}
 \end{defaultfigure}
 
 \subsection{규칙}
@@ -479,7 +481,7 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
   \jsontablerow{boiler_efficiency    }{\TypeTag{F}}{\ReqTag{CO}}{0.85}{\texttt{type} = ``absorption\_chiller''}{(0,1)}{1}
   \jsontablerow{capacity_cooling     }{\TypeTag{F}}{\ReqTag{CO}}{\texttt{null}}{\texttt{type} = ``chiller'' OR ``heatpump'' OR ``geothermal\_heatpump'' OR ``absorption\_chiller''}{(0,$Inf$)}{W}
   \jsontablerow{capacity_heating     }{\TypeTag{F}}{\ReqTag{CO}}{\texttt{null}}{\texttt{type} = ``heatpump'' OR ``geothermal\_heatpump'' OR ``boiler''}{(0,$Inf$)}{W}
-  \jsontablerow{cop_cooling          }{\TypeTag{F}}{\ReqTag{CO}}{3.0}{\texttt{type} = ``heatpump'' OR ``geothermal\_heatpump'' OR ``absorption\_chiller''}{(0,$Inf$)}{W/W}
+  \jsontablerow{cop_cooling          }{\TypeTag{F}}{\ReqTag{CO}}{3.0}{\texttt{type} = ``heatpump'' OR ``geothermal\_heatpump'' OR ``chiller'' OR ``absorption\_chiller''}{(0,$Inf$)}{W/W}
   \jsontablerow{cop_heating          }{\TypeTag{F}}{\ReqTag{CO}}{3.0}{\texttt{type} = ``heatpump'' OR ``geothermal\_heatpump''}{(0,$Inf$)}{W/W}
   \jsontablerow{efficiency           }{\TypeTag{F}}{\ReqTag{CO}}{0.85}{\texttt{type} = ``boiler''}{(0,1)}{1}
 }
@@ -633,7 +635,7 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 \section{입력파일 (xlsx)}
 \label{section:format-explanation-xlsx}
 
-추후 기술
+엑셀 기반 입력파일은 각 시트가 grm 입력파일의 클래스에 대응되는 형태로 구성된다. 각 시트 내에서, 열은 클래스의 속성에 대응되며, 행은 개별 객체 인스턴스에 해당한다.
 
 
 % ---------------------------------------------------------------------------- %
@@ -643,4 +645,98 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 \section{출력파일 (grr)}
 \label{section:format-explanation-grr}
 
-결과파일의 예시와 구조에 대하여 추후 기술 예정임.
+GRR 파일은 시뮬레이션 수행 결과를 저장하기 위한 데이터 구조로, 건물의 에너지 사용량 및 이를 기반으로 계산된 다양한 성능 지표를 포함한다. GRM 파일이 건물 모델과 시뮬레이션 입력 정보를 정의하는 역할을 하는 반면, GRR 파일은 시뮬레이션 결과 데이터를 체계적으로 저장하고 후속 분석이나 보고서 생성에 활용하기 위한 목적으로 생성된다. 데이터 형식은 JSON 기반 구조를 따르며, 건물 기본 정보, 계산에 사용되는 변환계수, 용도별 에너지 사용량, 그리고 집계된 성능 지표로 구성된다.
+
+GRR 데이터의 최상위 구조는 다음과 같은 주요 객체로 구성된다.
+
+\begin{itemize}
+\item \texttt{building} : 건물의 기본 정보
+\item \texttt{constants} : 에너지 변환계수 및 비용계수
+\item \texttt{site\_uses} : 용도별 연료 에너지 사용량
+\item \texttt{source\_uses} : 1차 에너지 기준 사용량
+\item \texttt{co2} : 온실가스 배출량
+\item \texttt{cost} : 에너지 비용
+\item \texttt{summary\_per\_area} : 면적당 성능 지표
+\item \texttt{summary\_gross} : 건물 전체 기준 성능 지표
+\end{itemize}
+
+\subsection{class별 명세}
+
+\subsubsection{건물 정보}
+
+\texttt{building} 객체는 결과 계산에 사용된 바닥면적을 포함하여 건물의 기본 정보를 저장한다.
+
+\subsubsection{변환계수 (constants)}
+
+에너지 사용량을 1차 에너지, 온실가스 배출량, 그리고 비용으로 변환하기 위해 사용되는 계수들이 \texttt{constants} 객체에 정의된다.
+
+\begin{verbatim}
+constants
+ ├─ site2source
+ ├─ site2co2
+ └─ site2cost
+\end{verbatim}
+
+각 항목은 연료 유형(전력:\texttt{electricity}, 천연가스:\texttt{natural\_gas}, 지역난방:\texttt{district\_heating}, 유류:\texttt{oil})별 변환계수를 정의한다.
+
+\begin{itemize}
+\item \texttt{site2source} : 에너지소요량[$kWh$]를 1차에너지소요량[$kWh$]로 변환하기 위한 계수
+\item \texttt{site2co2} : 에너지소요량[$kWh$]을 온실가스 배출량[$kgCO\textsubscript{2,eq}$]으로 변환하기 위한 계수
+\item \texttt{site2cost} : 에너지소요량[$kWh$]을 비용[$KRW$]으로 변환하기 위한 계수
+\end{itemize}
+
+\subsubsection{에너지소요량 (site\_uses [$kWh$])}
+
+에너지소요량은 먼저 용도(end-use) 기준으로 분류되며, 각 용도는 다시 연료 유형별 월별 사용량 배열로 저장된다.
+
+\begin{verbatim}
+site_uses
+ ├─ heating
+     ├─ ELECTRICITY     : [12개월 배열]
+     ├─ NATURALGAS      : [12개월 배열]
+     ├─ OIL             : [12개월 배열]
+     └─ DISTRICTHEATING : [12개월 배열]
+       (다른 end-use도 동일)
+ ├─ cooling
+ ├─ lighting
+ ├─ circulation
+ ├─ hotwater
+ └─ generators
+\end{verbatim}
+
+\subsubsection{1차에너지소요량 (source\_uses [$kWh$])}
+구조는 에너지소요량과 같다.
+
+\subsubsection{온실가스 배출량 (co2 [$kgCO\textsubscript{2,eq}$])}
+구조는 에너지소요량과 같다.
+
+\subsubsection{에너지 비용 (cost [$KRW$])}
+구조는 에너지소요량과 같다.
+
+\subsubsection{면적당 집계 (summary\_per\_area)}
+
+\begin{verbatim}
+summary_per_area
+ ├─ site_uses
+     (연료별 집계)
+     ├─ ELECTRICITY     
+     ├─ NATURALGAS      
+     ├─ OIL             
+     └─ DISTRICTHEATING 
+     (end-use별 집계)
+     ├─ heating     
+     ├─ cooling      
+     ├─ lighting
+     ├─ circulation
+     ├─ hotwater
+     └─ generators      
+     (합계)
+     ├─ total_monthly : [12개월 배열]
+     └─ total_annual
+ ├─ source_uses
+ ├─ co2
+ └─ cost
+\end{verbatim}
+
+\subsubsection{총면적 집계 (summary\_gross)}
+구조는 면적당 집계와 같다.
