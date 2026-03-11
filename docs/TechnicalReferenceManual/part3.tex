@@ -1,22 +1,7 @@
-% chap2.tex
+
 \part{시뮬레이션 알고리즘}
 \label{part:algorithm}
-
-% ---------------------------------------------------------------------------- %
-%                                  NEW SECTION                                 %
-% ---------------------------------------------------------------------------- %
-
-\chapter{시뮬레이션의 절차}
-
-\subsection{EnergyPlus 옵션} 시뮬레이션 옵션은 주로 건물의 전역 특성, 계산 시간 단위, 설비 용량 산정을 위한 부하 계산 조건 등이 있으며, 본 절에서는 주요 항목을 아래와 같이 정리한다.
-
-\subsubsection{Building} 시뮬레이션 대상 건물의 특성을 정의하는 클래스이다. 본 매뉴얼에서는, 주요 항목만을 정리한다.
-\paragraph[short]{Terrain} 건물이 위치한 주변 지형 조건을 정의한다. 이는, 외부 대류열전달계수와 풍속 등에 영향을 준다. 예를 들어, \texttt{Urban}은 주변이 빽빽한 도심 환경을 의미하고, \texttt{Country}는 개방된 농촌 지역을 의미한다. \simulator\는 기본값으로 \texttt{Suburbs}를 적용한다.
-\paragraph[short]{Solar Distribution} 태양복사를 건물에 분배하는 방식을 정의하는 항목으로, 음영 효과를 무시하거나 외부·내부 음영 및 반사까지 고려하는 등 여러 수준의 방법을 선택할 수 있다. 
-\simulator\는 형상 입력 방식을 \texttt{simplified geometry}로 채택하였으므로, 음영 효과를 무시하는 \texttt{MinimalShadowing} 옵션을 적용한다 (\cref{chap:simulator_geometry}).
-
-\subsubsection{Timestep} 시뮬레이션의 기본 계산 시간 단위를 의미하며, 1시간(60분)을 몇 회로 분할하여 계산할 것인지 지정한다. 이 값은 실의 열 평형 계산(Zone Heat Balance)에서 열전달 및 부하 계산의 구동 시간 단위로 사용된다. 허용되는 입력 값은 4에서 60까지, 60을 정확히 나눌 수 있는 정수 (1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30, 60)이며, \ep\는 6(10분 단위 계산)을 권장한다 \cite{energyplusior242}. 더 낮은 값을 입력할 경우 연산 시간은 단축되나, 정확도가 저하될 수 있으며, \simulator\는 기본값으로 6을 적용한다. 
-
+                                                                                                                                           
 
 
 \chapter{항목별 데이터 변환 방법}
@@ -24,32 +9,7 @@
 
 \section{형상}
 
-\subsection{EnergyPlus의 형상 입력 방식}
-
-\subsubsection{형상 정보와 부하 계산 사이의 관계}
-
-형상 정보는 실--외부, 실--실 사이 열교환, 일사 부하 등을 위해 필수적인 정보이다. EnergyPlus는 Figure \ref{fig:geometry_mechanism}\과 같이 면 단위로  면을 통해 이뤄진다. 이때 열교환에 영향을 미치는 면의 속성들은 아래와 같다. 일사부하 계산 시 음영효과 반영을 제외하면 실의 부하 계산을 위한 열평형 방정식에서 면들의 구체적인 좌푯값은 필수적이지 않으며, 면적으로 대체 가능함을 시사한다(Figure \ref{fig:geometry_mechanism2}).
-
-\begin{itemize}
-  \item 면과 외기와의 열교환 (\underline{면적}, 대류 열전달 계수, u값 등)
-  \item 면 일사 부하 (\underline{면적}, 방위각, 음영효과, 흡수율 등)
-  \item 실 공기와의 열교환 (\underline{면적}, 대류 열전달 계수)
-  \item 개구부를 통한 일사부하 (\underline{면적}, 태양열 취득률)
-\end{itemize}
-
-\begin{defaultfigure}
-  \includegraphics[width=0.8\textwidth]{geometry_mechanism.png}
-  \caption{면을 통한 열교환 도식화}
-  \label{fig:geometry_mechanism}
-\end{defaultfigure}
-
-\begin{defaultfigure}
-  \includegraphics[width=0.8\textwidth]{geometry_mechanism2.png}
-  \caption{열평형 방정식 도출 과정}
-  \label{fig:geometry_mechanism2}
-\end{defaultfigure}
-
-\subsubsection{Detailed geometry, simplified geometry}
+\subsection{Simplified Geometry (SG) 방식과 Detailed Geometry (DG) 방식}
 
 EnergyPlus의 형상 입력 방식은 크게 detailed geometry와 simplified geometry로 구분할 수 있다 (Figure \ref{fig:geometry_types}). Detailed geometry(DG)는 실제 실의 모양을 그대로 모델에 반영하는 방식으로, 면들을 구성하는 점들의 좌푯값을 상세하게 입력하게 된다. DesignBuilder, OpenStudio 등 일반적인 EnergyPlus 모델 저작 도구에서 사용하고 있다. 반면 simplified geometry(SG)는 실을 구성하는 각종 요소(벽, 바닥, 천장 등)와 동일한 면적과 방위각을 가지는 면들을 생성하여 열평형 방정식 계산에 사용하는 방식으로, 건물의 구체적인 형상이 구현되지 않아 건물 형상 및 차양을 직달 일사 계산에 반영하지 못한다는 특징이 있다. 이러한 한계에도 불구하고 비교적 간소화된 형상 입력만으로 상세한 동적 건물 에너지 시뮬레이션이 가능하다는 점에서 널리 사용되고 있으며, 미국 캘리포니아의 에너지 평가 툴인 CBECC (California's Building Energy Code Compliance Software)의 SG 방식\cite{cbecc}이 대표적인 예시이다. Simulator 역시 3D 모델링 프로그램 없이 비교적 간단한 입력을 통한 편의성 확보를 위해 SG 방식을 형상 입력 방식으로 체택하고 있다.
 
@@ -72,6 +32,11 @@ EnergyPlus의 형상 입력 방식은 크게 detailed geometry와 simplified geo
 
 \end{defaultfigure}
 
+\subsection{SG 입력 데이터의 DG 변환 방법}
+
+\subsection{SG 입력의 EnergyPlus 시뮬레이션}
+
+
 \subsection{벽체, 지붕, 바닥 변환 방법}
 
 각 면과, 창호, 문, 블라인드 등의 변환 방법에 대하여 추후 기술 예정임.
@@ -87,7 +52,7 @@ EnergyPlus 및 \simulator 의 구조체 정의에 대하여 추후 기술 예정
 
 
 
-\subsubsection{재료}
+\subsection{재료}
 
 재료의 출처 및 이것이 \simulator 에 적용되는 방법에 대하여 추후 기술 예정임 (아래 표는 database로 제시하고 있는 재료들의 예시).
 
@@ -179,13 +144,9 @@ EnergyPlus 및 \simulator 의 구조체 정의에 대하여 추후 기술 예정
   \bottomrule
 \end{longtable}
 
-\subsubsection{구조체}
+\subsection{구조체}
 
 실내외 열전달기준에 따른 구조체 자동 생성 및 EnergyPlus에서 이 값들이 계산되는 방식 등에 대하여 추후 기술 예정임.
-
-\subsubsection{창호}
-
-창호 database에 대하여 추후 입력방식 확정 후 기술 예정임.
 
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
