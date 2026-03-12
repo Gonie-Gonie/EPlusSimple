@@ -45,6 +45,7 @@
 
 % --- 코드류 ---
 \usepackage{listings}
+\usepackage{tikz}
 \usepackage{ifthen}
 
 % --- 주석 --- 
@@ -112,12 +113,6 @@
   {\normalfont\itshape\bfseries}
   {\thesubparagraph}{1em}{}
 
-% --- 메모 스타일 ---
-\definecolor{gonie_color}{RGB}{255, 255, 180}  
-\definecolor{hongI_color}{RGB}{200, 255, 200} 
-\definecolor{theungDu_color}{RGB}{176, 224, 230}   
-\definecolor{형진_color}{RGB}{255, 220, 230}   
-
 % ---------------------------------------------------------------------------- %
 %                                 ENVIRONMENTS                                 %
 % ---------------------------------------------------------------------------- %
@@ -146,20 +141,24 @@
     \end{longtable}
   }
 
-% 표?
+% 표
 \newenvironment{variabletable}
   {\begin{defaulttable}}
   {\end{defaulttable}}
 
-% 코드박스
-\newtcblisting{pycodebox}{
+% 코드 표기
+\newtcblisting{codeblock}[1]{
   colback=gray!5,
   colframe=gray!40,
   boxrule=0.5pt,
   left=5pt, right=5pt, top=5pt, bottom=5pt,
   listing only,
+  title={#1},
+  breakable,
+  coltitle=black,        % ★ 제목 글자색: 검은색
+  fonttitle=\bfseries,   % 제목 폰트: 굵게 (선택사항)
   listing options={
-    basicstyle=\ttfamily\small\linespread{0.85}\selectfont,
+    basicstyle=\ttfamily\footnotesize\linespread{1.0}\selectfont,
     breaklines=true,
     numbers=left,                    % ★ 줄번호 표시
     numberstyle=\tiny\color{gray},   % 줄번호 스타일
@@ -169,17 +168,15 @@
     lineskip=0pt,
   }
 }
-
-% --- API 및 CLI 명세용 박스 스타일 정의 ---
-\newtcolorbox{codebox}[2][]{%
-    colback=gray!5,      % 본문 배경: 아주 연한 회색
-    colframe=black!75,   % 테두리 및 제목 배경: 진한 회색 (가독성 확보)
-    coltitle=white,      % 제목 글자색: 흰색
-    fonttitle=\bfseries, % 제목 폰트: 볼드
-    boxrule=0.5pt,       % 테두리 두께
-    left=5pt, right=5pt, top=5pt, bottom=5pt,
-    title={#2},          % 제목 인자
-    #1                   % 추가 옵션 수용
+\newcommand{\inlinecode}[1]{%
+\tikz[baseline=(X.base)] 
+\node[
+fill=gray!12,
+rounded corners=3pt,
+inner xsep=4pt,
+inner ysep=1pt,
+anchor=base
+] (X) {\texttt{\detokenize{#1}}};
 }
 
 % ---------------------------------------------------------------------------- %

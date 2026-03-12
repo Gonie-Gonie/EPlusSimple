@@ -1,28 +1,298 @@
-% chap2.tex
+
 \part{시뮬레이션 알고리즘}
 \label{part:algorithm}
 
+\chapter{항목별 데이터 변환 방법}
+\label{chap:simulator_geometry}
+
+\section{형상}
+
+\subsection{면: Detailed Geometry (DG) 와 Simplified Geometry (SG)}
+
+건물 에너지 시뮬레이션 도구의 형상 입력 방식은 크게 Detailed Geometry (DG)와 Simplified Geometry (SG)로 구분할 수 있다\parencref{fig:geometry_types}. Detailed Geometry 방식은 실의 각 면들을 구성하는 점들의 좌푯값을 규칙에 맞게 상세하게 입력하여 정의하는 방식으로, 실재하는 건물의 3D 형상을 그대로 구현하는 방식이다. EnergyPlus의 기본적인 형상 정의 방식으로 DesignBuilder, OpenStudio, ClimateStudio 등 EnergyPlus를 기반으로 하는 일반적인 건물 에너지 시뮬레이션 도구에서 사용되고 있다.
+
+\begin{defaultfigure}
+  
+  \begin{subfigure}[b]{0.45\textwidth}
+    \centering
+    \includegraphics[scale=0.6]{형상_DG.png}
+    \caption{Detailed Geometry (DG)}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.45\textwidth}
+    \centering
+    \includegraphics[scale=0.6]{형상_SG.png}
+    \caption{Simplified Geometry (SG)}
+  \end{subfigure}
+  
+  \caption{형상 입력 방식}
+  \label{fig:geometry_types}
+
+\end{defaultfigure}
+
+반면 Simplified Geometry 방식은 실의 각 면들을 그 면적과 향(방위각) 만으로 정의하는 방식으로, 열평형 방정식 기반으로 풀어지는 건물 에너지 시뮬레이션에서 핵심이 되는 정보만 입력을 받는 개념으로 볼 수 있다. 좌표값의 계산, 3D 모델링 도구 등 없이 면을 나열할 수 있다는 점에서 높은 편의성을 가지며, ISO 13790 등 준정적 시뮬레이션 도구들에서 흔히 사용되며, EnergyPlus를 기반으로 하더라도 도구의 사용 편의성, 외부 프로그램 비의존성을 형상의 시각화, 상세한 일사에너지 계산보다 우선시하는 경우 종종 사용된다 \cite{cbecc}.
+
+\simulator 는 SG 방식으로 형상을 입력받아, 이를 EnergyPlus 시뮬레이션 가능한 DG 정보로 변환하는 방식을 취하고 있다.EnergyPlus에서 형상은, 그 면적과 향 및 경계조건이 동일하다면, 상호 그림자에 의한 일사 차폐 효과를 무시하는 한 열적으로 동일하다. 따라서, 면적과 향으로 주어진 각 면들은 모두 원점을 지나는 임의의 평면으로 생성되며, EnergyPlus에서 요구하는 인접 존 처리 규칙을 만족시키기 위해 두 존 사이의 벽체들은 모두 복제(clone 및 flip)되며, 이 과정에서 입력된 구조체도 복제 및 뒤집어져 적용된다 \parencref{fig:sg-to-dg-vertex-extraction}. 
+
+\begin{defaultfigure}
+  \includegraphics{sg-to-dg-vertex-extraction.png}
+  \caption{Simplified Geometry 정보의 Detailed Geometry 변환 과정}
+  \label{fig:sg-to-dg-vertex-extraction}
+\end{defaultfigure}
+
+이렇게 EnergyPlus에서 구현된 DG 정보는, 원래 건물의 3D 형상을 복원한 것이 아닌, 이와 열적으로 동등한 3D 면들의 집합체이다 \parencref{fig:transformed-sg-example}. 상호 그림자에 의해 일사가 차폐되는 것을 막기 위해 상호간 그림자는 완전히 무시되는 조건으로 시뮬레이션을 실행한다.
+
+\begin{defaultfigure}
+  \includegraphics{transformed-sg-example.png}
+  \caption{Detailed Geometry로 변환된 Simplified Geometry의 예시}
+  \label{fig:transformed-sg-example}
+\end{defaultfigure}
+
+
+\subsection{개구부}
+
+개구부는 면과 마찬가지로 SG 방식으로 입력받아, 각 소속면에 속한 임의의 정사각형 면으로 변환된다.
+
+\section{재료 및 구조체}
+
+\simulator 의 재료 및 구조체 정의는 \ep 와 동일하다.
+
+구조체가 지정되지 않은 경우, 각 면은 \cref{tbl:defatlt-materials}에 제시된 기본 재료 속성값이 적용된 외단열 콘크리트 벽체로 정의되며, 이 때 콘크리트의 두께는 190mm, 단열재는 해당 건축물의 허가연도 및 지역에 따른 법적 열관류율을 만족시키는 두께로 적용된다.
+
+\begin{table}[ht]
+  \caption{\simulator 에 사용된 기본 재료 속성값}
+  \label{tbl:defatlt-materials}  
+  \centering
+  \begin{tabular}{crrrcc}
+    \toprule
+     재료명(국문) & \makecell{열전도도 \\ $[W{\cdot}m^{-1}{\cdot} K^{-1}]$}  & \makecell{밀도 \\ $[kg/m^{3}]$} & \makecell {비열 \\ $[J/kg\cdot K]$} & 재료명 (영문) &  출처 \\ \midrule
+      콘크리트 & 2.5\phantom{00} & 2400 & 880 & concrete & \cite{ashrae_f18} \\
+      단열재 & 0.05\phantom{0} & 30 & 1500 & insulation & \cite{ashrae_f18} \\
+      석고보드 & 0.18\phantom{0} & 800 & 1090 & gypsumboard & \cite{ashrae_f18} \\
+      글라스울 & 0.035 & 19 & 960 & glasswool & \cite{ashrae_f18} \\
+      \bottomrule
+  \end{tabular}
+\end{table}
+
+
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
 % ---------------------------------------------------------------------------- %
 
-\chapter{시뮬레이션의 절차 및 구조}
+\section{프로필}
+\subsection{ECO2 프로필의 정의}
+건축물에너지효율등급인증규정은 건물 에너지 모델 구축 과정에서 실의 용도를 프로필로 지정하도록 하고 있으며, 총 20개의 프로필을 제공한다\cite{law:usageprofile}. 국내 용도프로필은 (1)사용시간과 운전 시간, (2)설정 요구량, (3)열발열원, (4)실내공기온도, (5)월간 사용일수에 관한 정보를 담고 있다 (\cref{tab:smallofficeusage}). 
 
-\section{데이터 변환 시뮬레이션의 순서}
+\begin{table}[ht]
+  \caption{ECO2:주거 및 주거용 이외 건축물 용도프로필 종류}
+  \label{tbl:eco2profiles}  
+  \centering
+  \begin{tabular}{llll}
+    \toprule
+    번호 & 프로필명 & 번호 & 프로필명 \\ \midrule
+    (1) & 주거공간             & (11) & 전산실 \\ \midrule
+    (2) & 소규모사무실(30m2이하) & (12) & 주방 및 조리실 \\ \midrule
+    (3) & 대규모사무실(30m2초과) & (13) & 병실 \\ \midrule
+    (4) & 회의실 및 세미나실     & (14) & 객실 \\ \midrule
+    (5) & 강당                & (15) & 교실(초중고) \\ \midrule
+    (6) & 구내식당             & (16) & 강의실(대학) \\ \midrule
+    (7) & 화장실               & (17) & 매장(상점/백화점) \\ \midrule
+    (8) & 그 외 체류공간 (휴게실, 탈의실, 헬스장, 등) & (18) & 전시실(전시관/박물관) \\ \midrule
+    (9) & 부속공간 (로비, 복도, 계단실 등) & (19) & 열람실(도서관) \\ \midrule
+    (10) & 창고/설비/문서실     & (20) & 체육시설 \\ \bottomrule
+  \end{tabular}
+\end{table}
 
-\simulator 에서 데이터가 변환되는 절차에 대하여 추후 기술 예정임.
+
+
+\renewcommand{\arraystretch}{0.85}
+\begin{longtable}{ccc}
+  \caption{용도프로필 입력값 예시: 소규모사무실($30m^2$이하)} \\
+  \label{tab:smallofficeusage} \\
+  \toprule
+  구분 & 단위 & 값 \\ \midrule
+  \endfirsthead
+  \multicolumn{3}{r}{\textit{(이전 페이지에서 계속)}} \\ \toprule
+  구분 & 단위 & 값 \\ \midrule
+  \endhead
+  \midrule \multicolumn{3}{r}{\textit{(다음 페이지에 계속)}} \\ \bottomrule
+  \endfoot
+  \bottomrule
+  \endlastfoot
+  % 본문 데이터 (예시)
+  사용시간과 운전시간 & & \\
+  \midrule
+  사용시작시간 & [hh:mm] & 09:00 \\
+  사용종료시간 & [hh:mm] & 18:00 \\
+  운전시작시간 & [hh:mm] & 07:00 \\
+  운전종료시간 & [hh:mm] & 18:00 \\
+  \midrule
+  설정 요구량 & & \\
+  \midrule
+  최소도입외기량 & [$m^3/(m^2h)$] & 4 \\
+  급탕요구량 & [$Wh/(m^2d)$] & 30 \\
+  조명시간 & [h] & 6 \\
+  \midrule
+  열발열원 & & \\
+  \midrule
+  사람 & [$Wh/(m^2d)$] & 30 \\
+  작업보조기기 & [$Wh/(m^2d)$] & 42 \\
+  \midrule
+  실내공기온도 & & \\
+  \midrule
+  난방설정온도 & [°C] & 20 \\
+  냉방설정온도 & [°C] & 26 \\
+  \midrule
+  월간 사용일수 & & \\
+  \midrule
+  1월 사용일수 & [d/mth] & 22 \\
+  2월 사용일수 & [d/mth] & 19 \\
+  3월 사용일수 & [d/mth] & 21 \\
+  4월 사용일수 & [d/mth] & 22 \\  
+  5월 사용일수 & [d/mth] & 22 \\
+  6월 사용일수 & [d/mth] & 20 \\
+  7월 사용일수 & [d/mth] & 22 \\
+  8월 사용일수 & [d/mth] & 21 \\
+  9월 사용일수 & [d/mth] & 18 \\
+  10월 사용일수 & [d/mth] & 21 \\
+  11월 사용일수 & [d/mth] & 21 \\
+  12월 사용일수 & [d/mth] & 21 \\
+\end{longtable}
+
+
+
+\subsection{EnergyPlus 프로필의 정의}
+본 시뮬레이터는 EnergyPlus의 \texttt{Schedule:Compact}를 활용하여 용도프로필의 값을 적용하며, \cref{fig:ep_profile_structure}\와 같은 구조로 구성한다.
+
+\begin{itemize}
+  \item \textbf{Level 1(일간스케줄)}: 하루를 10분 간격으로 나누고, 각 간격에 해당하는 값을 순서대로 나열하여 구성한다. (예: 10분 간격일 경우 144개(1일;24시간;1440분)의 값으로 입력한다)
+  \item \textbf{Level 2(스케줄규칙)}: Level 1에서 정의한 일간스케줄을 요일(예: 주중, 주말, 공휴일 등) 유형에 따라 규칙을 정의한다. 즉, 어떤 요일 유형에 어떤 일간스케줄을 적용할지 결정한다. 예를 들어, \cref{fig:ep_profile_structure}의 ``주중 9to6 yes/no"스케줄의 경우, 9to6 yes/no(기본)을 모든 요일의 기본스케줄로 설정하되, 주말(토/일)과 휴일(공휴일)은 ``하루종일 no"스케줄을 override한다.
+  \item \textbf{Level 3(연간스케줄)}: 1년 동안의 스케줄을 정의한다. Level 2의 스케줄 규칙을 특정 기간에 맞게 조합하여 연간스케줄을 구성한다. 이를 통해, 방학 등 특정 기간에 따른 스케줄 변화가 필요한 실의 스케줄을 입력한다.
+  \item \textbf{Level 4(프로필)}: 실 운영관련 인자(기기가동, 재실, 조명, 실내 설정온도)의 연간스케줄(Level 3)최종 스케줄 객체이다.
+\end{itemize}
+
+이처럼, EnergyPlus 스케줄은 일간스케줄(Level 1) $\to$ 스케줄규칙(Level 2) $\to$ 연간스케줄(Level 3) $\to$ 프로필(Level 4)순서로 조합되어, 실 용도별 운영 스케줄을 상세하게 반영할 수 있도록 지원한다.
+
+\begin{defaultfigure}
+  \includegraphics[width=\textwidth]{프로필구조도.png}
+  \caption{EP 프로필 구조 예시}
+  \label{fig:ep_profile_structure}
+\end{defaultfigure}
+
+\subsection{건축물에너지효율등급인증규정의 용도프로필을 EnergyPlus 프로필로 변환 방법}
+
+현재 건축물에너지효율등급인증규정에서 사용하는 용도프로필은 각 항목의 대표값으로 단순하게 구성되어있다. 이를 EnergyPlus에서 활용하기 위해서는, 두 가지 핵심 변환 과정이 요구된다.
+
+\begin{enumerate}
+  \item 단위 및 값 변환: 건축물에너지효율등급인증규정의 용도프로필의 값(예:열발열원-사람 [$Wh/(m^2d)$])을 EnergyPlus가 요구하는 단위 (예:면적당 인원 [$people/m^2$])로 변환한다.
+  \item 스케줄 변환: 건축물에너지효율등급인증규정의 단순 운영 시간 및 운영일수를 EnergyPlus 스케줄 형식으로 변환한다.
+\end{enumerate}
+
+아래는 건축물에너지효율등급인증규정의 소규모 사무소(30$m^2$이하)(\cref{tab:smallofficeusage})의 프로필을 EnergyPlus입력 스케줄로 변환하는 과정이다.
+
+\subsubsection{재실밀도}
+\begin{table}[ht]
+  \caption{재실스케줄 변환}
+  \centering
+  \begin{tabular}{lcc}
+    \toprule
+     & \makecell{에너지효율등급\\인증규정} & EnergyPlus\\ \midrule
+    재실밀도 &  30 [$Wh/(m^2d)$] & 0.048 [$people/m^2$] \\ \midrule
+    스케줄  &  09:00-18:00      & \makecell{주중 09:00-18:00\\ 주말 및 공휴일 0} \\ \midrule
+  \end{tabular}
+\end{table}
+
+\paragraph{단위 및 값 변환} 건축물에너지효율등급인증규정은 인체의 발열량을 일일 면적당 발열 [$Wh/(m^2d)$]로 정의한다. 반면, EnergyPlus는 인체의 발열을 (a)인당 발열량 [$W/person$]과 (b) 단위 면적당 재실 인원 [$people/m^2$]의 조합으로 입력한다. 본 시뮬레이터에서는 인체의 현열 발열량을 70 [$W/person$]으로 가정하여 변환하였다.\par
+  (30$Wh/(m^2d)$ $\div$ 사용시간 9h $\div$ 인체발열(현열) 70 W/person = 0.048 $people/m^2$)
+\paragraph{스케줄 변환} 인증규정에 명시된 사용시간(09:00-18:00)과 월간 사용일수를 바탕으로 EnergyPlus의 연간 스케줄을 생성한다. 사용시간은 주중(Weekdays)스케줄에 적용하며, 주말(Weekends) 및 공휴일(Holidays)에는 재실이 없는 것으로 설정한다.
+
+
+\subsubsection{조명}
+\begin{table}[ht]
+  \caption{조명스케줄 변환}
+  \centering
+  \begin{tabular}{lcc}
+    \toprule
+     & \makecell{에너지효율등급\\인증규정} & EnergyPlus \\ \midrule
+    스케줄  &  6 [h]      & \makecell{주중 10:00-11:00,13:00-18:00(6[h])\\ 주말 및 공휴일 0} \\ \midrule
+  \end{tabular}
+\end{table}
+
+\paragraph{스케줄 변환} 인증규정의 일일 조명시간 6시간을 충족하기 위해, 점심시간을 제외한 주 업무시간대를 반영하여 EnergyPlus스케줄을 10-11시 및 13-18시로 설정하였다.
+
+\subsubsection{작업보조기기 발열}
+\begin{table}[ht]
+  \caption{작업보조기기스케줄 변환}
+  \centering
+  \begin{tabular}{lcc}
+    \toprule
+     & \makecell{에너지효율등급\\인증규정} & EnergyPlus \\ \midrule
+    기기발열 &  42 [$Wh/(m^2d)$] & 4.7 [$W/m^2$]  \\ \midrule
+    스케줄  &  09:00-18:00      & \makecell{주중 09:00-18:00\\ 주말 및 공휴일 0} \\ \midrule
+  \end{tabular}
+\end{table}
+
+\paragraph{단위 및 값 변환} 건축물에너지효율등급인증규정은 작업보조기기의 발열량을 일일 면적당 발열 [$Wh/(m^2d)$]의 단위로 정의한다. 반면, EnergyPlus는 작업보조기기의 발열을 면적당 발열량 [$W/m^2$]로 입력한다.\par
+  (42$Wh/(m^2d)$ $\div$ 사용시간 9h = 4.7 $W/m^2$)
+\paragraph{스케줄 변환} 재실스케줄과 같게 설정한다.
+
+
+
+\subsubsection{최소도입외기량}
+\begin{table}[ht]
+  \caption{최소도입외기량 변환}
+  \centering
+  \begin{tabular}{lcc}
+    \toprule
+     & \makecell{에너지효율등급\\인증규정} & EnergyPlus\\ \midrule
+    최소도입외기량 &  4 [$m^3/(m^2{\cdot}h)$] & 0.0011 [$m^3/(m^2{\cdot}s)$]  \\ \midrule
+    스케줄  &  09:00-18:00      & \makecell{주중 09:00-18:00\\ 주말 및 공휴일 0}  \\ \midrule
+  \end{tabular}
+\end{table}
+
+
+\paragraph{단위 및 값 변환} 건축물에너지효율등급인증규정은 최소도입외기량을 시간-단위면적당 외기도입량[$m^3/(m^2{\cdot}h)$]으로 정의한다. 반면, EnergyPlus는 최소도입외기량을 초-단위면적당 외기도입량[$m^3/(m^2{\cdot}s)$]으로 정의한다.\par
+  (4 $m^3/(m^2{\cdot}h)$ $\div$ 3600 s = 0.0011 $m^3/(m^2{\cdot}s)$)
+\paragraph{스케줄 변환} 재실스케줄과 같게 설정한다.
+
+
+\subsubsection{냉난방 가동 및 설정온도}
+\begin{table}[ht]
+  \caption{냉난방 가동 및 설정온도 변환}
+  \centering
+  \begin{tabular}{lcc}
+    \toprule
+     & \makecell{에너지효율등급\\인증규정} & EnergyPlus\\ \midrule
+    난방설정온도 &  20 [°C] & 20 [°C] \\ \midrule
+    냉방설정온도 &  26 [°C] & 26 [°C] \\ \midrule
+    스케줄      &  07:00-18:00   & \makecell{주중 07:00-18:00\\ 주말 및 공휴일 0}  \\ \midrule
+  \end{tabular}
+\end{table}
+
+\paragraph{단위 및 값 변환} 에너지효율등급규정의 값을 동일하게 적용한다.
+\paragraph{스케줄 변환} 인증규정에 명시된 운전시간(07:00-18:00)과 월간 사용일수를 바탕으로 EnergyPlus의 연간 스케줄을 생성한다. 운전시간은 주중(Weekdays)스케줄에 적용하며, 주말(Weekends) 및 공휴일(Holidays)에는 설비를 운전하지 않는 것으로 설정한다.
+
 
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
 % ---------------------------------------------------------------------------- %
 
-\section{시뮬레이션 조건}
-\subsection{기상데이터}
-\subsubsection{주소 및 행정구역 기준}
+\section{냉난방설비}
+
+추후 기술
+
+\section{환기설비}
+추후 기술
+
+\section{신재생설비}
+추후 기술
+
+\section{기상데이터}
+\subsection{주소 및 행정구역 기준}
 주소 정보는 2024년 12월 31일 기준 행정구역 체계를 적용하였으며, 세종특별자치시와 제주특별자치도(제주시, 서귀포시)를 포함하여 전국을 총 229개 시·군·구로 분류하였다.
 각 시·군·구의 중심 좌표는 Naver Cloud Platform(NCP)에서 제공하는 Geocoding API를 기반으로 한 \texttt{korean\_geocoding} 파이썬 패키지를 활용하여 위도(latitude)와 경도(longitude) 정보를 추출하였다.
 
-\subsubsection{기상데이터 수집}
+\subsection{기상데이터 수집}
 기상데이터는 국제적으로 통용되는 기상데이터 플랫폼인 OneBuilding.org\cite{onebuilding2025}에서 제공하는 TMYx(Typical Meteorological Year) 데이터를 활용하였다. 해당 플랫폼은 각 지역별 기상데이터를 총 7개 형식(clm, ddy, epw, pvsyst, rain, stat, wea)으로 제공하며, 본 시뮬레이터에서는 EnergyPlus 시뮬레이션에 요구되는 EPW 형식을 사용한다.
 \begin{itemize}
   \item 수집 대상: 전국 95개 기상지점
@@ -50,7 +320,7 @@
 \end{defaultfigure}
 
 
-\subsubsection{주소와 기상데이터 매칭방식}
+\subsection{주소와 기상데이터 매칭방식}
 \label{sec:address_weather_matching}
 기상데이터 매칭은 각 시·군·구의 중심 좌표와 95개 TMY 기상지점의 위도·경도 정보를 비교하여, Haversine 공식을 이용한 거리 계산 결과 가장 가까운 지점을 선택하는 방식으로 매칭함. 
 각 행정구역별 최근접 기상지점의 epw를 매칭한 결과는 표~\ref{tab:weather_mapping}에 제시함.
@@ -302,439 +572,37 @@
   제주특별자치도 서귀포시 & 33.25 & 126.56 & Seogwipo & 471890 & '09-'23 \\
 \end{longtable}
 
-\subsection{EnergyPlus 옵션} 시뮬레이션 옵션은 주로 건물의 전역 특성, 계산 시간 단위, 설비 용량 산정을 위한 부하 계산 조건 등이 있으며, 본 절에서는 주요 항목을 아래와 같이 정리한다.
 
-\subsubsection{Building} 시뮬레이션 대상 건물의 특성을 정의하는 클래스이다. 본 매뉴얼에서는, 주요 항목만을 정리한다.
-\paragraph[short]{Terrain} 건물이 위치한 주변 지형 조건을 정의한다. 이는, 외부 대류열전달계수와 풍속 등에 영향을 준다. 예를 들어, \texttt{Urban}은 주변이 빽빽한 도심 환경을 의미하고, \texttt{Country}는 개방된 농촌 지역을 의미한다. \simulator\는 기본값으로 \texttt{Suburbs}를 적용한다.
-\paragraph[short]{Solar Distribution} 태양복사를 건물에 분배하는 방식을 정의하는 항목으로, 음영 효과를 무시하거나 외부·내부 음영 및 반사까지 고려하는 등 여러 수준의 방법을 선택할 수 있다. 
-\simulator\는 형상 입력 방식을 \texttt{simplified geometry}로 채택하였으므로, 음영 효과를 무시하는 \texttt{MinimalShadowing} 옵션을 적용한다 (\cref{chap:simulator_geometry}).
-
-\subsubsection{Timestep} 시뮬레이션의 기본 계산 시간 단위를 의미하며, 1시간(60분)을 몇 회로 분할하여 계산할 것인지 지정한다. 이 값은 실의 열 평형 계산(Zone Heat Balance)에서 열전달 및 부하 계산의 구동 시간 단위로 사용된다. 허용되는 입력 값은 4에서 60까지, 60을 정확히 나눌 수 있는 정수 (1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30, 60)이며, \ep\는 6(10분 단위 계산)을 권장한다 \cite{energyplusior242}. 더 낮은 값을 입력할 경우 연산 시간은 단축되나, 정확도가 저하될 수 있으며, \simulator\는 기본값으로 6을 적용한다. 
-
-% ---------------------------------------------------------------------------- %
-%                                  NEW SECTION                                 %
-% ---------------------------------------------------------------------------- %
-
-\section{EnergyPlus 구동}
-
-본 엔진에서 EnergyPlus를 호출하는 구문, 디렉토리 구조 등에 대하여 추후 기술 예정임.
-
-% ---------------------------------------------------------------------------- %
-%                                  NEW SECTION                                 %
-% ---------------------------------------------------------------------------- %
-
-\section{오류의 정의와 처리}
-
-입력변수 오류, idf 변환 오류, EP 시뮬레이션 오류로 분류하여, 추후 엔진의 반환값을 정리한 후 각 종류와 대응 방법에 대하여 기술 예정임.
-
-% ---------------------------------------------------------------------------- %
-%                                  NEW SECTION                                 %
-% ---------------------------------------------------------------------------- %
-
-\chapter{항목별 idf 변환 방법}
-\label{chap:simulator_geometry}
-
-\section{형상 변환 알고리즘}
-
-\subsection{EnergyPlus의 형상 입력 방식}
-
-\subsubsection{형상 정보와 부하 계산 사이의 관계}
-
-형상 정보는 실--외부, 실--실 사이 열교환, 일사 부하 등을 위해 필수적인 정보이다. EnergyPlus는 Figure \ref{fig:geometry_mechanism}\과 같이 면 단위로  면을 통해 이뤄진다. 이때 열교환에 영향을 미치는 면의 속성들은 아래와 같다. 일사부하 계산 시 음영효과 반영을 제외하면 실의 부하 계산을 위한 열평형 방정식에서 면들의 구체적인 좌푯값은 필수적이지 않으며, 면적으로 대체 가능함을 시사한다(Figure \ref{fig:geometry_mechanism2}).
-
-\begin{itemize}
-  \item 면과 외기와의 열교환 (\underline{면적}, 대류 열전달 계수, u값 등)
-  \item 면 일사 부하 (\underline{면적}, 방위각, 음영효과, 흡수율 등)
-  \item 실 공기와의 열교환 (\underline{면적}, 대류 열전달 계수)
-  \item 개구부를 통한 일사부하 (\underline{면적}, 태양열 취득률)
-\end{itemize}
-
-\begin{defaultfigure}
-  \includegraphics[width=0.8\textwidth]{geometry_mechanism.png}
-  \caption{면을 통한 열교환 도식화}
-  \label{fig:geometry_mechanism}
-\end{defaultfigure}
-
-\begin{defaultfigure}
-  \includegraphics[width=0.8\textwidth]{geometry_mechanism2.png}
-  \caption{열평형 방정식 도출 과정}
-  \label{fig:geometry_mechanism2}
-\end{defaultfigure}
-
-\subsubsection{Detailed geometry, simplified geometry}
-
-EnergyPlus의 형상 입력 방식은 크게 detailed geometry와 simplified geometry로 구분할 수 있다 (Figure \ref{fig:geometry_types}). Detailed geometry(DG)는 실제 실의 모양을 그대로 모델에 반영하는 방식으로, 면들을 구성하는 점들의 좌푯값을 상세하게 입력하게 된다. DesignBuilder, OpenStudio 등 일반적인 EnergyPlus 모델 저작 도구에서 사용하고 있다. 반면 simplified geometry(SG)는 실을 구성하는 각종 요소(벽, 바닥, 천장 등)와 동일한 면적과 방위각을 가지는 면들을 생성하여 열평형 방정식 계산에 사용하는 방식으로, 건물의 구체적인 형상이 구현되지 않아 건물 형상 및 차양을 직달 일사 계산에 반영하지 못한다는 특징이 있다. 이러한 한계에도 불구하고 비교적 간소화된 형상 입력만으로 상세한 동적 건물 에너지 시뮬레이션이 가능하다는 점에서 널리 사용되고 있으며, 미국 캘리포니아의 에너지 평가 툴인 CBECC (California's Building Energy Code Compliance Software)의 SG 방식\cite{cbecc}이 대표적인 예시이다. Simulator 역시 3D 모델링 프로그램 없이 비교적 간단한 입력을 통한 편의성 확보를 위해 SG 방식을 형상 입력 방식으로 체택하고 있다.
-
-\begin{defaultfigure}
-  
-  \begin{subfigure}[b]{0.45\textwidth}
-    \centering
-    \includegraphics[scale=0.6]{형상_DG.png}
-    \caption{detailed geometry}
-  \end{subfigure}
-  \hfill
-  \begin{subfigure}[b]{0.45\textwidth}
-    \centering
-    \includegraphics[scale=0.6]{형상_SG.png}
-    \caption{simplified geometry}
-  \end{subfigure}
-  
-  \caption{형상 입력 방식}
-  \label{fig:geometry_types}
-
-\end{defaultfigure}
-
-\subsection{벽체, 지붕, 바닥 변환 방법}
-
-각 면과, 창호, 문, 블라인드 등의 변환 방법에 대하여 추후 기술 예정임.
-
-% ---------------------------------------------------------------------------- %
-%                                  NEW SECTION                                 %
-% ---------------------------------------------------------------------------- %
-
-\section{구조체 정의}
-
-EnergyPlus 및 \simulator 의 구조체 정의에 대하여 추후 기술 예정임.
-
-
-
-
-\subsubsection{재료}
-
-재료의 출처 및 이것이 \simulator 에 적용되는 방법에 대하여 추후 기술 예정임 (아래 표는 database로 제시하고 있는 재료들의 예시).
-
-\renewcommand{\arraystretch}{0.8}
-\begin{longtable}{llcclc}
-  \caption{기본 재료 물성치} \\
-  \toprule
-  재료명(국문) & \makecell{열전도도 \\ $[W{\cdot}m^{-1}{\cdot} K^{-1}]$}  & \makecell{밀도 \\ $[kg/m^{3}]$} & \makecell {비열 \\ $[J/kg\cdot K]$} & 재료명 (영문) &  출처 \\ \midrule
-  \endfirsthead
-  \multicolumn{6}{r}{\textit{(이전 페이지에서 계속)}} \\ \toprule
-  재료명(국문) & \makecell{열전도도 \\ $[W{\cdot}m^{-1}{\cdot} K^{-1}]$}  & \makecell{밀도 \\ $[kg/m^{3}]$} & \makecell {비열 \\ $[J/kg\cdot K]$} & 재료명 (영문) & 출처 \\ \midrule
-  \endhead
-  \midrule \multicolumn{6}{r}{\textit{(다음 페이지에 계속)}} \\ \bottomrule
-  \endfoot
-  \bottomrule
-  \endlastfoot
-  시멘트벽돌 &   0.600 &  464 & 0.88 & LW concrete block & \cite{ashrae_f18} \\
-  내화벽돌 &   0.990 & 1920 & 0.79 & brick & \cite{ashrae_f18} \\
-  타일 &   1.300 & 1920 & 1.26 & Slate or tile & \cite{ashrae_f18} \\
-  콘크리트블록(경량) &   0.700 &  512 & 0.88 & LW concrete block & \cite{ashrae_f18} \\
-  콘크리트블록(중량) &   1.000 &  800 & 0.92 & concrete block & \cite{ashrae_f18} \\
-  대리석 &   2.800 & 2560 & 0.79 & stone & \cite{ashrae_f18} \\
-  화강암 &   3.300 & 2560 & 0.79 & stone & \cite{ashrae_f18} \\
-  천연슬레이트 &   1.500 & 1920 & 1.26 & Slate or tile & \cite{ashrae_f18} \\
-  파티클보드 &   0.150 &  400 & 1.30 & fiberboard sheathing & \cite{ashrae_f18} \\
-  석고보드 &   0.180 &  800 & 1.09 & gyp board & \cite{ashrae_f18} \\
-  목재(가벼움) &   0.140 &  608 & 1.63 & wood & \cite{ashrae_f18} \\
-  목재(중간) &   0.170 &  608 & 1.63 & wood & \cite{ashrae_f18} \\
-  목재(무거움) &   0.190 &  608 & 1.63 & wood & \cite{ashrae_f18} \\
-  바닥재(아스팔트) &   0.330 & 1120 & 1.26 & Asphalt shingles & \cite{ashrae_f18} \\
-  아스팔트펠트17kg &   0.110 & 1120 & 1.26 & Asphalt shingles & \cite{ashrae_f18} \\
-  아스팔트펠트22kg &   0.140 & 1120 & 1.26 & Asphalt shingles & \cite{ashrae_f18} \\
-  아스팔트펠트26kg &   0.220 & 1120 & 1.26 & Asphalt shingles & \cite{ashrae_f18} \\
-  아스팔트루핑17kg &   0.190 & 1120 & 1.46 & Built-up roofing & \cite{ashrae_f18} \\
-  아스팔트루핑22kg &   0.270 & 1120 & 1.46 & Built-up roofing & \cite{ashrae_f18} \\
-  아스팔트루핑30kg &   0.340 & 1120 & 1.46 & Built-up roofing & \cite{ashrae_f18} \\
-  콘크리트(1:2:4) &   1.600 & 2240 & 0.90 & heavyweight concrete & \cite{ashrae_f18} \\
-  기포콘크리트0.4품 &   0.130 & 1280 & 0.84 & lightweight concrete & \cite{ashrae_f18} \\
-  기포콘크리트0.5품 &   0.160 & 1280 & 0.84 & lightweight concrete & \cite{ashrae_f18} \\
-  기포콘크리트0.6품 &   0.190 & 1280 & 0.84 & lightweight concrete & \cite{ashrae_f18} \\
-  비드법보온판1종1호 &   0.036 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  비드법보온판1종2호 &   0.037 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  비드법보온판1종3호 &   0.040 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  비드법보온판1종4호 &   0.043 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  비드법보온판2종1호 &   0.031 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  비드법보온판2종2호 &   0.032 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  비드법보온판2종3호 &   0.033 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  비드법보온판2종4호 &   0.034 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  압출법보온판특호 &   0.027 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  압출법보온판1호 &   0.028 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  압출법보온판2호 &   0.029 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  압출법보온판3호 &   0.031 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  경질우레탄보온판1종1호 &   0.024 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  경질우레탄보온판1종2호 &   0.024 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  경질우레탄보온판1종3호 &   0.025 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  경질우레탄보온판2종1호 &   0.023 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  경질우레탄보온판2종2호 &   0.023 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  경질우레탄보온판2종3호 &   0.024 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  미네랄울보온판1호 &   0.037 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  미네랄울보온판2호 &   0.036 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  미네랄울보온판3호 &   0.038 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  미네랄울펠트 &   0.039 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  미네랄울보온대1호 &   0.040 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  미네랄울보온대2호 &   0.039 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  미네랄울보온통 &   0.036 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  그라스울보온판24K &   0.037 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  그라스울보온판32K &   0.036 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  그라스울보온판40K &   0.035 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  그라스울보온판48K-120K &   0.034 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  그라스울보온통 &   0.036 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  미네랄울 &   0.044 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  미네랄울블랭킷1호a &   0.039 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  미네랄울블랭킷1호b &   0.037 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  미네랄울블랭킷2호 &   0.036 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  그라스울 &   0.035 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  그라스울보온대a &   0.044 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  그라스울보온대b &   0.044 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  그라스울보온대c &   0.044 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  그라스울블랭킷a &   0.040 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  그라스울블랭킷b &   0.036 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  동 & 370 & 7824 & 0.50 & Metal surface & \cite{ashrae_f18} \\
-  청동(75Cu,25Sn) &  25 & 7824 & 0.50 & Metal surface & \cite{ashrae_f18} \\
-  황동(70CU,30Zn) & 110 & 7824 & 0.50 & Metal surface & \cite{ashrae_f18} \\
-  알루미늄/합금 & 200 & 7824 & 0.50 & Metal surface & \cite{ashrae_f18} \\
-  강재 &  53 & 7824 & 0.50 & Metal surface & \cite{ashrae_f18} \\
-  납 &  34 & 7824 & 0.50 & Metal surface & \cite{ashrae_f18} \\
-  아연도철판 &  44 & 7824 & 0.50 & Metal surface & \cite{ashrae_f18} \\
-  스텐레스강 &  15 & 7824 & 0.50 & Metal surface & \cite{ashrae_f18} \\
-  \bottomrule
-\end{longtable}
-
-\subsubsection{구조체}
-
-실내외 열전달기준에 따른 구조체 자동 생성 및 EnergyPlus에서 이 값들이 계산되는 방식 등에 대하여 추후 기술 예정임.
-
-\subsubsection{창호}
-
-창호 database에 대하여 추후 입력방식 확정 후 기술 예정임.
-
-% ---------------------------------------------------------------------------- %
-%                                  NEW SECTION                                 %
-% ---------------------------------------------------------------------------- %
-
-\section{프로필 정의와 활용}
-\subsection{ECO2 프로필의 정의}
-건축물에너지효율등급인증규정은 건물 에너지 모델 구축 과정에서 실의 용도를 프로필로 지정하도록 하고 있으며, 총 20개의 프로필을 제공한다\cite{law:usageprofile}. 국내 용도프로필은 (1)사용시간과 운전 시간, (2)설정 요구량, (3)열발열원, (4)실내공기온도, (5)월간 사용일수에 관한 정보를 담고 있다 (\cref{tab:smallofficeusage}). 
-
-\begin{table}[ht]
-  \caption{ECO2:주거 및 주거용 이외 건축물 용도프로필 종류}
-  \label{tbl:eco2profiles}  
-  \centering
-  \begin{tabular}{llll}
-    \toprule
-    번호 & 프로필명 & 번호 & 프로필명 \\ \midrule
-    (1) & 주거공간             & (11) & 전산실 \\ \midrule
-    (2) & 소규모사무실(30m2이하) & (12) & 주방 및 조리실 \\ \midrule
-    (3) & 대규모사무실(30m2초과) & (13) & 병실 \\ \midrule
-    (4) & 회의실 및 세미나실     & (14) & 객실 \\ \midrule
-    (5) & 강당                & (15) & 교실(초중고) \\ \midrule
-    (6) & 구내식당             & (16) & 강의실(대학) \\ \midrule
-    (7) & 화장실               & (17) & 매장(상점/백화점) \\ \midrule
-    (8) & 그 외 체류공간 (휴게실, 탈의실, 헬스장, 등) & (18) & 전시실(전시관/박물관) \\ \midrule
-    (9) & 부속공간 (로비, 복도, 계단실 등) & (19) & 열람실(도서관) \\ \midrule
-    (10) & 창고/설비/문서실     & (20) & 체육시설 \\ \bottomrule
-  \end{tabular}
-\end{table}
-
-
-
-\renewcommand{\arraystretch}{0.85}
-\begin{longtable}{ccc}
-  \caption{용도프로필 입력값 예시: 소규모사무실($30m^2$이하)} \\
-  \label{tab:smallofficeusage} \\
-  \toprule
-  구분 & 단위 & 값 \\ \midrule
-  \endfirsthead
-  \multicolumn{3}{r}{\textit{(이전 페이지에서 계속)}} \\ \toprule
-  구분 & 단위 & 값 \\ \midrule
-  \endhead
-  \midrule \multicolumn{3}{r}{\textit{(다음 페이지에 계속)}} \\ \bottomrule
-  \endfoot
-  \bottomrule
-  \endlastfoot
-  % 본문 데이터 (예시)
-  사용시간과 운전시간 & & \\
-  \midrule
-  사용시작시간 & [hh:mm] & 09:00 \\
-  사용종료시간 & [hh:mm] & 18:00 \\
-  운전시작시간 & [hh:mm] & 07:00 \\
-  운전종료시간 & [hh:mm] & 18:00 \\
-  \midrule
-  설정 요구량 & & \\
-  \midrule
-  최소도입외기량 & [$m^3/(m^2h)$] & 4 \\
-  급탕요구량 & [$Wh/(m^2d)$] & 30 \\
-  조명시간 & [h] & 6 \\
-  \midrule
-  열발열원 & & \\
-  \midrule
-  사람 & [$Wh/(m^2d)$] & 30 \\
-  작업보조기기 & [$Wh/(m^2d)$] & 42 \\
-  \midrule
-  실내공기온도 & & \\
-  \midrule
-  난방설정온도 & [°C] & 20 \\
-  냉방설정온도 & [°C] & 26 \\
-  \midrule
-  월간 사용일수 & & \\
-  \midrule
-  1월 사용일수 & [d/mth] & 22 \\
-  2월 사용일수 & [d/mth] & 19 \\
-  3월 사용일수 & [d/mth] & 21 \\
-  4월 사용일수 & [d/mth] & 22 \\  
-  5월 사용일수 & [d/mth] & 22 \\
-  6월 사용일수 & [d/mth] & 20 \\
-  7월 사용일수 & [d/mth] & 22 \\
-  8월 사용일수 & [d/mth] & 21 \\
-  9월 사용일수 & [d/mth] & 18 \\
-  10월 사용일수 & [d/mth] & 21 \\
-  11월 사용일수 & [d/mth] & 21 \\
-  12월 사용일수 & [d/mth] & 21 \\
-\end{longtable}
-
-
-
-\subsection{EnergyPlus 프로필의 정의}
-본 시뮬레이터는 EnergyPlus의 \texttt{Schedule:Compact}를 활용하여 용도프로필의 값을 적용하며, \cref{fig:ep_profile_structure}\와 같은 구조로 구성한다.
-
-\begin{itemize}
-  \item \textbf{Level 1(일간스케줄)}: 하루를 10분 간격으로 나누고, 각 간격에 해당하는 값을 순서대로 나열하여 구성한다. (예: 10분 간격일 경우 144개(1일;24시간;1440분)의 값으로 입력한다)
-  \item \textbf{Level 2(스케줄규칙)}: Level 1에서 정의한 일간스케줄을 요일(예: 주중, 주말, 공휴일 등) 유형에 따라 규칙을 정의한다. 즉, 어떤 요일 유형에 어떤 일간스케줄을 적용할지 결정한다. 예를 들어, \cref{fig:ep_profile_structure}의 ``주중 9to6 yes/no"스케줄의 경우, 9to6 yes/no(기본)을 모든 요일의 기본스케줄로 설정하되, 주말(토/일)과 휴일(공휴일)은 ``하루종일 no"스케줄을 override한다.
-  \item \textbf{Level 3(연간스케줄)}: 1년 동안의 스케줄을 정의한다. Level 2의 스케줄 규칙을 특정 기간에 맞게 조합하여 연간스케줄을 구성한다. 이를 통해, 방학 등 특정 기간에 따른 스케줄 변화가 필요한 실의 스케줄을 입력한다.
-  \item \textbf{Level 4(프로필)}: 실 운영관련 인자(기기가동, 재실, 조명, 실내 설정온도)의 연간스케줄(Level 3)최종 스케줄 객체이다.
-\end{itemize}
-
-이처럼, EnergyPlus 스케줄은 일간스케줄(Level 1) $\to$ 스케줄규칙(Level 2) $\to$ 연간스케줄(Level 3) $\to$ 프로필(Level 4)순서로 조합되어, 실 용도별 운영 스케줄을 상세하게 반영할 수 있도록 지원한다.
-
-\begin{defaultfigure}
-  \includegraphics[width=\textwidth]{프로필구조도.png}
-  \caption{EP 프로필 구조 예시}
-  \label{fig:ep_profile_structure}
-\end{defaultfigure}
-
-\subsection{건축물에너지효율등급인증규정의 용도프로필을 EnergyPlus 프로필로 변환 방법}
-현재 건축물에너지효율등급인증규정에서 사용하는 용도프로필은 각 항목의 "대표값"으로 단순하게 구성되어있다. 이를 EnergyPlus에서 활용하기 위해서는, 두 가지 핵심 변환 과정이 요구된다.
-
-\begin{enumerate}
-  \item 단위 및 값 변환: 건축물에너지효율등급인증규정의 용도프로필의 값(예:열발열원-사람 [$Wh/(m^2d)$])을 EnergyPlus가 요구하는 단위 (예:면적당 인원 [$people/m^2$])로 변환한다.
-  \item 스케줄 변환: 건축물에너지효율등급인증규정의 단순 운영 시간 및 운영일수를 EnergyPlus 스케줄 형식으로 변환한다.
-\end{enumerate}
-
-아래는 건축물에너지효율등급인증규정의 소규모 사무소(30$m^2$이하)(\cref{tab:smallofficeusage})의 프로필을 EnergyPlus입력 스케줄로 변환하는 과정의 예시이다.
-
-\subsubsection{재실밀도}
-\begin{table}[ht]
-  \caption{재실스케줄 변환}
-  \centering
-  \begin{tabular}{lcc}
-    \toprule
-     & \makecell{에너지효율등급\\인증규정} & EnergyPlus\\ \midrule
-    재실밀도 &  30 [$Wh/(m^2d)$] & 0.048 [$people/m^2$] \\ \midrule
-    스케줄  &  09:00-18:00      & \makecell{주중 09:00-18:00\\ 주말 및 공휴일 0} \\ \midrule
-  \end{tabular}
-\end{table}
-
-\paragraph{단위 및 값 변환} 건축물에너지효율등급인증규정은 인체의 발열량을 일일 면적당 발열 [$Wh/(m^2d)$]로 정의한다. 반면, EnergyPlus는 인체의 발열을 (a)인당 발열량 [$W/person$]과 (b) 단위 면적당 재실 인원 [$people/m^2$]의 조합으로 입력한다. 본 시뮬레이터에서는 인체의 현열 발열량을 70 [$W/person$]으로 가정하여 변환하였다.\par
-  (30$Wh/(m^2d)$ $\div$ 사용시간 9h $\div$ 인체발열(현열) 70 W/person = 0.048 $people/m^2$)
-\paragraph{스케줄 변환} 인증규정에 명시된 사용시간(09:00-18:00)과 월간 사용일수를 바탕으로 EnergyPlus의 연간 스케줄을 생성한다. 사용시간은 주중(Weekdays)스케줄에 적용하며, 주말(Weekends) 및 공휴일(Holidays)에는 재실이 없는 것으로 설정한다.
-
-
-\subsubsection{조명}
-\begin{table}[ht]
-  \caption{조명스케줄 변환}
-  \centering
-  \begin{tabular}{lcc}
-    \toprule
-     & \makecell{에너지효율등급\\인증규정} & EnergyPlus \\ \midrule
-    스케줄  &  6 [h]      & \makecell{주중 10:00-11:00,13:00-18:00(6[h])\\ 주말 및 공휴일 0} \\ \midrule
-  \end{tabular}
-\end{table}
-
-\paragraph{스케줄 변환} 인증규정의 일일 조명시간 6시간을 충족하기 위해, 점심시간을 제외한 주 업무시간대를 반영하여 EnergyPlus스케줄을 10-11시 및 13-18시로 설정하였다.
-
-
-
-\subsubsection{작업보조기기 발열}
-\begin{table}[ht]
-  \caption{작업보조기기스케줄 변환}
-  \centering
-  \begin{tabular}{lcc}
-    \toprule
-     & \makecell{에너지효율등급\\인증규정} & EnergyPlus \\ \midrule
-    기기발열 &  42 [$Wh/(m^2d)$] & 4.7 [$W/m^2$]  \\ \midrule
-    스케줄  &  09:00-18:00      & \makecell{주중 09:00-18:00\\ 주말 및 공휴일 0} \\ \midrule
-  \end{tabular}
-\end{table}
-
-\paragraph{단위 및 값 변환} 건축물에너지효율등급인증규정은 작업보조기기의 발열량을 일일 면적당 발열 [$Wh/(m^2d)$]의 단위로 정의한다. 반면, EnergyPlus는 작업보조기기의 발열을 면적당 발열량 [$W/m^2$]로 입력한다.\par
-  (42$Wh/(m^2d)$ $\div$ 사용시간 9h = 4.7 $W/m^2$)
-\paragraph{스케줄 변환} 재실스케줄과 같게 설정한다.
-
-
-
-\subsubsection{최소도입외기량}
-\begin{table}[ht]
-  \caption{최소도입외기량 변환}
-  \centering
-  \begin{tabular}{lcc}
-    \toprule
-     & \makecell{에너지효율등급\\인증규정} & EnergyPlus\\ \midrule
-    최소도입외기량 &  4 [$m^3/(m^2{\cdot}h)$] & 0.0011 [$m^3/(m^2{\cdot}s)$]  \\ \midrule
-    스케줄  &  09:00-18:00      & \makecell{주중 09:00-18:00\\ 주말 및 공휴일 0}  \\ \midrule
-  \end{tabular}
-\end{table}
-
-
-\paragraph{단위 및 값 변환} 건축물에너지효율등급인증규정은 최소도입외기량을 시간-단위면적당 외기도입량[$m^3/(m^2{\cdot}h)$]으로 정의한다. 반면, EnergyPlus는 최소도입외기량을 초-단위면적당 외기도입량[$m^3/(m^2{\cdot}s)$]으로 정의한다.\par
-  (4 $m^3/(m^2{\cdot}h)$ $\div$ 3600 s = 0.0011 $m^3/(m^2{\cdot}s)$)
-\paragraph{스케줄 변환} 재실스케줄과 같게 설정한다.
-
-
-\subsubsection{냉난방 가동 및 설정온도}
-\begin{table}[ht]
-  \caption{냉난방 가동 및 설정온도 변환}
-  \centering
-  \begin{tabular}{lcc}
-    \toprule
-     & \makecell{에너지효율등급\\인증규정} & EnergyPlus\\ \midrule
-    난방설정온도 &  20 [°C] & 20 [°C] \\ \midrule
-    냉방설정온도 &  26 [°C] & 26 [°C] \\ \midrule
-    스케줄      &  07:00-18:00   & \makecell{주중 07:00-18:00\\ 주말 및 공휴일 0}  \\ \midrule
-  \end{tabular}
-\end{table}
-
-\paragraph{단위 및 값 변환} 에너지효율등급규정의 값을 동일하게 적용한다.
-\paragraph{스케줄 변환} 인증규정에 명시된 운전시간(07:00-18:00)과 월간 사용일수를 바탕으로 EnergyPlus의 연간 스케줄을 생성한다. 운전시간은 주중(Weekdays)스케줄에 적용하며, 주말(Weekends) 및 공휴일(Holidays)에는 설비를 운전하지 않는 것으로 설정한다.
-
-
-% ---------------------------------------------------------------------------- %
-%                                  NEW SECTION                                 %
-% ---------------------------------------------------------------------------- %
-
-\section{설비 변환 알고리즘}
-
-냉난방설비시스템의 이원화 구조와, 냉난방설비, 전열교환기 및 태양광시스템의 변환 방법 기본값 등에 대하여 추후 기술 예정임.
-
-% ---------------------------------------------------------------------------- %
-%                                  NEW SECTION                                 %
-% ---------------------------------------------------------------------------- %
 
 \chapter{시뮬레이션 결과의 해석}
 
-\section{EnergyPlus의 실행 결과물 종류와 의미}
-
-EnergyPlus 실행 결과물 종류와 유형, 그리고 그 결과를 \simulator 에서 어떻게 활용하는지에 대하여 추후 기술 예정임.
-
-% ---------------------------------------------------------------------------- %
-%                                  NEW SECTION                                 %
-% ---------------------------------------------------------------------------- %
-
-\section{그린리모델링을 위한 결과 해석}
-
-\subsection{단위면적당 에너지소비량} \label{subsec:floorarea_definition_for_EUI}
-단위면적의 개념에 대하여 추후 기술 예정임.
-
-\subsection{산출 지표들} \label{subsec:result_converting_coeff_definition}
-\simulator\은 계산된 용도별, 열원별, 월별 에너지소요량을 바탕으로, 1차에너지소요량, 온실가스 배출량 및 에너지 비용을 산출하여 제시한다. 각 지표에 대한 변환 계수는 본 엔진에서 지원하는 4가지 연료(전기, 천연가스, 등유, 지역난방)에 대하여 각각 정의되며, 건물 전체의 1차에너지소요량, 온실가스배출량 및 에너지 비용은 4가지 연료에 대한 값의 합으로 정의된다 (식 \ref{eq:1st_energy_calculation} - \ref{eq:cost_calculation}).
+\simulator\은 계산된 용도별, 열원별, 월별 에너지소요량을 바탕으로, 1차에너지소요량, 온실가스 배출량 및 에너지 비용을 산출하여 제시한다. 각 지표에 대한 변환 계수는 본 엔진에서 지원하는 4가지 연료(전기, 천연가스, 등유, 지역난방)에 대하여 각각 정의되며, 건물 전체의 1차에너지소요량, 온실가스배출량 및 에너지 비용은 4가지 연료에 대한 값의 합으로 정의된다 (식 \ref{eq:1st-energy-calculation} - \ref{eq:cost-calculation}).
 
 \begin{align}
-  \text{건물 전체의 에너지소요량} = \sum_{\text{연료}} \text{연료별 에너지소요량} \times \text{연료별 변환계수} \label{eq:1st_energy_calculation}\\
-  \text{건물 전체의 온실가스 배출량} = \sum_{\text{연료}} \text{연료별 에너지소요량} \times \text{연료별 변환계수} \label{eq:co2_calculation}\\ 
-  \text{건물 전체의 에너지 비용} = \sum_{\text{연료}} \text{연료별 에너지소요량} \times \text{연료별 변환계수} \label{eq:cost_calculation}
+E_{\mathrm{area}} &= \frac{\sum_{f} E_f \, c_f}{A} \label{eq:1st-energy-calculation} \\
+G_{\mathrm{area}} &= \frac{\sum_{f} E_f \, g_f}{A} \label{eq:ghg-calculation} \\
+C_{\mathrm{area}} &= \frac{\sum_{f} E_f \, p_f}{A} \label{eq:cost-calculation}
 \end{align}
 
-\subsubsection{1차에너지소요량}
+여기서,
+
+\begin{description}
+\item[$E_{\mathrm{area}}$] 건물 면적당 1차 에너지소요량
+\item[$G_{\mathrm{area}}$] 건물 면적당 온실가스 배출량
+\item[$C_{\mathrm{area}}$] 건물 면적당 에너지 비용
+\item[$E_f$] 연료 $f$의 에너지 사용량
+\item[$c_f$] 연료 $f$의 1차 에너지 변환계수
+\item[$g_f$] 연료 $f$의 온실가스 배출계수
+\item[$p_f$] 연료 $f$의 단위 에너지 비용
+\item[$A$] 건물의 바닥면적
+\item[$f$] 연료 유형 (전력, 가스, 지역난방, 유류)
+\end{description}
+
+\subsection{바닥면적} \label{subsec:floorarea_definition_for_EUI}
+
+바닥면적은 각 실에 속한 면 중, `바닥(floor)'으로 정의된 면적의 합이다. 각 실의 냉난방 여부와는 무관하게, 입력된 모든 실의 바닥 면적을 합하여 계산한다.
+
+\subsection{1차에너지소요량}
 연료별 1차에너지 환산 계수는 표 \ref{tbl:coeff_kWh_to_1stkWh}\와 같다. 이는 제로에너지건축물 인증제도 운영규정 \cite{law:energy_to_1stenergy} 에서 제시하고 있다. 국내에서는 모든 연료에 대하여 대표적인 환산계수만을 제시하고 있어 \cite{Jeong2021energydeungkeup}, 가스 및 등유에 대하여 동일한 환산계수를 적용하였다.
 
 \begin{table}[ht]
@@ -751,10 +619,9 @@ EnergyPlus 실행 결과물 종류와 유형, 그리고 그 결과를 \simulator
   \end{tabular}
 \end{table}
 
-1차에너지 환산계수는 관련 법령의 개정에 따라 수정 반영되어야 한다.
+\subsection{온실가스 배출량}
 
-\subsubsection{온실가스 배출량}
-연료별 온실가스 배출량 환산 계수는 표 \ref{tbl:coeff_kWh_to_CO2}\와 같다.
+연료별 온실가스 배출량 환산 계수는 표 \ref{tbl:coeff_kWh_to_CO2}\와 같다. 전기의 환산 계수는 환경부 온실가스정보센터에서 공시한 바에 따른다. 가스 및 등유의 환산 계수는 기후변화에 관한 정부간 패널 (Intergovernmental Panel on Climate Change; IPCC)에서 공시한 바에 따르며, 지역난방의 환산계수는 한국지역난방공사에서 공포하는 바에 따른다.
 
 \begin{table}[ht]
   \caption{연료별 사용량의 온실가스 배출량 환산 계수}
@@ -770,20 +637,7 @@ EnergyPlus 실행 결과물 종류와 유형, 그리고 그 결과를 \simulator
   \end{tabular}
 \end{table}
 
-\paragraph{전기} 전기의 온실가스 배출량 환산 계수는 매년 환경부 온실가스 종합정보센터에서 공포하고 있다.
-\paragraph{가스 및 등유} IPCC에서 기술하고 있는 바에 대하여 추후 기술 예정임.
-
-\paragraph{지역난방} 지역난방의 온실가스 배출량 환산 계수는 매년 3월 경 한국지역난방공사에서 공포하고 있다 (그림 \ref{fig:co2_bboombboom}). 배출권거래제 기본계획의 기간(제3차: 2021-2025년, 제4차: 2026-2030)에 따라 다른 환산 계수를 공포하고 있으며, 본 엔진은 제4차 기간을 기준으로 참조하였다.
-
-\begin{defaultfigure}
-  \includegraphics[width=\textwidth]{지역난방공사 온실가스 배출계수 공표 (나중에 표로 바꾸기).png}
-  \caption{한국지역난방공사의 온실가스 배출계수 공포 예시 (2024년 기준)}
-  \label{fig:co2_bboombboom}
-\end{defaultfigure}
-
-가스 및 등유는 2006년 이후로 개정된 바 없으며, 추후 IPCC 개정에 따라 수정 반영되어야 한다. 전기 및 지역난방의 경우 매년 공포되는 값이므로, 매년 공포되는 내용에 따라 계수가 수정 반영되어야 한다.
-
-\subsubsection{비용}
+\subsection{비용}
 연료별 비용 환산 계수는 표 \ref{tbl:coeff_kWh_to_cost}\와 같다. 에너지 요금 체계는 기본요금, 구간별 단가, 계절별 차등 등 다양한 요소로 구성되어 있어 단일 기준으로 정확히 산정하기는 어렵다. 따라서 복잡한 체계를 단순화하여 대표 환산계수를 적용하는 통계적 접근 방식을 사용하였다.
 
 \begin{table}[ht]
@@ -800,59 +654,12 @@ EnergyPlus 실행 결과물 종류와 유형, 그리고 그 결과를 \simulator
   \end{tabular}
 \end{table}
 
-\paragraph{전기, 가스 및 등유} 매월 발간되는 KESIS 국가에너지통계 종합정보시스템에서 2024년 기준값을 참고하였다 (그림 \ref{fig:naturalgas_cost}). 전기와 가스의 경우 말단 용도별로 상이한 통계치가 제시되는데, 각 건물의 계약전력 등 세부 구분을 명확히 반영하기 어려우므로 각 용도별 값의 평균을 사용하였다. 예를 들어, 도시가스의 경우 가정용(21.4원/MJ), 일반용(21.0원/MJ), 산업용(20.8원/MJ), 업무난방용(23.6원/MJ)의 평균인 21.7원/MJ을 기준값으로 사용하였다.
+\paragraph{전기, 가스 및 등유} 매월 발간되는 KESIS 국가에너지통계 종합정보시스템에서 2024년 기준값을 참고하였다 (그림 \ref{fig:naturalgas_cost}). 전기와 가스의 경우 말단 용도별로 상이한 통계치가 제시되는데, 각 건물의 계약전력 등 세부 구분을 명확히 반영하기 어려우므로 각 용도별 값의 평균을 사용하였다.
 
 \begin{defaultfigure}
   \includegraphics[width=\textwidth]{KIESIS 도시가스 가격 공표 (나중에 표로 바꾸기).png}
-  \caption{KIESIS의 도시가스 가격 공포 예시 (2024년 기준)}
+  \caption{KIESIS의 도시가스 가격 공포 (2024년)}
   \label{fig:naturalgas_cost}
 \end{defaultfigure}
 
-이 때 에너지열량 환산기준은 「에너지법 시행규칙」을 참고하였다. 연료의 발열량은 총발열량이 아닌 순발열량을 적용하는 것이 원칙이다. 이는 연소 과정에서 수분 증발 잠열 손실을 제외한 실제 이용 가능한 에너지량을 반영해야 하기 때문이다.
-
-
-\paragraph{지역난방} 지역난방은 한국지역난방공사의 경영실적 공시에 판매단가를 명시하고 있다. 자세한 값은 추후 기술 예정임.
-
-
-
-% ---------------------------------------------------------------------------- %
-%                                  NEW SECTION                                 %
-% ---------------------------------------------------------------------------- %
-
-\chapter{Python 모듈} \label{chapter:pymodule}
-
-\section{개요}
-
-
-
-% ---------------------------------------------------------------------------- %
-%                                  NEW SECTION                                 %
-% ---------------------------------------------------------------------------- %
-
-\section{\pymodule~구조별 상세}
-\
-\pymodule 의 submodule 구조 및 기능에 대하여 추후 기술 예정임.
-
-% ---------------------------------------------------------------------------- %
-%                                  NEW SECTION                                 %
-% ---------------------------------------------------------------------------- %
-
-\section{데이터 변환의 구현}
-
-데이터 변환이 실제로 python 코드로 어떻게 구현되는지에 대하여 추후 기술 예정임.
-
-% ---------------------------------------------------------------------------- %
-%                                  NEW SECTION                                 %
-% ---------------------------------------------------------------------------- %
-
-\section{EnergyPlus의 실행}
-
-EnergyPlus의 실행이 실제로 python 코드로 어떻게 구현되는지에 대하여 추후 기술 예정임.
-
-% ---------------------------------------------------------------------------- %
-%                                  NEW SECTION                                 %
-% ---------------------------------------------------------------------------- %
-
-\section{예시코드}
-
-python에서 \pymodule\을 활용하는 예시 코드에 대하여 추후 기술 예정임.
+\paragraph{지역난방} 지역난방은 한국지역난방공사의 경영실적 공시에 명시된 판매단가에 따랐다.
