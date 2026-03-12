@@ -63,12 +63,12 @@
   \caption{\simulator 에 사용된 기본 재료 속성값}
   \label{tbl:defatlt-materials}  
   \centering
-  \begin{tabular}{clllcc}
+  \begin{tabular}{crrrcc}
     \toprule
      재료명(국문) & \makecell{열전도도 \\ $[W{\cdot}m^{-1}{\cdot} K^{-1}]$}  & \makecell{밀도 \\ $[kg/m^{3}]$} & \makecell {비열 \\ $[J/kg\cdot K]$} & 재료명 (영문) &  출처 \\ \midrule
-      콘크리트 & 2.5 & 2400 & 880 & concrete & \cite{ashrae_f18} \\
-      단열재 & 0.05 & 30 & 1500 & insulation & \cite{ashrae_f18} \\
-      석고보드 & 0.18 & 800 & 1090 & gypsumboard & \cite{ashrae_f18} \\
+      콘크리트 & 2.5\phantom{00} & 2400 & 880 & concrete & \cite{ashrae_f18} \\
+      단열재 & 0.05\phantom{0} & 30 & 1500 & insulation & \cite{ashrae_f18} \\
+      석고보드 & 0.18\phantom{0} & 800 & 1090 & gypsumboard & \cite{ashrae_f18} \\
       글라스울 & 0.035 & 19 & 960 & glasswool & \cite{ashrae_f18} \\
       \bottomrule
   \end{tabular}
@@ -572,28 +572,16 @@
   제주특별자치도 서귀포시 & 33.25 & 126.56 & Seogwipo & 471890 & '09-'23 \\
 \end{longtable}
 
-% ---------------------------------------------------------------------------- %
-%                                  NEW SECTION                                 %
-% ---------------------------------------------------------------------------- %
+
 
 \chapter{시뮬레이션 결과의 해석}
 
-\section{EnergyPlus의 실행 결과물 종류와 의미}
-
-EnergyPlus 실행 결과물 종류와 유형, 그리고 그 결과를 \simulator 에서 어떻게 활용하는지에 대하여 추후 기술 예정임.
-
-% ---------------------------------------------------------------------------- %
-%                                  NEW SECTION                                 %
-% ---------------------------------------------------------------------------- %
-
-\section{그린리모델링을 위한 결과 해석}
-
-\simulator\은 계산된 용도별, 열원별, 월별 에너지소요량을 바탕으로, 1차에너지소요량, 온실가스 배출량 및 에너지 비용을 산출하여 제시한다. 각 지표에 대한 변환 계수는 본 엔진에서 지원하는 4가지 연료(전기, 천연가스, 등유, 지역난방)에 대하여 각각 정의되며, 건물 전체의 1차에너지소요량, 온실가스배출량 및 에너지 비용은 4가지 연료에 대한 값의 합으로 정의된다 (식 \ref{eq:1st_energy_calculation} - \ref{eq:cost_calculation}).
+\simulator\은 계산된 용도별, 열원별, 월별 에너지소요량을 바탕으로, 1차에너지소요량, 온실가스 배출량 및 에너지 비용을 산출하여 제시한다. 각 지표에 대한 변환 계수는 본 엔진에서 지원하는 4가지 연료(전기, 천연가스, 등유, 지역난방)에 대하여 각각 정의되며, 건물 전체의 1차에너지소요량, 온실가스배출량 및 에너지 비용은 4가지 연료에 대한 값의 합으로 정의된다 (식 \ref{eq:1st-energy-calculation} - \ref{eq:cost-calculation}).
 
 \begin{align}
-E_{\mathrm{area}} &= \frac{\sum_{f} E_f \, c_f}{A} \\
-G_{\mathrm{area}} &= \frac{\sum_{f} E_f \, g_f}{A} \\
-C_{\mathrm{area}} &= \frac{\sum_{f} E_f \, p_f}{A}
+E_{\mathrm{area}} &= \frac{\sum_{f} E_f \, c_f}{A} \label{eq:1st-energy-calculation} \\
+G_{\mathrm{area}} &= \frac{\sum_{f} E_f \, g_f}{A} \label{eq:ghg-calculation} \\
+C_{\mathrm{area}} &= \frac{\sum_{f} E_f \, p_f}{A} \label{eq:cost-calculation}
 \end{align}
 
 여기서,
@@ -606,12 +594,13 @@ C_{\mathrm{area}} &= \frac{\sum_{f} E_f \, p_f}{A}
 \item[$c_f$] 연료 $f$의 1차 에너지 변환계수
 \item[$g_f$] 연료 $f$의 온실가스 배출계수
 \item[$p_f$] 연료 $f$의 단위 에너지 비용
-\item[$A$] 건물의 기준 면적
+\item[$A$] 건물의 바닥면적
 \item[$f$] 연료 유형 (전력, 가스, 지역난방, 유류)
 \end{description}
 
-\subsection{단위면적} \label{subsec:floorarea_definition_for_EUI}
-단위면적의 개념에 대하여 추후 기술 예정임.
+\subsection{바닥면적} \label{subsec:floorarea_definition_for_EUI}
+
+바닥면적은 각 실에 속한 면 중, `바닥(floor)'으로 정의된 면적의 합이다. 각 실의 냉난방 여부와는 무관하게, 입력된 모든 실의 바닥 면적을 합하여 계산한다.
 
 \subsection{1차에너지소요량}
 연료별 1차에너지 환산 계수는 표 \ref{tbl:coeff_kWh_to_1stkWh}\와 같다. 이는 제로에너지건축물 인증제도 운영규정 \cite{law:energy_to_1stenergy} 에서 제시하고 있다. 국내에서는 모든 연료에 대하여 대표적인 환산계수만을 제시하고 있어 \cite{Jeong2021energydeungkeup}, 가스 및 등유에 대하여 동일한 환산계수를 적용하였다.
@@ -630,10 +619,9 @@ C_{\mathrm{area}} &= \frac{\sum_{f} E_f \, p_f}{A}
   \end{tabular}
 \end{table}
 
-1차에너지 환산계수는 관련 법령의 개정에 따라 수정 반영되어야 한다.
-
 \subsection{온실가스 배출량}
-연료별 온실가스 배출량 환산 계수는 표 \ref{tbl:coeff_kWh_to_CO2}\와 같다.
+
+연료별 온실가스 배출량 환산 계수는 표 \ref{tbl:coeff_kWh_to_CO2}\와 같다. 전기의 환산 계수는 환경부 온실가스정보센터에서 공시한 바에 따른다. 가스 및 등유의 환산 계수는 기후변화에 관한 정부간 패널 (Intergovernmental Panel on Climate Change; IPCC)에서 공시한 바에 따르며, 지역난방의 환산계수는 한국지역난방공사에서 공포하는 바에 따른다.
 
 \begin{table}[ht]
   \caption{연료별 사용량의 온실가스 배출량 환산 계수}
@@ -648,19 +636,6 @@ C_{\mathrm{area}} &= \frac{\sum_{f} E_f \, p_f}{A}
     지역난방 & 0.1358 \\ \bottomrule
   \end{tabular}
 \end{table}
-
-\paragraph{전기} 전기의 온실가스 배출량 환산 계수는 매년 환경부 온실가스 종합정보센터에서 공포하고 있다.
-\paragraph{가스 및 등유} IPCC에서 기술하고 있는 바에 대하여 추후 기술 예정임.
-
-\paragraph{지역난방} 지역난방의 온실가스 배출량 환산 계수는 매년 3월 경 한국지역난방공사에서 공포하고 있다 (그림 \ref{fig:co2_bboombboom}). 배출권거래제 기본계획의 기간(제3차: 2021-2025년, 제4차: 2026-2030)에 따라 다른 환산 계수를 공포하고 있으며, 본 엔진은 제4차 기간을 기준으로 참조하였다.
-
-\begin{defaultfigure}
-  \includegraphics[width=\textwidth]{지역난방공사 온실가스 배출계수 공표 (나중에 표로 바꾸기).png}
-  \caption{한국지역난방공사의 온실가스 배출계수 공포 예시 (2024년 기준)}
-  \label{fig:co2_bboombboom}
-\end{defaultfigure}
-
-가스 및 등유는 2006년 이후로 개정된 바 없으며, 추후 IPCC 개정에 따라 수정 반영되어야 한다. 전기 및 지역난방의 경우 매년 공포되는 값이므로, 매년 공포되는 내용에 따라 계수가 수정 반영되어야 한다.
 
 \subsection{비용}
 연료별 비용 환산 계수는 표 \ref{tbl:coeff_kWh_to_cost}\와 같다. 에너지 요금 체계는 기본요금, 구간별 단가, 계절별 차등 등 다양한 요소로 구성되어 있어 단일 기준으로 정확히 산정하기는 어렵다. 따라서 복잡한 체계를 단순화하여 대표 환산계수를 적용하는 통계적 접근 방식을 사용하였다.
@@ -679,15 +654,12 @@ C_{\mathrm{area}} &= \frac{\sum_{f} E_f \, p_f}{A}
   \end{tabular}
 \end{table}
 
-\paragraph{전기, 가스 및 등유} 매월 발간되는 KESIS 국가에너지통계 종합정보시스템에서 2024년 기준값을 참고하였다 (그림 \ref{fig:naturalgas_cost}). 전기와 가스의 경우 말단 용도별로 상이한 통계치가 제시되는데, 각 건물의 계약전력 등 세부 구분을 명확히 반영하기 어려우므로 각 용도별 값의 평균을 사용하였다. 예를 들어, 도시가스의 경우 가정용(21.4원/MJ), 일반용(21.0원/MJ), 산업용(20.8원/MJ), 업무난방용(23.6원/MJ)의 평균인 21.7원/MJ을 기준값으로 사용하였다.
+\paragraph{전기, 가스 및 등유} 매월 발간되는 KESIS 국가에너지통계 종합정보시스템에서 2024년 기준값을 참고하였다 (그림 \ref{fig:naturalgas_cost}). 전기와 가스의 경우 말단 용도별로 상이한 통계치가 제시되는데, 각 건물의 계약전력 등 세부 구분을 명확히 반영하기 어려우므로 각 용도별 값의 평균을 사용하였다.
 
 \begin{defaultfigure}
   \includegraphics[width=\textwidth]{KIESIS 도시가스 가격 공표 (나중에 표로 바꾸기).png}
-  \caption{KIESIS의 도시가스 가격 공포 예시 (2024년 기준)}
+  \caption{KIESIS의 도시가스 가격 공포 (2024년)}
   \label{fig:naturalgas_cost}
 \end{defaultfigure}
 
-이 때 에너지열량 환산기준은 「에너지법 시행규칙」을 참고하였다. 연료의 발열량은 총발열량이 아닌 순발열량을 적용하는 것이 원칙이다. 이는 연소 과정에서 수분 증발 잠열 손실을 제외한 실제 이용 가능한 에너지량을 반영해야 하기 때문이다.
-
-
-\paragraph{지역난방} 지역난방은 한국지역난방공사의 경영실적 공시에 판매단가를 명시하고 있다. 자세한 값은 추후 기술 예정임.
+\paragraph{지역난방} 지역난방은 한국지역난방공사의 경영실적 공시에 명시된 판매단가에 따랐다.
