@@ -1,30 +1,28 @@
 
 \part{시뮬레이션 알고리즘}
 \label{part:algorithm}
-                                                                                                                                           
-
 
 \chapter{항목별 데이터 변환 방법}
 \label{chap:simulator_geometry}
 
 \section{형상}
 
-\subsection{Simplified Geometry (SG) 방식과 Detailed Geometry (DG) 방식}
+\subsection{면: Detailed Geometry (DG) 와 Simplified Geometry (SG)}
 
-EnergyPlus의 형상 입력 방식은 크게 detailed geometry와 simplified geometry로 구분할 수 있다 (Figure \ref{fig:geometry_types}). Detailed geometry(DG)는 실제 실의 모양을 그대로 모델에 반영하는 방식으로, 면들을 구성하는 점들의 좌푯값을 상세하게 입력하게 된다. DesignBuilder, OpenStudio 등 일반적인 EnergyPlus 모델 저작 도구에서 사용하고 있다. 반면 simplified geometry(SG)는 실을 구성하는 각종 요소(벽, 바닥, 천장 등)와 동일한 면적과 방위각을 가지는 면들을 생성하여 열평형 방정식 계산에 사용하는 방식으로, 건물의 구체적인 형상이 구현되지 않아 건물 형상 및 차양을 직달 일사 계산에 반영하지 못한다는 특징이 있다. 이러한 한계에도 불구하고 비교적 간소화된 형상 입력만으로 상세한 동적 건물 에너지 시뮬레이션이 가능하다는 점에서 널리 사용되고 있으며, 미국 캘리포니아의 에너지 평가 툴인 CBECC (California's Building Energy Code Compliance Software)의 SG 방식\cite{cbecc}이 대표적인 예시이다. Simulator 역시 3D 모델링 프로그램 없이 비교적 간단한 입력을 통한 편의성 확보를 위해 SG 방식을 형상 입력 방식으로 체택하고 있다.
+건물 에너지 시뮬레이션 도구의 형상 입력 방식은 크게 Detailed Geometry (DG)와 Simplified Geometry (SG)로 구분할 수 있다\parencref{fig:geometry_types}. Detailed Geometry 방식은 실의 각 면들을 구성하는 점들의 좌푯값을 규칙에 맞게 상세하게 입력하여 정의하는 방식으로, 실재하는 건물의 3D 형상을 그대로 구현하는 방식이다. EnergyPlus의 기본적인 형상 정의 방식으로 DesignBuilder, OpenStudio, ClimateStudio 등 EnergyPlus를 기반으로 하는 일반적인 건물 에너지 시뮬레이션 도구에서 사용되고 있다.
 
 \begin{defaultfigure}
   
   \begin{subfigure}[b]{0.45\textwidth}
     \centering
     \includegraphics[scale=0.6]{형상_DG.png}
-    \caption{detailed geometry}
+    \caption{Detailed Geometry (DG)}
   \end{subfigure}
   \hfill
   \begin{subfigure}[b]{0.45\textwidth}
     \centering
     \includegraphics[scale=0.6]{형상_SG.png}
-    \caption{simplified geometry}
+    \caption{Simplified Geometry (SG)}
   \end{subfigure}
   
   \caption{형상 입력 방식}
@@ -32,121 +30,50 @@ EnergyPlus의 형상 입력 방식은 크게 detailed geometry와 simplified geo
 
 \end{defaultfigure}
 
-\subsection{SG 입력 데이터의 DG 변환 방법}
+반면 Simplified Geometry 방식은 실의 각 면들을 그 면적과 향(방위각) 만으로 정의하는 방식으로, 열평형 방정식 기반으로 풀어지는 건물 에너지 시뮬레이션에서 핵심이 되는 정보만 입력을 받는 개념으로 볼 수 있다. 좌표값의 계산, 3D 모델링 도구 등 없이 면을 나열할 수 있다는 점에서 높은 편의성을 가지며, ISO 13790 등 준정적 시뮬레이션 도구들에서 흔히 사용되며, EnergyPlus를 기반으로 하더라도 도구의 사용 편의성, 외부 프로그램 비의존성을 형상의 시각화, 상세한 일사에너지 계산보다 우선시하는 경우 종종 사용된다 \cite{cbecc}.
 
-\subsection{SG 입력의 EnergyPlus 시뮬레이션}
+\simulator 는 SG 방식으로 형상을 입력받아, 이를 EnergyPlus 시뮬레이션 가능한 DG 정보로 변환하는 방식을 취하고 있다.EnergyPlus에서 형상은, 그 면적과 향 및 경계조건이 동일하다면, 상호 그림자에 의한 일사 차폐 효과를 무시하는 한 열적으로 동일하다. 따라서, 면적과 향으로 주어진 각 면들은 모두 원점을 지나는 임의의 평면으로 생성되며, EnergyPlus에서 요구하는 인접 존 처리 규칙을 만족시키기 위해 두 존 사이의 벽체들은 모두 복제(clone 및 flip)되며, 이 과정에서 입력된 구조체도 복제 및 뒤집어져 적용된다 \parencref{fig:sg-to-dg-vertex-extraction}. 
+
+\begin{defaultfigure}
+  \includegraphics{sg-to-dg-vertex-extraction.png}
+  \caption{Simplified Geometry 정보의 Detailed Geometry 변환 과정}
+  \label{fig:sg-to-dg-vertex-extraction}
+\end{defaultfigure}
+
+이렇게 EnergyPlus에서 구현된 DG 정보는, 원래 건물의 3D 형상을 복원한 것이 아닌, 이와 열적으로 동등한 3D 면들의 집합체이다 \parencref{fig:transformed-sg-example}. 상호 그림자에 의해 일사가 차폐되는 것을 막기 위해 상호간 그림자는 완전히 무시되는 조건으로 시뮬레이션을 실행한다.
+
+\begin{defaultfigure}
+  \includegraphics{transformed-sg-example.png}
+  \caption{Detailed Geometry로 변환된 Simplified Geometry의 예시}
+  \label{fig:transformed-sg-example}
+\end{defaultfigure}
 
 
-\subsection{벽체, 지붕, 바닥 변환 방법}
+\subsection{개구부}
 
-각 면과, 창호, 문, 블라인드 등의 변환 방법에 대하여 추후 기술 예정임.
+개구부는 면과 마찬가지로 SG 방식으로 입력받아, 각 소속면에 속한 임의의 정사각형 면으로 변환된다.
 
-% ---------------------------------------------------------------------------- %
-%                                  NEW SECTION                                 %
-% ---------------------------------------------------------------------------- %
+\section{재료 및 구조체}
 
-\section{구조체}
+\simulator 의 재료 및 구조체 정의는 \ep 와 동일하다.
 
-EnergyPlus 및 \simulator 의 구조체 정의에 대하여 추후 기술 예정임.
+구조체가 지정되지 않은 경우, 각 면은 \cref{tbl:defatlt-materials}에 제시된 기본 재료 속성값이 적용된 외단열 콘크리트 벽체로 정의되며, 이 때 콘크리트의 두께는 190mm, 단열재는 해당 건축물의 허가연도 및 지역에 따른 법적 열관류율을 만족시키는 두께로 적용된다.
 
+\begin{table}[ht]
+  \caption{\simulator 에 사용된 기본 재료 속성값}
+  \label{tbl:defatlt-materials}  
+  \centering
+  \begin{tabular}{clllcc}
+    \toprule
+     재료명(국문) & \makecell{열전도도 \\ $[W{\cdot}m^{-1}{\cdot} K^{-1}]$}  & \makecell{밀도 \\ $[kg/m^{3}]$} & \makecell {비열 \\ $[J/kg\cdot K]$} & 재료명 (영문) &  출처 \\ \midrule
+      콘크리트 & 2.5 & 2400 & 880 & concrete & \cite{ashrae_f18} \\
+      단열재 & 0.05 & 30 & 1500 & insulation & \cite{ashrae_f18} \\
+      석고보드 & 0.18 & 800 & 1090 & gypsumboard & \cite{ashrae_f18} \\
+      글라스울 & 0.035 & 19 & 960 & glasswool & \cite{ashrae_f18} \\
+      \bottomrule
+  \end{tabular}
+\end{table}
 
-
-
-\subsection{재료}
-
-재료의 출처 및 이것이 \simulator 에 적용되는 방법에 대하여 추후 기술 예정임 (아래 표는 database로 제시하고 있는 재료들의 예시).
-
-\renewcommand{\arraystretch}{0.8}
-\begin{longtable}{llcclc}
-  \caption{기본 재료 물성치} \\
-  \toprule
-  재료명(국문) & \makecell{열전도도 \\ $[W{\cdot}m^{-1}{\cdot} K^{-1}]$}  & \makecell{밀도 \\ $[kg/m^{3}]$} & \makecell {비열 \\ $[J/kg\cdot K]$} & 재료명 (영문) &  출처 \\ \midrule
-  \endfirsthead
-  \multicolumn{6}{r}{\textit{(이전 페이지에서 계속)}} \\ \toprule
-  재료명(국문) & \makecell{열전도도 \\ $[W{\cdot}m^{-1}{\cdot} K^{-1}]$}  & \makecell{밀도 \\ $[kg/m^{3}]$} & \makecell {비열 \\ $[J/kg\cdot K]$} & 재료명 (영문) & 출처 \\ \midrule
-  \endhead
-  \midrule \multicolumn{6}{r}{\textit{(다음 페이지에 계속)}} \\ \bottomrule
-  \endfoot
-  \bottomrule
-  \endlastfoot
-  시멘트벽돌 &   0.600 &  464 & 0.88 & LW concrete block & \cite{ashrae_f18} \\
-  내화벽돌 &   0.990 & 1920 & 0.79 & brick & \cite{ashrae_f18} \\
-  타일 &   1.300 & 1920 & 1.26 & Slate or tile & \cite{ashrae_f18} \\
-  콘크리트블록(경량) &   0.700 &  512 & 0.88 & LW concrete block & \cite{ashrae_f18} \\
-  콘크리트블록(중량) &   1.000 &  800 & 0.92 & concrete block & \cite{ashrae_f18} \\
-  대리석 &   2.800 & 2560 & 0.79 & stone & \cite{ashrae_f18} \\
-  화강암 &   3.300 & 2560 & 0.79 & stone & \cite{ashrae_f18} \\
-  천연슬레이트 &   1.500 & 1920 & 1.26 & Slate or tile & \cite{ashrae_f18} \\
-  파티클보드 &   0.150 &  400 & 1.30 & fiberboard sheathing & \cite{ashrae_f18} \\
-  석고보드 &   0.180 &  800 & 1.09 & gyp board & \cite{ashrae_f18} \\
-  목재(가벼움) &   0.140 &  608 & 1.63 & wood & \cite{ashrae_f18} \\
-  목재(중간) &   0.170 &  608 & 1.63 & wood & \cite{ashrae_f18} \\
-  목재(무거움) &   0.190 &  608 & 1.63 & wood & \cite{ashrae_f18} \\
-  바닥재(아스팔트) &   0.330 & 1120 & 1.26 & Asphalt shingles & \cite{ashrae_f18} \\
-  아스팔트펠트17kg &   0.110 & 1120 & 1.26 & Asphalt shingles & \cite{ashrae_f18} \\
-  아스팔트펠트22kg &   0.140 & 1120 & 1.26 & Asphalt shingles & \cite{ashrae_f18} \\
-  아스팔트펠트26kg &   0.220 & 1120 & 1.26 & Asphalt shingles & \cite{ashrae_f18} \\
-  아스팔트루핑17kg &   0.190 & 1120 & 1.46 & Built-up roofing & \cite{ashrae_f18} \\
-  아스팔트루핑22kg &   0.270 & 1120 & 1.46 & Built-up roofing & \cite{ashrae_f18} \\
-  아스팔트루핑30kg &   0.340 & 1120 & 1.46 & Built-up roofing & \cite{ashrae_f18} \\
-  콘크리트(1:2:4) &   1.600 & 2240 & 0.90 & heavyweight concrete & \cite{ashrae_f18} \\
-  기포콘크리트0.4품 &   0.130 & 1280 & 0.84 & lightweight concrete & \cite{ashrae_f18} \\
-  기포콘크리트0.5품 &   0.160 & 1280 & 0.84 & lightweight concrete & \cite{ashrae_f18} \\
-  기포콘크리트0.6품 &   0.190 & 1280 & 0.84 & lightweight concrete & \cite{ashrae_f18} \\
-  비드법보온판1종1호 &   0.036 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  비드법보온판1종2호 &   0.037 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  비드법보온판1종3호 &   0.040 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  비드법보온판1종4호 &   0.043 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  비드법보온판2종1호 &   0.031 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  비드법보온판2종2호 &   0.032 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  비드법보온판2종3호 &   0.033 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  비드법보온판2종4호 &   0.034 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  압출법보온판특호 &   0.027 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  압출법보온판1호 &   0.028 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  압출법보온판2호 &   0.029 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  압출법보온판3호 &   0.031 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  경질우레탄보온판1종1호 &   0.024 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  경질우레탄보온판1종2호 &   0.024 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  경질우레탄보온판1종3호 &   0.025 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  경질우레탄보온판2종1호 &   0.023 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  경질우레탄보온판2종2호 &   0.023 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  경질우레탄보온판2종3호 &   0.024 &   43 & 1.21 & insulation board & \cite{ashrae_f18} \\
-  미네랄울보온판1호 &   0.037 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  미네랄울보온판2호 &   0.036 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  미네랄울보온판3호 &   0.038 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  미네랄울펠트 &   0.039 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  미네랄울보온대1호 &   0.040 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  미네랄울보온대2호 &   0.039 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  미네랄울보온통 &   0.036 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  그라스울보온판24K &   0.037 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  그라스울보온판32K &   0.036 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  그라스울보온판40K &   0.035 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  그라스울보온판48K-120K &   0.034 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  그라스울보온통 &   0.036 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  미네랄울 &   0.044 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  미네랄울블랭킷1호a &   0.039 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  미네랄울블랭킷1호b &   0.037 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  미네랄울블랭킷2호 &   0.036 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  그라스울 &   0.035 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  그라스울보온대a &   0.044 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  그라스울보온대b &   0.044 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  그라스울보온대c &   0.044 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  그라스울블랭킷a &   0.040 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  그라스울블랭킷b &   0.036 &   19 & 0.96 & batt insulation & \cite{ashrae_f18} \\
-  동 & 370 & 7824 & 0.50 & Metal surface & \cite{ashrae_f18} \\
-  청동(75Cu,25Sn) &  25 & 7824 & 0.50 & Metal surface & \cite{ashrae_f18} \\
-  황동(70CU,30Zn) & 110 & 7824 & 0.50 & Metal surface & \cite{ashrae_f18} \\
-  알루미늄/합금 & 200 & 7824 & 0.50 & Metal surface & \cite{ashrae_f18} \\
-  강재 &  53 & 7824 & 0.50 & Metal surface & \cite{ashrae_f18} \\
-  납 &  34 & 7824 & 0.50 & Metal surface & \cite{ashrae_f18} \\
-  아연도철판 &  44 & 7824 & 0.50 & Metal surface & \cite{ashrae_f18} \\
-  스텐레스강 &  15 & 7824 & 0.50 & Metal surface & \cite{ashrae_f18} \\
-  \bottomrule
-\end{longtable}
-
-\subsection{구조체}
-
-실내외 열전달기준에 따른 구조체 자동 생성 및 EnergyPlus에서 이 값들이 계산되는 방식 등에 대하여 추후 기술 예정임.
 
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
@@ -253,14 +180,15 @@ EnergyPlus 및 \simulator 의 구조체 정의에 대하여 추후 기술 예정
 \end{defaultfigure}
 
 \subsection{건축물에너지효율등급인증규정의 용도프로필을 EnergyPlus 프로필로 변환 방법}
-현재 건축물에너지효율등급인증규정에서 사용하는 용도프로필은 각 항목의 "대표값"으로 단순하게 구성되어있다. 이를 EnergyPlus에서 활용하기 위해서는, 두 가지 핵심 변환 과정이 요구된다.
+
+현재 건축물에너지효율등급인증규정에서 사용하는 용도프로필은 각 항목의 대표값으로 단순하게 구성되어있다. 이를 EnergyPlus에서 활용하기 위해서는, 두 가지 핵심 변환 과정이 요구된다.
 
 \begin{enumerate}
   \item 단위 및 값 변환: 건축물에너지효율등급인증규정의 용도프로필의 값(예:열발열원-사람 [$Wh/(m^2d)$])을 EnergyPlus가 요구하는 단위 (예:면적당 인원 [$people/m^2$])로 변환한다.
   \item 스케줄 변환: 건축물에너지효율등급인증규정의 단순 운영 시간 및 운영일수를 EnergyPlus 스케줄 형식으로 변환한다.
 \end{enumerate}
 
-아래는 건축물에너지효율등급인증규정의 소규모 사무소(30$m^2$이하)(\cref{tab:smallofficeusage})의 프로필을 EnergyPlus입력 스케줄로 변환하는 과정의 예시이다.
+아래는 건축물에너지효율등급인증규정의 소규모 사무소(30$m^2$이하)(\cref{tab:smallofficeusage})의 프로필을 EnergyPlus입력 스케줄로 변환하는 과정이다.
 
 \subsubsection{재실밀도}
 \begin{table}[ht]
@@ -291,8 +219,6 @@ EnergyPlus 및 \simulator 의 구조체 정의에 대하여 추후 기술 예정
 \end{table}
 
 \paragraph{스케줄 변환} 인증규정의 일일 조명시간 6시간을 충족하기 위해, 점심시간을 제외한 주 업무시간대를 반영하여 EnergyPlus스케줄을 10-11시 및 13-18시로 설정하였다.
-
-
 
 \subsubsection{작업보조기기 발열}
 \begin{table}[ht]
@@ -353,7 +279,7 @@ EnergyPlus 및 \simulator 의 구조체 정의에 대하여 추후 기술 예정
 
 \section{냉난방설비}
 
-냉난방설비시스템의 이원화 구조와, 냉난방설비, 전열교환기 및 태양광시스템의 변환 방법 기본값 등에 대하여 추후 기술 예정임.
+추후 기술
 
 \section{환기설비}
 추후 기술
