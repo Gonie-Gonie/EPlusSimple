@@ -344,13 +344,12 @@ GRAPH_ORDER = [
 ENERGY_TYPES = [
     ("ELECTRICITY", "전기"),
     ("NATURALGAS", "가스"),
-    ("OIL", "유류"),
     ("DISTRICTHEATING", "지역난방"),
 ]
 
 DEFAULT_COLORS_BEFORE = {
     k: PALETTE[k_idx]
-    for k_idx, k in enumerate(["NATURALGAS", "ELECTRICITY", "OIL", "DISTRICTHEATING"])
+    for k_idx, k in enumerate(["NATURALGAS", "ELECTRICITY", "DISTRICTHEATING"])
 }
 
 def _draw_monthly_stacked_bar(
@@ -370,9 +369,35 @@ def _draw_monthly_stacked_bar(
     bottom_afterN = np.zeros(12)
 
     for et_key, et_label in ENERGY_TYPES:
-        bvals = np.array(grr_before[datatype][category_key].get(et_key, [0]*12))
-        avals = np.array(grr_after[datatype][category_key].get(et_key, [0]*12))
-        nvals = np.array(grr_afterN[datatype][category_key].get(et_key, [0]*12))
+        bvals = [
+            sum(
+                (-grr_before[datatype][cat_key].get(et_key, [0]*12)[m] if cat_key == "generators"
+                else grr_before[datatype][cat_key].get(et_key, [0]*12)[m])
+                for cat_key, _ in GRAPH_ORDER
+                for et_key, _ in ENERGY_TYPES
+            )
+            for m in range(12)
+        ]
+
+        avals = [
+            sum(
+                (-grr_after[datatype][cat_key].get(et_key, [0]*12)[m] if cat_key == "generators"
+                else grr_after[datatype][cat_key].get(et_key, [0]*12)[m])
+                for cat_key, _ in GRAPH_ORDER
+                for et_key, _ in ENERGY_TYPES
+            )
+            for m in range(12)
+        ]
+
+        nvals = [
+            sum(
+                (-grr_afterN[datatype][cat_key].get(et_key, [0]*12)[m] if cat_key == "generators"
+                else grr_afterN[datatype][cat_key].get(et_key, [0]*12)[m])
+                for cat_key, _ in GRAPH_ORDER
+                for et_key, _ in ENERGY_TYPES
+            )
+            for m in range(12)
+        ]
 
         color = DEFAULT_COLORS_BEFORE[et_key]
 
@@ -446,7 +471,7 @@ def _draw_monthly_stacked_bars(
                                  hatch=[None, '//////', None][l_idx]))
             labels.append(f"{et_label} {label}")
 
-    legend_ncol = 4
+    legend_ncol = 3
 
     fig.legend(
         handles=handles,
