@@ -20,6 +20,7 @@
 \setstretch{1.25}
 \usepackage[most]{tcolorbox}
 \usepackage{longtable}
+\usepackage{multirow}
 \usepackage{tikzpagenodes}
 \tcbuselibrary{skins}
 
@@ -95,8 +96,6 @@
 % ==================== 갑지 ====================
 \topbar{그린리모델링 정성평가 결과서}
 
-\section{건물 개요}
-
 \newcolumntype{L}{>{\columncolor[gray]{0.9}\bfseries\centering\arraybackslash}p{0.2\textwidth}}
 \newcolumntype{C}{>{\centering\arraybackslash}p{0.3\textwidth}}
 
@@ -111,57 +110,70 @@
 \hline
 건축물명 & {{metadata.name}} & 주소 / 용도 & {{metadata.addr}} / {{master["구분"]}} \\ \hline
 건축 허가일자 & {{metadata.date}} & GR 허가일자 & {{master["GR이후_그린리모델링 허가일자"]}} \\ \hline
-연면적 & {{comment.연면적}}$\mathrm{m^2}$ & 층수  & 지하 {{master["GR이전_규모_지하"]}}층 / 지상{{master["GR이전_규모_지상"]}}층            \\ \hline
+연면적 & {{comment.연면적}}$\mathrm{m^2}$ & 층수  & 지하 {{ "%.0f"|format(master["GR이전_규모_지하"])}}층 / 지상{{"%.0f"|format(master["GR이전_규모_지상"])}}층            \\ \hline
 시뮬레이션 엔진 & EplusSimple V0.6.1 & 기상데이터 & 23년도 (기상청) \\ \hline
 
 \end{tabular}
 \end{tcolorbox}
 
-\section{열원별 1차에너지소요량 및 온실가스 배출량 비교 (시뮬레이션)}
-\begin{tcolorbox}[mysection, top=0mm, bottom=0mm,]
-\begin{center}
-  \includegraphics[width=\textwidth]{energy_summary.png}
-\end{center}
-  
-\end{tcolorbox}
+\section{시뮬레이션 주요 결과}
 
-\section{총 1차에너지소요량, 온실가스 배출량 및 감축량 비교}
 \begin{tcolorbox}[
   mysection,
   boxsep=0pt,      % 내부 기본 붕 뜬 여백 제거 (표 넣을 때 중요)
   left=2.5mm,        % 왼쪽 여백 추가
   right=5mm,       % 오른쪽 여백 추가
-  top=3mm,         % 위쪽 살짝
-  bottom=3mm       % 아래쪽 살짝
+  top=2mm,         % 위쪽 살짝
+  bottom=2mm       % 아래쪽 살짝
   ]
 \small
 {{summarytabletex[0]}}
 \vspace{4mm}
 {{summarytabletex[1]}}
+
+\begin{center}
+  \includegraphics[height=5.5cm]{energy_summary.png}
+\end{center}
 \end{tcolorbox}
+
+\section{주요 변경사항}
+\begin{tcolorbox}[mysection, bottom=2mm, top=2mm]
+\small
+\begin{tabular}{>{\centering\arraybackslash}p{1cm}|>{\centering\arraybackslash}p{3cm}|>{\centering\arraybackslash}p{4cm}|>{\centering\arraybackslash}p{4cm}|>{\centering\arraybackslash}p{4cm}}
+\hline
+\multicolumn{2}{c|}{구분} & GR이전 & GR이후 & N년차 \\
+\hline
+\multirow{6}{*}{\shortstack{기\\술\\요\\소}} & 외피 & & & \\ 
+\cline{2-5}
+& 창호 & & & \\
+\cline{2-5}
+& 냉방 & & & \\
+\cline{2-5}
+& 난방 & & & \\
+\cline{2-5}
+& 환기 & & & \\
+\cline{2-5}
+& 조명 & & & \\
+\cline{2-5}
+& 신재생 & & & \\
+\hline
+\multirow{3}{*}{\shortstack{운\\영\\특\\성}} & 재실인원 & & & \\ 
+\cline{2-5}
+& 운영시간 & & & \\
+\cline{2-5}
+& 설정온도 & & & \\
+\hline
+\end{tabular}
+\vspace{1mm}
+\end{tcolorbox}
+
 
 % ==================== 을지 ====================
 
 \clearpage
-\topbar{주요 입력변수}
+\topbar{그린리모델링 요소기술}
 
-
-\clearpage
-\topbar{그린리모델링 사업 전후 에너지사용량 영향 요소}
-
-\section{기후}
-\noindent
-\begin{tcolorbox}[mysection, bottom=2mm, top=2mm]
-  \includegraphics[width=\textwidth]{weather_compare.png}
-$\rightarrow$ 난방도일\footnote{매 시간별로 외기온도가 기준온도($18^\circ C$)에 비해 추운 정도를 모두 더한 값 (24로 나누어 날짜로 환산함)}(Heating Degree Days;HDD)이 {{degreedays.HDDchange}}하였으므로, \textbf{난방에너지도 {{degreedays.HDDchange}}할 가능성}이 있음.\\
-$\rightarrow$  냉방도일\footnote{매 시간별로 외기온도가 기준온도($18^\circ C$)에 비해 더운 정도를 모두 더한 값 (24로 나누어 날짜로 환산함)}(Cooling Degree Days;CDD)이 {{degreedays.CDDchange}}하였으므로, \textbf{냉방에너지도 {{degreedays.CDDchange}}할 가능성}이 있음.
-\vspace{3mm}
-\end{tcolorbox}
-
-\clearpage
-\topbar{그린리모델링 사업 이후 에너지사용량 영향 요인}
-
-\section{그린리모델링 요소 (건축 {{passivechange.countbefore2after}}개, 설비 {{activechange.countbefore2after}}개)}
+\section{그린리모델링 사업 시 (건축 {{passivechange.countbefore2after}}개, 설비 {{activechange.countbefore2after}}개)}
 \begin{tcolorbox}[mysection, bottom=2mm, top=2mm]
 \includegraphics[width=0.09\linewidth]{ 벽체단열보강-{{passivechange.before2after[0]}}.png }
 \hfill
@@ -209,7 +221,7 @@ $\rightarrow$  냉방도일\footnote{매 시간별로 외기온도가 기준온�
 \end{tcolorbox}
 
 
-\section{그린리모델링 요소 (건축 {{passivechange.countafter2afterN}}개, 설비 {{activechange.countafter2afterN}}개)}
+\section{그린리모델링 사업 이후 (건축 {{passivechange.countafter2afterN}}개, 설비 {{activechange.countafter2afterN}}개)}
 \begin{tcolorbox}[mysection, bottom=2mm, top=2mm]
 \includegraphics[width=0.09\linewidth]{ 벽체단열보강-{{passivechange.after2afterN[0]}}.png }
 \hfill
@@ -270,12 +282,12 @@ $\rightarrow$  냉방도일\footnote{매 시간별로 외기온도가 기준온�
 \end{itemize}
 \end{tcolorbox}
 
-\section{현장조사 종합의견 (만족도 \textbf{ {{comment.point}} }/7점)}
+\section{종합의견}
 \begin{tcolorbox}[mysection]
   {{comment.conclusion}}
 \end{tcolorbox}
 
-\section{만족도 현장조사 의견}
+\section{만족도 의견 (\textbf{ {{comment.point}} }/7점)}
 \definecolor{starGold}{RGB}{255, 180, 0} % 진한 노란색 (가독성 좋음)
 \begin{tcolorbox}[mysection, bottom=2mm, top=2mm]
   \begin{tabular}{ @{} l @{\hspace{2mm}} l @{\hspace{6mm}} l @{\hspace{2mm}} l @{\hspace{6mm}} l @{\hspace{2mm}} l @{} }
