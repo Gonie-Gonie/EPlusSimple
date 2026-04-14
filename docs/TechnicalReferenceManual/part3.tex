@@ -162,6 +162,7 @@
 
 
 \subsection{EnergyPlus 프로필의 정의}
+\label{subsec:ep_profile}
 본 시뮬레이터는 EnergyPlus의 \texttt{Schedule:Compact}를 활용하여 용도프로필의 값을 적용하며, \cref{fig:ep_profile_structure}\와 같은 구조로 구성한다.
 
 \begin{itemize}
@@ -178,6 +179,105 @@
   \caption{EP 프로필 구조 예시}
   \label{fig:ep_profile_structure}
 \end{defaultfigure}
+
+\subsection{\excel 의 현장조사 프로필을 EnergyPlus 프로필로 변환 방법}
+
+\excel 의 \texttt{현장조사} sheet에는 실제 건물의 운영 특성을 반영하기 위한 입력값이 포함되며, \epreb \은 이를 각 \texttt{zone}에 적용 가능한 EnergyPlus 프로필로 변환한다. 이 과정의 목적은 사용자가 현장에서 조사한 운영 정보를, EnergyPlus가 요구하는 zone 단위의 재실 및 설비 운전 스케줄과 설정값으로 재구성하는 데 있다.
+
+\texttt{현장조사} 입력은 현장조사 유형에 따라 해석된다. \releaseversion @여기 \는 \texttt{어린이집}과 \texttt{보건소}의 두 유형을 지원하며, 각 유형에 따라 조사되는 변수에 차이가 존재한다. 이에 따라 EnergyPlus 프로필로의 변환 시 먼저 대상 건물의 현장조사 유형을 판별한 뒤, 해당 유형에 맞는 프로필 정의 체계를 적용한다.
+
+각 zone은 현장조사에서 정의된 용도 구분과 연결된다. 예를 들어, 각 zone에는 \texttt{일반존}, \texttt{특화존1}, \texttt{특화존2}와 같은 현장조사 프로필명이 지정되며, 엔진은 이를 기준으로 해당 zone에 적용할 운영정보를 선택한다. 이때 하나의 현장조사 프로필은 복수의 zone에 연결될 수 있다. 
+
+이를 EnergyPlus에서 활용하기 위해서는, 두 가지 핵심 변환 과정이 요구된다.
+
+\begin{enumerate}
+  \item 값 변환: 현장조사에서 용도 단위로 입력된 값을, zone 단위 입력에 적합하도록 재구성하고 단위를 환산한다.
+  \item 스케줄 변환: 현장조사의 단순 운영 시간 및 운영일수를 EnergyPlus 스케줄 형식으로 변환한다.
+  \item 미수집 변수 보완: 현장조사에서 수집되지 않은 변수 (예: 환기량 및 급탕량)를 건축물에너지효율등급인증규정의 용도프로필 값으로 보완한다.
+\end{enumerate}
+
+아래는 \excel 의 \texttt{현장조사} 유형 중, ``보건소 ''의 입력 프로필을 EnergyPlus 입력 스케줄로 변환하는 과정이다.
+
+\subsubsection{재실스케줄}
+
+
+\begin{table}[ht]
+  \caption{재실 현장조사 예시}
+  \label{tab:occupancy_survey}
+  \centering
+  \begin{tabular}{lcc}
+    \toprule
+     & \makecell{인원수} & 체류시간
+    \\ \midrule
+    직원 &  1 & -
+    \\ \midrule
+    외근직원  &  1 & -
+    \\ \midrule
+    집중진료-오전 & 3 & 30
+    \\ \midrule
+    집중진료-오후 & 1 & 30
+    \\ \midrule
+  \end{tabular}
+\end{table}
+
+
+\begin{table}[ht]
+  \caption{운영시간 현장조사 예시}
+  \label{tab:occup_sch_survey}
+  \centering
+  \begin{tabular}{lcccc}
+    \toprule
+     & \makecell{시작시} & 시작분 & 종료시 & 종료분
+    \\ \midrule
+    기본 운영 &  9 & 0 & 18 & 0 
+    \\ \midrule
+    외근  &  15 & 0 & 17 & 0
+    \\ \midrule
+    집중진료 & 9 & 0 & 18 & 0 
+    \\ \midrule
+  \end{tabular}
+\end{table}
+
+\begin{table}[ht]
+  \caption{운영요일 현장조사 예시}
+  \label{tab:occup_day_survey}
+  \centering
+  \begin{tabular}{lccccc}
+    \toprule
+     & \makecell{월} & 화 & 수 & 목 & 금
+    \\ \midrule
+    외근 &  FALSE & TRUE & FALSE & TRUE & FALSE
+    \\ \midrule
+    집중진료  &  TRUE & TRUE & TRUE & TRUE & TRUE
+    \\ \midrule
+  \end{tabular}
+\end{table}
+
+
+\paragraph{값 변환} 
+
+재실인원은 \cref{tab:occupancy_survey} 와 같이 인원 수(명)으로 입력되므로, 이를 실제 시뮬레이션에 적용하기 위해서는 \texttt{실} 단위로 재배분하는 과정이 필요하다. 본 엔진에서는 동일한 현장조사 프로필을 공유하는 \texttt{실}들을 찾은 뒤, 해당 \texttt{실}들의 바닥면적 비율에 따라 총 재실인원을 분배한다.
+즉, \cref{tab:occupancy_survey} 의 프로필을 \texttt{실} 면적이 각각 30\,m$^2$, 20\,m$^2$ 인 두 실이 공유한다면, 각 \texttt{실} 에는 면적비 3:2에 따라 각 0.6명과 0.4명이 배분된다. 이후, 각 \texttt{실}의 재실인원은 \texttt{실}의 면적으로 나누어, 면적당 재실밀도 (people/m$^2$)로 환산되어 EnergyPlus 프로필에 반영된다.
+
+\paragraph{스케줄 변환} 
+
+운영시간과 운영요일 정보는 해당 프로필을 공유하는 모든 \texttt{실}에 공통으로 적용된다. \epreb \은 입력된 시작시간, 종료시간, 운영요일을 바탕으로 요일별 일간 스케줄을 생성하고, 이를 연간 스케줄로 확장한다.\footnote{이에 대한 상세한 기술은 \ref{subsec:ep_profile} 참고} 
+
+\cref{tab:occupancy_survey} 와 \cref{tab:occup_sch_survey}를 EnergyPlus 스케줄로 변환하는 과정은 다음과 같다.
+
+\begin{defaultfigure}
+  \includegraphics[width=\textwidth]{운영스케줄변환상세.png}
+  \caption{운영스케줄 변환 상세}
+  \label{fig:operation_schedule_detail}
+\end{defaultfigure}
+
+\begin{defaultfigure}
+  \includegraphics[width=\textwidth]{운영스케줄변환종합.png}
+  \caption{운영스케줄 변환 최종}
+  \label{fig:operation_schedule_result}
+\end{defaultfigure}
+
+
 
 \subsection{건축물에너지효율등급인증규정의 용도프로필을 EnergyPlus 프로필로 변환 방법}
 
