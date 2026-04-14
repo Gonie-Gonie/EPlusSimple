@@ -97,8 +97,8 @@
 
 \section{건물 개요}
 
-\newcolumntype{L}{>{\columncolor[gray]{0.9}\bfseries\centering\arraybackslash}p{0.25\textwidth}}
-\newcolumntype{C}{>{\centering\arraybackslash}p{0.65\textwidth}}
+\newcolumntype{L}{>{\columncolor[gray]{0.9}\bfseries\centering\arraybackslash}p{0.2\textwidth}}
+\newcolumntype{C}{>{\centering\arraybackslash}p{0.3\textwidth}}
 
 % 본문
 \setlength{\tabcolsep}{0pt}
@@ -107,12 +107,13 @@
 \begin{tcolorbox}[mysection,
   boxsep=0pt]
   \centering
-\begin{tabular}{L|C}
+\begin{tabular}{L|C|L|C}
 \hline
-건물명 & {{metadata.name}} \\ \hline
-주소(시군구) & {{metadata.addr}} \\ \hline
-연면적 & {{comment.연면적}}$\mathrm{m^2}$ \\ \hline
-허가연도 & {{metadata.date}} \\ \hline
+건축물명 & {{metadata.name}} & 주소 / 용도 & {{metadata.addr}} / {{master["구분"]}} \\ \hline
+건축 허가일자 & {{metadata.date}} & GR 허가일자 & {{master["GR이후_그린리모델링 허가일자"]}} \\ \hline
+연면적 & {{comment.연면적}}$\mathrm{m^2}$ & 층수  & 지하 {{master["GR이전_규모_지하"]}}층 / 지상{{master["GR이전_규모_지상"]}}층            \\ \hline
+시뮬레이션 엔진 & EplusSimple V0.6.1 & 기상데이터 & 23년도 (기상청) \\ \hline
+
 \end{tabular}
 \end{tcolorbox}
 
@@ -139,15 +140,26 @@
 {{summarytabletex[1]}}
 \end{tcolorbox}
 
-\section{현장조사 종합의견 (만족도 \textbf{ {{comment.point}} }/7점)}
-\begin{tcolorbox}[mysection]
-  {{comment.conclusion}}
-\end{tcolorbox}
-
 % ==================== 을지 ====================
 
 \clearpage
+\topbar{주요 입력변수}
+
+
+\clearpage
 \topbar{그린리모델링 사업 전후 에너지사용량 영향 요소}
+
+\section{기후}
+\noindent
+\begin{tcolorbox}[mysection, bottom=2mm, top=2mm]
+  \includegraphics[width=\textwidth]{weather_compare.png}
+$\rightarrow$ 난방도일\footnote{매 시간별로 외기온도가 기준온도($18^\circ C$)에 비해 추운 정도를 모두 더한 값 (24로 나누어 날짜로 환산함)}(Heating Degree Days;HDD)이 {{degreedays.HDDchange}}하였으므로, \textbf{난방에너지도 {{degreedays.HDDchange}}할 가능성}이 있음.\\
+$\rightarrow$  냉방도일\footnote{매 시간별로 외기온도가 기준온도($18^\circ C$)에 비해 더운 정도를 모두 더한 값 (24로 나누어 날짜로 환산함)}(Cooling Degree Days;CDD)이 {{degreedays.CDDchange}}하였으므로, \textbf{냉방에너지도 {{degreedays.CDDchange}}할 가능성}이 있음.
+\vspace{3mm}
+\end{tcolorbox}
+
+\clearpage
+\topbar{그린리모델링 사업 이후 에너지사용량 영향 요인}
 
 \section{그린리모델링 요소 (건축 {{passivechange.countbefore2after}}개, 설비 {{activechange.countbefore2after}}개)}
 \begin{tcolorbox}[mysection, bottom=2mm, top=2mm]
@@ -194,21 +206,8 @@
 \hline
 \end{tabular}
 \vspace{1mm}
-
-
 \end{tcolorbox}
 
-\section{기후}
-\noindent
-\begin{tcolorbox}[mysection, bottom=2mm, top=2mm]
-  \includegraphics[width=\textwidth]{weather_compare.png}
-$\rightarrow$ 난방도일\footnote{매 시간별로 외기온도가 기준온도($18^\circ C$)에 비해 추운 정도를 모두 더한 값 (24로 나누어 날짜로 환산함)}(Heating Degree Days;HDD)이 {{degreedays.HDDchange}}하였으므로, \textbf{난방에너지도 {{degreedays.HDDchange}}할 가능성}이 있음.\\
-$\rightarrow$  냉방도일\footnote{매 시간별로 외기온도가 기준온도($18^\circ C$)에 비해 더운 정도를 모두 더한 값 (24로 나누어 날짜로 환산함)}(Cooling Degree Days;CDD)이 {{degreedays.CDDchange}}하였으므로, \textbf{냉방에너지도 {{degreedays.CDDchange}}할 가능성}이 있음.
-\vspace{3mm}
-\end{tcolorbox}
-
-\clearpage
-\topbar{그린리모델링 사업 이후 에너지사용량 영향 요인}
 
 \section{그린리모델링 요소 (건축 {{passivechange.countafter2afterN}}개, 설비 {{activechange.countafter2afterN}}개)}
 \begin{tcolorbox}[mysection, bottom=2mm, top=2mm]
@@ -256,6 +255,9 @@ $\rightarrow$  냉방도일\footnote{매 시간별로 외기온도가 기준온�
 \end{tabular}
 \end{tcolorbox}
 
+\clearpage
+\topbar{현장조사 결과}
+
 \section{운영특성}
 \begin{tcolorbox}[mysection, bottom=2mm, top=2mm]
 {{occupantchangetex}}
@@ -268,6 +270,10 @@ $\rightarrow$  냉방도일\footnote{매 시간별로 외기온도가 기준온�
 \end{itemize}
 \end{tcolorbox}
 
+\section{현장조사 종합의견 (만족도 \textbf{ {{comment.point}} }/7점)}
+\begin{tcolorbox}[mysection]
+  {{comment.conclusion}}
+\end{tcolorbox}
 
 \section{만족도 현장조사 의견}
 \definecolor{starGold}{RGB}{255, 180, 0} % 진한 노란색 (가독성 좋음)

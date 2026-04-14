@@ -987,6 +987,7 @@ def build_report(
     after_grrpath :str,
     afterN_grrpath:str,
     commentdict   :dict[str,str],
+    masterdict    :dict,
     pdfpath:str,
     ) -> None:
     
@@ -1004,9 +1005,9 @@ def build_report(
     checklistafterN = 현장조사체크리스트.from_excel(afterN_rebexcelpath)
     
     # model
-    idfbefore,grmbefore = rebexcel_to_idf_and_grm(before_rebexcelpath)
-    idfafter ,grmafter  = rebexcel_to_idf_and_grm(after_rebexcelpath)
-    idfafterN,grmafterN = rebexcel_to_idf_and_grm(afterN_rebexcelpath)
+    idfbefore, grmbefore = rebexcel_to_idf_and_grm(before_rebexcelpath)
+    idfafter , grmafter  = rebexcel_to_idf_and_grm(after_rebexcelpath)
+    idfafterN, grmafterN = rebexcel_to_idf_and_grm(afterN_rebexcelpath)
     
     # metadata
     building_info = pd.read_excel(before_rebexcelpath, sheet_name="건물정보", usecols=range(6), nrows=1).iloc[0]
@@ -1095,6 +1096,7 @@ def build_report(
     }
     context = {
         "metadata": metadata,
+        "master"  : masterdict,
         "imagesrc": (Path(__file__).parent / "imagesrc").resolve().as_posix(),
         "passivechange": passivechangedict,
         "activechange": activechangedict,

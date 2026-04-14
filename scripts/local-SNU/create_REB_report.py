@@ -141,7 +141,7 @@ def get_master_df() -> pd.DataFrame:
     ]
     
     # 인덱스 정리
-    df.index = df[["임시 고유번호","건축물명"]].apply(lambda x: f"{int(x[0]):03d}_{x[1].strip()}".replace(" ", ""), axis=1)
+    df.index = df.loc[:,["임시 고유번호","건축물명"]].apply(lambda x: f"{int(x[0]):03d}_{x[1].strip()}".replace(" ", ""), axis=1)
     
     return df
     
@@ -159,11 +159,6 @@ def main(
         rebexcel_dir,
         grr_dir     ,
     )
-    
-    for d in invalidlist:
-        lacked_files = [f"excel({k})" for k,v in d["excel"].items() if v is None] +\
-                       [f"grr({k})"   for k,v in d["grr"].items()   if v is None]
-        print(f"Cannot build report for {d["name"]}: {",".join(lacked_files)}")
     
     for d in validlist:
         
@@ -183,9 +178,11 @@ def main(
                 *d["excel"].values(),
                 *d["grr"].values()  ,
                 commentdict,
-                pdfpath
+                masterdict ,
+                pdfpath    ,
             )
-            
+        
+            break
         
         finally:
             if os.path.exists(workingpath):
