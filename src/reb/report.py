@@ -759,152 +759,169 @@ def parse_activechange(
     return heatingchangestr, coolingchangestr, ventchangedstr
 
 def parse_hvacoperationchange(
-    checklist1:현장조사체크리스트,
-    checklist2:현장조사체크리스트,
-    ) -> tuple[str]:
-    
-    func_certaincoolingsetpoint = lambda x: x if isinstance(x, int|float) else 26
-    func_certainheatingsetpoint = lambda x: x if isinstance(x, int|float) else 20
-    
+    checklist1: 현장조사체크리스트,
+    checklist2: 현장조사체크리스트,
+) -> str:
+
+    func_certaincoolingsetpoint = lambda x: x if isinstance(x, int | float) else 26
+    func_certainheatingsetpoint = lambda x: x if isinstance(x, int | float) else 20
+
+    def mark_same_as_above(row1, row2, same_text="상동"):
+        return [same_text if v1 == v2 else v2 for v1, v2 in zip(row1, row2)]
+
     # heating
     if checklist1.일반존.난방설비1 is None:
-        heatingtime1     = "사용안함"
+        heatingtime1 = "사용안함"
         heatingsetpoint1 = "(없음)"
     else:
         heatingtime1 = f"{checklist1.일반존.난방설비1.사용기간} {checklist1.일반존.난방설비1.사용시간}"
         heatingsetpoint1 = f"{func_certainheatingsetpoint(checklist1.일반존.난방설비1.설정온도):.1f}$^\\circ C$"
-        
+
     if checklist2.일반존.난방설비1 is None:
-        heatingtime2     = "사용안함"
+        heatingtime2 = "사용안함"
         heatingsetpoint2 = "(없음)"
     else:
         heatingtime2 = f"{checklist2.일반존.난방설비1.사용기간} {checklist2.일반존.난방설비1.사용시간}"
         heatingsetpoint2 = f"{func_certainheatingsetpoint(checklist2.일반존.난방설비1.설정온도):.1f}$^\\circ C$"
-    
-    if heatingtime1 == heatingtime2:
-        heatingtime = "변화 없음."
-    else:
-        heatingtime = f"{heatingtime1} $\\rightarrow$ {heatingtime2}"
-    
-    if heatingsetpoint1 == heatingsetpoint2:
-        heatingsetpoint = "변화 없음."
-    else:
-        heatingsetpoint = f"{heatingsetpoint1} $\\rightarrow$ {heatingsetpoint2}"
-    
+
     # cooling
     if checklist1.일반존.냉방설비1 is None:
-        coolingtime1     = "사용안함"
+        coolingtime1 = "사용안함"
         coolingsetpoint1 = "(없음)"
     else:
         coolingtime1 = f"{checklist1.일반존.냉방설비1.사용기간} {checklist1.일반존.냉방설비1.사용시간}"
         coolingsetpoint1 = f"{func_certaincoolingsetpoint(checklist1.일반존.냉방설비1.설정온도):.1f}$^\\circ C$"
-        
+
     if checklist2.일반존.냉방설비1 is None:
-        coolingtime2     = "사용안함"
+        coolingtime2 = "사용안함"
         coolingsetpoint2 = "(없음)"
     else:
         coolingtime2 = f"{checklist2.일반존.냉방설비1.사용기간} {checklist2.일반존.냉방설비1.사용시간}"
         coolingsetpoint2 = f"{func_certaincoolingsetpoint(checklist2.일반존.냉방설비1.설정온도):.1f}$^\\circ C$"
-    
-    if coolingtime1 == coolingtime2:
-        coolingtime = "변화 없음."
-    else:
-        coolingtime = f"{coolingtime1} $\\rightarrow$ {coolingtime2}"
-    
-    if coolingsetpoint1 == coolingsetpoint2:
-        coolingsetpoint = "변화 없음."
-    else:
-        coolingsetpoint = f"{coolingsetpoint1} $\\rightarrow$ {coolingsetpoint2}"
-        
+
+    row1 = [heatingtime1, heatingsetpoint1, coolingtime1, coolingsetpoint1]
+    row2 = [heatingtime2, heatingsetpoint2, coolingtime2, coolingsetpoint2]
+    row2 = mark_same_as_above(row1, row2)
+
     df = pd.DataFrame(
-            [
-                [heatingtime1, heatingsetpoint1, coolingtime1, coolingsetpoint1],
-                [heatingtime2, heatingsetpoint2, coolingtime2, coolingsetpoint2], 
-            ],
-            columns = ["난방 사용시간", "난방 설정온도", "냉방 사용시간", "냉방 설정온도"],
-            index   = ["GR 직후", "2025년"], 
+        [row1, row2],
+        columns=["난방 사용시간", "난방 설정온도", "냉방 사용시간", "냉방 설정온도"],
+        index=["GR 직후", "2025년"],
     )
-    
+
     tablestyle = {
-        "column_format":">{\\centering\\arraybackslash}p{3cm}" + "|>{\\centering\\arraybackslash}p{3.325cm}" * 4,
-        "clines":"all;data",  
-        "hrules":True,
-        }
-    tex =  df.style.to_latex(**tablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline").replace("~","-")
-        
-    
+        "column_format": ">{\\centering\\arraybackslash}p{3cm}" + "|>{\\centering\\arraybackslash}p{3.325cm}" * 4,
+        "clines": "all;data",
+        "hrules": True,
+    }
+
+    tex = (
+        df.style.to_latex(**tablestyle)
+        .replace(r"\toprule", r"\hline")
+        .replace(r"\midrule", r"\hline")
+        .replace(r"\bottomrule", r"\hline")
+        .replace("~", "-")
+    )
+
     return tex
 
+
 def parse_occupantchange(
-    checklist1:현장조사체크리스트,
-    checklist2:현장조사체크리스트,
-    ):
-    
+    checklist1: 현장조사체크리스트,
+    checklist2: 현장조사체크리스트,
+):
+
+    def mark_same_as_above(row1, row2, same_text="상동"):
+        return [same_text if v1 == v2 else v2 for v1, v2 in zip(row1, row2)]
+
     if isinstance(checklist1, 어린이집체크리스트):
-        
-        func_nanto0 =  lambda x: 0 if pd.isna(x) else x
-        
+
+        func_nanto0 = lambda x: 0 if pd.isna(x) else x
+
+        row1 = [
+            func_nanto0(checklist1.일반존.기본보육교사 + checklist1.일반존.기본보육원생),
+            func_nanto0(checklist1.일반존.연장보육A교사 + checklist1.일반존.연장보육A원생),
+            func_nanto0(checklist1.일반존.연장보육B교사 + checklist1.일반존.연장보육B원생),
+            func_nanto0(checklist1.일반존.야간보육교사 + checklist1.일반존.야간보육원생),
+            func_nanto0(checklist1.일반존.주말보육교사 + checklist1.일반존.주말보육원생),
+        ]
+        row2 = [
+            func_nanto0(checklist2.일반존.기본보육교사 + checklist2.일반존.기본보육원생),
+            func_nanto0(checklist2.일반존.연장보육A교사 + checklist2.일반존.연장보육A원생),
+            func_nanto0(checklist2.일반존.연장보육B교사 + checklist2.일반존.연장보육B원생),
+            func_nanto0(checklist2.일반존.야간보육교사 + checklist2.일반존.야간보육원생),
+            func_nanto0(checklist2.일반존.주말보육교사 + checklist2.일반존.주말보육원생),
+        ]
+        row2 = mark_same_as_above(row1, row2)
+
         df = pd.DataFrame(
-            [
-                [
-                    func_nanto0(checklist1.일반존.기본보육교사  + checklist1.일반존.기본보육원생),
-                    func_nanto0(checklist1.일반존.연장보육A교사 + checklist1.일반존.연장보육A원생),
-                    func_nanto0(checklist1.일반존.연장보육B교사 + checklist1.일반존.연장보육B원생),
-                    func_nanto0(checklist1.일반존.야간보육교사  + checklist1.일반존.야간보육원생),
-                    func_nanto0(checklist1.일반존.주말보육교사  + checklist1.일반존.주말보육원생),
-                ],
-                                [
-                    func_nanto0(checklist2.일반존.기본보육교사  + checklist2.일반존.기본보육원생),
-                    func_nanto0(checklist2.일반존.연장보육A교사 + checklist2.일반존.연장보육A원생),
-                    func_nanto0(checklist2.일반존.연장보육B교사 + checklist2.일반존.연장보육B원생),
-                    func_nanto0(checklist2.일반존.야간보육교사  + checklist2.일반존.야간보육원생),
-                    func_nanto0(checklist2.일반존.주말보육교사  + checklist2.일반존.주말보육원생),
-                ]    
-            ],
-            columns = ["기본 (-16:00)", "연장 (-18:00)", "연장 (-19:30)","야간 (-21:00)","주말"],
-            index   = ["GR 직후", "2025년"] 
+            [row1, row2],
+            columns=["기본 (-16:00)", "연장 (-18:00)", "연장 (-19:30)", "야간 (-21:00)", "주말"],
+            index=["GR 직후", "2025년"],
         )
-        
+
         tablestyle = {
-            "column_format":">{\\centering\\arraybackslash}p{3cm}" + "|>{\\centering\\arraybackslash}p{2.66cm}" * 5,
-            "clines":"all;data",  
-            "hrules":True,
-            }
-        tex = df.style.format(lambda x: f"{x}명").to_latex(**tablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline")
-        
+            "column_format": ">{\\centering\\arraybackslash}p{3cm}" + "|>{\\centering\\arraybackslash}p{2.66cm}" * 5,
+            "clines": "all;data",
+            "hrules": True,
+        }
+
+        tex = (
+            df.style.format(lambda x: x if x == "상동" else f"{x}명")
+            .to_latex(**tablestyle)
+            .replace(r"\toprule", r"\hline")
+            .replace(r"\midrule", r"\hline")
+            .replace(r"\bottomrule", r"\hline")
+        )
+
         return tex
-    
+
     else:
-        
-        집중진료연인원1 = ((checklist1.일반존.집중진료오전방문객 * checklist1.일반존.집중진료오전체류시간) + (checklist1.일반존.집중진료오후방문객 * checklist1.일반존.집중진료오후체류시간))/60 * len(checklist1.일반존.집중진료요일.split(","))
-        집중진료연인원2 = ((checklist2.일반존.집중진료오전방문객 * checklist2.일반존.집중진료오전체류시간) + (checklist2.일반존.집중진료오후방문객 * checklist2.일반존.집중진료오후체류시간))/60 * len(checklist2.일반존.집중진료요일.split(","))
-        
+
+        집중진료연인원1 = (
+            (checklist1.일반존.집중진료오전방문객 * checklist1.일반존.집중진료오전체류시간)
+            + (checklist1.일반존.집중진료오후방문객 * checklist1.일반존.집중진료오후체류시간)
+        ) / 60 * len(checklist1.일반존.집중진료요일.split(","))
+
+        집중진료연인원2 = (
+            (checklist2.일반존.집중진료오전방문객 * checklist2.일반존.집중진료오전체류시간)
+            + (checklist2.일반존.집중진료오후방문객 * checklist2.일반존.집중진료오후체류시간)
+        ) / 60 * len(checklist2.일반존.집중진료요일.split(","))
+
+        row1 = [
+            f"{checklist1.일반존.운영시간.replace('~', '-')}",
+            f"{checklist1.일반존.직원}명 상주",
+            f"주 {집중진료연인원1:.0f}명$\\cdot$시간",
+            f"{checklist1.특화존2.사용관사수}개소",
+        ]
+        row2 = [
+            f"{checklist2.일반존.운영시간.replace('~', '-')}",
+            f"{checklist2.일반존.직원}명 상주",
+            f"주 {집중진료연인원2:.0f}명$\\cdot$시간",
+            f"{checklist2.특화존2.사용관사수}개소",
+        ]
+        row2 = mark_same_as_above(row1, row2)
+
         df = pd.DataFrame(
-            [
-                [
-                    f"{checklist1.일반존.운영시간.replace("~","-")}",
-                    f"{checklist1.일반존.직원}명 상주",
-                    f"주 {집중진료연인원1:.0f}명$\\cdot$시간",
-                    f"{checklist1.특화존2.사용관사수}개소",
-                ],
-                [
-                    f"{checklist2.일반존.운영시간.replace("~","-")}",
-                    f"{checklist2.일반존.직원}명 상주",
-                    f"주 {집중진료연인원1:.0f}명$\\cdot$시간",
-                    f"{checklist2.특화존2.사용관사수}개소",
-                ]    
-            ],
-            columns = ["운영시간", "직원", "집중진료 방문객","이용 관사 수"],
-            index   = ["GR 직후", "2025년"] 
+            [row1, row2],
+            columns=["운영시간", "직원", "집중진료 방문객", "이용 관사 수"],
+            index=["GR 직후", "2025년"],
         )
-        
+
         tablestyle = {
-            "column_format":">{\\centering\\arraybackslash}p{3cm}" + "|>{\\centering\\arraybackslash}p{3.325cm}" * 4,
-            "clines":"all;data",  
-            "hrules":True,
-            }
-        tex =  df.style.to_latex(**tablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline").replace("~","-")
-        
+            "column_format": ">{\\centering\\arraybackslash}p{3cm}" + "|>{\\centering\\arraybackslash}p{3.325cm}" * 4,
+            "clines": "all;data",
+            "hrules": True,
+        }
+
+        tex = (
+            df.style.to_latex(**tablestyle)
+            .replace(r"\toprule", r"\hline")
+            .replace(r"\midrule", r"\hline")
+            .replace(r"\bottomrule", r"\hline")
+            .replace("~", "-")
+        )
+
         return tex
     
     
