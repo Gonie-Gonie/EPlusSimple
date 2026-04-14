@@ -344,14 +344,29 @@ GRAPH_ORDER = [
 ENERGY_TYPES = [
     ("ELECTRICITY", "전기"),
     ("NATURALGAS", "가스"),
-    ("OIL", "유류"),
     ("DISTRICTHEATING", "지역난방"),
 ]
 
 DEFAULT_COLORS_BEFORE = {
-    k: PALETTE[k_idx]
-    for k_idx, k in enumerate(["NATURALGAS", "ELECTRICITY", "OIL", "DISTRICTHEATING"])
+    "NATURALGAS": PALETTE[0],
+    "ELECTRICITY": PALETTE[1],
+    "OIL": PALETTE[2],
+    "DISTRICTHEATING": PALETTE[3],
 }
+
+def _sum_grr_monthly_totals(result: dict, datatype: str) -> np.ndarray:
+    totals = np.zeros(12)
+
+    for cat_key, _ in GRAPH_ORDER:
+        sign = -1 if cat_key == "generators" else 1
+        category_data = result[datatype].get(cat_key, {})
+        for et_key, _ in ENERGY_TYPES:
+            totals += sign * np.asarray(category_data.get(et_key, [0] * 12), dtype=float)
+
+    return totals
+
+def _sum_grr_annual_total(result: dict, datatype: str) -> float:
+    return float(_sum_grr_monthly_totals(result, datatype).sum())
 
 def _draw_monthly_stacked_bar(
     category_key: str,
@@ -446,7 +461,7 @@ def _draw_monthly_stacked_bars(
                                  hatch=[None, '//////', None][l_idx]))
             labels.append(f"{et_label} {label}")
 
-    legend_ncol = 4
+    legend_ncol = 3
 
     fig.legend(
         handles=handles,
@@ -499,9 +514,9 @@ def _draw_total_monthly_bar(ax: plt.Axes, grr_before: dict, grr_after: dict, grr
     # 막대 너비 설정
     width = 0.25 
 
-    before_vals = grr_before["summary_per_area"][datatype]["total_monthly"]
-    after_vals = grr_after["summary_per_area"][datatype]["total_monthly"]
-    afterN_vals = grr_afterN["summary_per_area"][datatype]["total_monthly"]
+    before_vals = _sum_grr_monthly_totals(grr_before, datatype)
+    after_vals = _sum_grr_monthly_totals(grr_after, datatype)
+    afterN_vals = _sum_grr_monthly_totals(grr_afterN, datatype)
 
     # x축 위치를 조정하여 막대를 그립니다 (왼쪽, 가운데, 오른쪽)
     # zorder=3을 주어 그리드 위로 막대가 올라오게 합니다.
@@ -652,19 +667,19 @@ def summarytable(
     grrbefore:dict,
     grrafter :dict,
     grrafterN:dict,
-    ) -> pd.DataFrame:
+    ) -> tuple[pd.DataFrame, pd.DataFrame]:
     
     df1 = pd.DataFrame(
         [
             [
-                grrbefore["summary_per_area"]["source_uses"]["total_annual"],
-                grrafter["summary_per_area"]["source_uses"]["total_annual"],
-                grrafterN["summary_per_area"]["source_uses"]["total_annual"],
+                _sum_grr_annual_total(grrbefore, "source_uses"),
+                _sum_grr_annual_total(grrafter, "source_uses"),
+                _sum_grr_annual_total(grrafterN, "source_uses"),
             ],
             [
-                grrbefore["summary_per_area"]["co2"]["total_annual"],
-                grrafter["summary_per_area"]["co2"]["total_annual"],
-                grrafterN["summary_per_area"]["co2"]["total_annual"],
+                _sum_grr_annual_total(grrbefore, "co2"),
+                _sum_grr_annual_total(grrafter, "co2"),
+                _sum_grr_annual_total(grrafterN, "co2"),
             ],
         ],
         columns=["GR 이전 (①)", "GR 이후 (②)", "운영특성 반영시 (③)"],
@@ -1014,7 +1029,7 @@ def parse_majorchange(masterdict: dict) -> str:
                 masterdict.get("N년차_전열 교환기_난방[%]"),
                 masterdict.get("N년차_전열 교환기_냉방[%]")
             ),
-            r"[난방 \%] / [냉방 \%]",
+            r"[난방] / [냉방]",
         ],
         [
             fmt_num(masterdict.get("GR이전_조명밀도 [W/m2]"), 2),
