@@ -284,17 +284,19 @@ def draw_3step_bargraph(
     index : list[str],
     *,
     ylabel: str = "Value",
+    energy_types: list[tuple[str, str]] | None = None,
     ax    : plt.Axes
     ) -> None:
 
+    energy_types = ENERGY_TYPES if energy_types is None else energy_types
     num_bars = len(values)
     x_positions = range(num_bars) # [0, 1, 2]
     width = 0.7  # 그룹이 아니므로 막대 폭을 넓게 설정
-    num_subbars =len(ENERGY_TYPES)
+    num_subbars = len(energy_types)
     subbar_width = width / num_subbars
 
     for n, (pos, val) in enumerate(zip(x_positions, values)):
-        for et_idx, (et_key, et_label) in enumerate(ENERGY_TYPES):
+        for et_idx, (et_key, et_label) in enumerate(energy_types):
             color = DEFAULT_COLORS_BEFORE[et_key]
             subbar_pos = pos - subbar_width*(num_subbars/2-et_idx-0.5)
             bar = ax.bar(subbar_pos, val[et_idx], width=subbar_width,
@@ -315,16 +317,17 @@ def draw_3step_bargraph(
     ax.set_xlim(-0.5, num_bars - 0.5)
     
     # bar_label이 잘 보이도록 y축 상단에 15% 여유 공간 추가
-    ax.set_ylim(top=max([max(val) for val in values]) * 1.1)
+    max_value = max((max(val) if len(val) > 0 else 0) for val in values)
+    ax.set_ylim(top=max(1, max_value * 1.1))
     
     ax.legend(
         fontsize=8,
         handles=[
             Patch(ec=None, fc=DEFAULT_COLORS_BEFORE[et_key]+'90')
-            for et_key, _ in ENERGY_TYPES
+            for et_key, _ in energy_types
         ],
-        labels=[et_label for _, et_label in ENERGY_TYPES],
-        loc="upper center", ncol=4, bbox_to_anchor=(0.5, -0.15),
+        labels=[et_label for _, et_label in energy_types],
+        loc="upper center", ncol=min(4, len(energy_types)), bbox_to_anchor=(0.5, -0.15),
     )
 
 # ---------------------------------------------------------------------------
@@ -346,6 +349,7 @@ ENERGY_TYPES = [
     ("NATURALGAS", "가스"),
     ("DISTRICTHEATING", "지역난방"),
 ]
+SCENARIO_PREFIXES = ("GR이전", "GR이후", "N년차")
 
 DEFAULT_COLORS_BEFORE = {
     "NATURALGAS": PALETTE[0],
@@ -354,19 +358,128 @@ DEFAULT_COLORS_BEFORE = {
     "DISTRICTHEATING": PALETTE[3],
 }
 
-def _sum_grr_monthly_totals(result: dict, datatype: str) -> np.ndarray:
+def _normalize_gas_ignore(
+    gas_ignore: list[bool] | tuple[bool, bool, bool] | None = None
+) -> tuple[bool, bool, bool]:
+    if gas_ignore is None:
+        return (False, False, False)
+
+    if len(gas_ignore) != len(SCENARIO_PREFIXES):
+        raise ValueError(f"gas_ignore must have {len(SCENARIO_PREFIXES)} items.")
+
+    return tuple(bool(v) for v in gas_ignore)
+
+def _display_energy_types(
+    gas_ignore: list[bool] | tuple[bool, bool, bool] | None = None
+) -> list[tuple[str, str]]:
+    flags = _normalize_gas_ignore(gas_ignore)
+    return [
+        (et_key, et_label)
+        for et_key, et_label in ENERGY_TYPES
+        if et_key != "NATURALGAS" or not all(flags)
+    ]
+
+def _get_energy_values(category_data: dict, et_key: str, ignore_gas: bool = False) -> np.ndarray:
+    if ignore_gas and et_key == "NATURALGAS":
+        return np.zeros(12, dtype=float)
+
+    return np.asarray(category_data.get(et_key, [0] * 12), dtype=float)
+
+def _sum_grr_monthly_totals(
+    result: dict,
+    datatype: str,
+    ignore_gas: bool = False,
+) -> np.ndarray:
     totals = np.zeros(12)
 
     for cat_key, _ in GRAPH_ORDER:
         sign = -1 if cat_key == "generators" else 1
         category_data = result[datatype].get(cat_key, {})
         for et_key, _ in ENERGY_TYPES:
-            totals += sign * np.asarray(category_data.get(et_key, [0] * 12), dtype=float)
+            totals += sign * _get_energy_values(category_data, et_key, ignore_gas)
 
     return totals
 
-def _sum_grr_annual_total(result: dict, datatype: str) -> float:
-    return float(_sum_grr_monthly_totals(result, datatype).sum())
+def _sum_grr_annual_total(
+    result: dict,
+    datatype: str,
+    ignore_gas: bool = False,
+) -> float:
+    return float(_sum_grr_monthly_totals(result, datatype, ignore_gas).sum())
+
+def _sum_grr_energy_total(
+    result: dict,
+    datatype: str,
+    et_key: str,
+    ignore_gas: bool = False,
+) -> float:
+    total = 0.0
+
+    for cat_key, _ in GRAPH_ORDER:
+        sign = -1 if cat_key == "generators" else 1
+        total += sign * _get_energy_values(
+            result[datatype].get(cat_key, {}),
+            et_key,
+            ignore_gas,
+        ).sum()
+
+    return float(total)
+
+def _masterdict_value_is_lpg(value) -> bool:
+    if value is None or pd.isna(value):
+        return False
+
+    normalized = str(value).upper().replace(" ", "")
+    return any(token in normalized for token in ("LPG", "액화석유가스"))
+
+def _find_heating_energy_source(masterdict: dict, prefix: str):
+    exact_suffixes = (
+        "_난방1_에너지원",
+        "_난방1_ET",
+        "_보일러_에너지원",
+        "_보일러_ET",
+        "_난방_에너지원",
+        "_난방_ET",
+        "_에너지원",
+        "_연료종류",
+        "_ET",
+    )
+
+    for suffix in exact_suffixes:
+        key = f"{prefix}{suffix}"
+        if key in masterdict and masterdict[key] is not None and not pd.isna(masterdict[key]):
+            return masterdict[key]
+
+    candidates = []
+    for key, value in masterdict.items():
+        if not isinstance(key, str) or not key.startswith(f"{prefix}_"):
+            continue
+        if value is None or pd.isna(value):
+            continue
+        if not any(token in key for token in ("에너지원", "연료종류", "_ET")):
+            continue
+        if key == f"{prefix}_ET" or any(token in key for token in ("난방", "보일러")):
+            score = 0
+            if "난방1" in key:
+                score -= 4
+            if "보일러" in key:
+                score -= 2
+            if key.endswith("_ET"):
+                score -= 1
+            score += len(key)
+            candidates.append((score, key, value))
+
+    if not candidates:
+        return None
+
+    candidates.sort(key=lambda item: (item[0], item[1]))
+    return candidates[0][2]
+
+def parse_gas_ignore(masterdict: dict) -> tuple[bool, bool, bool]:
+    return tuple(
+        _masterdict_value_is_lpg(_find_heating_energy_source(masterdict, prefix))
+        for prefix in SCENARIO_PREFIXES
+    )
 
 def _draw_monthly_stacked_bar(
     category_key: str,
@@ -375,19 +488,22 @@ def _draw_monthly_stacked_bar(
     grr_after: dict,
     grr_afterN: dict,
     datatype: str = "source_uses",
+    gas_ignore: list[bool] | tuple[bool, bool, bool] | None = None,
     ax: plt.Figure | None = None
 ) -> plt.Figure:
     """HTML의 월별 stacked bar (ex. 난방, 냉방 등)"""
 
+    gas_ignore = _normalize_gas_ignore(gas_ignore)
+    energy_types = _display_energy_types(gas_ignore)
     month_labels = np.arange(1, 13)
     bottom_before = np.zeros(12)
     bottom_after  = np.zeros(12)
     bottom_afterN = np.zeros(12)
 
-    for et_key, et_label in ENERGY_TYPES:
-        bvals = np.array(grr_before[datatype][category_key].get(et_key, [0]*12))
-        avals = np.array(grr_after[datatype][category_key].get(et_key, [0]*12))
-        nvals = np.array(grr_afterN[datatype][category_key].get(et_key, [0]*12))
+    for et_key, et_label in energy_types:
+        bvals = _get_energy_values(grr_before[datatype].get(category_key, {}), et_key, gas_ignore[0])
+        avals = _get_energy_values(grr_after[datatype].get(category_key, {}), et_key, gas_ignore[1])
+        nvals = _get_energy_values(grr_afterN[datatype].get(category_key, {}), et_key, gas_ignore[2])
 
         color = DEFAULT_COLORS_BEFORE[et_key]
 
@@ -421,14 +537,14 @@ def _draw_monthly_stacked_bar(
     
     # --- ylim 자동 여유 설정 ---
     all_values = np.concatenate([
-        np.array(grr_before[datatype][category_key].get(et_key, [0]*12))
-        for et_key, _ in ENERGY_TYPES
+        _get_energy_values(grr_before[datatype].get(category_key, {}), et_key, gas_ignore[0])
+        for et_key, _ in energy_types
     ] + [
-        np.array(grr_after[datatype][category_key].get(et_key, [0]*12))
-        for et_key, _ in ENERGY_TYPES
+        _get_energy_values(grr_after[datatype].get(category_key, {}), et_key, gas_ignore[1])
+        for et_key, _ in energy_types
     ] + [
-        np.array(grr_afterN[datatype][category_key].get(et_key, [0]*12))
-        for et_key, _ in ENERGY_TYPES
+        _get_energy_values(grr_afterN[datatype].get(category_key, {}), et_key, gas_ignore[2])
+        for et_key, _ in energy_types
     ])
     ymax = all_values.max() if len(all_values) > 0 else 0
     ax.set_ylim(0, max(5, ymax * 1.15))  # 상단 15% 여유
@@ -439,21 +555,25 @@ def _draw_monthly_stacked_bars(
     grr_before: dict,
     grr_after: dict,
     grr_afterN: dict,
-    datatype: str = "source_uses"
+    datatype: str = "source_uses",
+    gas_ignore: list[bool] | tuple[bool, bool, bool] | None = None,
 ) -> None:
     
+    gas_ignore = _normalize_gas_ignore(gas_ignore)
+    energy_types = _display_energy_types(gas_ignore)
     axs = fig.subplots(3, 2)
 
     # (1) 난방, 냉방, 조명, 팬/펌프/전열, 급탕, 발전량
     for cat_idx, (cat_key, cat_label) in enumerate(GRAPH_ORDER):
         _draw_monthly_stacked_bar(
             cat_key, cat_label, grr_before, grr_after, grr_afterN, datatype,
+            gas_ignore=gas_ignore,
             ax = axs.ravel()[cat_idx]
         )
 
     handles = []
     labels = []
-    for et_key, et_label in ENERGY_TYPES:
+    for et_key, et_label in energy_types:
         for l_idx, label in enumerate(["GR 이전", "GR 이후", "(운영특성 반영)"]):
             color = DEFAULT_COLORS_BEFORE[et_key]
             handles.append(Patch(ec=None, lw=0.8,
@@ -470,21 +590,30 @@ def _draw_monthly_stacked_bars(
     )
 
 
-def _draw_annual_by_purpose(ax: plt.Axes, grr_before: dict, grr_after: dict, grr_afterN: dict, datatype="source_uses") -> None:
+def _draw_annual_by_purpose(
+    ax: plt.Axes,
+    grr_before: dict,
+    grr_after: dict,
+    grr_afterN: dict,
+    datatype="source_uses",
+    gas_ignore: list[bool] | tuple[bool, bool, bool] | None = None,
+) -> None:
     """HTML의 연간 용도별 stacked bar (bar-annual-by-purpose)"""
+    gas_ignore = _normalize_gas_ignore(gas_ignore)
+    energy_types = _display_energy_types(gas_ignore)
     x = np.arange(len(GRAPH_ORDER))
     width = 0.25
 
-    ymax = -np.inf
-    for idx, (label, dataset) in enumerate([
-        ("GR 이전", grr_before),
-        ("GR 이후", grr_after),
-        ("(운영특성 반영)", grr_afterN),
+    ymax = 0.0
+    for idx, (label, dataset, ignore_gas) in enumerate([
+        ("GR 이전", grr_before, gas_ignore[0]),
+        ("GR 이후", grr_after, gas_ignore[1]),
+        ("(운영특성 반영)", grr_afterN, gas_ignore[2]),
     ]):
         bottoms = np.zeros(len(GRAPH_ORDER))
-        for et_key, et_label in ENERGY_TYPES:
+        for et_key, et_label in energy_types:
             vals = [
-                sum(dataset[datatype][cat_key].get(et_key, [0]*12))
+                _get_energy_values(dataset[datatype].get(cat_key, {}), et_key, ignore_gas).sum()
                 for cat_key, _ in GRAPH_ORDER
             ]
             color = DEFAULT_COLORS_BEFORE[et_key]
@@ -507,16 +636,24 @@ def _draw_annual_by_purpose(ax: plt.Axes, grr_before: dict, grr_after: dict, grr
     ax.set_title("연간 용도별 1차에너지소요량")
     ax.grid(axis="y", linestyle="--", alpha=0.4)
 
-def _draw_total_monthly_bar(ax: plt.Axes, grr_before: dict, grr_after: dict, grr_afterN: dict, datatype="source_uses") -> None:
+def _draw_total_monthly_bar(
+    ax: plt.Axes,
+    grr_before: dict,
+    grr_after: dict,
+    grr_afterN: dict,
+    datatype="source_uses",
+    gas_ignore: list[bool] | tuple[bool, bool, bool] | None = None,
+) -> None:
     """HTML의 bar-total (월별 총합 비교 - 막대그래프)"""
+    gas_ignore = _normalize_gas_ignore(gas_ignore)
     months = np.arange(1, 13)
     
     # 막대 너비 설정
     width = 0.25 
 
-    before_vals = _sum_grr_monthly_totals(grr_before, datatype)
-    after_vals = _sum_grr_monthly_totals(grr_after, datatype)
-    afterN_vals = _sum_grr_monthly_totals(grr_afterN, datatype)
+    before_vals = _sum_grr_monthly_totals(grr_before, datatype, gas_ignore[0])
+    after_vals = _sum_grr_monthly_totals(grr_after, datatype, gas_ignore[1])
+    afterN_vals = _sum_grr_monthly_totals(grr_afterN, datatype, gas_ignore[2])
 
     # x축 위치를 조정하여 막대를 그립니다 (왼쪽, 가운데, 오른쪽)
     # zorder=3을 주어 그리드 위로 막대가 올라오게 합니다.
@@ -539,7 +676,12 @@ def _draw_total_monthly_bar(ax: plt.Axes, grr_before: dict, grr_after: dict, grr
     ax.legend(fontsize=8, loc="upper center", ncol=3, bbox_to_anchor=(0.5, -0.15))
 
 
-def draw_simulation_figures(grr_before: dict, grr_after: dict, grr_afterN: dict):
+def draw_simulation_figures(
+    grr_before: dict,
+    grr_after: dict,
+    grr_afterN: dict,
+    gas_ignore: list[bool] | tuple[bool, bool, bool] | None = None,
+):
     """
     matplotlib로 두 개의 Figure(메인 그래프, 요약 그래프)를 생성하여 반환
     Returns:
@@ -547,12 +689,15 @@ def draw_simulation_figures(grr_before: dict, grr_after: dict, grr_afterN: dict)
         fig2 (Figure): 연간 용도별 비교 및 월별 총합 라인 (하단 요약 그래프)
     """
     
+    gas_ignore = _normalize_gas_ignore(gas_ignore)
+    energy_types = _display_energy_types(gas_ignore)
+
     # --- Figure 1: 월별 스택 바 (메인) ---
     # 기존 비율(3:1.2)을 고려하여 세로 길이를 적절히 배분 (예: 높이 8)
     fig1 = plt.figure(figsize=(9, 8), constrained_layout=True)
     
     # 기존 helper 함수가 Figure 객체를 받아 subplot을 추가한다고 가정
-    _draw_monthly_stacked_bars(fig1, grr_before, grr_after, grr_afterN)
+    _draw_monthly_stacked_bars(fig1, grr_before, grr_after, grr_afterN, gas_ignore=gas_ignore)
 
     fig1.suptitle('월간 단위면적당 1차에너지소요량', fontsize=16, fontweight='bold')
 
@@ -565,25 +710,20 @@ def draw_simulation_figures(grr_before: dict, grr_after: dict, grr_afterN: dict)
     summary_axs = fig2.subplots(1, 2)
 
     # (3) 월별 총합 라인 그래프
-    _draw_total_monthly_bar(summary_axs[0], grr_before, grr_after, grr_afterN)
+    _draw_total_monthly_bar(summary_axs[0], grr_before, grr_after, grr_afterN, gas_ignore=gas_ignore)
 
     draw_3step_bargraph(
         "면적당 1차에너지소요량 (연간)",
         [
             [
-                sum([
-                    # cat이 'generators'이면 음수(-)로, 아니면 양수(+)로 합산
-                    -sum(result["source_uses"][cat][et_key]) if cat == "generators" 
-                    else sum(result["source_uses"][cat][et_key])
-                    
-                    for cat, _ in GRAPH_ORDER
-                ])
-                for et_key, _ in ENERGY_TYPES
+                _sum_grr_energy_total(result, "source_uses", et_key, ignore_gas)
+                for et_key, _ in energy_types
             ]
-            for result in [grr_before, grr_after, grr_afterN]
+            for result, ignore_gas in zip([grr_before, grr_after, grr_afterN], gas_ignore)
         ],
         ["GR이전","GR이후","(운영특성 반영)"],
         ylabel = "1차에너지 (kWh/$\\mathrm{m^2\\cdot}$년)",
+        energy_types=energy_types,
         ax = summary_axs[1]
     )
     
@@ -593,33 +733,32 @@ def draw_page3_summaryfigure(
     grr_before: dict,
     grr_after: dict,
     grr_afterN: dict,
+    gas_ignore: list[bool] | tuple[bool, bool, bool] | None = None,
     ) -> plt.Figure:
     
+    gas_ignore = _normalize_gas_ignore(gas_ignore)
+    energy_types = _display_energy_types(gas_ignore)
     fig = plt.figure(figsize=(9, 3), constrained_layout=True)
     axes = fig.subplots(1, 2)
     
     _draw_annual_by_purpose(
         axes[0],
-        grr_before, grr_after, grr_afterN,  "source_uses"
+        grr_before, grr_after, grr_afterN,  "source_uses",
+        gas_ignore=gas_ignore,
     )
     
     draw_3step_bargraph(
         "면적당 온실가스 배출량 (연간)",
         [
             [
-                sum([
-                    # cat이 'generators'이면 음수(-)로, 아니면 양수(+)로 합산
-                    -sum(result["co2"][cat][et_key]) if cat == "generators" 
-                    else sum(result["co2"][cat][et_key])
-                    
-                    for cat, _ in GRAPH_ORDER
-                ])
-                for et_key, _ in ENERGY_TYPES
+                _sum_grr_energy_total(result, "co2", et_key, ignore_gas)
+                for et_key, _ in energy_types
             ]
-            for result in [grr_before, grr_after, grr_afterN]
+            for result, ignore_gas in zip([grr_before, grr_after, grr_afterN], gas_ignore)
         ],
         ["GR이전","GR이후","(운영특성 반영)"],
         ylabel = r"$\mathrm{CO_2,eq}$ (kg/$\mathrm{m^2\cdot}$년)",
+        energy_types=energy_types,
         ax = axes[1]
     )
     
@@ -667,19 +806,21 @@ def summarytable(
     grrbefore:dict,
     grrafter :dict,
     grrafterN:dict,
+    gas_ignore: list[bool] | tuple[bool, bool, bool] | None = None,
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
+    gas_ignore = _normalize_gas_ignore(gas_ignore)
     
     df1 = pd.DataFrame(
         [
             [
-                _sum_grr_annual_total(grrbefore, "source_uses"),
-                _sum_grr_annual_total(grrafter, "source_uses"),
-                _sum_grr_annual_total(grrafterN, "source_uses"),
+                _sum_grr_annual_total(grrbefore, "source_uses", gas_ignore[0]),
+                _sum_grr_annual_total(grrafter, "source_uses", gas_ignore[1]),
+                _sum_grr_annual_total(grrafterN, "source_uses", gas_ignore[2]),
             ],
             [
-                _sum_grr_annual_total(grrbefore, "co2"),
-                _sum_grr_annual_total(grrafter, "co2"),
-                _sum_grr_annual_total(grrafterN, "co2"),
+                _sum_grr_annual_total(grrbefore, "co2", gas_ignore[0]),
+                _sum_grr_annual_total(grrafter, "co2", gas_ignore[1]),
+                _sum_grr_annual_total(grrafterN, "co2", gas_ignore[2]),
             ],
         ],
         columns=["GR 이전 (①)", "GR 이후 (②)", "운영특성 반영시 (③)"],
@@ -1282,9 +1423,10 @@ def build_report(
     hvacoperationchange = parse_hvacoperationchange(checklistafter, checklistafterN)
     # major change
     majorchange = parse_majorchange(masterdict)
+    gas_ignore = parse_gas_ignore(masterdict)
     
     # get figures
-    fig_detail, fig_summary = draw_simulation_figures(grrbefore, grrafter, grrafterN)
+    fig_detail, fig_summary = draw_simulation_figures(grrbefore, grrafter, grrafterN, gas_ignore=gas_ignore)
     fig_detail.savefig(FIG_DIR / "simulation_results.png", dpi=400, format="png", bbox_inches="tight")
     fig_summary.savefig(FIG_DIR / "energy_summary.png", dpi=400, format="png", bbox_inches="tight")
     
@@ -1296,7 +1438,7 @@ def build_report(
         after_weatherdata_filepath ,
     )
     fig_weather.savefig(FIG_DIR / "weather_compare.png", dpi=400, format="png", bbox_inches="tight")
-    fig_page3_summary = draw_page3_summaryfigure(grrbefore, grrafter, grrafterN)
+    fig_page3_summary = draw_page3_summaryfigure(grrbefore, grrafter, grrafterN, gas_ignore=gas_ignore)
     fig_page3_summary.savefig(FIG_DIR / "page3_summary.png", dpi=400, format="png", bbox_inches="tight")
         
     # arrange the results
@@ -1314,7 +1456,7 @@ def build_report(
         "hvacoperchangetex": hvacoperationchange,
         "occupantchangetex": occupantchange,
         "majorchangetex": majorchange,
-        "summarytabletex" : [df.style.format(lambda x: f"{x:>6,.1f}").to_latex(**summarytablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline") for df in summarytable(grrbefore, grrafter, grrafterN)],
+        "summarytabletex" : [df.style.format(lambda x: f"{x:>6,.1f}").to_latex(**summarytablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline") for df in summarytable(grrbefore, grrafter, grrafterN, gas_ignore=gas_ignore)],
         "degreedays": {k:v for k,v in zip(["HDD2018","HDD2023","CDD2018","CDD2023"], degreedays)}|{"HDDchange": ("증가" if (degreedays[1]-degreedays[0])>0 else "감소"),"CDDchange": ("증가" if (degreedays[3]-degreedays[2])>0 else "감소")},
         "comment": {k:escape_str(v) for k,v in commentdict.items()}
     }
