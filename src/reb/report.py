@@ -366,7 +366,7 @@ def _draw_monthly_stacked_bar(
 
     month_labels = np.arange(1, 13)
     bottom_before = np.zeros(12)
-    bottom_after = np.zeros(12)
+    bottom_after  = np.zeros(12)
     bottom_afterN = np.zeros(12)
 
     for et_key, et_label in ENERGY_TYPES:
@@ -906,6 +906,183 @@ def parse_occupantchange(
         tex =  df.style.to_latex(**tablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline").replace("~","-")
         
         return tex
+    
+    
+def parse_majorchange(masterdict: dict) -> str:
+
+    def is_missing(v) -> bool:
+        return v is None or (isinstance(v, str) and v.strip() == "") or pd.isna(v)
+
+    def fmt_num(v, digits: int = 3) -> str:
+        if is_missing(v):
+            return "-"
+        v = float(v)
+        return f"{v:.{digits}f}".rstrip("0").rstrip(".")
+
+    def fmt_pct_from_ratio(v, digits: int = 1) -> str:
+        if is_missing(v):
+            return "-"
+        return f"{float(v) * 100:.{digits}f}".rstrip("0").rstrip(".") + r"\%"
+
+    def fmt_pct_direct(v, digits: int = 1) -> str:
+        if is_missing(v):
+            return "-"
+        return f"{float(v):.{digits}f}".rstrip("0").rstrip(".") + r"\%"
+
+    def fmt_hrv(h, c) -> str:
+        if is_missing(h) and is_missing(c):
+            return "-"
+        return f"{fmt_pct_from_ratio(h)} / {fmt_pct_from_ratio(c)}"
+
+    def fmt_solar(area, eff) -> str:
+        if is_missing(area) and is_missing(eff):
+            return "-"
+        area_txt = "-" if is_missing(area) else f"{fmt_num(area, 1)} m2"
+        eff_txt = "-" if is_missing(eff) else fmt_pct_direct(eff, 1)
+        return f"{area_txt}, {eff_txt}"
+
+    def heating_value(prefix: str):
+        heating_type = masterdict.get(f"{prefix}_난방1_유형")
+        if heating_type == "히트펌프":
+            return masterdict.get(f"{prefix}_난방1_COP [W/W]")
+        return masterdict.get(f"{prefix}_난방1_효율 [%]")
+
+    def heating_note() -> str:
+        types = {
+            masterdict.get("GR이전_난방1_유형"),
+            masterdict.get("GR이후_난방1_유형"),
+            masterdict.get("N년차_난방1_유형"),
+        }
+        if types == {"히트펌프"}:
+            return "[W/W]"
+        if "히트펌프" in types:
+            return r"히트펌프 [W/W], 보일러 [\%]"
+        return r"[\%]"
+
+    rows = [
+        [
+            fmt_num(masterdict.get("GR이전_외벽_열관류율 [W/m2·K]"), 3),
+            fmt_num(masterdict.get("GR이후_외벽_열관류율 [W/m2·K]"), 3),
+            fmt_num(masterdict.get("N년차_외벽_열관류율 [W/m2·K]"), 3),
+            "[W/m2·K]",
+        ],
+        [
+            fmt_num(masterdict.get("GR이전_창 및 문_열관류율 [W/m2·K]"), 3),
+            fmt_num(masterdict.get("GR이후_창 및 문_열관류율 [W/m2·K]"), 3),
+            fmt_num(masterdict.get("N년차_창 및 문_열관류율 [W/m2·K]"), 3),
+            "[W/m2·K]",
+        ],
+        [
+            fmt_num(masterdict.get("GR이전_냉방1_COP [W/W]"), 2),
+            fmt_num(masterdict.get("GR이후_냉방1_COP [W/W]"), 2),
+            fmt_num(masterdict.get("N년차_냉방1_COP [W/W]"), 2),
+            "[W/W]",
+        ],
+        [
+            fmt_num(heating_value("GR이전"), 2),
+            fmt_num(heating_value("GR이후"), 2),
+            fmt_num(heating_value("N년차"), 2),
+            heating_note(),
+        ],
+        [
+            fmt_hrv(
+                masterdict.get("GR이전_전열 교환기_난방[%]"),
+                masterdict.get("GR이전_전열 교환기_냉방[%]")
+            ),
+            fmt_hrv(
+                masterdict.get("GR이후_전열 교환기_난방[%]"),
+                masterdict.get("GR이후_전열 교환기_냉방[%]")
+            ),
+            fmt_hrv(
+                masterdict.get("N년차_전열 교환기_난방[%]"),
+                masterdict.get("N년차_전열 교환기_냉방[%]")
+            ),
+            r"[난방 \%] / [냉방 \%]",
+        ],
+        [
+            fmt_num(masterdict.get("GR이전_조명밀도 [W/m2]"), 2),
+            fmt_num(masterdict.get("GR이후_조명밀도 [W/m2]"), 2),
+            fmt_num(masterdict.get("N년차_조명밀도 [W/m2]"), 2),
+            "[W/m2]",
+        ],
+        [
+            fmt_solar(
+                masterdict.get("GR이전_태양광_면적[m2]"),
+                masterdict.get("GR이전_태양광_효율[%]")
+            ),
+            fmt_solar(
+                masterdict.get("GR이후_태양광_면적[m2]"),
+                masterdict.get("GR이후_태양광_효율[%]")
+            ),
+            fmt_solar(
+                masterdict.get("N년차_태양광_면적[m2]"),
+                masterdict.get("N년차_태양광_효율[%]")
+            ),
+            r"[면적 m2], [효율 \%]",
+        ],
+        ["-", "-", "-", "-"],
+        ["-", "-", "-", "-"],
+        ["-", "-", "-", "-"],
+    ]
+
+    df = pd.DataFrame(
+        rows,
+        columns=["GR이전", "GR이후", "N년차", "비고"],
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("기술요소", "외피"),
+                ("기술요소", "창호"),
+                ("기술요소", "냉방"),
+                ("기술요소", "난방"),
+                ("기술요소", "환기"),
+                ("기술요소", "조명"),
+                ("기술요소", "신재생"),
+                ("운영특성", "재실인원"),
+                ("운영특성", "운영시간"),
+                ("운영특성", "설정온도"),
+            ],
+            names=["대분류", "구분"]
+        )
+    )
+
+    df = df[df[["GR이전", "GR이후", "N년차"]].nunique(axis=1) > 1]
+
+    tex = df.style.hide(axis="index", names=True).to_latex(
+        hrules=True,
+        clines="all;data",
+        sparse_index=True,
+        multirow_align="c",
+        column_format=(
+            r">{\centering\arraybackslash}p{1cm}|"
+            r">{\centering\arraybackslash}p{2.6cm}|"
+            r">{\centering\arraybackslash}p{3.2cm}|"
+            r">{\centering\arraybackslash}p{3.2cm}|"
+            r">{\centering\arraybackslash}p{3.2cm}|"
+            r">{\centering\arraybackslash}p{2.8cm}"
+        ),
+    )
+
+    tex = tex.replace(r"\toprule", r"\hline")
+    tex = tex.replace(r"\midrule", r"\hline")
+    tex = tex.replace(r"\bottomrule", r"\hline")
+
+    tex = tex.replace(
+        "& & GR이전 & GR이후 & N년차 & 비고 \\\n",
+        r"\multicolumn{2}{c|}{구분} & GR이전 & GR이후 & N년차 & 비고 \\" + "\n"
+    )
+
+    tex = tex.replace(
+        r"{기술요소}",
+        r"{\shortstack{기\\술\\요\\소}}"
+    )
+    tex = tex.replace(
+        r"{운영특성}",
+        r"{\shortstack{운\\영\\특\\성}}"
+    )
+
+    tex = tex.replace(r"\cline{1-6} \cline{2-6}", r"\hline")
+
+    return tex
 
 def bool_to_적용(b:bool|list[bool]) -> str|list[str]:
     
@@ -1071,6 +1248,8 @@ def build_report(
     occupantchange = parse_occupantchange(checklistafter, checklistafterN)
     # hvacoperation change
     hvacoperationchange = parse_hvacoperationchange(checklistafter, checklistafterN)
+    # major change
+    majorchange = parse_majorchange(masterdict)
     
     # get figures
     fig_detail, fig_summary = draw_simulation_figures(grrbefore, grrafter, grrafterN)
@@ -1102,6 +1281,7 @@ def build_report(
         "activechange": activechangedict,
         "hvacoperchangetex": hvacoperationchange,
         "occupantchangetex": occupantchange,
+        "majorchangetex": majorchange,
         "summarytabletex" : [df.style.format(lambda x: f"{x:>6,.1f}").to_latex(**summarytablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline") for df in summarytable(grrbefore, grrafter, grrafterN)],
         "degreedays": {k:v for k,v in zip(["HDD2018","HDD2023","CDD2018","CDD2023"], degreedays)}|{"HDDchange": ("증가" if (degreedays[1]-degreedays[0])>0 else "감소"),"CDDchange": ("증가" if (degreedays[3]-degreedays[2])>0 else "감소")},
         "comment": {k:escape_str(v) for k,v in commentdict.items()}
