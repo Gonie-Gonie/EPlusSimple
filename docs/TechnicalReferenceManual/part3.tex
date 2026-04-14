@@ -188,7 +188,7 @@
 
 각 zone은 현장조사에서 정의된 용도 구분과 연결된다. 예를 들어, 각 zone에는 \texttt{일반존}, \texttt{특화존1}, \texttt{특화존2}와 같은 현장조사 프로필명이 지정되며, 엔진은 이를 기준으로 해당 zone에 적용할 운영정보를 선택한다. 이때 하나의 현장조사 프로필은 복수의 zone에 연결될 수 있다. 
 
-이를 EnergyPlus에서 활용하기 위해서는, 두 가지 핵심 변환 과정이 요구된다.
+이를 EnergyPlus에서 활용하기 위해서는, 세 가지 핵심 변환 과정이 요구된다.
 
 \begin{enumerate}
   \item 값 변환: 현장조사에서 용도 단위로 입력된 값을, zone 단위 입력에 적합하도록 재구성하고 단위를 환산한다.
@@ -200,14 +200,13 @@
 
 \subsubsection{재실스케줄}
 
-
 \begin{table}[ht]
   \caption{재실 현장조사 예시}
   \label{tab:occupancy_survey}
   \centering
   \begin{tabular}{lcc}
     \toprule
-     & \makecell{인원수} & 체류시간
+     & \makecell{인원수} & 체류시간(분)
     \\ \midrule
     직원 &  1 & -
     \\ \midrule
@@ -263,19 +262,58 @@
 
 운영시간과 운영요일 정보는 해당 프로필을 공유하는 모든 \texttt{실}에 공통으로 적용된다. \epreb \은 입력된 시작시간, 종료시간, 운영요일을 바탕으로 요일별 일간 스케줄을 생성하고, 이를 연간 스케줄로 확장한다.\footnote{이에 대한 상세한 기술은 \ref{subsec:ep_profile} 참고} 
 
-\cref{tab:occupancy_survey} 와 \cref{tab:occup_sch_survey}를 EnergyPlus 스케줄로 변환하는 과정은 다음과 같다.
+\cref{tab:occupancy_survey} , \cref{tab:occup_sch_survey} 그리고 \cref{tab:occup_day_survey} \를 EnergyPlus 스케줄로 변환하는 과정은 다음과 같으며, 본 스케줄은 하나의 \texttt{실} 에 입력된 스케줄로 가정한다.
 
-\begin{defaultfigure}
+\begin{enumerate}
+  \item \cref{tab:occupancy_survey} 의 직원 인원수와 \cref{tab:occup_sch_survey} 의 기본 운영값을 활용하여, 기본 재실 스케줄을 생성한다. (\cref{fig:operation_schedule_detail} 의 적색 부분(직원-기본운영))
+  \item \cref{tab:occupancy_survey} 의 외근 직원수와, \cref{tab:occup_sch_survey} 의 외근 운영시간을 활용하여, 외근 재실스케줄을 생성한다. 이때, 외근은 ``재실하지 않는'' 시간이므로, - (마이너스) 스케줄로 생성한다. 참고로, 외근 스케줄은 \cref{tab:occup_day_survey} 에서, ``외근''의 값이 ``TRUE''인 경우에만 적용된다.
+  \item \cref{tab:occupancy_survey} 의 집중진료의 경우, 입력된 체류시간(분)은 1인 기준으로 해석하며, 집중진료 인원수가 N명일 경우, 동일한 체류시간을 갖는 1인 재실 스케줄을 N회 반복하여 적용한다. 본 예시에서는, 오전 집중진료 인원이 3인이므로 30분 스케줄을 3회 반복적용하였다 (\cref{fig:operation_schedule_detail} 의 녹색 부분 (집중진료(오전))). 마찬가지로, 오후 집중진료 인원 또한 동일한 방식으로 적용한다 (\cref{fig:operation_schedule_detail} 의 보라색 부분 (집중진료(오후))).
+  \item 이렇게 생성된 각 재실 스케줄을 합산하여, 최종 zone 재실 스케줄을 도출한다 (\cref{fig:operation_schedule_result}).
+  \item 동일한 방식으로, 요일별 일간 스케줄을 생성하고, 이를 연간 스케줄로 확장하는 방식을 적용하여 EnergyPlus로 연계한다. 참고로, 주말(Weekends) 및 공휴일(Holidays)에는 재실이 없는 것으로 설정한다.
+\end{enumerate}
+
+\begin{figure}[ht]
   \includegraphics[width=\textwidth]{운영스케줄변환상세.png}
-  \caption{운영스케줄 변환 상세}
+  \caption{재실 스케줄 구성 과정}
   \label{fig:operation_schedule_detail}
-\end{defaultfigure}
+\end{figure}
+
+\begin{figure}[ht]
+  \includegraphics[width=\textwidth]{운영스케줄변환종합.png}
+  \caption{재실 스케줄 통합 결과}
+  \label{fig:operation_schedule_result}
+\end{figure}
+
+\paragraph{미수집 변수 보완} 현장조사로부터 직접 수집되지 않는 인체 관련 입력 변수 또한 EnergyPlus 모델링을 위해 정의가 필요하다. 이는 인체 발열량을 포함하며, 해당 값은 건축물에너지효율등급인증규정을 참고하여 70\,W/인으로 적용하였다.
+
+\subsubsection{조명}
+조명 스케줄은 재실 스케줄을 기준으로 설정하였으며, 재실 시간 동안 조명이 점등되는 것으로 가정하였다. 즉, \cref{fig:operation_schedule_result}에서 재실 스케줄 값이 존재하는 시간대에는 조명 스케줄을 켜져있는 것(ON,1)으로, 그 외 시간대에는 꺼져있는 것(OFF,0)으로 설정하였다. (\cref{fig:lights_schedule_result})
 
 \begin{defaultfigure}
-  \includegraphics[width=\textwidth]{운영스케줄변환종합.png}
-  \caption{운영스케줄 변환 최종}
-  \label{fig:operation_schedule_result}
+  \includegraphics[width=\textwidth]{조명스케줄.png}
+  \caption{조명 스케줄 적용 예시}
+  \label{fig:lights_schedule_result}
 \end{defaultfigure}
+
+\subsubsection{설비 스케줄}
+
+
+
+\begin{table}[ht]
+  \caption{냉난방 가동 및 설정온도 변환}
+  \centering
+  \begin{tabular}{lcc}
+    \toprule
+     & \makecell{에너지효율등급\\인증규정} & EnergyPlus\\ \midrule
+    난방설정온도 &  20 [°C] & 20 [°C] \\ \midrule
+    냉방설정온도 &  26 [°C] & 26 [°C] \\ \midrule
+    스케줄      &  07:00-18:00   & \makecell{주중 07:00-18:00\\ 주말 및 공휴일 0}  \\ \midrule
+  \end{tabular}
+\end{table}
+
+\paragraph{단위 및 값 변환} 에너지효율등급규정의 값을 동일하게 적용한다.
+\paragraph{스케줄 변환} 인증규정에 명시된 운전시간(07:00-18:00)과 월간 사용일수를 바탕으로 EnergyPlus의 연간 스케줄을 생성한다. 운전시간은 주중(Weekdays)스케줄에 적용하며, 주말(Weekends) 및 공휴일(Holidays)에는 설비를 운전하지 않는 것으로 설정한다.
+
 
 
 
@@ -288,37 +326,6 @@
   \item 스케줄 변환: 건축물에너지효율등급인증규정의 단순 운영 시간 및 운영일수를 EnergyPlus 스케줄 형식으로 변환한다.
 \end{enumerate}
 
-아래는 건축물에너지효율등급인증규정의 소규모 사무소(30$m^2$이하)(\cref{tab:smallofficeusage})의 프로필을 EnergyPlus입력 스케줄로 변환하는 과정이다.
-
-\subsubsection{재실밀도}
-\begin{table}[ht]
-  \caption{재실스케줄 변환}
-  \centering
-  \begin{tabular}{lcc}
-    \toprule
-     & \makecell{에너지효율등급\\인증규정} & EnergyPlus\\ \midrule
-    재실밀도 &  30 [$Wh/(m^2d)$] & 0.048 [$people/m^2$] \\ \midrule
-    스케줄  &  09:00-18:00      & \makecell{주중 09:00-18:00\\ 주말 및 공휴일 0} \\ \midrule
-  \end{tabular}
-\end{table}
-
-\paragraph{단위 및 값 변환} 건축물에너지효율등급인증규정은 인체의 발열량을 일일 면적당 발열 [$Wh/(m^2d)$]로 정의한다. 반면, EnergyPlus는 인체의 발열을 (a)인당 발열량 [$W/person$]과 (b) 단위 면적당 재실 인원 [$people/m^2$]의 조합으로 입력한다. 본 시뮬레이터에서는 인체의 현열 발열량을 70 [$W/person$]으로 가정하여 변환하였다.\par
-  (30$Wh/(m^2d)$ $\div$ 사용시간 9h $\div$ 인체발열(현열) 70 W/person = 0.048 $people/m^2$)
-\paragraph{스케줄 변환} 인증규정에 명시된 사용시간(09:00-18:00)과 월간 사용일수를 바탕으로 EnergyPlus의 연간 스케줄을 생성한다. 사용시간은 주중(Weekdays)스케줄에 적용하며, 주말(Weekends) 및 공휴일(Holidays)에는 재실이 없는 것으로 설정한다.
-
-
-\subsubsection{조명}
-\begin{table}[ht]
-  \caption{조명스케줄 변환}
-  \centering
-  \begin{tabular}{lcc}
-    \toprule
-     & \makecell{에너지효율등급\\인증규정} & EnergyPlus \\ \midrule
-    스케줄  &  6 [h]      & \makecell{주중 10:00-11:00,13:00-18:00(6[h])\\ 주말 및 공휴일 0} \\ \midrule
-  \end{tabular}
-\end{table}
-
-\paragraph{스케줄 변환} 인증규정의 일일 조명시간 6시간을 충족하기 위해, 점심시간을 제외한 주 업무시간대를 반영하여 EnergyPlus스케줄을 10-11시 및 13-18시로 설정하였다.
 
 \subsubsection{작업보조기기 발열}
 \begin{table}[ht]
@@ -354,23 +361,6 @@
 \paragraph{단위 및 값 변환} 건축물에너지효율등급인증규정은 최소도입외기량을 시간-단위면적당 외기도입량[$m^3/(m^2{\cdot}h)$]으로 정의한다. 반면, EnergyPlus는 최소도입외기량을 초-단위면적당 외기도입량[$m^3/(m^2{\cdot}s)$]으로 정의한다.\par
   (4 $m^3/(m^2{\cdot}h)$ $\div$ 3600 s = 0.0011 $m^3/(m^2{\cdot}s)$)
 \paragraph{스케줄 변환} 재실스케줄과 같게 설정한다.
-
-
-\subsubsection{냉난방 가동 및 설정온도}
-\begin{table}[ht]
-  \caption{냉난방 가동 및 설정온도 변환}
-  \centering
-  \begin{tabular}{lcc}
-    \toprule
-     & \makecell{에너지효율등급\\인증규정} & EnergyPlus\\ \midrule
-    난방설정온도 &  20 [°C] & 20 [°C] \\ \midrule
-    냉방설정온도 &  26 [°C] & 26 [°C] \\ \midrule
-    스케줄      &  07:00-18:00   & \makecell{주중 07:00-18:00\\ 주말 및 공휴일 0}  \\ \midrule
-  \end{tabular}
-\end{table}
-
-\paragraph{단위 및 값 변환} 에너지효율등급규정의 값을 동일하게 적용한다.
-\paragraph{스케줄 변환} 인증규정에 명시된 운전시간(07:00-18:00)과 월간 사용일수를 바탕으로 EnergyPlus의 연간 스케줄을 생성한다. 운전시간은 주중(Weekdays)스케줄에 적용하며, 주말(Weekends) 및 공휴일(Holidays)에는 설비를 운전하지 않는 것으로 설정한다.
 
 
 % ---------------------------------------------------------------------------- %
