@@ -151,41 +151,18 @@ run_grjson(
 \section{입력파일 (\excel)}
 \label{section:format-explanation-excel}
 
-\excel 의 입력파일은 
-
-
-
-
-
-
-\subsection{규칙}
-
-\subsubsection{변수의 명칭 관련}
-
-\paragraph{사용가능한 문자} 모든 변수의 명칭은 영문 소문자 및 밑줄(\_)로만 구성한다. @여기
-
-\subsubsection{이름 기반 객체 참조 관련}
-
-\excel 에서 다른 객체의 지칭은 ``이름''값에 기반하여 이루어진다.
-
-\paragraph{사용가능한 문자} 모든 ``이름''은 한글 혹은 영문 대소문자, 숫자, 하이픈(-) 및 밑줄(\_)로만 구성하며, 특수 문자로는 작성하지 않는다.
-
-\paragraph{이름의 중복} 동일한 ``이름''은 같은 \texttt{class} (\excel 에서, 각 \texttt{sheet}를 의미한다.)의 객체끼리 공유할 수 없다. 
-한글 혹은 영문 대소문자, 숫자, 하이픈(-) 및 밑줄(\_)로만 구성하며, 특수 문자로는 작성하지 않는다.
-
-
-\section{입력파일 (grm)}
-\label{section:format-explanation-grm}
-
-\simulator 의 입력파일은 실제 건물의 물리적 구성 관계를 반영하여 계층적으로 구성되어 있다 \parencref{fig:grm_structure}. 즉, 건물(\texttt{building})을 최상위 객체로 하여 층(\texttt{floor}), 실(\texttt{zone}), 면(\texttt{surface}), 개구부(\texttt{fenestration}) 등과 같은 공간 요소가 실제 건물의 포함 관계와 유사한 형태로 단계적으로 조직된다. 이러한 구조를 통해 건물의 공간적 구성과 시스템 연결 관계를 직관적으로 표현할 수 있다.
+\excel 의 입력파일은 실제 건물의 물리적 구성 관계를 반영하여 계층적으로 구성되어 있다 \parencref{fig:grm_structure}. 즉, 건물(\texttt{building})을 최상위 객체로 하여 층(\texttt{floor}), 실(\texttt{zone}), 면(\texttt{surface}), 개구부(\texttt{fenestration}) 등과 같은 공간 요소가 실제 건물의 포함 관계와 유사한 형태로 단계적으로 조직된다. 이러한 구조를 통해 건물의 공간적 구성과 시스템 연결 관계를 직관적으로 표현할 수 있다.
 
 한편, 재료(\texttt{material})나 구조체(\texttt{construction})과 같은 물리적 속성은 공간 객체 내부에 직접 중복 정의되지 않고 별도의 객체로 정의된 뒤 참조 방식으로 연결된다. 예를 들어 면(\texttt{surface})은 특정 구조체(\texttt{surface\_construction})를 참조하는 방식으로 구성된다. 이러한 구조는 동일한 정보를 여러 객체에서 재사용할 수 있도록 한다. 또한, 설비 시스템(\texttt{hvac\_system})과 제어 로직(\texttt{control\_logic})은 건물 객체의 하위에 별도의 분류로 정의되어, 공간 요소와는 독립적으로 구성되며, 필요한 경우 공간 요소와 연결될 수 있도록 설계되어 있다. 이는 건물의 물리적 구성과 시스템 구성을 명확히 구분한다.
 
-\begin{defaultfigure}
+\begin{figure}[ht]
   \includegraphics[width=0.99\textwidth]{grm-datastructure.png}
   \caption{\simulator\ 입력파일 체계도}
   \label{fig:grm_structure}
-\end{defaultfigure}
+\end{figure}
+
+
+
 
 \subsection{규칙}
 
@@ -193,16 +170,16 @@ run_grjson(
 
 \paragraph{사용가능한 문자} 모든 변수의 명칭은 영문 소문자 및 밑줄(\_)로만 구성한다.
 
-\paragraph{복수형과 단수형} 복수 객체 \texttt{array}를 담는 변수의 명칭(예: ``floors") 또는 복수 객체를 담는 하위 분류를 사용하는 변수의 명칭(예: ``profile\_components"), 길는 복수형을 사용하며, 단일 값을 담는 변수의 명칭(예: ``name")은 단수형을 사용한다. 단, 길이가 정해져있거나 각 위치별 의미가 명시적으로 다른 \texttt{array}를 담는 변수의 명칭(예: ``vintage")은 단수형을 사용한다.
+\subsubsection{이름 기반 객체 참조 관련}
+\label{subsubsection:ioref:id_description}
+\excel 에서 ``이름''의 값을 입력하는 경우, 객체가 생성되며, 다른 객체의 지칭은 ``이름''값에 기반하여 이루어진다.
 
-\paragraph{축약형의 사용} 모든 변수의 명칭은 축약형을 사용하지 않는 것을 원칙으로 하되, 약어 자체로 통용되는 경우(예: ``cop\_heating")에는 축약형을 사용한다.
+\paragraph{사용가능한 문자} 모든 ``이름''은 한글 혹은 영문 대소문자, 숫자, 하이픈(-) 및 밑줄(\_)로만 구성하며, 특수 문자로는 작성하지 않는다.
 
-\subsubsection{ID 기반 객체 참조 관련} \label{subsubsection:ioref:id_description}
-grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어지며, 모든 객체의 이름(``name")은 사용자 편의를 위한 이름으로 실제 데이터 변환 과정에서 사용되지 않는다.
+\paragraph{이름의 중복} 동일한 ``이름''은 같은 \texttt{class} (\excel 에서, 각 \texttt{sheet}를 의미한다.)의 객체끼리 공유할 수 없다. 
+한글 혹은 영문 대소문자, 숫자, 하이픈(-) 및 밑줄(\_)로만 구성하며, 특수 문자로는 작성하지 않는다.
 
-\paragraph{사용가능한 문자} 모든 ID는 영문 대소문자, 숫자, 하이픈(-), 밑줄(\_)로만 구성되며, 숫자, 하이픈(-) 또는 밑줄(\_)로 시작하지 않는다.
 
-\paragraph{ID의 중복} 동일한 \texttt{ID}는 같은 \texttt{class}의 객체끼리 공유할 수 없다. (모든 \texttt{class}에 대하여 서로 다른 \texttt{ID} 사용을 권장)
 
 \subsubsection{변수의 유효성}
 
@@ -228,6 +205,13 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 \definecolor{reqGrayDark}{RGB}{107,114,128}
 \definecolor{reqGrayLight}{RGB}{209,213,219}
 
+
+% --- 엑셀 요구수준 색상 ---
+\definecolor{excelRequired}{RGB}{169,209,142}
+\definecolor{excelOptional}{RGB}{155,194,230}
+\definecolor{excelDisabled}{RGB}{191,191,191}
+
+
 % --- TypeTag (S/F/I/E) ---
 \newcommand{\TypeTag}[1]{%
   \begingroup
@@ -251,6 +235,18 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
   \tagchip[colback=\shade,coltext=\fg]{#1}%
   \endgroup
 }
+
+
+% --- excel tag ---
+\newcommand{\InputTag}[1]{%
+  \begingroup
+  \ifthenelse{\equal{#1}{R}}{\tagchip[colback=excelRequired,coltext=black]{필수입력}}{%
+  \ifthenelse{\equal{#1}{O}}{\tagchip[colback=excelOptional,coltext=black]{optional}}{%
+  \ifthenelse{\equal{#1}{D}}{\tagchip[colback=excelDisabled,coltext=black]{입력불가}}{%
+  \tagchip[colback=gray!60,coltext=black]{#1}}}}%
+  \endgroup
+}
+
 
 % --- table definition --- 
 \newcommand{\jsontableunit}[1]{%
@@ -288,21 +284,41 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 
 \paragraph{타입} 모든 변수는 정해진 타입의 변수여야 한다. 모든 변수의 타입은 문자\TypeTag{S}($String$), 실수\TypeTag{F}($Float$), 정수\TypeTag{I}($Integer$), 열거형\TypeTag{E}($Enum$), 불리언\TypeTag{B} 로 구분할 수 있다. 
 
-\paragraph{필수 여부} 입력되지 않을 경우 에러가 발생하는 필수 변수\ReqTag{R}($Required$)와 달리, 비 필수 변수\ReqTag{O}($Optional$)는 미 입력 시 기본값이 사용된다. 단, 입력하지 않았다는 것을 명시적으로 \texttt{null}로 지정해야 하고, 변수 자체를 생락하면 안된다.
+\paragraph{필수 여부} \excel 에서는 각 변수의 필수 입력 여부에 따라, 셀 색상을 구분하고 있으며, 입력되지 않을 경우 에러가 발생하는 필수 변수 \InputTag{R}($Required$)와 달리, 비 필수 변수 \InputTag{O}($Optional$)는 미 입력 시 기본값이 사용된다. 단, 입력하지 않았다는 것을 명시적으로 \texttt{null}로 지정해야 하고, 변수 자체를 생락하면 안된다. 
 
-\paragraph{조건부 사용 여부} 어떤 변수는 다른 변수(주로 \texttt{type})의 값에 따라 조건부로 사용된다. 이 경우에도 해당 조건에서 필수적으로 요구되는 변수\ReqTag{CR}($Conditional Required$)와 그렇지 않은 변수\ReqTag{CO}($Conditional Optional$)로 구분할 수 있다. 조건에 만족하지 않는 경우, 해당 변수는 json에서 생략될 수 있다.
+\paragraph{조건부 사용 여부} 어떤 변수는 다른 변수(주로 \texttt{type})의 값에 따라 조건부로 사용된다. 이 경우에도 해당 조건에서 필수적으로 요구되는 변수\ReqTag{CR}($Conditional Required$)와 그렇지 않은 변수\ReqTag{CO}($Conditional Optional$)로 구분할 수 있다. 이 변수는 \excel 에서 \InputTag{D}에 해당한다.
 
-\paragraph{범위 및 열거형 상수} array면 길이 제약 따짐.
-실수\TypeTag{F} 및 정수\TypeTag{I} 타입의 변수는 Python 부동소수점 및 정수 형식에서 표현 가능한 범위 내에서 처리된다.
 
 \subsubsection{기타 규칙}
 
-\paragraph{단위} 모든 변수는 SI 기본단위를 사용한다 (예: $m$, $J$, $W$, $kg$).
+\paragraph{단위} 모든 변수는 SI 기본단위를 사용하며, \excel 에서 변수명에 명시된 단위를 적용한다 (예: $m$, $J$, $W$, $kg$).
 
 \subsection{class별 명세}
 
-\subsubsection{building} \label{subsubsection:ioref:building}
+\subsubsection{건물정보}
+\label{subsubsection:ioref:building}
 실재하는 건물에 대한 최상위 정보 체계이다.
+
+
+
+\begin{table}[ht]
+  \caption{건물정보 클래스의 속성들}
+  \label{tbl:building_info}  
+  \centering
+  \begin{tabular}{lcccccc}
+    \toprule
+    변수명 & 타입 & 필수 & 기본값 & 조건 & 범위/길이/선택지 & 단위\\ \midrule
+    건물명 & \TypeTag{S} & \InputTag{R} & - & - & - & -\\
+    north\_axis & \TypeTag{F} & \InputTag{R} & - & - & [0,360) & deg(°) \\
+    주소  & \TypeTag{S} & \InputTag{R} & - & - & 상세설명참고 & -\\
+    허가일자 & {[ \TypeTag{I} ]} & \InputTag{R} & - & - & 상세설명참고 & -\\
+    지상층수 & \TypeTag{I} & \InputTag{R} & - & - & [1,Inf) & -\\
+    지하층수 & \TypeTag{I} & \InputTag{R} & - & - & [0,Inf) & -\\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+
 
 \jsontable{building}{
   \jsontablerow{name                 }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
