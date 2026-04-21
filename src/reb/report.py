@@ -13,6 +13,8 @@ from pathlib  import Path
 from dataclasses import dataclass
 
 # third-party modules
+
+import numpy             as np
 import pandas            as pd
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
@@ -132,7 +134,6 @@ def draw_3step_bargraph(
 # New functions: Python versions of HTML Chart.js visualizations
 # ---------------------------------------------------------------------------
 
-import numpy as np
 
 GRAPH_ORDER = [
     ("heating", "난방"),
@@ -372,7 +373,7 @@ def _draw_monthly_stacked_bars(
     handles = []
     labels = []
     for et_key, et_label in energy_types:
-        for l_idx, label in enumerate(["GR 이전", "GR 이후", "(운영특성 반영)"]):
+        for l_idx, label in enumerate(["GR 이전", "GR 이후", "운영특성 반영"]):
             color = DEFAULT_COLORS_BEFORE[et_key]
             handles.append(Patch(ec=None, lw=0.8,
                                  fc=[color, color+'40', color+'40'][l_idx],
@@ -406,7 +407,7 @@ def _draw_annual_by_purpose(
     for idx, (label, dataset, ignore_gas) in enumerate([
         ("GR 이전", grr_before, gas_ignore[0]),
         ("GR 이후", grr_after, gas_ignore[1]),
-        ("(운영특성 반영)", grr_afterN, gas_ignore[2]),
+        ("운영특성 반영", grr_afterN, gas_ignore[2]),
     ]):
         bottoms = np.zeros(len(GRAPH_ORDER))
         for et_key, et_label in energy_types:
@@ -458,10 +459,10 @@ def _draw_total_monthly_bar(
     ax.bar(months - width, before_vals, width=width, color=PALETTE[0], label="GR 이전", zorder=3)
     ax.bar(months, after_vals, width=width, color=PALETTE[1], label="GR 이후", zorder=3)
     
-    # (운영특성 반영)은 기존 스타일(점선/빈 원)을 반영하여 빗금(hatch)이나 테두리 스타일로 표현
+    # 운영특성 반영은 기존 스타일(점선/빈 원)을 반영하여 빗금(hatch)이나 테두리 스타일로 표현
     ax.bar(months + width, afterN_vals, width=width, 
            color='white', edgecolor=PALETTE[2], hatch='////', linewidth=1.0, 
-           label="(운영특성 반영)", zorder=3)
+           label="운영특성 반영", zorder=3)
 
     ax.set_ylim(bottom=0)
     ax.set_xticks(months)
@@ -474,7 +475,7 @@ def _draw_total_monthly_bar(
     ax.legend(fontsize=8, loc="upper center", ncol=3, bbox_to_anchor=(0.5, -0.15))
 
 
-def draw_simulation_figures(
+def draw_mainfigures(
     grr_before: dict,
     grr_after: dict,
     grr_afterN: dict,
@@ -505,11 +506,9 @@ def draw_simulation_figures(
     fig2 = plt.figure(figsize=(9, 3), constrained_layout=True)
     
     # 1행 2열로 서브플롯 생성
-    summary_axs = fig2.subplots(1, 2)
+    summary_ax = fig2.subplots(1, 1)
 
     # (3) 월별 총합 라인 그래프
-    _draw_total_monthly_bar(summary_axs[0], grr_before, grr_after, grr_afterN, gas_ignore=gas_ignore)
-
     draw_3step_bargraph(
         "면적당 1차에너지소요량 (연간)",
         [
@@ -519,15 +518,15 @@ def draw_simulation_figures(
             ]
             for result, ignore_gas in zip([grr_before, grr_after, grr_afterN], gas_ignore)
         ],
-        ["GR이전","GR이후","(운영특성 반영)"],
+        ["GR이전","GR이후","운영특성 반영"],
         ylabel = "1차에너지 (kWh/$\\mathrm{m^2\\cdot}$년)",
         energy_types=energy_types,
-        ax = summary_axs[1]
+        ax = summary_ax
     )
     
     return fig1, fig2
 
-def draw_page3_summaryfigure(
+def draw_page3_summaryfigures(
     grr_before: dict,
     grr_after: dict,
     grr_afterN: dict,
@@ -554,7 +553,7 @@ def draw_page3_summaryfigure(
             ]
             for result, ignore_gas in zip([grr_before, grr_after, grr_afterN], gas_ignore)
         ],
-        ["GR이전","GR이후","(운영특성 반영)"],
+        ["GR이전","GR이후","운영특성 반영"],
         ylabel = r"$\mathrm{CO_2,eq}$ (kg/$\mathrm{m^2\cdot}$년)",
         energy_types=energy_types,
         ax = axes[1]
@@ -1224,19 +1223,12 @@ def build_report(
     gas_ignore = parse_gas_ignore(masterdict)
     
     # get figures
-    fig_detail, fig_summary = draw_simulation_figures(grrbefore, grrafter, grrafterN, gas_ignore=gas_ignore)
+    fig_detail, fig_summary = draw_mainfigures(grrbefore, grrafter, grrafterN, gas_ignore=gas_ignore)
     fig_detail.savefig(FIG_DIR / "simulation_results.png", dpi=400, format="png", bbox_inches="tight")
     fig_summary.savefig(FIG_DIR / "energy_summary.png", dpi=400, format="png", bbox_inches="tight")
     
     # get figures (by weather)
-    before_weatherdata_filepath = find_weatherdata(building_info["주소"], "이전")
-    after_weatherdata_filepath  = find_weatherdata(building_info["주소"], "이후")
-    fig_weather, degreedays = draw_weather_figures(
-        before_weatherdata_filepath,
-        after_weatherdata_filepath ,
-    )
-    fig_weather.savefig(FIG_DIR / "weather_compare.png", dpi=400, format="png", bbox_inches="tight")
-    fig_page3_summary = draw_page3_summaryfigure(grrbefore, grrafter, grrafterN, gas_ignore=gas_ignore)
+    fig_page3_summary = draw_page3_summaryfigures(grrbefore, grrafter, grrafterN, gas_ignore=gas_ignore)
     fig_page3_summary.savefig(FIG_DIR / "page3_summary.png", dpi=400, format="png", bbox_inches="tight")
         
     # arrange the results
@@ -1255,7 +1247,6 @@ def build_report(
         "occupantchangetex": occupantchange,
         "majorchangetex": majorchange,
         "summarytabletex" : [df.style.format(lambda x: f"{x:>6,.1f}").to_latex(**summarytablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline") for df in summarytable(grrbefore, grrafter, grrafterN, gas_ignore=gas_ignore)],
-        "degreedays": {k:v for k,v in zip(["HDD2018","HDD2023","CDD2018","CDD2023"], degreedays)}|{"HDDchange": ("증가" if (degreedays[1]-degreedays[0])>0 else "감소"),"CDDchange": ("증가" if (degreedays[3]-degreedays[2])>0 else "감소")},
         "comment": {k:escape_str(v) for k,v in commentdict.items()}
     }
     
