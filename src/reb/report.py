@@ -1054,6 +1054,281 @@ def parse_majorchange(masterdict: dict) -> str:
 
     return tex
 
+
+def parse_allchange(masterdict: dict) -> str:
+    
+    df = pd.DataFrame(
+        [
+            [
+                "외벽 열관류율 [W/m2·K]",
+                f"{masterdict.get('GR이전_외벽_열관류율 [W/m2·K]'):.2f}",
+                f"{masterdict.get('GR이후_외벽_열관류율 [W/m2·K]'):.2f}",
+                f"{masterdict.get('N년차_외벽_열관류율 [W/m2·K]'):.2f}",
+                "/".join(set([
+                    masterdict.get("GR이전_외벽_근거"),
+                    masterdict.get("GR이후_외벽_근거"),
+                    masterdict.get("N년차_외벽_근거"),
+                ]) - {"-"})
+            ],
+            [
+                "창호 열관류율 [W/m2·K]",
+                f"{masterdict.get('GR이전_창 및 문_열관류율 [W/m2·K]'):.2f}",
+                f"{masterdict.get('GR이후_창 및 문_열관류율 [W/m2·K]'):.2f}",
+                f"{masterdict.get('N년차_창 및 문_열관류율 [W/m2·K]'):.2f}",
+                "/".join(set([
+                    masterdict.get("GR이전_창 및 문_근거"),
+                    masterdict.get("GR이후_창 및 문_근거"),
+                    masterdict.get("N년차_창 및 문_근거"),
+                ]) - {"-"})
+            ],
+            [
+                "창호 취득계수(SHGC)",
+                f"{masterdict.get('GR이전_창 및 문_취득계수'):.2f}",
+                f"{masterdict.get('GR이후_창 및 문_취득계수'):.2f}",
+                f"{masterdict.get('N년차_창 및 문_취득계수'):.2f}",
+                "/".join(set([
+                    masterdict.get("GR이전_창 및 문_근거"),
+                    masterdict.get("GR이후_창 및 문_근거"),
+                    masterdict.get("N년차_창 및 문_근거"),
+                ]) - {"-"})
+            ],
+            [
+                "지붕 열관류율 [W/m2·K]",
+                f"{masterdict.get('GR이전_지붕_열관류율 [W/m2·K]'):.2f}",
+                f"{masterdict.get('GR이후_지붕_열관류율 [W/m2·K]'):.2f}",
+                f"{masterdict.get('N년차_지붕_열관류율 [W/m2·K]'):.2f}",
+                "/".join(set([
+                    masterdict.get("GR이전_지붕_근거"),
+                    masterdict.get("GR이후_지붕_근거"),
+                    masterdict.get("N년차_지붕_근거"),
+                ]) - {"-"})
+            ],
+            [
+                "바닥 열관류율 [W/m2·K]",
+                f"{masterdict.get('GR이전_바닥_열관류율 [W/m2·K]'):.2f}",
+                f"{masterdict.get('GR이후_바닥_열관류율 [W/m2·K]'):.2f}",
+                f"{masterdict.get('N년차_바닥_열관류율 [W/m2·K]'):.2f}",
+                "/".join(set([
+                    masterdict.get("GR이전_바닥_근거"),
+                    masterdict.get("GR이후_바닥_근거"),
+                    masterdict.get("N년차_바닥_근거"),
+                ]) - {"-"})
+            ],
+            [
+                "조명밀도",
+                f"{masterdict.get('GR이전_조명밀도 [W/m2]'):.2f}",
+                f"{masterdict.get('GR이후_조명밀도 [W/m2]'):.2f}",
+                f"{masterdict.get('N년차_조명밀도 [W/m2]'):.2f}",
+                "-"
+            ],
+            [
+                "침기율",
+                f"{masterdict.get('GR이전_침기율 [ACH]'):.2f}",
+                f"{masterdict.get('GR이후_침기율 [ACH]'):.2f}",
+                f"{masterdict.get('N년차_침기율 [ACH]'):.2f}",
+                "-",
+            ],
+            [
+                "난방1 유형/열원",
+                masterdict.get("GR이전_난방1_유형") + " / " + str(masterdict.get("GR이전_난방1_열원")),
+                masterdict.get("GR이후_난방1_유형") + " / " + str(masterdict.get("GR이후_난방1_열원")),
+                masterdict.get("N년차_난방1_유형") + " / " + str(masterdict.get("N년차_난방1_열원")),
+                "/".join(set([
+                    "-" if pd.isna(masterdict.get("GR이전_난방1_근거")) else masterdict.get("GR이전_난방1_근거"),
+                    "-" if pd.isna(masterdict.get("GR이후_난방1_근거")) else masterdict.get("GR이후_난방1_근거"),
+                    "-" if pd.isna(masterdict.get("N년차_난방1_근거")) else masterdict.get("N년차_난방1_근거"),
+                ]) - {"-"})
+            ],
+            [
+                "난방1 용량 [kW]",
+                "-" if pd.isna(masterdict.get("GR이전_난방1_용량 [kW]")) else f"{masterdict.get('GR이전_난방1_용량 [kW]')*1E-3:.2f}",
+                "-" if pd.isna(masterdict.get("GR이후_난방1_용량 [kW]")) else f"{masterdict.get('GR이후_난방1_용량 [kW]')*1E-3:.2f}",
+                "-" if pd.isna(masterdict.get("N년차_난방1_용량 [kW]")) else f"{masterdict.get('N년차_난방1_용량 [kW]')*1E-3:.2f}",
+                "/".join(set([
+                    "-" if pd.isna(masterdict.get("GR이전_난방1_근거")) else masterdict.get("GR이전_난방1_근거"),
+                    "-" if pd.isna(masterdict.get("GR이후_난방1_근거")) else masterdict.get("GR이후_난방1_근거"),
+                    "-" if pd.isna(masterdict.get("N년차_난방1_근거")) else masterdict.get("N년차_난방1_근거"),
+                ]) - {"-"})
+            ],
+            [
+                "난방1 COP [W/W]",
+                "-" if pd.isna(masterdict.get("GR이전_난방1_COP [W/W]")) else f"{masterdict.get('GR이전_난방1_COP [W/W]'):.2f}",
+                "-" if pd.isna(masterdict.get("GR이후_난방1_COP [W/W]")) else f"{masterdict.get('GR이후_난방1_COP [W/W]'):.2f}",
+                "-" if pd.isna(masterdict.get("N년차_난방1_COP [W/W]")) else f"{masterdict.get('N년차_난방1_COP [W/W]'):.2f}",
+                "/".join(set([
+                    "-" if pd.isna(masterdict.get("GR이전_난방1_근거")) else masterdict.get("GR이전_난방1_근거"),
+                    "-" if pd.isna(masterdict.get("GR이후_난방1_근거")) else masterdict.get("GR이후_난방1_근거"),
+                    "-" if pd.isna(masterdict.get("N년차_난방1_근거")) else masterdict.get("N년차_난방1_근거"),
+                ]) - {"-"})
+            ],
+            [
+                "난방1 효율 [%]",
+                "-" if pd.isna(masterdict.get("GR이전_난방1_효율 [%]")) else f"{masterdict.get('GR이전_난방1_효율 [%]'):.1f}",
+                "-" if pd.isna(masterdict.get("GR이후_난방1_효율 [%]")) else f"{masterdict.get('GR이후_난방1_효율 [%]'):.1f}",
+                "-" if pd.isna(masterdict.get("N년차_난방1_효율 [%]")) else f"{masterdict.get('N년차_난방1_효율 [%]'):.1f}",
+                "/".join(set([
+                    "-" if pd.isna(masterdict.get("GR이전_난방1_근거")) else masterdict.get("GR이전_난방1_근거"),
+                    "-" if pd.isna(masterdict.get("GR이후_난방1_근거")) else masterdict.get("GR이후_난방1_근거"),
+                    "-" if pd.isna(masterdict.get("N년차_난방1_근거")) else masterdict.get("N년차_난방1_근거"),
+                ]) - {"-"})
+            ],
+            [
+                "냉방1 유형/열원",
+                f"{masterdict.get('GR이전_냉방1_유형')} / {str(masterdict.get('GR이전_냉방1_열원'))}",
+                f"{masterdict.get('GR이후_냉방1_유형')} / {str(masterdict.get('GR이후_냉방1_열원'))}",
+                f"{masterdict.get('N년차_냉방1_유형')} / {str(masterdict.get('N년차_냉방1_열원'))}",
+                "/".join(set([
+                    "-" if pd.isna(masterdict.get("GR이전_냉방1_근거")) else masterdict.get("GR이전_냉방1_근거"),
+                    "-" if pd.isna(masterdict.get("GR이후_냉방1_근거")) else masterdict.get("GR이후_냉방1_근거"),
+                    "-" if pd.isna(masterdict.get("N년차_냉방1_근거")) else masterdict.get("N년차_냉방1_근거"),
+                ]) - {"-"})
+            ],
+            [
+                "냉방1 용량 [kW]",
+                "-" if pd.isna(masterdict.get("GR이전_냉방1_용량 [kW]")) else f"{masterdict.get('GR이전_냉방1_용량 [kW]')*1E-3:.2f}",
+                "-" if pd.isna(masterdict.get("GR이후_냉방1_용량 [kW]")) else f"{masterdict.get('GR이후_냉방1_용량 [kW]')*1E-3:.2f}",
+                "-" if pd.isna(masterdict.get("N년차_냉방1_용량 [kW]")) else f"{masterdict.get('N년차_냉방1_용량 [kW]')*1E-3:.2f}",
+                "/".join(set([
+                    "-" if pd.isna(masterdict.get("GR이전_냉방1_근거")) else masterdict.get("GR이전_냉방1_근거"),
+                    "-" if pd.isna(masterdict.get("GR이후_냉방1_근거")) else masterdict.get("GR이후_냉방1_근거"),
+                    "-" if pd.isna(masterdict.get("N년차_냉방1_근거")) else masterdict.get("N년차_냉방1_근거"),
+                ]) - {"-"})
+            ],
+            [
+                "냉방1 COP [W/W]",
+                "-" if pd.isna(masterdict.get("GR이전_냉방1_COP [W/W]")) else f"{masterdict.get('GR이전_냉방1_COP [W/W]'):.2f}",
+                "-" if pd.isna(masterdict.get("GR이후_냉방1_COP [W/W]")) else f"{masterdict.get('GR이후_냉방1_COP [W/W]'):.2f}",
+                "-" if pd.isna(masterdict.get("N년차_냉방1_COP [W/W]")) else f"{masterdict.get('N년차_냉방1_COP [W/W]'):.2f}",
+                "/".join(set([
+                    "-" if pd.isna(masterdict.get("GR이전_냉방1_근거")) else masterdict.get("GR이전_냉방1_근거"),
+                    "-" if pd.isna(masterdict.get("GR이후_냉방1_근거")) else masterdict.get("GR이후_냉방1_근거"),
+                    "-" if pd.isna(masterdict.get("N년차_냉방1_근거")) else masterdict.get("N년차_냉방1_근거"),
+                ]) - {"-"})
+            ],
+            [
+                "냉방1 효율 [%]",
+                "-" if pd.isna(masterdict.get("GR이전_냉방1_효율 [%]")) else f"{masterdict.get('GR이전_냉방1_효율 [%]'):.1f}",
+                "-" if pd.isna(masterdict.get("GR이후_냉방1_효율 [%]")) else f"{masterdict.get('GR이후_냉방1_효율 [%]'):.1f}",
+                "-" if pd.isna(masterdict.get("N년차_냉방1_효율 [%]")) else f"{masterdict.get('N년차_냉방1_효율 [%]'):.1f}",
+                "/".join(set([
+                    "-" if pd.isna(masterdict.get("GR이전_냉방1_근거")) else masterdict.get("GR이전_냉방1_근거"),
+                    "-" if pd.isna(masterdict.get("GR이후_냉방1_근거")) else masterdict.get("GR이후_냉방1_근거"),
+                    "-" if pd.isna(masterdict.get("N년차_냉방1_근거")) else masterdict.get("N년차_냉방1_근거"),
+                ]) - {"-"})
+            ],
+            [
+                "전열교환기 효율(난방)",
+                "-" if pd.isna(masterdict.get("GR이전_전열 교환기_난방[%]")) else f"{masterdict.get('GR이전_전열 교환기_난방[%]'):.1f}%",
+                "-" if pd.isna(masterdict.get("GR이후_전열 교환기_난방[%]")) else f"{masterdict.get('GR이후_전열 교환기_난방[%]'):.1f}%",
+                "-" if pd.isna(masterdict.get("N년차_전열 교환기_난방[%]")) else f"{masterdict.get('N년차_전열 교환기_난방[%]'):.1f}%",
+                "/".join(set([
+                    "-" if pd.isna(masterdict.get("GR이전_전열 교환기_난방 근거")) else masterdict.get("GR이전_전열 교환기_난방 근거"),
+                    "-" if pd.isna(masterdict.get("GR이후_전열 교환기_난방 근거")) else masterdict.get("GR이후_전열 교환기_난방 근거"),
+                    "-" if pd.isna(masterdict.get("N년차_전열 교환기_난방 근거")) else masterdict.get("N년차_전열 교환기_난방 근거"),
+                ]) - {"-"})
+            ],
+            [
+                "전열교환기 효율(냉방)",
+                "-" if pd.isna(masterdict.get("GR이전_전열 교환기_냉방[%]")) else f"{masterdict.get('GR이전_전열 교환기_냉방[%]'):.1f}%",
+                "-" if pd.isna(masterdict.get("GR이후_전열 교환기_냉방[%]")) else f"{masterdict.get('GR이후_전열 교환기_냉방[%]'):.1f}%",
+                "-" if pd.isna(masterdict.get("N년차_전열 교환기_냉방[%]")) else f"{masterdict.get('N년차_전열 교환기_냉방[%]'):.1f}%", 
+                "/".join(set([
+                    "-" if pd.isna(masterdict.get("GR이전_전열 교환기_냉방 근거")) else masterdict.get("GR이전_전열 교환기_냉방 근거"),
+                    "-" if pd.isna(masterdict.get("GR이후_전열 교환기_냉방 근거")) else masterdict.get("GR이후_전열 교환기_냉방 근거"),
+                    "-" if pd.isna(masterdict.get("N년차_전열 교환기_냉방 근거")) else masterdict.get("N년차_전열 교환기_냉방 근거"),
+                ]) - {"-"})
+            ],
+            [
+                "태양광 설치 여부",
+                "O" if not pd.isna(masterdict.get("GR이전_태양광_면적[m2]")) and masterdict.get("GR이전_태양광_면적[m2]") > 0 else "X",
+                "O" if not pd.isna(masterdict.get("GR이후_태양광_면적[m2]")) and masterdict.get("GR이후_태양광_면적[m2]") > 0 else "X",
+                "O" if not pd.isna(masterdict.get("N년차_태양광_면적[m2]")) and masterdict.get("N년차_태양광_면적[m2]") > 0 else "X",
+                "/".join(set([
+                    "-" if pd.isna(masterdict.get("GR이전_태양광_근거")) else masterdict.get("GR이전_태양광_근거"),
+                    "-" if pd.isna(masterdict.get("GR이후_태양광_근거")) else masterdict.get("GR이후_태양광_근거"),
+                    "-" if pd.isna(masterdict.get("N년차_태양광_근거")) else masterdict.get("N년차_태양광_근거"),
+                ]) - {"-"})
+            ],
+            [
+                "태양광 면적[m2]",
+                f"{masterdict.get('GR이전_태양광_면적[m2]'):.1f}" if not pd.isna(masterdict.get("GR이전_태양광_면적[m2]")) else "-",
+                f"{masterdict.get('GR이후_태양광_면적[m2]'):.1f}" if not pd.isna(masterdict.get("GR이후_태양광_면적[m2]")) else "-",
+                f"{masterdict.get('N년차_태양광_면적[m2]'):.1f}" if not pd.isna(masterdict.get("N년차_태양광_면적[m2]")) else "-",
+                "/".join(set([
+                    "-" if pd.isna(masterdict.get("GR이전_태양광_근거")) else masterdict.get("GR이전_태양광_근거"),
+                    "-" if pd.isna(masterdict.get("GR이후_태양광_근거")) else masterdict.get("GR이후_태양광_근거"),
+                    "-" if pd.isna(masterdict.get("N년차_태양광_근거")) else masterdict.get("N년차_태양광_근거"),
+                ]) - {"-"})
+            ],
+            [
+                "태양광 효율[%]",
+                f"{masterdict.get('GR이전_태양광_효율[%]'):.1f}" if not pd.isna(masterdict.get("GR이전_태양광_효율[%]")) else "-",
+                f"{masterdict.get('GR이후_태양광_효율[%]'):.1f}" if not pd.isna(masterdict.get("GR이후_태양광_효율[%]")) else "-",
+                f"{masterdict.get('N년차_태양광_효율[%]'):.1f}" if not pd.isna(masterdict.get("N년차_태양광_효율[%]")) else "-",
+                "/".join(set([
+                    "-" if pd.isna(masterdict.get("GR이전_태양광_근거")) else masterdict.get("GR이전_태양광_근거"),
+                    "-" if pd.isna(masterdict.get("GR이후_태양광_근거")) else masterdict.get("GR이후_태양광_근거"),
+                    "-" if pd.isna(masterdict.get("N년차_태양광_근거")) else masterdict.get("N년차_태양광_근거"),
+                ]) - {"-"})
+            ]
+        ],
+        columns = ["항목","그린리모델링 이전", "그린리모델링 이후", "운영특성 반영", "근거"],
+    )
+    
+    def prettify_latex_table(tex: str, header_color: str = "EAEAEA", arraystretch: float = 1.5) -> str:
+        lines = tex.splitlines()
+        new_lines = []
+        in_tabular = False
+        header_done = False
+
+        for line in lines:
+            stripped = line.strip()
+
+            if stripped.startswith(r"\begin{tabular}"):
+                in_tabular = True
+                new_lines.append(rf"\renewcommand{{\arraystretch}}{{{arraystretch}}}")
+                new_lines.append(line)
+                new_lines.append(r"\hline")
+                continue
+
+            if stripped.startswith(r"\end{tabular}"):
+                in_tabular = False
+                new_lines.append(line)
+                new_lines.append(r"\renewcommand{\arraystretch}{1}")
+                continue
+
+            if in_tabular and stripped.endswith(r"\\"):
+                if not header_done:
+                    new_lines.append(rf"\rowcolor[HTML]{{{header_color}}}")
+                    header_done = True
+                new_lines.append(line)
+                new_lines.append(r"\hline")
+                continue
+
+            new_lines.append(line)
+
+        return "\n".join(new_lines)
+        
+    tex = (
+        df.style
+        .hide(axis="index")
+        .format(escape="latex")   # %, _, & 같은 LaTeX 특수문자 자동 처리
+        .to_latex(
+            hrules=False,         # hline은 우리가 직접 넣을 것
+            column_format=(
+                r">{\centering\arraybackslash}p{4cm}|"
+                r">{\centering\arraybackslash}p{2.5cm}|"
+                r">{\centering\arraybackslash}p{2.5cm}|"
+                r">{\centering\arraybackslash}p{2.5cm}|"
+                r">{\centering\arraybackslash}p{4.5cm}"   # 마지막 | 제거
+            ),
+        )
+        .replace("~", "-")
+    )
+
+    tex = prettify_latex_table(tex, header_color="EAEAEA")
+    return tex
+
 def bool_to_적용(b:bool|list[bool]) -> str|list[str]:
     
     if isinstance(b, list):
@@ -1220,6 +1495,7 @@ def build_report(
     hvacoperationchange = parse_hvacoperationchange(checklistafter, checklistafterN)
     # major change
     majorchange = parse_majorchange(masterdict)
+    allchange   = parse_allchange(masterdict)
     gas_ignore = parse_gas_ignore(masterdict)
     
     # get figures
@@ -1246,6 +1522,7 @@ def build_report(
         "hvacoperchangetex": hvacoperationchange,
         "occupantchangetex": occupantchange,
         "majorchangetex": majorchange,
+        "allchangetex": allchange,
         "summarytabletex" : [df.style.format(lambda x: f"{x:>6,.1f}").to_latex(**summarytablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline") for df in summarytable(grrbefore, grrafter, grrafterN, gas_ignore=gas_ignore)],
         "comment": {k:escape_str(v) for k,v in commentdict.items()}
     }
