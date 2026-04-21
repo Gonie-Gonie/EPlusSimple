@@ -1329,6 +1329,115 @@ def parse_allchange(masterdict: dict) -> str:
     tex = prettify_latex_table(tex, header_color="EAEAEA")
     return tex
 
+def parse_equinity(masterdict: dict) -> str:
+    
+    df = pd.DataFrame(
+        [
+            [
+                "벽체단열",
+                masterdict.get("GR이후_그린리모델링 공사내역_벽체단열_보고서"),
+                masterdict.get("GR이후_그린리모델링 공사내역_벽체단열_현장확인"),
+                masterdict.get("GR이후_그린리모델링 공사내역_벽체단열_일치여부"),
+            ],
+            [
+                "지붕단열",
+                masterdict.get("GR이후_그린리모델링 공사내역_지붕단열_보고서"),
+                masterdict.get("GR이후_그린리모델링 공사내역_지붕단열_현장확인"),
+                masterdict.get("GR이후_그린리모델링 공사내역_지붕단열_일치여부"),
+            ],
+            [
+                "바닥단열",
+                masterdict.get("GR이후_그린리모델링 공사내역_바닥단열_보고서"),
+                masterdict.get("GR이후_그린리모델링 공사내역_바닥단열_현장확인"),
+                masterdict.get("GR이후_그린리모델링 공사내역_바닥단열_일치여부"),
+            ],
+            [
+                "창호",
+                masterdict.get("GR이후_그린리모델링 공사내역_창호_보고서"),
+                masterdict.get("GR이후_그린리모델링 공사내역_창호_현장확인"),
+                masterdict.get("GR이후_그린리모델링 공사내역_창호_일치여부"),
+            ],
+            [
+                "환기장치",
+                masterdict.get("GR이후_그린리모델링 공사내역_환기장치_보고서"),
+                masterdict.get("GR이후_그린리모델링 공사내역_환기장치_현장확인"),
+                masterdict.get("GR이후_그린리모델링 공사내역_환기장치_일치여부"),
+            ],
+            [
+                "냉난방장치",
+                masterdict.get("GR이후_그린리모델링 공사내역_냉난방장치_보고서"),
+                masterdict.get("GR이후_그린리모델링 공사내역_냉난방장치_현장확인"),
+                masterdict.get("GR이후_그린리모델링 공사내역_냉난방장치_일치여부"),
+            ],
+            [
+                "고효율 보일러",
+                masterdict.get("GR이후_그린리모델링 공사내역_고효율 보일러_보고서"),
+                masterdict.get("GR이후_그린리모델링 공사내역_고효율 보일러_현장확인"),
+                masterdict.get("GR이후_그린리모델링 공사내역_고효율 보일러_일치여부"),
+            ],
+            [
+                "조명(LED)",
+                masterdict.get("GR이후_그린리모델링 공사내역_조명(LED)_보고서"),
+                masterdict.get("GR이후_그린리모델링 공사내역_조명(LED)_현장확인"),
+                masterdict.get("GR이후_그린리모델링 공사내역_조명(LED)_일치여부"),
+            ]
+        ],
+        columns = ["항목","보고서","현장확인","일치여부"],
+    )
+    
+    def prettify_latex_table(tex: str, header_color: str = "EAEAEA", arraystretch: float = 1) -> str:
+        lines = tex.splitlines()
+        new_lines = []
+        in_tabular = False
+        header_done = False
+
+        for line in lines:
+            stripped = line.strip()
+
+            if stripped.startswith(r"\begin{tabular}"):
+                in_tabular = True
+                new_lines.append(rf"\renewcommand{{\arraystretch}}{{{arraystretch}}}")
+                new_lines.append(line)
+                new_lines.append(r"\hline")
+                continue
+
+            if stripped.startswith(r"\end{tabular}"):
+                in_tabular = False
+                new_lines.append(line)
+                new_lines.append(r"\renewcommand{\arraystretch}{1}")
+                continue
+
+            if in_tabular and stripped.endswith(r"\\"):
+                if not header_done:
+                    new_lines.append(rf"\rowcolor[HTML]{{{header_color}}}")
+                    header_done = True
+                new_lines.append(line)
+                new_lines.append(r"\hline")
+                continue
+
+            new_lines.append(line)
+
+        return "\n".join(new_lines)
+        
+    tex = (
+        df.style
+        .hide(axis="index")
+        .format(escape="latex")   # %, _, & 같은 LaTeX 특수문자 자동 처리
+        .to_latex(
+            hrules=False,         # hline은 우리가 직접 넣을 것
+            column_format=(
+                r">{\centering\arraybackslash}p{4cm}|"
+                r">{\centering\arraybackslash}p{2.5cm}|"
+                r">{\centering\arraybackslash}p{2.5cm}|"
+                r">{\centering\arraybackslash}p{2.5cm}"
+            ),
+        )
+        .replace("~", "-")
+    )
+
+    tex = prettify_latex_table(tex, header_color="EAEAEA")
+    return tex
+
 def build_report(
     before_rebexcelpath:str,
     after_rebexcelpath :str,
@@ -1368,8 +1477,6 @@ def build_report(
     # hvacoperation change
     hvacoperationchange = parse_hvacoperationchange(checklistafter, checklistafterN)
     # major change
-    majorchange = parse_majorchange(masterdict)
-    allchange   = parse_allchange(masterdict)
     gas_ignore = parse_gas_ignore(masterdict)
     
     # get figures
@@ -1393,8 +1500,9 @@ def build_report(
         "imagesrc": (Path(__file__).parent / "imagesrc").resolve().as_posix(),
         "hvacoperchangetex": hvacoperationchange,
         "occupantchangetex": occupantchange,
-        "majorchangetex": majorchange,
-        "allchangetex": allchange,
+        "majorchangetex":  parse_majorchange(masterdict),
+        "allchangetex": parse_allchange(masterdict),
+        "equinitytex": parse_equinity(masterdict),
         "summarytabletex" : [df.style.format(lambda x: f"{x:>6,.1f}").to_latex(**summarytablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline") for df in summarytable(grrbefore, grrafter, grrafterN, gas_ignore=gas_ignore)],
         "comment": {k:escape_str(v) for k,v in commentdict.items()}
     }
