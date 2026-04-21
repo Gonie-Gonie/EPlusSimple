@@ -284,9 +284,9 @@ run_grjson(
 
 \paragraph{타입} 모든 변수는 정해진 타입의 변수여야 한다. 모든 변수의 타입은 문자\TypeTag{S}($String$), 실수\TypeTag{F}($Float$), 정수\TypeTag{I}($Integer$), 열거형\TypeTag{E}($Enum$), 불리언\TypeTag{B} 로 구분할 수 있다. 
 
-\paragraph{필수 여부} \excel 에서는 각 변수의 필수 입력 여부에 따라, 셀 색상을 구분하고 있으며, 입력되지 않을 경우 에러가 발생하는 필수 변수 \InputTag{R}($Required$)와 달리, 비 필수 변수 \InputTag{O}($Optional$)는 미 입력 시 기본값이 사용된다. 단, 입력하지 않았다는 것을 명시적으로 \texttt{null}로 지정해야 하고, 변수 자체를 생락하면 안된다. 
+\paragraph{필수 여부} \excel 에서는 각 변수의 필수 입력 여부에 따라, 셀 색상을 구분하고 있으며, 입력되지 않을 경우 에러가 발생하는 필수 변수 \InputTag{R}($Required$)와 달리, 비 필수 변수 \InputTag{O}($Optional$)는 미 입력 시 기본값이 사용된다. 단, 입력하지 않았다는 것을 명시적으로 \texttt{null}로 지정해야 하고, 변수 자체를 생락하면 안된다. 사용자 편의를 위한 정보 제공 목적의 변수는 사용자가 직접 입력하는 항목이 아니며, \excel 에서 \InputTag{D}로 구분된다.
 
-\paragraph{조건부 사용 여부} 어떤 변수는 다른 변수(주로 \texttt{type})의 값에 따라 조건부로 사용된다. 이 경우에도 해당 조건에서 필수적으로 요구되는 변수\ReqTag{CR}($Conditional Required$)와 그렇지 않은 변수\ReqTag{CO}($Conditional Optional$)로 구분할 수 있다. 이 변수는 \excel 에서 \InputTag{D}에 해당한다.
+\paragraph{조건부 사용 여부} 어떤 변수는 다른 변수(주로 \texttt{type})의 값에 따라 조건부로 사용된다. 이 경우에도 해당 조건에서 필수적으로 요구되는 변수 \ReqTag{CR}($Conditional Required$)와 그렇지 않은 변수 \ReqTag{CO}($Conditional Optional$)로 구분할 수 있으며, \excel 에서는 각각 \InputTag{R}과 \InputTag{D}로 표기된다.
 
 
 \subsubsection{기타 규칙}
@@ -298,7 +298,6 @@ run_grjson(
 \subsubsection{건물정보}
 \label{subsubsection:ioref:building}
 실재하는 건물에 대한 최상위 정보 체계이다.
-
 
 
 \begin{table}[ht]
@@ -319,22 +318,7 @@ run_grjson(
 \end{table}
 
 
-
-\jsontable{building}{
-  \jsontablerow{name                 }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
-  \jsontablerow{north_axis           }{\TypeTag{F}}{\ReqTag{R}}{}{}{[0,360)}{deg(^\circ)}
-  \jsontablerow{address              }{\TypeTag{S}}{\ReqTag{R}}{}{}{\needtobeexplain}{}
-  \jsontablerow{vintage              }{[ \TypeTag{I} ]}{\ReqTag{R}}{}{}{[3,3]}{}
-  \jsontablerow{num_aboveground_floor}{\TypeTag{I}}{\ReqTag{R}}{}{}{[1, $Inf$)}{}
-  \jsontablerow{num_underground_floor}{\TypeTag{I}}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
-  \jsontablerow{floors               }{[ \hyperref[subsubsection:ioref:floor]{\texttt{floor}} ]}{}{}{}{[1, $Inf$)}{}
-  \jsontablerow{supply_systems       }{[ \hyperref[subsubsection:ioref:supplysystem]{\texttt{supply\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
-  \jsontablerow{source_systems       }{[ \hyperref[subsubsection:ioref:sourcesystem]{\texttt{source\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
-  \jsontablerow{ventilation_systems  }{[ \hyperref[subsubsection:ioref:ventilationsystem]{\texttt{ventilation\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
-  \jsontablerow{photovoltaic_systems }{[ \hyperref[subsubsection:ioref:photovoltaicsystem]{\texttt{photovoltaic\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
-}
-
-\paragraph{name} 건물의 이름. 시뮬레이션에 직접 사용되지 않는다.
+\paragraph{건물명} 건물의 이름. 시뮬레이션에 직접 사용되지 않는다.
 \paragraph{north\_axis} 건물의 방위각. 도면상에서 나침반이 가리키는 방향 (반시계방향), 또는 건물의 향 관련 입력을 모두 회전시키는 동작 (시계방향) 을 지칭한다 (\cref{fig:ioref:north_axis}).
 
 \begin{defaultfigure}
@@ -356,62 +340,112 @@ run_grjson(
 
 \end{defaultfigure}
 
-\paragraph{address} 건물의 주소. 식별 가능한 법정 기초행정구역명(세종특별자치시와 제주특별자치도 제주시, 서귀포시를 포함)을 포함하여야 한다. 
+\paragraph{주소} 건물의 주소. 식별 가능한 법정 기초행정구역명(세종특별자치시, 제주특별자치도 제주시 및 서귀포시 포함)을 포함하여 시/군/구 수준까지만 작성하며, 상세주소는 작성하지 않는다.
+주소 정보는 \epreb 에서 허가일자와 함께 고려되어 건물의 기후지역(중부1, 중부2, 남부 등)을 판별하는 데 활용되며, 이에 따라 법적 기준 열관류율 등의 기준값을 적용하는 데 사용된다.\footnote{이에 대한 상세한 기술은 \ref{subsubsection:ioref:surface} 참고}  또한, 해당 지역 정보를 기반으로 기상데이터(EPW)와의 연계에도 활용된다.\footnote{이에 대한 상세한 기술은 \ref{sec:address_weather_matching} 참고}
 
-\paragraph{vintage} 건물의 허가일자. 연(4자리 정수), 월(2자리 정수), 일(2자리 정수)로 이루어진 array이다.
+\paragraph{허가일자} 건물의 허가일자. YYYY(연, 4자리 정수)-MM(월, 2자리 정수)-DD(일, 2자리 정수)의 형식으로 입력한다. 이는, \epreb에서 법적 열관류율 등의 기준값을 적용하는 데 사용된다.\footnote{이에 대한 상세한 기술은 \ref{subsubsection:ioref:surface} 참고}
 
-\paragraph{num\_aboveground\_floor} 건물의 지상 층 수. 시뮬레이션에 직접 사용되지 않는다.
+\paragraph{지상층수} 건물의 지상 층 수. 시뮬레이션에 직접 사용되지 않는다.
 
-\paragraph{num\_underground\_floor} 건물의 지하 층 수. 시뮬레이션에 직접 사용되지 않는다.
+\paragraph{지하층수} 건물의 지하 층 수. 시뮬레이션에 직접 사용되지 않는다.
 
-\subsubsection{floor} \label{subsubsection:ioref:floor}
-하위 \hyperref[subsubsection:ioref:zone]{\texttt{zone}}들을 층 단위로 구분하기 위한 클래스이다.
-
-\jsontable{floor}{
-  \jsontablerow{floor_number}{\TypeTag{I}}{\ReqTag{O}}{0}{}{}{}
-  \jsontablerow{zones}{[ \hyperref[subsubsection:ioref:zone]{\texttt{zone}} ]}{\ReqTag{R}}{}{}{[1,$Inf$)}{}
-}
-
-\paragraph{floor\_number} 층을 구별하기 위한 식별자. 시뮬레이션에 직접 사용되지 않는다.
-
-\subsubsection{zone} \label{subsubsection:ioref:zone}
+\subsubsection{실}
+\label{subsubsection:ioref:zone}
 건물에서 하나의 실, 또는 같은 열적 특성(유사한 용도, 공통 설비 등)을 공유하는 서로 연결된 여러 실을 모사하는 최소 단위이다.
 
-\jsontable{zone}{
-  \jsontablerow{id                      }{\TypeTag{S}}{ \ReqTag{R} }{}{}{}{}
-  \jsontablerow{name                    }{\TypeTag{S}}{ \ReqTag{R} }{}{}{}{}
-  \jsontablerow{height                  }{\TypeTag{F}}{ \ReqTag{R} }{}{}{(0,$Inf$)}{m}
-  \jsontablerow{profile                 }{\TypeTag{S}}{ \ReqTag{R} }{}{}{\needtobeexplain}{}
-  \jsontablerow{light_density           }{\TypeTag{F}}{ \ReqTag{R} }{}{}{[0,$Inf$)}{W/m^{2}}
-  \jsontablerow{infiltration            }{\TypeTag{F}}{ \ReqTag{R} }{}{}{[0,$Inf$)}{ACH50}
-  \jsontablerow{supply_system_heating_id}{\TypeTag{S}}{ \ReqTag{R} }{}{}{\hyperref[subsubsection:ioref:supplysystem]{\texttt{supply\_system}}의 \texttt{id}}{}
-  \jsontablerow{supply_system_cooling_id}{\TypeTag{S}}{ \ReqTag{R} }{}{}{\hyperref[subsubsection:ioref:supplysystem]{\texttt{supply\_system}}의 \texttt{id}}{}
-  \jsontablerow{ventilation_system_id   }{\TypeTag{S}}{ \ReqTag{R} }{}{}{\hyperref[subsubsection:ioref:ventilationsystem]{\texttt{ventilation\_system}}의 \texttt{id}}{}
-  \jsontablerow{surface                 }{[ \hyperref[subsubsection:ioref:surface]{\texttt{surface}} ]}{ \ReqTag{R} }{}{}{[0, $Inf$)}{}
+
+\begin{table}[ht]
+  \caption{실 클래스의 속성들}
+  \label{tbl:zone_info}  
+  \centering
+  \begin{tabular}{lcccccc}
+    \toprule
+    변수명 & 타입 & 필수 & 기본값 & 조건 & 범위/길이/선택지 & 단위\\ \midrule
+    층 & \TypeTag{I} & \InputTag{R} & 0 & - & - & -\\
+    천정고 & \TypeTag{F} & \InputTag{R} & - & - & (0,Inf) & m \\
+    이름  & \TypeTag{S} & \InputTag{R} & - & - & - & -\\
+    용도프로필 & \TypeTag{S} & \InputTag{R} & - & - & 상세설명참고 & -\\
+    현장조사프로필 & \TypeTag{S} & \InputTag{R} & - & - & 상세설명참고 & -\\
+    조명밀도 & \TypeTag{F} & \InputTag{R} & - & - & [0,Inf) & W/m$^2$\\
+    침기율 & \TypeTag{F} & \InputTag{R} & - & - & [0,Inf) & ACH50 \\
+    난방 공급 설비 & \TypeTag{S} & \InputTag{R} & - & - &  {\hyperref[subsubsection:ioref:supplysystem]{\texttt{난방 공급 설비}}의 \texttt{이름}} & -\\
+    냉방 공급 설비 & \TypeTag{S} & \InputTag{R} & - & - & {\hyperref[subsubsection:ioref:supplysystem]{\texttt{냉방 공급 설비}}의 \texttt{이름}} & -\\
+    환기 설비 & \TypeTag{I} & \InputTag{R} & - & - & {\hyperref[subsubsection:ioref:ventilationsystem]{\texttt{환기 설비}}의 \texttt{이름}} & -\\
+    면 개수 & - & \InputTag{D} & - & - & - & 개 \\
+    바닥 면적 & - & \InputTag{D} & - & - & - & m$^2$\\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+
+\paragraph{층} 층을 구별하기 위한 식별자. 시뮬레이션에 직접 사용되지 않는다.
+
+\paragraph{천정고} 존의 높이. 실의 부피 계산에 이용된다.
+
+
+\paragraph{이름} 사용자 편의를 위해 제공되는 존 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
+
+\paragraph{용도프로필} 존의 용도프로필. 건축물에너지효율등급인증규정에서 제공하는 항목 중에서 선택 입력 가능하다(\cref{tbl:eco2profiles}). 
+
+\paragraph{현장조사프로필} 현장조사프로필의 이름. \footnote{이에 대한 상세한 기술은 \ref{subsubsection:ioref:surface} 참고} @여기
+
+\paragraph{조명밀도} 조명 밀도. 해당 실에 설치된 모든 조명기구의 정격 소비전력을 합산한 후, 이를 해당 실의 바닥면적으로 나누어 산정한다.
+
+\paragraph{침기율} 실의 침기율. \cref{tbl:airtightness_standard}와 같은 기준으로 입력한다.
+
+\begin{table}[ht]
+  \caption{준공연도별 기밀성능 기준 (n$_{50}$, h$^{-1}$) \\
+  GR후 :준공연도별 약 30\% 성능 향상 (슬라이딩 창호) \\
+  GR후*:준공연도별 약 50\% 성능 향상 시스템 (이외 창호)}
+  \label{tbl:airtightness_standard}
+  \centering
+  \begin{tabular}{lccc}
+    \toprule
+    준공연도 & GR전 & GR후 & GR후* \\ \midrule
+    1987        & 14.2 & 10.0 & 7.1 \\
+    1988--2000  & 9.5  & 6.7  & 4.8 \\
+    2001--2010  & 6.3  & 4.4  & 3.1 \\
+    2011--2017  & 4.6  & 3.2  & 2.3 \\
+    2018        & 4.0  & 2.8  & 2.0 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+
+
+\paragraph{난방 공급 설비} 난방 공급 설비의 이름. (\ref{subsubsection:ioref:surface} 참고 @여기)
+
+\paragraph{냉방 공급 설비} 냉방 공급 설비의 이름. (\ref{subsubsection:ioref:surface} 참고 @여기)
+
+\paragraph{환기 설비} 환기시스템의 이름. (\ref{subsubsection:ioref:surface} 참고 @여기)
+
+\paragraph{면 개수} 해당 실에 연결된 면의 개수를 의미하며, 사용자 입력값이 아닌, 입력된 정보에 기반하여 자동으로 산정되는 값이다.
+
+\paragraph{바닥 면적} 해당 실의 바닥 면적을 의미하며, 사용자 입력값이 아닌, 입력된 정보에 기반하여 자동으로 산정되는 값이다.
+
+
+
+
+\jsontable{building}{
+  \jsontablerow{name                 }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
+  \jsontablerow{north_axis           }{\TypeTag{F}}{\ReqTag{R}}{}{}{[0,360)}{deg(^\circ)}
+  \jsontablerow{address              }{\TypeTag{S}}{\ReqTag{R}}{}{}{\needtobeexplain}{}
+  \jsontablerow{vintage              }{[ \TypeTag{I} ]}{\ReqTag{R}}{}{}{[3,3]}{}
+  \jsontablerow{num_aboveground_floor}{\TypeTag{I}}{\ReqTag{R}}{}{}{[1, $Inf$)}{}
+  \jsontablerow{num_underground_floor}{\TypeTag{I}}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
+  \jsontablerow{floors               }{[ \hyperref[subsubsection:ioref:floor]{\texttt{floor}} ]}{}{}{}{[1, $Inf$)}{}
+  \jsontablerow{supply_systems       }{[ \hyperref[subsubsection:ioref:supplysystem]{\texttt{supply\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
+  \jsontablerow{source_systems       }{[ \hyperref[subsubsection:ioref:sourcesystem]{\texttt{source\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
+  \jsontablerow{ventilation_systems  }{[ \hyperref[subsubsection:ioref:ventilationsystem]{\texttt{ventilation\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
+  \jsontablerow{photovoltaic_systems }{[ \hyperref[subsubsection:ioref:photovoltaicsystem]{\texttt{photovoltaic\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
 }
 
-\paragraph{id} 존의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
 
-\paragraph{name} 사용자 편의를 위해 제공되는 존 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
 
-\paragraph{height} 존의 높이. 실의 부피 계산에 이용된다.
 
-\paragraph{profile} 존의 용도프로필. 기본으로 제공되는 항목 중에서 입력 가능하다. 
+\subsubsection{면} \label{subsubsection:ioref:surface}
+존과 존, 외부 (외기 또는 지면), 또는 단열선 사이의 면(벽체)이다. 하나의 실은 \texttt{zone}을 인접존으로 하는 \texttt{surface}를 포함하여, 1개 이상의 천장(\texttt{type} = ``ceiling''), 1개 이상의 바닥(\texttt{type} = ``floor'') 및 1개 이상의 벽체(\texttt{type} = ``wall'')를 필요로 한다.
 
-\paragraph{profile\_id} 존에 적용된 custom 용도프로필의 ID. 
-
-\paragraph{light\_density} 조명 밀도.
-
-\paragraph{supply\_system\_heating\_id} 난방공급시스템의 ID. 
-
-\paragraph{supply\_system\_cooling\_id} 냉방공급시스템의 ID.
-
-\paragraph{ventilation\_system\_id} 환기시스템의 ID.
-
-\paragraph{surface} 소속면. 해당 \texttt{zone}을 인접존으로 하는 \texttt{surface}를 포함하여, 1개 이상의 천장(\texttt{type} = ``ceiling''), 1개 이상의 바닥(\texttt{type} = ``floor'') 및 1개 이상의 벽체(\texttt{type} = ``wall'')를 필요로 한다. 즉, 인접존이 없을 경우, 3 이상의 길이를 가지는 list가 필요하다.
-
-\subsubsection{surface} \label{subsubsection:ioref:surface}
-존과 존, 외부 (외기 또는 지면), 또는 단열선 사이의 면(벽체)이다.
 
 \jsontable{surface}{
   \jsontablerow{id                  }{\TypeTag{S}}{\ReqTag{R} }{}{}{}{}
@@ -474,7 +508,7 @@ run_grjson(
 
 \paragraph{blind} 블라인드의 종류. 값이 \texttt{null}이면 블라인드가 없는 것을 의미한다.
 
-\subsubsection{supply\_system} \label{subsubsection:ioref:supplysystem}
+\subsubsection{공급 설비} \label{subsubsection:ioref:supplysystem}
 각 존에 존재하는 말단 공급설비이다. 
 
 \jsontable{supply\_system}{
