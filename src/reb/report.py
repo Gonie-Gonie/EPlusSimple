@@ -1329,6 +1329,154 @@ def parse_allchange(masterdict: dict) -> str:
     tex = prettify_latex_table(tex, header_color="EAEAEA")
     return tex
 
+def parse_occupant(masterdict: dict) -> str:
+    
+    if masterdict.get("구분") == "어린이집":
+        df = pd.DataFrame(
+            [
+                [
+                    "기본보육 인원",
+                    masterdict.get("GR이전_어린이집_기본보육 교사수")+masterdict.get("GR이전_어린이집_기본보육 원생수"),
+                    masterdict.get("GR이후_어린이집_기본보육 교사수")+masterdict.get("GR이후_어린이집_기본보육 원생수"),
+                ],
+                [
+                    "연장보육A 인원",
+                    masterdict.get("GR이전_어린이집_연장보육A 교사수")+masterdict.get("GR이전_어린이집_연장보육A 원생수"),
+                    masterdict.get("GR이후_어린이집_연장보육A 교사수")+masterdict.get("GR이후_어린이집_연장보육A 원생수"),
+                ],
+                [
+                    "연장보육 B인원",
+                    masterdict.get("GR이전_어린이집_연장보육B 교사수")+masterdict.get("GR이전_어린이집_연장보육B 원생수"),
+                    masterdict.get("GR이후_어린이집_연장보육B 교사수")+masterdict.get("GR이후_어린이집_연장보육B 원생수"),
+                ],
+                [
+                    "야간보육 인원",
+                    masterdict.get("GR이전_어린이집_야간보육 교사수")+masterdict.get("GR이전_어린이집_야간보육 원생수"),
+                    masterdict.get("GR이후_어린이집_야간보육 교사수")+masterdict.get("GR이후_어린이집_야간보육 원생수"),
+                ],
+                [
+                    "주말보육 인원",
+                    masterdict.get("GR이전_어린이집_주말보육 교사수")+masterdict.get("GR이전_어린이집_주말보육 원생수"),
+                    masterdict.get("GR이후_어린이집_주말보육 교사수")+masterdict.get("GR이후_어린이집_주말보육 원생수"),
+                ],
+                [
+                    "난방 사용기간",
+                    masterdict.get("GR이전_일반존_난방1 사용기간"),
+                    masterdict.get("GR이후_일반존_난방1 사용기간"),
+                ],
+                [
+                    "난방 사용시간",
+                    masterdict.get("GR이전_일반존_난방1 사용시간"),
+                    masterdict.get("GR이후_일반존_난방1 사용시간"),
+                ],
+                [
+                    "난방 설정온도(℃)",
+                    masterdict.get("GR이전_일반존_난방1 설정온도"),
+                    masterdict.get("GR이후_일반존_난방1 설정온도"),
+                ],
+                [
+                    "냉방 사용기간",
+                    masterdict.get("GR이전_일반존_냉방1 사용기간"),
+                    masterdict.get("GR이후_일반존_냉방1 사용기간"),
+                ],
+                [
+                    "냉방 사용시간",
+                    masterdict.get("GR이전_일반존_냉방1 사용시간"),
+                    masterdict.get("GR이후_일반존_냉방1 사용시간"),
+                ],
+                [
+                    "냉방 설정온도(℃)",
+                    masterdict.get("GR이전_일반존_냉방1 설정온도"),
+                    masterdict.get("GR이후_일반존_냉방1 설정온도"),
+                ],
+            ],
+            columns = ["항목","그린리모델링 이전", "그린리모델링 이후"],
+        )
+    else:
+        df = pd.DataFrame(
+            [
+                [
+                    "운영시간",
+                    masterdict.get("GR이전_보건지소·진료소_기본운영시간"),
+                    masterdict.get("GR이후_보건지소·진료소_기본운영시간"),
+                ],
+                [
+                    "외근시간",
+                    masterdict.get("GR이전_보건지소·진료소_외근시간"),
+                    masterdict.get("GR이후_보건지소·진료소_외근시간"),
+                ],
+                [
+                    "외근요일",
+                    masterdict.get("GR이전_보건지소·진료소_외근요일"),
+                    masterdict.get("GR이후_보건지소·진료소_외근요일")
+                ],
+                [
+                    "직원",
+                    masterdict.get("GR이전_보건지소·진료소_직원수"),
+                    masterdict.get("GR이후_보건지소·진료소_직원수")
+                ],
+                [
+                    "방문객수 / 체류시간",
+                    f"{masterdict.get('GR이전_보건지소·진료소_오전 방문객수')+masterdict.get('GR이전_보건지소·진료소_오후 방문객수')}명 / {(masterdict.get('GR이전_보건지소·진료소_오전 체류시간')+masterdict.get("GR이전_보건지소·진료소_오후 체류시간"))/2:.0f}분",
+                ]
+            ],
+            columns = ["항목","그린리모델링 이전", "그린리모델링 이후"],
+        )
+    
+    def prettify_latex_table(tex: str, header_color: str = "EAEAEA", arraystretch: float = 1) -> str:
+        lines = tex.splitlines()
+        new_lines = []
+        in_tabular = False
+        header_done = False
+
+        for line in lines:
+            stripped = line.strip()
+
+            if stripped.startswith(r"\begin{tabular}"):
+                in_tabular = True
+                new_lines.append(rf"\renewcommand{{\arraystretch}}{{{arraystretch}}}")
+                new_lines.append(line)
+                new_lines.append(r"\hline")
+                continue
+
+            if stripped.startswith(r"\end{tabular}"):
+                in_tabular = False
+                new_lines.append(line)
+                new_lines.append(r"\renewcommand{\arraystretch}{1}")
+                continue
+
+            if in_tabular and stripped.endswith(r"\\"):
+                if not header_done:
+                    new_lines.append(rf"\rowcolor[HTML]{{{header_color}}}")
+                    header_done = True
+                new_lines.append(line)
+                new_lines.append(r"\hline")
+                continue
+
+            new_lines.append(line)
+
+        return "\n".join(new_lines)
+        
+    tex = (
+        df.style
+        .hide(axis="index")
+        .format(escape="latex")   # %, _, & 같은 LaTeX 특수문자 자동 처리
+        .to_latex(
+            hrules=False,         # hline은 우리가 직접 넣을 것
+            column_format=(
+                r">{\centering\arraybackslash}p{4cm}|"
+                r">{\centering\arraybackslash}p{2.5cm}|"
+                r">{\centering\arraybackslash}p{2.5cm}|"
+                r">{\centering\arraybackslash}p{2.5cm}"
+            ),
+        )
+        .replace("~", "-")
+    )
+
+    tex = prettify_latex_table(tex, header_color="EAEAEA")
+    return tex
+
+
 def parse_equinity(masterdict: dict) -> str:
     
     df = pd.DataFrame(
