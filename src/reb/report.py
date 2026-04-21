@@ -1426,11 +1426,6 @@ def build_report(
     checklistafter  = 현장조사체크리스트.from_excel(after_rebexcelpath)
     checklistafterN = 현장조사체크리스트.from_excel(afterN_rebexcelpath)
     
-    # model
-    idfbefore, grmbefore = rebexcel_to_idf_and_grm(before_rebexcelpath)
-    idfafter , grmafter  = rebexcel_to_idf_and_grm(after_rebexcelpath)
-    idfafterN, grmafterN = rebexcel_to_idf_and_grm(afterN_rebexcelpath)
-    
     # metadata
     building_info = pd.read_excel(before_rebexcelpath, sheet_name="건물정보", usecols=range(6), nrows=1).iloc[0]
     metadata = MetaData(
@@ -1439,55 +1434,6 @@ def build_report(
         building_info["주소"],
         building_info["허가일자"]   , 
     )
-    
-    # passive change
-    passivechangedict = {
-        "before": {
-            "wallU": round(grmbefore.averaged_exteriorwall_Uvalue,3),
-            "roofU": round(grmbefore.averaged_exteriorroof_Uvalue,3),
-            "floorU": round(grmbefore.averaged_exteriorfloor_Uvalue,3),
-            "winU" : round(grmbefore.averaged_window_Uvalue,3),
-            "ld"   : round(grmbefore.averaged_lightdensity,2),
-        },
-        "after": {
-            "wallU": round(grmafter.averaged_exteriorwall_Uvalue,3),
-            "roofU": round(grmafter.averaged_exteriorroof_Uvalue,3),
-            "floorU": round(grmafter.averaged_exteriorfloor_Uvalue,3),
-            "winU" : round(grmafter.averaged_window_Uvalue,3),
-            "ld"   : round(grmafter.averaged_lightdensity,2),
-        },
-        "afterN": {
-            "wallU": round(grmafterN.averaged_exteriorwall_Uvalue,3),
-            "roofU": round(grmafterN.averaged_exteriorroof_Uvalue,3),
-            "floorU": round(grmafterN.averaged_exteriorfloor_Uvalue,3),
-            "winU" : round(grmafterN.averaged_window_Uvalue,3),
-            "ld"   : round(grmafterN.averaged_lightdensity,2),
-            "infil": round(grmafterN.averaged_infiltration*0.07,2),
-        },
-        "before2after": bool_to_적용(get_passivechange_bool(grmbefore, grmafter)),
-        "countbefore2after": sum(get_passivechange_bool(grmbefore, grmafter)),
-        "after2afterN": bool_to_적용(get_passivechange_bool(grmafter, grmafterN)),
-        "countafter2afterN": sum(get_passivechange_bool(grmafter, grmafterN)),
-    }
-    # active change
-    activechange_before2after = parse_activechange(grmbefore, grmafter)
-    activechange_after2afterN = parse_activechange(grmafter, grmafterN)
-    activechangedict = {
-        "before2after": bool_to_적용(get_activechange_bool(grmbefore, grmafter)),
-        "countbefore2after": sum(get_activechange_bool(grmbefore, grmafter)),
-        "after2afterN": bool_to_적용(get_activechange_bool(grmafter, grmafterN)),
-        "countafter2afterN": sum(get_activechange_bool(grmafter, grmafterN)),
-        "before2afterdetail":{
-            "heating": activechange_before2after[0],
-            "cooling": activechange_before2after[1],
-            "ventilation": activechange_before2after[2],
-        },
-        "after2afterNdetail":{
-            "heating": activechange_after2afterN[0],
-            "cooling": activechange_after2afterN[1],
-            "ventilation": activechange_after2afterN[2],
-        }
-    }
     
     # occupant change
     occupantchange = parse_occupantchange(checklistafter, checklistafterN)
@@ -1517,8 +1463,6 @@ def build_report(
         "metadata": metadata,
         "master"  : masterdict,
         "imagesrc": (Path(__file__).parent / "imagesrc").resolve().as_posix(),
-        "passivechange": passivechangedict,
-        "activechange": activechangedict,
         "hvacoperchangetex": hvacoperationchange,
         "occupantchangetex": occupantchange,
         "majorchangetex": majorchange,
