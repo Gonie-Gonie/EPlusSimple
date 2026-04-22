@@ -1234,7 +1234,7 @@ def parse_surveychange(masterdict: dict) -> str:
                     f"{masterdict.get('N년차_일반존_냉방1 설정온도'):.0f}" if not pd.isna(masterdict.get("N년차_일반존_냉방1 설정온도")) else "-",
                 ],
             ],
-            columns = ["항목","그린리모델링 이전", "그린리모델링 이후"],
+            columns = ["항목","그린리모델링 이전", "그린리모델링 이후", "운영특성 반영"],
         )
     else:
         df = pd.DataFrame(
@@ -1314,7 +1314,7 @@ def parse_surveychange(masterdict: dict) -> str:
                     f"{masterdict.get('N년차_일반존_냉방1 설정온도'):.0f}" if not pd.isna(masterdict.get("N년차_일반존_냉방1 설정온도")) else "-",
                 ],
             ],
-            columns = ["항목","그린리모델링 이전", "그린리모델링 이후"],
+            columns = ["항목","그린리모델링 이전", "그린리모델링 이후", "운영특성 반영"],
         )
     
     def prettify_latex_table(tex: str, header_color: str = "EAEAEA", arraystretch: float = 1) -> str:
@@ -1358,6 +1358,7 @@ def parse_surveychange(masterdict: dict) -> str:
         .to_latex(
             hrules=False,         # hline은 우리가 직접 넣을 것
             column_format=(
+                r">{\centering\arraybackslash}p{4cm}|"
                 r">{\centering\arraybackslash}p{4cm}|"
                 r">{\centering\arraybackslash}p{4cm}|"
                 r">{\centering\arraybackslash}p{4cm}"
