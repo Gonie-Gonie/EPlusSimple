@@ -1171,57 +1171,67 @@ def parse_surveychange(masterdict: dict) -> str:
                     "기본보육 인원",
                     f"{(0 if pd.isna(masterdict.get("GR이전_어린이집_기본보육교사수")) else masterdict.get("GR이전_어린이집_기본보육교사수")) + (0 if pd.isna(masterdict.get("GR이전_어린이집_기본보육 원생수")) else masterdict.get("GR이전_어린이집_기본보육 원생수")):.0f}",
                     f"{(0 if pd.isna(masterdict.get("GR이후_어린이집_기본보육교사수")) else masterdict.get("GR이후_어린이집_기본보육교사수")) + (0 if pd.isna(masterdict.get("GR이후_어린이집_기본보육 원생수")) else masterdict.get("GR이후_어린이집_기본보육 원생수")):.0f}",
+                    f"{(0 if pd.isna(masterdict.get("N년차_어린이집_기본보육교사수")) else masterdict.get("N년차_어린이집_기본보육교사수")) + (0 if pd.isna(masterdict.get("N년차_어린이집_기본보육 원생수")) else masterdict.get("N년차_어린이집_기본보육 원생수")):.0f}",
                 ],
                 [
                     "연장보육A 인원",
                     f"{(0 if pd.isna(masterdict.get("GR이전_어린이집_연장보육A교사수")) else masterdict.get("GR이전_어린이집_연장보육A교사수")) + (0 if pd.isna(masterdict.get("GR이전_어린이집_연장보육A원생수")) else masterdict.get("GR이전_어린이집_연장보육A원생수")):.0f}",
                     f"{(0 if pd.isna(masterdict.get("GR이후_어린이집_연장보육A교사수")) else masterdict.get("GR이후_어린이집_연장보육A교사수")) + (0 if pd.isna(masterdict.get("GR이후_어린이집_연장보육A원생수")) else masterdict.get("GR이후_어린이집_연장보육A원생수")):.0f}",
-                    (0 if pd.isna(masterdict.get("GR이후_어린이집_연장보육A교사수")) else masterdict.get("GR이후_어린이집_연장보육A교사수")) + (0 if pd.isna(masterdict.get("GR이후_어린이집_연장보육A원생수")) else masterdict.get("GR이후_어린이집_연장보육A원생수")),
+                    f"{(0 if pd.isna(masterdict.get("N년차_어린이집_연장보육A교사수")) else masterdict.get("N년차_어린이집_연장보육A교사수")) + (0 if pd.isna(masterdict.get("N년차_어린이집_연장보육A원생수")) else masterdict.get("N년차_어린이집_연장보육A원생수")):.0f}",
                 ],
                 [
                     "연장보육 B인원",
                     f"{(0 if pd.isna(masterdict.get("GR이전_어린이집_연장보육B교사수")) else masterdict.get("GR이전_어린이집_연장보육B교사수")) + (0 if pd.isna(masterdict.get("GR이전_어린이집_연장보육B원생수")) else masterdict.get("GR이전_어린이집_연장보육B원생수")):.0f}",
                     f"{(0 if pd.isna(masterdict.get("GR이후_어린이집_연장보육B교사수")) else masterdict.get("GR이후_어린이집_연장보육B교사수")) + (0 if pd.isna(masterdict.get("GR이후_어린이집_연장보육B원생수")) else masterdict.get("GR이후_어린이집_연장보육B원생수")):.0f}",
+                    f"{(0 if pd.isna(masterdict.get("N년차_어린이집_연장보육B교사수")) else masterdict.get("N년차_어린이집_연장보육B교사수")) + (0 if pd.isna(masterdict.get("N년차_어린이집_연장보육B원생수")) else masterdict.get("N년차_어린이집_연장보육B원생수")):.0f}",
                 ],
                 [
                     "야간보육 인원",
                     f"{(0 if pd.isna(masterdict.get("GR이전_어린이집_야간보육 교사수")) else masterdict.get("GR이전_어린이집_야간보육 교사수")) + (0 if pd.isna(masterdict.get("GR이전_어린이집_야간보육 원생수")) else masterdict.get("GR이전_어린이집_야간보육 원생수")):.0f}",
                     f"{(0 if pd.isna(masterdict.get("GR이후_어린이집_야간보육 교사수")) else masterdict.get("GR이후_어린이집_야간보육 교사수")) + (0 if pd.isna(masterdict.get("GR이후_어린이집_야간보육 원생수")) else masterdict.get("GR이후_어린이집_야간보육 원생수")):.0f}",
+                    f"{(0 if pd.isna(masterdict.get("N년차_어린이집_야간보육 교사수")) else masterdict.get("N년차_어린이집_야간보육 교사수")) + (0 if pd.isna(masterdict.get("N년차_어린이집_야간보육 원생수")) else masterdict.get("N년차_어린이집_야간보육 원생수")):.0f}",
                 ],
                 [
                     "주말보육 인원",
                     f"{(0 if pd.isna(masterdict.get("GR이전_어린이집_주말보육 교사수")) else masterdict.get("GR이전_어린이집_주말보육 교사수")) + (0 if pd.isna(masterdict.get("GR이전_어린이집_주말보육 원생수")) else masterdict.get("GR이전_어린이집_주말보육 원생수")):.0f}",
                     f"{(0 if pd.isna(masterdict.get("GR이후_어린이집_주말보육 교사수")) else masterdict.get("GR이후_어린이집_주말보육 교사수")) + (0 if pd.isna(masterdict.get("GR이후_어린이집_주말보육 원생수")) else masterdict.get("GR이후_어린이집_주말보육 원생수")):.0f}",
+                    f"{(0 if pd.isna(masterdict.get("N년차_어린이집_주말보육 교사수")) else masterdict.get("N년차_어린이집_주말보육 교사수")) + (0 if pd.isna(masterdict.get("N년차_어린이집_주말보육 원생수")) else masterdict.get("N년차_어린이집_주말보육 원생수")):.0f}",
                 ],
                 [
                     "난방 사용기간",
                     masterdict.get("GR이전_일반존_난방1 사용기간"),
                     masterdict.get("GR이후_일반존_난방1 사용기간"),
+                    masterdict.get("N년차_일반존_난방1 사용기간"),
                 ],
                 [
                     "난방 사용시간",
                     masterdict.get("GR이전_일반존_난방1 사용시간"),
                     masterdict.get("GR이후_일반존_난방1 사용시간"),
+                    masterdict.get("N년차_일반존_난방1 사용시간"),
                 ],
                 [
                     "난방 설정온도(℃)",
                     f"{masterdict.get('GR이전_일반존_난방1 설정온도'):.0f}" if not pd.isna(masterdict.get("GR이전_일반존_난방1 설정온도")) else "-",
                     f"{masterdict.get('GR이후_일반존_난방1 설정온도'):.0f}" if not pd.isna(masterdict.get("GR이후_일반존_난방1 설정온도")) else "-",
+                    f"{masterdict.get('N년차_일반존_난방1 설정온도'):.0f}" if not pd.isna(masterdict.get("N년차_일반존_난방1 설정온도")) else "-",
                 ],
                 [
                     "냉방 사용기간",
                     masterdict.get("GR이전_일반존_냉방1 사용기간"),
                     masterdict.get("GR이후_일반존_냉방1 사용기간"),
+                    masterdict.get("N년차_일반존_냉방1 사용기간"),
                 ],
                 [
                     "냉방 사용시간",
                     masterdict.get("GR이전_일반존_냉방1 사용시간"),
                     masterdict.get("GR이후_일반존_냉방1 사용시간"),
+                    masterdict.get("N년차_일반존_냉방1 사용시간"),
                 ],
                 [
                     "냉방 설정온도(℃)",
                     f"{masterdict.get('GR이전_일반존_냉방1 설정온도'):.0f}" if not pd.isna(masterdict.get("GR이전_일반존_냉방1 설정온도")) else "-",
                     f"{masterdict.get('GR이후_일반존_냉방1 설정온도'):.0f}" if not pd.isna(masterdict.get("GR이후_일반존_냉방1 설정온도")) else "-",
+                    f"{masterdict.get('N년차_일반존_냉방1 설정온도'):.0f}" if not pd.isna(masterdict.get("N년차_일반존_냉방1 설정온도")) else "-",
                 ],
             ],
             columns = ["항목","그린리모델링 이전", "그린리모델링 이후"],
@@ -1231,63 +1241,77 @@ def parse_surveychange(masterdict: dict) -> str:
             [
                 [
                     "운영시간",
-                    masterdict.get("GR이전_보건지소·진료소_기본운영시간"),
-                    masterdict.get("GR이후_보건지소·진료소_기본운영시간"),
+                    masterdict.get("GR이전_보건지소·진료소_기본운영 시간"),
+                    masterdict.get("GR이후_보건지소·진료소_기본운영 시간"),
+                    masterdict.get("N년차_보건지소·진료소_기본운영 시간"),
                 ],
                 [
                     "외근시간",
                     masterdict.get("GR이전_보건지소·진료소_외근시간"),
                     masterdict.get("GR이후_보건지소·진료소_외근시간"),
+                    masterdict.get("N년차_보건지소·진료소_외근시간"),
                 ],
                 [
                     "외근요일",
                     masterdict.get("GR이전_보건지소·진료소_외근요일"),
-                    masterdict.get("GR이후_보건지소·진료소_외근요일")
+                    masterdict.get("GR이후_보건지소·진료소_외근요일"),
+                    masterdict.get("N년차_보건지소·진료소_외근요일"),
                 ],
                 [
                     "직원",
                     f"{masterdict.get('GR이전_보건지소·진료소_직원수'):.0f}" if not pd.isna(masterdict.get("GR이전_보건지소·진료소_직원수")) else "-",
-                    f"{masterdict.get('GR이후_보건지소·진료소_직원수'):.0f}" if not pd.isna(masterdict.get("GR이후_보건지소·진료소_직원수")) else "-"
+                    f"{masterdict.get('GR이후_보건지소·진료소_직원수'):.0f}" if not pd.isna(masterdict.get("GR이후_보건지소·진료소_직원수")) else "-",
+                    f"{masterdict.get('N년차_보건지소·진료소_직원수'):.0f}" if not pd.isna(masterdict.get("N년차_보건지소·진료소_직원수")) else "-",
                 ],
                 [
                     "방문객수 / 체류시간",
                     f"{(0 if pd.isna(masterdict.get('GR이전_보건지소·진료소_오전 방문객수')) else masterdict.get('GR이전_보건지소·진료소_오전 방문객수'))+(0 if pd.isna(masterdict.get('GR이전_보건지소·진료소_오후 방문객수')) else masterdict.get('GR이전_보건지소·진료소_오후 방문객수')):.0f}명 / {(0 if pd.isna((masterdict.get('GR이전_보건지소·진료소_오전 체류시간')+masterdict.get("GR이전_보건지소·진료소_오후 체류시간"))/2) else (masterdict.get('GR이전_보건지소·진료소_오전 체류시간')+masterdict.get("GR이전_보건지소·진료소_오후 체류시간"))/2):.0f}분",
-                    f"{(0 if pd.isna(masterdict.get('GR이후_보건지소·진료소_오전 방문객수')) else masterdict.get('GR이후_보건지소·진료소_오전 방문객수'))+(0 if pd.isna(masterdict.get('GR이후_보건지소·진료소_오후 방문객수')) else masterdict.get('GR이후_보건지소·진료소_오후 방문객수')):.0f}명 / {(0 if pd.isna((masterdict.get('GR이후_보건지소·진료소_오전 체류시간')+masterdict.get("GR이후_보건지소·진료소_오후 체류시간"))/2) else (masterdict.get('GR이후_보건지소·진료소_오전 체류시간')+masterdict.get("GR이후_보건지소·진료소_오후 체류시간"))/2):.0f}분"
+                    f"{(0 if pd.isna(masterdict.get('GR이후_보건지소·진료소_오전 방문객수')) else masterdict.get('GR이후_보건지소·진료소_오전 방문객수'))+(0 if pd.isna(masterdict.get('GR이후_보건지소·진료소_오후 방문객수')) else masterdict.get('GR이후_보건지소·진료소_오후 방문객수')):.0f}명 / {(0 if pd.isna((masterdict.get('GR이후_보건지소·진료소_오전 체류시간')+masterdict.get("GR이후_보건지소·진료소_오후 체류시간"))/2) else (masterdict.get('GR이후_보건지소·진료소_오전 체류시간')+masterdict.get("GR이후_보건지소·진료소_오후 체류시간"))/2):.0f}분",
+                    f"{(0 if pd.isna(masterdict.get('N년차_보건지소·진료소_오전 방문객수')) else masterdict.get('N년차_보건지소·진료소_오전 방문객수'))+(0 if pd.isna(masterdict.get('N년차_보건지소·진료소_오후 방문객수')) else masterdict.get('N년차_보건지소·진료소_오후 방문객수')):.0f}명 / {(0 if pd.isna((masterdict.get('N년차_보건지소·진료소_오전 체류시간')+masterdict.get("N년차_보건지소·진료소_오후 체류시간"))/2) else (masterdict.get('N년차_보건지소·진료소_오전 체류시간')+masterdict.get("N년차_보건지소·진료소_오후 체류시간"))/2):.0f}분"
                 ],
                 [
                     "관사 수",
                     "-" if pd.isna(masterdict.get("GR이전_특화존2_사용 관사수")) else f"{masterdict.get("GR이전_특화존2_사용 관사수"):.0f}",
                     "-" if pd.isna(masterdict.get("GR이후_특화존2_사용 관사수")) else f"{masterdict.get("GR이후_특화존2_사용 관사수"):.0f}",
+                    "-" if pd.isna(masterdict.get("N년차_특화존2_사용 관사수")) else f"{masterdict.get("N년차_특화존2_사용 관사수"):.0f}",
+
                 ],
                 [
                     "난방 사용기간",
                     masterdict.get("GR이전_일반존_난방1 사용기간"),
                     masterdict.get("GR이후_일반존_난방1 사용기간"),
+                    masterdict.get("N년차_일반존_난방1 사용기간"),
                 ],
                 [
                     "난방 사용시간",
                     masterdict.get("GR이전_일반존_난방1 사용시간"),
                     masterdict.get("GR이후_일반존_난방1 사용시간"),
+                    masterdict.get("N년차_일반존_난방1 사용시간"),
                 ],
                 [
                     "난방 설정온도(℃)",
                     f"{masterdict.get('GR이전_일반존_난방1 설정온도'):.0f}" if not pd.isna(masterdict.get("GR이전_일반존_난방1 설정온도")) else "-",
                     f"{masterdict.get('GR이후_일반존_난방1 설정온도'):.0f}" if not pd.isna(masterdict.get("GR이후_일반존_난방1 설정온도")) else "-",
+                    f"{masterdict.get('N년차_일반존_난방1 설정온도'):.0f}" if not pd.isna(masterdict.get("N년차_일반존_난방1 설정온도")) else "-",
                 ],
                 [
                     "냉방 사용기간",
                     masterdict.get("GR이전_일반존_냉방1 사용기간"),
                     masterdict.get("GR이후_일반존_냉방1 사용기간"),
+                    masterdict.get("N년차_일반존_냉방1 사용기간"),
+
                 ],
                 [
                     "냉방 사용시간",
                     masterdict.get("GR이전_일반존_냉방1 사용시간"),
                     masterdict.get("GR이후_일반존_냉방1 사용시간"),
+                    masterdict.get("N년차_일반존_냉방1 사용시간"),
                 ],
                 [
                     "냉방 설정온도(℃)",
                     f"{masterdict.get('GR이전_일반존_냉방1 설정온도'):.0f}" if not pd.isna(masterdict.get("GR이전_일반존_냉방1 설정온도")) else "-",
                     f"{masterdict.get('GR이후_일반존_냉방1 설정온도'):.0f}" if not pd.isna(masterdict.get("GR이후_일반존_냉방1 설정온도")) else "-",
+                    f"{masterdict.get('N년차_일반존_냉방1 설정온도'):.0f}" if not pd.isna(masterdict.get("N년차_일반존_냉방1 설정온도")) else "-",
                 ],
             ],
             columns = ["항목","그린리모델링 이전", "그린리모델링 이후"],
