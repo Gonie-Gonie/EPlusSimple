@@ -435,13 +435,13 @@ run_grjson(
     \toprule
     변수명 & 타입 & 필수 & 기본값 & 조건 & 범위/길이/선택지 & 단위\\ \midrule
     이름 & \TypeTag{S} & \InputTag{R} & - & - & - & -\\
-    소속 실 & \TypeTag{S} & \InputTag{R} & - & - & (0,Inf) & - \\
-    유형  & \TypeTag{S} & \InputTag{R} & - & - & \makecell[c]{floor \\ wall \\ ceiling} & -\\
-    경계조건 & \TypeTag{S} & \InputTag{R} & - & \makecell[c]{outdoors \\ zone \\ ground \\ adiabatic} & - & -\\
+    소속 실 & \TypeTag{S} & \InputTag{R} & - & - & - & - \\
+    유형  & \TypeTag{E} & \InputTag{R} & - & - & \makecell[c]{floor \\ wall \\ ceiling} & -\\
+    경계조건 & \TypeTag{E} & \InputTag{R} & - & \makecell[c]{outdoors \\ zone \\ ground \\ adiabatic} & - & -\\
     면적 & \TypeTag{F} & \InputTag{R} & - & - & (0,Inf) & m$^2$ \\
     향 & \TypeTag{F} & \ReqTag{CR} & - & \makecell[c]{\texttt{유형} = `wall' \\ AND \\ \texttt{경계조건} = `outdoors'} & [0,360) & deg(°) \\
     인접존 이름 & \TypeTag{S} & \ReqTag{CR} & - & \makecell[c]{\texttt{경계조건} = `zone'} & - & - \\
-    구조체 이름 & \TypeTag{S} & \ReqTag{CR} & - & - &  \makecell[c]{\hyperref[subsubsection:ioref:construction]{\texttt{구조체}}의 \texttt{이름} \\ OR \\ \texttt{"open"} \\ OR \\ \texttt{""}} & -\\
+    구조체 이름 & \TypeTag{S} & \ReqTag{CR} & - & - &  \makecell[c]{\hyperref[subsubsection:ioref:construction]{\texttt{구조체}}의 이름 \\ open \\ null} & -\\
     쿨루프 반사율 & \TypeTag{F} & \ReqTag{CO} & - &
 \makecell[c]{\texttt{유형} = `ceiling'\\ AND \\ \texttt{경계조건} = `outdoors'} & - & -\\
     창문 개수 & - & \InputTag{D} & - & - & - & 개 \\
@@ -484,6 +484,27 @@ run_grjson(
 
 \subsubsection{개구부} \label{subsubsection:ioref:fenestration}
 개구부. 벽체의 열린 부분을 의미하며, 창, 문(유리문, 방화문 등) 등 외기와의 접촉 또는 채광·환기를 목적으로 설치된 요소를 포함한다.
+
+
+
+\renewcommand{\arraystretch}{1.4}
+\begin{table}[ht]
+  \caption{개구부 클래스의 속성들}
+  \label{tbl:fenestration_info}  
+  \centering
+  \begin{tabular}{lcccccc}
+    \toprule
+    변수명 & 타입 & 필수 & 기본값 & 조건 & 범위/길이/선택지 & 단위\\ \midrule
+    이름 & \TypeTag{S} & \InputTag{R} & - & - & - & -\\
+    소속 면 & \TypeTag{S} & \InputTag{R} & - & - & - & - \\
+    유형  & \TypeTag{E} & \InputTag{R} & - & - & \makecell[c]{window \\ door \\ glassdoor} & -\\
+    면적 & \TypeTag{F} & \InputTag{R} & - & - & (0,Inf) & m$^2$ \\
+    구조체 이름 & \TypeTag{S} & \ReqTag{R} & - & - &  \makecell[c]{\hyperref[subsubsection:ioref:fenestrationconstruction]{\texttt{개구부 구조체}}의 \texttt{이름}} & -\\
+    블라인드 & \TypeTag{E} & \ReqTag{O} & null & - & \makecell[c]{TRUE \\ FALSE} & -\\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
 
 
 \jsontable{building}{
@@ -700,7 +721,7 @@ run_grjson(
 
 \paragraph{thickness} 레이어 구성 재료의 두께.
 
-\subsubsection{fenestration\_construction} \label{subsubsection:ioref:fenestrationconstruction}
+\subsubsection{개구부 구조체} \label{subsubsection:ioref:fenestrationconstruction}
 
 \jsontable{fenestration\_construction}{
   \jsontablerow{id            }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
