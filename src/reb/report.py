@@ -709,174 +709,7 @@ def parse_activechange(
     else:
         ventchangedstr =  f"{ventadded}개 실에 전열교환기 추가, {ventchanged}개 실에서 전열교환기 교체됨."
     
-    return heatingchangestr, coolingchangestr, ventchangedstr
-
-def parse_hvacoperationchange(
-    checklist1: 현장조사체크리스트,
-    checklist2: 현장조사체크리스트,
-) -> str:
-
-    func_certaincoolingsetpoint = lambda x: x if isinstance(x, int | float) else 26
-    func_certainheatingsetpoint = lambda x: x if isinstance(x, int | float) else 20
-
-    def mark_same_as_above(row1, row2, same_text="상동"):
-        return [same_text if v1 == v2 else v2 for v1, v2 in zip(row1, row2)]
-
-    # heating
-    if checklist1.일반존.난방설비1 is None:
-        heatingtime1 = "사용안함"
-        heatingsetpoint1 = "(없음)"
-    else:
-        heatingtime1 = f"{checklist1.일반존.난방설비1.사용기간} {checklist1.일반존.난방설비1.사용시간}"
-        heatingsetpoint1 = f"{func_certainheatingsetpoint(checklist1.일반존.난방설비1.설정온도):.1f}$^\\circ C$"
-
-    if checklist2.일반존.난방설비1 is None:
-        heatingtime2 = "사용안함"
-        heatingsetpoint2 = "(없음)"
-    else:
-        heatingtime2 = f"{checklist2.일반존.난방설비1.사용기간} {checklist2.일반존.난방설비1.사용시간}"
-        heatingsetpoint2 = f"{func_certainheatingsetpoint(checklist2.일반존.난방설비1.설정온도):.1f}$^\\circ C$"
-
-    # cooling
-    if checklist1.일반존.냉방설비1 is None:
-        coolingtime1 = "사용안함"
-        coolingsetpoint1 = "(없음)"
-    else:
-        coolingtime1 = f"{checklist1.일반존.냉방설비1.사용기간} {checklist1.일반존.냉방설비1.사용시간}"
-        coolingsetpoint1 = f"{func_certaincoolingsetpoint(checklist1.일반존.냉방설비1.설정온도):.1f}$^\\circ C$"
-
-    if checklist2.일반존.냉방설비1 is None:
-        coolingtime2 = "사용안함"
-        coolingsetpoint2 = "(없음)"
-    else:
-        coolingtime2 = f"{checklist2.일반존.냉방설비1.사용기간} {checklist2.일반존.냉방설비1.사용시간}"
-        coolingsetpoint2 = f"{func_certaincoolingsetpoint(checklist2.일반존.냉방설비1.설정온도):.1f}$^\\circ C$"
-
-    row1 = [heatingtime1, heatingsetpoint1, coolingtime1, coolingsetpoint1]
-    row2 = [heatingtime2, heatingsetpoint2, coolingtime2, coolingsetpoint2]
-    row2 = mark_same_as_above(row1, row2)
-
-    df = pd.DataFrame(
-        [row1, row2],
-        columns=["난방 사용시간", "난방 설정온도", "냉방 사용시간", "냉방 설정온도"],
-        index=["GR 직후", "2025년"],
-    )
-
-    tablestyle = {
-        "column_format": ">{\\centering\\arraybackslash}p{3cm}" + "|>{\\centering\\arraybackslash}p{3.325cm}" * 4,
-        "clines": "all;data",
-        "hrules": True,
-    }
-
-    tex = (
-        df.style.to_latex(**tablestyle)
-        .replace(r"\toprule", r"\hline")
-        .replace(r"\midrule", r"\hline")
-        .replace(r"\bottomrule", r"\hline")
-        .replace("~", "-")
-    )
-
-    return tex
-
-
-def parse_occupantchange(
-    checklist1: 현장조사체크리스트,
-    checklist2: 현장조사체크리스트,
-):
-
-    def mark_same_as_above(row1, row2, same_text="상동"):
-        return [same_text if v1 == v2 else v2 for v1, v2 in zip(row1, row2)]
-
-    if isinstance(checklist1, 어린이집체크리스트):
-
-        func_nanto0 = lambda x: 0 if pd.isna(x) else x
-
-        row1 = [
-            func_nanto0(checklist1.일반존.기본보육교사 + checklist1.일반존.기본보육원생),
-            func_nanto0(checklist1.일반존.연장보육A교사 + checklist1.일반존.연장보육A원생),
-            func_nanto0(checklist1.일반존.연장보육B교사 + checklist1.일반존.연장보육B원생),
-            func_nanto0(checklist1.일반존.야간보육교사 + checklist1.일반존.야간보육원생),
-            func_nanto0(checklist1.일반존.주말보육교사 + checklist1.일반존.주말보육원생),
-        ]
-        row2 = [
-            func_nanto0(checklist2.일반존.기본보육교사 + checklist2.일반존.기본보육원생),
-            func_nanto0(checklist2.일반존.연장보육A교사 + checklist2.일반존.연장보육A원생),
-            func_nanto0(checklist2.일반존.연장보육B교사 + checklist2.일반존.연장보육B원생),
-            func_nanto0(checklist2.일반존.야간보육교사 + checklist2.일반존.야간보육원생),
-            func_nanto0(checklist2.일반존.주말보육교사 + checklist2.일반존.주말보육원생),
-        ]
-        row2 = mark_same_as_above(row1, row2)
-
-        df = pd.DataFrame(
-            [row1, row2],
-            columns=["기본 (-16:00)", "연장 (-18:00)", "연장 (-19:30)", "야간 (-21:00)", "주말"],
-            index=["GR 직후", "2025년"],
-        )
-
-        tablestyle = {
-            "column_format": ">{\\centering\\arraybackslash}p{3cm}" + "|>{\\centering\\arraybackslash}p{2.66cm}" * 5,
-            "clines": "all;data",
-            "hrules": True,
-        }
-
-        tex = (
-            df.style.format(lambda x: x if x == "상동" else f"{x}명")
-            .to_latex(**tablestyle)
-            .replace(r"\toprule", r"\hline")
-            .replace(r"\midrule", r"\hline")
-            .replace(r"\bottomrule", r"\hline")
-        )
-
-        return tex
-
-    else:
-
-        집중진료연인원1 = (
-            (checklist1.일반존.집중진료오전방문객 * checklist1.일반존.집중진료오전체류시간)
-            + (checklist1.일반존.집중진료오후방문객 * checklist1.일반존.집중진료오후체류시간)
-        ) / 60 * len(checklist1.일반존.집중진료요일.split(","))
-
-        집중진료연인원2 = (
-            (checklist2.일반존.집중진료오전방문객 * checklist2.일반존.집중진료오전체류시간)
-            + (checklist2.일반존.집중진료오후방문객 * checklist2.일반존.집중진료오후체류시간)
-        ) / 60 * len(checklist2.일반존.집중진료요일.split(","))
-
-        row1 = [
-            f"{checklist1.일반존.운영시간.replace('~', '-')}",
-            f"{checklist1.일반존.직원}명 상주",
-            f"주 {집중진료연인원1:.0f}명$\\cdot$시간",
-            f"{checklist1.특화존2.사용관사수}개소",
-        ]
-        row2 = [
-            f"{checklist2.일반존.운영시간.replace('~', '-')}",
-            f"{checklist2.일반존.직원}명 상주",
-            f"주 {집중진료연인원2:.0f}명$\\cdot$시간",
-            f"{checklist2.특화존2.사용관사수}개소",
-        ]
-        row2 = mark_same_as_above(row1, row2)
-
-        df = pd.DataFrame(
-            [row1, row2],
-            columns=["운영시간", "직원", "집중진료 방문객", "이용 관사 수"],
-            index=["GR 직후", "2025년"],
-        )
-
-        tablestyle = {
-            "column_format": ">{\\centering\\arraybackslash}p{3cm}" + "|>{\\centering\\arraybackslash}p{3.325cm}" * 4,
-            "clines": "all;data",
-            "hrules": True,
-        }
-
-        tex = (
-            df.style.to_latex(**tablestyle)
-            .replace(r"\toprule", r"\hline")
-            .replace(r"\midrule", r"\hline")
-            .replace(r"\bottomrule", r"\hline")
-            .replace("~", "-")
-        )
-
-        return tex
-    
+    return heatingchangestr, coolingchangestr, ventchangedstr   
     
 def parse_majorchange(masterdict: dict) -> str:
 
@@ -1329,35 +1162,36 @@ def parse_allchange(masterdict: dict) -> str:
     tex = prettify_latex_table(tex, header_color="EAEAEA")
     return tex
 
-def parse_occupant(masterdict: dict) -> str:
+def parse_surveychange(masterdict: dict) -> str:
     
     if masterdict.get("구분") == "어린이집":
         df = pd.DataFrame(
             [
                 [
                     "기본보육 인원",
-                    masterdict.get("GR이전_어린이집_기본보육 교사수")+masterdict.get("GR이전_어린이집_기본보육 원생수"),
-                    masterdict.get("GR이후_어린이집_기본보육 교사수")+masterdict.get("GR이후_어린이집_기본보육 원생수"),
+                    f"{(0 if pd.isna(masterdict.get("GR이전_어린이집_기본보육교사수")) else masterdict.get("GR이전_어린이집_기본보육교사수")) + (0 if pd.isna(masterdict.get("GR이전_어린이집_기본보육 원생수")) else masterdict.get("GR이전_어린이집_기본보육 원생수")):.0f}",
+                    f"{(0 if pd.isna(masterdict.get("GR이후_어린이집_기본보육교사수")) else masterdict.get("GR이후_어린이집_기본보육교사수")) + (0 if pd.isna(masterdict.get("GR이후_어린이집_기본보육 원생수")) else masterdict.get("GR이후_어린이집_기본보육 원생수")):.0f}",
                 ],
                 [
                     "연장보육A 인원",
-                    masterdict.get("GR이전_어린이집_연장보육A 교사수")+masterdict.get("GR이전_어린이집_연장보육A 원생수"),
-                    masterdict.get("GR이후_어린이집_연장보육A 교사수")+masterdict.get("GR이후_어린이집_연장보육A 원생수"),
+                    f"{(0 if pd.isna(masterdict.get("GR이전_어린이집_연장보육A교사수")) else masterdict.get("GR이전_어린이집_연장보육A교사수")) + (0 if pd.isna(masterdict.get("GR이전_어린이집_연장보육A원생수")) else masterdict.get("GR이전_어린이집_연장보육A원생수")):.0f}",
+                    f"{(0 if pd.isna(masterdict.get("GR이후_어린이집_연장보육A교사수")) else masterdict.get("GR이후_어린이집_연장보육A교사수")) + (0 if pd.isna(masterdict.get("GR이후_어린이집_연장보육A원생수")) else masterdict.get("GR이후_어린이집_연장보육A원생수")):.0f}",
+                    (0 if pd.isna(masterdict.get("GR이후_어린이집_연장보육A교사수")) else masterdict.get("GR이후_어린이집_연장보육A교사수")) + (0 if pd.isna(masterdict.get("GR이후_어린이집_연장보육A원생수")) else masterdict.get("GR이후_어린이집_연장보육A원생수")),
                 ],
                 [
                     "연장보육 B인원",
-                    masterdict.get("GR이전_어린이집_연장보육B 교사수")+masterdict.get("GR이전_어린이집_연장보육B 원생수"),
-                    masterdict.get("GR이후_어린이집_연장보육B 교사수")+masterdict.get("GR이후_어린이집_연장보육B 원생수"),
+                    f"{(0 if pd.isna(masterdict.get("GR이전_어린이집_연장보육B교사수")) else masterdict.get("GR이전_어린이집_연장보육B교사수")) + (0 if pd.isna(masterdict.get("GR이전_어린이집_연장보육B원생수")) else masterdict.get("GR이전_어린이집_연장보육B원생수")):.0f}",
+                    f"{(0 if pd.isna(masterdict.get("GR이후_어린이집_연장보육B교사수")) else masterdict.get("GR이후_어린이집_연장보육B교사수")) + (0 if pd.isna(masterdict.get("GR이후_어린이집_연장보육B원생수")) else masterdict.get("GR이후_어린이집_연장보육B원생수")):.0f}",
                 ],
                 [
                     "야간보육 인원",
-                    masterdict.get("GR이전_어린이집_야간보육 교사수")+masterdict.get("GR이전_어린이집_야간보육 원생수"),
-                    masterdict.get("GR이후_어린이집_야간보육 교사수")+masterdict.get("GR이후_어린이집_야간보육 원생수"),
+                    f"{(0 if pd.isna(masterdict.get("GR이전_어린이집_야간보육 교사수")) else masterdict.get("GR이전_어린이집_야간보육 교사수")) + (0 if pd.isna(masterdict.get("GR이전_어린이집_야간보육 원생수")) else masterdict.get("GR이전_어린이집_야간보육 원생수")):.0f}",
+                    f"{(0 if pd.isna(masterdict.get("GR이후_어린이집_야간보육 교사수")) else masterdict.get("GR이후_어린이집_야간보육 교사수")) + (0 if pd.isna(masterdict.get("GR이후_어린이집_야간보육 원생수")) else masterdict.get("GR이후_어린이집_야간보육 원생수")):.0f}",
                 ],
                 [
                     "주말보육 인원",
-                    masterdict.get("GR이전_어린이집_주말보육 교사수")+masterdict.get("GR이전_어린이집_주말보육 원생수"),
-                    masterdict.get("GR이후_어린이집_주말보육 교사수")+masterdict.get("GR이후_어린이집_주말보육 원생수"),
+                    f"{(0 if pd.isna(masterdict.get("GR이전_어린이집_주말보육 교사수")) else masterdict.get("GR이전_어린이집_주말보육 교사수")) + (0 if pd.isna(masterdict.get("GR이전_어린이집_주말보육 원생수")) else masterdict.get("GR이전_어린이집_주말보육 원생수")):.0f}",
+                    f"{(0 if pd.isna(masterdict.get("GR이후_어린이집_주말보육 교사수")) else masterdict.get("GR이후_어린이집_주말보육 교사수")) + (0 if pd.isna(masterdict.get("GR이후_어린이집_주말보육 원생수")) else masterdict.get("GR이후_어린이집_주말보육 원생수")):.0f}",
                 ],
                 [
                     "난방 사용기간",
@@ -1371,8 +1205,8 @@ def parse_occupant(masterdict: dict) -> str:
                 ],
                 [
                     "난방 설정온도(℃)",
-                    masterdict.get("GR이전_일반존_난방1 설정온도"),
-                    masterdict.get("GR이후_일반존_난방1 설정온도"),
+                    f"{masterdict.get('GR이전_일반존_난방1 설정온도'):.0f}" if not pd.isna(masterdict.get("GR이전_일반존_난방1 설정온도")) else "-",
+                    f"{masterdict.get('GR이후_일반존_난방1 설정온도'):.0f}" if not pd.isna(masterdict.get("GR이후_일반존_난방1 설정온도")) else "-",
                 ],
                 [
                     "냉방 사용기간",
@@ -1386,8 +1220,8 @@ def parse_occupant(masterdict: dict) -> str:
                 ],
                 [
                     "냉방 설정온도(℃)",
-                    masterdict.get("GR이전_일반존_냉방1 설정온도"),
-                    masterdict.get("GR이후_일반존_냉방1 설정온도"),
+                    f"{masterdict.get('GR이전_일반존_냉방1 설정온도'):.0f}" if not pd.isna(masterdict.get("GR이전_일반존_냉방1 설정온도")) else "-",
+                    f"{masterdict.get('GR이후_일반존_냉방1 설정온도'):.0f}" if not pd.isna(masterdict.get("GR이후_일반존_냉방1 설정온도")) else "-",
                 ],
             ],
             columns = ["항목","그린리모델링 이전", "그린리모델링 이후"],
@@ -1412,13 +1246,49 @@ def parse_occupant(masterdict: dict) -> str:
                 ],
                 [
                     "직원",
-                    masterdict.get("GR이전_보건지소·진료소_직원수"),
-                    masterdict.get("GR이후_보건지소·진료소_직원수")
+                    f"{masterdict.get('GR이전_보건지소·진료소_직원수'):.0f}" if not pd.isna(masterdict.get("GR이전_보건지소·진료소_직원수")) else "-",
+                    f"{masterdict.get('GR이후_보건지소·진료소_직원수'):.0f}" if not pd.isna(masterdict.get("GR이후_보건지소·진료소_직원수")) else "-"
                 ],
                 [
                     "방문객수 / 체류시간",
-                    f"{masterdict.get('GR이전_보건지소·진료소_오전 방문객수')+masterdict.get('GR이전_보건지소·진료소_오후 방문객수')}명 / {(masterdict.get('GR이전_보건지소·진료소_오전 체류시간')+masterdict.get("GR이전_보건지소·진료소_오후 체류시간"))/2:.0f}분",
-                ]
+                    f"{(0 if pd.isna(masterdict.get('GR이전_보건지소·진료소_오전 방문객수')) else masterdict.get('GR이전_보건지소·진료소_오전 방문객수'))+(0 if pd.isna(masterdict.get('GR이전_보건지소·진료소_오후 방문객수')) else masterdict.get('GR이전_보건지소·진료소_오후 방문객수')):.0f}명 / {(0 if pd.isna((masterdict.get('GR이전_보건지소·진료소_오전 체류시간')+masterdict.get("GR이전_보건지소·진료소_오후 체류시간"))/2) else (masterdict.get('GR이전_보건지소·진료소_오전 체류시간')+masterdict.get("GR이전_보건지소·진료소_오후 체류시간"))/2):.0f}분",
+                    f"{(0 if pd.isna(masterdict.get('GR이후_보건지소·진료소_오전 방문객수')) else masterdict.get('GR이후_보건지소·진료소_오전 방문객수'))+(0 if pd.isna(masterdict.get('GR이후_보건지소·진료소_오후 방문객수')) else masterdict.get('GR이후_보건지소·진료소_오후 방문객수')):.0f}명 / {(0 if pd.isna((masterdict.get('GR이후_보건지소·진료소_오전 체류시간')+masterdict.get("GR이후_보건지소·진료소_오후 체류시간"))/2) else (masterdict.get('GR이후_보건지소·진료소_오전 체류시간')+masterdict.get("GR이후_보건지소·진료소_오후 체류시간"))/2):.0f}분"
+                ],
+                [
+                    "관사 수",
+                    "-" if pd.isna(masterdict.get("GR이전_특화존2_사용 관사수")) else f"{masterdict.get("GR이전_특화존2_사용 관사수"):.0f}",
+                    "-" if pd.isna(masterdict.get("GR이후_특화존2_사용 관사수")) else f"{masterdict.get("GR이후_특화존2_사용 관사수"):.0f}",
+                ],
+                [
+                    "난방 사용기간",
+                    masterdict.get("GR이전_일반존_난방1 사용기간"),
+                    masterdict.get("GR이후_일반존_난방1 사용기간"),
+                ],
+                [
+                    "난방 사용시간",
+                    masterdict.get("GR이전_일반존_난방1 사용시간"),
+                    masterdict.get("GR이후_일반존_난방1 사용시간"),
+                ],
+                [
+                    "난방 설정온도(℃)",
+                    f"{masterdict.get('GR이전_일반존_난방1 설정온도'):.0f}" if not pd.isna(masterdict.get("GR이전_일반존_난방1 설정온도")) else "-",
+                    f"{masterdict.get('GR이후_일반존_난방1 설정온도'):.0f}" if not pd.isna(masterdict.get("GR이후_일반존_난방1 설정온도")) else "-",
+                ],
+                [
+                    "냉방 사용기간",
+                    masterdict.get("GR이전_일반존_냉방1 사용기간"),
+                    masterdict.get("GR이후_일반존_냉방1 사용기간"),
+                ],
+                [
+                    "냉방 사용시간",
+                    masterdict.get("GR이전_일반존_냉방1 사용시간"),
+                    masterdict.get("GR이후_일반존_냉방1 사용시간"),
+                ],
+                [
+                    "냉방 설정온도(℃)",
+                    f"{masterdict.get('GR이전_일반존_냉방1 설정온도'):.0f}" if not pd.isna(masterdict.get("GR이전_일반존_냉방1 설정온도")) else "-",
+                    f"{masterdict.get('GR이후_일반존_냉방1 설정온도'):.0f}" if not pd.isna(masterdict.get("GR이후_일반존_냉방1 설정온도")) else "-",
+                ],
             ],
             columns = ["항목","그린리모델링 이전", "그린리모델링 이후"],
         )
@@ -1465,9 +1335,8 @@ def parse_occupant(masterdict: dict) -> str:
             hrules=False,         # hline은 우리가 직접 넣을 것
             column_format=(
                 r">{\centering\arraybackslash}p{4cm}|"
-                r">{\centering\arraybackslash}p{2.5cm}|"
-                r">{\centering\arraybackslash}p{2.5cm}|"
-                r">{\centering\arraybackslash}p{2.5cm}"
+                r">{\centering\arraybackslash}p{4cm}|"
+                r">{\centering\arraybackslash}p{4cm}"
             ),
         )
         .replace("~", "-")
@@ -1620,10 +1489,6 @@ def build_report(
         building_info["허가일자"]   , 
     )
     
-    # occupant change
-    occupantchange = parse_occupantchange(checklistafter, checklistafterN)
-    # hvacoperation change
-    hvacoperationchange = parse_hvacoperationchange(checklistafter, checklistafterN)
     # major change
     gas_ignore = parse_gas_ignore(masterdict)
     
@@ -1646,11 +1511,10 @@ def build_report(
         "metadata": metadata,
         "master"  : masterdict,
         "imagesrc": (Path(__file__).parent / "imagesrc").resolve().as_posix(),
-        "hvacoperchangetex": hvacoperationchange,
-        "occupantchangetex": occupantchange,
-        "majorchangetex":  parse_majorchange(masterdict),
-        "allchangetex": parse_allchange(masterdict),
-        "equinitytex": parse_equinity(masterdict),
+        "surveychangetex": parse_surveychange(masterdict),
+        "majorchangetex" :  parse_majorchange(masterdict),
+        "allchangetex"   : parse_allchange(masterdict),
+        "equinitytex"    : parse_equinity(masterdict),
         "summarytabletex" : [df.style.format(lambda x: f"{x:>6,.1f}").to_latex(**summarytablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline") for df in summarytable(grrbefore, grrafter, grrafterN, gas_ignore=gas_ignore)],
         "comment": {k:escape_str(v) for k,v in commentdict.items()}
     }
