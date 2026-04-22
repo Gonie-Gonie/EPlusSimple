@@ -341,7 +341,7 @@ run_grjson(
 \end{defaultfigure}
 
 \paragraph{주소} 건물의 주소. 식별 가능한 법정 기초행정구역명(세종특별자치시, 제주특별자치도 제주시 및 서귀포시 포함)을 포함하여 시/군/구 수준까지만 작성하며, 상세주소는 작성하지 않는다.
-주소 정보는 \epreb 에서 허가일자와 함께 고려되어 건물의 기후지역(중부1, 중부2, 남부 등)을 판별하는 데 활용되며, 이에 따라 법적 기준 열관류율 등의 기준값을 적용하는 데 사용된다.\footnote{이에 대한 상세한 기술은 \ref{subsubsection:ioref:surface} 참고}  또한, 해당 지역 정보를 기반으로 기상데이터(EPW)와의 연계에도 활용된다.\footnote{이에 대한 상세한 기술은 \ref{sec:address_weather_matching} 참고}
+주소 정보는 \epreb 에서 허가일자와 함께 고려되어 건물의 기후지역(중부1, 중부2, 남부 등)을 판별하는 데 활용되며, 이에 따라 법적 기준 열관류율 등의 기준값을 적용하는 데 사용된다.\footnote{이에 대한 상세한 기술은 \ref{subsubsection:ioref:surface} 참고}  또한, 기상데이터(EPW)와의 연계에도 활용된다.\footnote{이에 대한 상세한 기술은 \ref{sec:address_weather_matching} 참고}
 
 \paragraph{허가일자} 건물의 허가일자. YYYY(연, 4자리 정수)-MM(월, 2자리 정수)-DD(일, 2자리 정수)의 형식으로 입력한다. 이는, \epreb에서 법적 열관류율 등의 기준값을 적용하는 데 사용된다.\footnote{이에 대한 상세한 기술은 \ref{subsubsection:ioref:surface} 참고}
 
@@ -393,10 +393,8 @@ run_grjson(
 
 \paragraph{침기율} 실의 침기율. \cref{tbl:airtightness_standard}와 같은 기준으로 입력한다.
 
-\begin{table}[ht]
-  \caption{준공연도별 기밀성능 기준 (n$_{50}$, h$^{-1}$) \\
-  GR후 :준공연도별 약 30\% 성능 향상 (슬라이딩 창호) \\
-  GR후*:준공연도별 약 50\% 성능 향상 시스템 (이외 창호)}
+\begin{table}[h]
+  \caption{준공연도별 기밀성능 기준 (n$_{50}$, h$^{-1}$)}
   \label{tbl:airtightness_standard}
   \centering
   \begin{tabular}{lccc}
@@ -408,32 +406,87 @@ run_grjson(
     2011--2017  & 4.6  & 3.2  & 2.3 \\
     2018        & 4.0  & 2.8  & 2.0 \\
     \bottomrule
+    \multicolumn{4}{l}{\footnotesize GR후: 준공연도별 약 30\% 성능 향상 (슬라이딩 창호)} \\
+    \multicolumn{4}{l}{\footnotesize GR후*: 준공연도별 약 50\% 성능 향상 시스템 (이외 창호)} \\
   \end{tabular}
 \end{table}
 
 
+\paragraph{난방 공급 설비} 난방 공급 설비의 이름. (\ref{subsubsection:ioref:supplysystem} 참고)
 
-\paragraph{난방 공급 설비} 난방 공급 설비의 이름. (\ref{subsubsection:ioref:surface} 참고 @여기)
+\paragraph{냉방 공급 설비} 냉방 공급 설비의 이름. (\ref{subsubsection:ioref:supplysystem} 참고)
 
-\paragraph{냉방 공급 설비} 냉방 공급 설비의 이름. (\ref{subsubsection:ioref:surface} 참고 @여기)
-
-\paragraph{환기 설비} 환기시스템의 이름. (\ref{subsubsection:ioref:surface} 참고 @여기)
+\paragraph{환기 설비} 환기시스템의 이름. (\ref{subsubsection:ioref:ventilationsystem} 참고)
 
 \paragraph{면 개수} 해당 실에 연결된 면의 개수를 의미하며, 사용자 입력값이 아닌, 입력된 정보에 기반하여 자동으로 산정되는 값이다.
 
 \paragraph{바닥 면적} 해당 실의 바닥 면적을 의미하며, 사용자 입력값이 아닌, 입력된 정보에 기반하여 자동으로 산정되는 값이다.
 
 
+\subsubsection{면} \label{subsubsection:ioref:surface}
+존과 존, 외부 (외기 또는 지면), 또는 단열선 사이의 면(벽체)이다. 하나의 실은 \texttt{실}을 인접존으로 하는 \texttt{면}을 포함하여, 1개 이상의 천장(\texttt{유형} = ``ceiling''), 1개 이상의 바닥(\texttt{type} = ``floor'') 및 1개 이상의 벽체(\texttt{type} = ``wall'')를 필요로 한다.
+
+\renewcommand{\arraystretch}{1.4}
+\begin{table}[ht]
+  \caption{면 클래스의 속성들}
+  \label{tbl:surface_info}  
+  \centering
+  \begin{tabular}{lcccccc}
+    \toprule
+    변수명 & 타입 & 필수 & 기본값 & 조건 & 범위/길이/선택지 & 단위\\ \midrule
+    이름 & \TypeTag{S} & \InputTag{R} & - & - & - & -\\
+    소속 실 & \TypeTag{S} & \InputTag{R} & - & - & (0,Inf) & - \\
+    유형  & \TypeTag{S} & \InputTag{R} & - & - & \makecell[c]{floor \\ wall \\ ceiling} & -\\
+    경계조건 & \TypeTag{S} & \InputTag{R} & - & \makecell[c]{outdoors \\ zone \\ ground \\ adiabatic} & - & -\\
+    면적 & \TypeTag{F} & \InputTag{R} & - & - & (0,Inf) & m$^2$ \\
+    향 & \TypeTag{F} & \ReqTag{CR} & - & \makecell[c]{\texttt{유형} = `wall' \\ AND \\ \texttt{경계조건} = `outdoors'} & [0,360) & deg(°) \\
+    인접존 이름 & \TypeTag{S} & \ReqTag{CR} & - & \makecell[c]{\texttt{경계조건} = `zone'} & - & - \\
+    구조체 이름 & \TypeTag{S} & \ReqTag{CR} & - & - &  \makecell[c]{\hyperref[subsubsection:ioref:construction]{\texttt{구조체}}의 \texttt{이름} \\ OR \\ \texttt{"open"} \\ OR \\ \texttt{""}} & -\\
+    쿨루프 반사율 & \TypeTag{F} & \ReqTag{CO} & - &
+\makecell[c]{\texttt{유형} = `ceiling'\\ AND \\ \texttt{경계조건} = `outdoors'} & - & -\\
+    창문 개수 & - & \InputTag{D} & - & - & - & 개 \\
+    문 개수 & - & \InputTag{D} & - & - & - & 개 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+
+\paragraph{이름} 면 구별 식별자. 중복을 허용하지 않으며, 시뮬레이션에 직접 사용되지 않는다. 
+
+\paragraph{소속 실} 각 면이 귀속된 실의 이름.
+
+\paragraph{유형} 면의 유형. 천장(``ceiling''), 바닥(``floor''), 벽체(``wall'')로 구분된다. 유형이 바닥(``floor'')인 면의 면적은 해당 \texttt{실}의 면적에 포함되며, 유형이 천장(``ceiling'')인 면은 경계조건이 외기(``outdoors'')인 경우 쿨루프 적용이 가능하다.
+
+\paragraph{경계조건} 면의 경계조건. 일사와 바람의 영향을 받고 외기와 열교환을 하는 외기(``outdoors''), 다른 \texttt{실}과 열교환을 하는 존(``zone''), 지면과 열교환을 하는 지면(``ground''), 어떠한 열교환도 하지 않고 축열의 역할만 담당하는 단열(``adiabatic'')로 구분된다 (Figure \ref{fig:surface_bo_description}).
+
+\begin{defaultfigure}
+  \includegraphics[width=0.8\textwidth]{면 경계조건 예시.png}
+  \caption{면의 경계조건 예시}
+  \label{fig:surface_bo_description}
+\end{defaultfigure}
+
+\paragraph{면적} 면적. 해당 면에 개구부(예:창, 문 등)가 존재하는 경우, 이들의 면적을 포함한 전체 면적을 의미한다.
+
+\paragraph{향} 면의 방위각. 기준은 북향을 0$^\circ$로 하며, 반시계 방향으로 증가한다. 예를들어, 서향은 90$^\circ$, 남향은 180$^\circ$, 동쪽은 270$^\circ$로 정의한다.
+
+\paragraph{인접존 이름} 인접존 이름. 면의 경계조건을 ``zone''으로 설정한 경우에만 입력한다.
+
+\paragraph{구조체 이름} 구조체 이름. 
+
+\paragraph{쿨루프 반사율} 지붕면의 태양 반사율. 쿨루프(Cool Roof)시공이 적용된 경우에만 입력한다.
+
+\paragraph{창문 개수} 해당 면에 연결된 창문의 개수를 의미하며, 사용자 입력값이 아닌, 입력된 정보에 기반하여 자동으로 산정되는 값이다.
+
+\paragraph{문 개수} 해당 면에 연결된 문의 개수를 의미하며, 사용자 입력값이 아닌, 입력된 정보에 기반하여 자동으로 산정되는 값이다.
+
+
+
+
+\subsubsection{개구부} \label{subsubsection:ioref:fenestration}
+개구부. 벽체의 열린 부분을 의미하며, 창, 문(유리문, 방화문 등) 등 외기와의 접촉 또는 채광·환기를 목적으로 설치된 요소를 포함한다.
 
 
 \jsontable{building}{
-  \jsontablerow{name                 }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
-  \jsontablerow{north_axis           }{\TypeTag{F}}{\ReqTag{R}}{}{}{[0,360)}{deg(^\circ)}
-  \jsontablerow{address              }{\TypeTag{S}}{\ReqTag{R}}{}{}{\needtobeexplain}{}
-  \jsontablerow{vintage              }{[ \TypeTag{I} ]}{\ReqTag{R}}{}{}{[3,3]}{}
-  \jsontablerow{num_aboveground_floor}{\TypeTag{I}}{\ReqTag{R}}{}{}{[1, $Inf$)}{}
-  \jsontablerow{num_underground_floor}{\TypeTag{I}}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
-  \jsontablerow{floors               }{[ \hyperref[subsubsection:ioref:floor]{\texttt{floor}} ]}{}{}{}{[1, $Inf$)}{}
   \jsontablerow{supply_systems       }{[ \hyperref[subsubsection:ioref:supplysystem]{\texttt{supply\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
   \jsontablerow{source_systems       }{[ \hyperref[subsubsection:ioref:sourcesystem]{\texttt{source\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
   \jsontablerow{ventilation_systems  }{[ \hyperref[subsubsection:ioref:ventilationsystem]{\texttt{ventilation\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
@@ -443,49 +496,12 @@ run_grjson(
 
 
 
-\subsubsection{면} \label{subsubsection:ioref:surface}
-존과 존, 외부 (외기 또는 지면), 또는 단열선 사이의 면(벽체)이다. 하나의 실은 \texttt{zone}을 인접존으로 하는 \texttt{surface}를 포함하여, 1개 이상의 천장(\texttt{type} = ``ceiling''), 1개 이상의 바닥(\texttt{type} = ``floor'') 및 1개 이상의 벽체(\texttt{type} = ``wall'')를 필요로 한다.
 
 
 \jsontable{surface}{
-  \jsontablerow{id                  }{\TypeTag{S}}{\ReqTag{R} }{}{}{}{}
-  \jsontablerow{name                }{\TypeTag{S}}{\ReqTag{R} }{}{}{}{}
-  \jsontablerow{type                }{\TypeTag{E}}{\ReqTag{R} }{}{}{\shortstack[c]{floor \\ wall \\ ceiling}}{}
-  \jsontablerow{boundary_condition  }{\TypeTag{E}}{\ReqTag{R} }{}{}{\shortstack[c]{outdoors \\zone \\ ground \\ adiabatic}}{}
-  \jsontablerow{area                }{\TypeTag{F}}{\ReqTag{R} }{}{}{(0,$Inf$)}{m^2}
-  \jsontablerow{azimuth             }{\TypeTag{F}}{\ReqTag{CR} }{}{\texttt{type} = ``wall'' \newline AND \newline \texttt{boundary\_condition} = ``outdoors''}{[0,360)}{deg(^\circ)}
-  \jsontablerow{adjacent_zone_id    }{\TypeTag{S}}{\ReqTag{CR}}{}{\texttt{boundary\_condition} = ``zone''}{\hyperref[subsubsection:ioref:zone]{\texttt{zone}}의 \texttt{id}}{}
-  \jsontablerow{construction_id     }{\TypeTag{S}}{\ReqTag{R}}{}{}{\hyperref[subsubsection:ioref:construction]{\texttt{construction}}의 \texttt{id} \newline ``open'' \newline ``unknown''}{}
-  \jsontablerow{coolroof_reflectance}{\TypeTag{F}}{\ReqTag{CO}}{}{\texttt{type} = ``ceiling'' \newline AND \newline \texttt{boundary\_condition} = ``outdoors''}{(0,1]}{1}
   \jsontablerow{fenestrations       }{[ \hyperref[subsubsection:ioref:fenestration]{\texttt{fenestration}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
 }
 
-\paragraph{id} 면의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
-
-\paragraph{name} 사용자 편의를 위해 제공되는 면 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
-
-\paragraph{type} 면의 유형. 천장(``ceiling''), 바닥(``floor''), 벽체(``wall'')로 구분된다. 유형이 바닥(``floor'')인 면의 면적은 해당 \texttt{zone}의 면적에 포함되며, 유형이 천장(``ceiling'')인 면은 경계조건이 외기(``outdoors'')인 경우 쿨루프 적용이 가능하다.
-
-\paragraph{boundary\_condition} 면의 경계조건. 일사와 바람의 영향을 받고 외기와 열교환을 하는 외기(``outdoors''), 다른 \texttt{zone}과 열교환을 하는 존(``zone''), 지면과 열교환을 하는 지면(``ground''), 어떠한 열교환도 하지 않고 축열의 역할만 담당하는 단열(``adiabatic'')로 구분된다 (Figure \ref{fig:surface_bo_description}).
-
-\begin{defaultfigure}
-  \includegraphics[width=0.8\textwidth]{면 경계조건 예시.png}
-  \caption{면의 경계조건 예시}
-  \label{fig:surface_bo_description}
-\end{defaultfigure}
-
-\paragraph{area} 면적. 해당 면에 개구부(예:창, 문 등)가 존재하는 경우, 이들의 면적을 포함한 전체 면적을 의미한다.
-
-\paragraph{azimuth} 면의 방위각. 기준은 북향을 0$^\circ$로 하며, 반시계 방향으로 증가한다. 예를들어, 서향은 90$^\circ$, 남향은 180$^\circ$, 동쪽은 270$^\circ$로 정의한다.
-
-\paragraph{adjacent\_zone\_id} 인접존 ID. 면의 경계조건을 ``zone''으로 설정한 경우에만 입력한다.
-
-\paragraph{construction\_id} 구조체 ID. 
-
-\paragraph{coolroof\_reflectance} 지붕면의 태양 반사율. 쿨루프(Cool Roof)시공이 적용된 경우에만 입력한다.
-
-\subsubsection{fenestration} \label{subsubsection:ioref:fenestration}
-개구부. 벽체의 열린 부분을 의미하며, 창, 문(유리문, 방화문 등) 등 외기와의 접촉 또는 채광·환기를 목적으로 설치된 요소를 포함한다.
 
 \jsontable{fenestration}{
   \jsontablerow{id             }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
@@ -541,7 +557,7 @@ run_grjson(
   \label{fig:supply_and_source_properties_and_connection}
 \end{defaultfigure}
 
-\subsubsection{source\_system} \label{subsubsection:ioref:sourcesystem}
+\subsubsection{생산설비} \label{subsubsection:ioref:sourcesystem}
 건물에 존재하는 생산설비이다.
 
 \jsontable{source\_system}{
@@ -593,7 +609,7 @@ run_grjson(
 
 \paragraph{efficiency} 보일러의 효율.
 
-\subsubsection{ventilation\_system} \label{subsubsection:ioref:ventilationsystem}
+\subsubsection{환기설비} \label{subsubsection:ioref:ventilationsystem}
 
 
 \jsontable{ventilation\_system}{
@@ -611,7 +627,7 @@ run_grjson(
 
 \paragraph{efficiency\_heating} 유효 난방 전열교환 효율.
 
-\subsubsection{photovoltaic\_system} \label{subsubsection:ioref:photovoltaicsystem}
+\subsubsection{PV패널} \label{subsubsection:ioref:photovoltaicsystem}
 태양광 발전 설비.
 
 \jsontable{photovoltaic\_system}{
@@ -641,7 +657,7 @@ run_grjson(
 
 \paragraph{tilt} 패널의 경사각. 0$^\circ$는 수평면, 90$^\circ$는 수직면을 의미한다.
 
-\subsubsection{material} \label{subsubsection:ioref:material}
+\subsubsection{재료} \label{subsubsection:ioref:material}
 
 \jsontable{material}{
   \jsontablerow{id           }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
@@ -661,7 +677,7 @@ run_grjson(
 
 \paragraph{specific\_heat} 비열. 재료의 단위 질량이 1K 상승할 때 필요한 열량을 나타낸다.
 
-\subsubsection{surface\_construction} \label{subsubsection:ioref:construction}
+\subsubsection{구조체} \label{subsubsection:ioref:construction}
 
 \jsontable{surface\_construction}{
   \jsontablerow{id    }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
