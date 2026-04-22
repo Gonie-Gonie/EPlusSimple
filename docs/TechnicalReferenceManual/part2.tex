@@ -552,7 +552,7 @@ run_grjson(
 
 \paragraph{냉방COP} 정격 냉방 성능계수(COP). 정격 운전 조건에서의 냉방 출력을 소비 전력으로 나눈 값이다. 공급설비의 유형을 ``패키지에어컨''으로 선택한 경우에만 입력한다.
 
-\paragraph{냉방용량} 설비의 최대 냉방 출력을 의미한다. 해당 값을 입력하지 않을 경우 (\texttt{null}), EnergyPlus의 autosizing을 이용한다. \footnote{Autosizing은 설계일(design day) 조건에서의 피크 냉방부하를 기준으로, 
+\paragraph{냉방용량} 설비의 최대 냉방 출력을 의미한다. 해당 값을 입력하지 않을 경우 (\texttt{null}), EnergyPlus의 autosizing을 이용한다.\footnote{Autosizing은 설계일(design day) 조건에서의 피크 냉방부하를 기준으로, 
 설비가 해당 부하를 만족할 수 있도록 용량을 자동으로 산정하는 방법이다. 
 냉방 설계일은 일반적으로 ASHRAE 기준에 따른 연간 0.4\% 빈도 조건의 고온 기상 데이터를 사용한다.} 공급설비의 유형을 ``패키지에어컨''로 선택한 경우에만 입력한다.
 
@@ -571,54 +571,66 @@ run_grjson(
 \subsubsection{생산설비} \label{subsubsection:ioref:sourcesystem}
 건물에 존재하는 생산설비이다.
 
-\jsontable{source\_system}{
-  \jsontablerow{id                   }{\TypeTag{S}}{\ReqTag{R} }{}{}{}{}
-  \jsontablerow{name                 }{\TypeTag{S}}{\ReqTag{R} }{}{}{}{}
-  \jsontablerow{type                 }{\TypeTag{E}}{\ReqTag{R} }{}{}{\shortstack[c]{ heatpump \\ geothermal\_heatpump \\ chiller \\ absorption\_chiller \\ boiler \\ district\_heating}}{}
-  \jsontablerow{fuel_type            }{\TypeTag{E}}{\ReqTag{CR} }{}{\texttt{type} $\neq$ ``district\_heating''}{\shortstack[c]{electricity \\ natural\_gas \\ oil \\ district\_heating}}{}
-  \jsontablerow{compressor_type      }{\TypeTag{E}}{\ReqTag{CR}}{}{\texttt{type} = ``chiller''}{\shortstack[c]{ turbo \\ screw \\ reciporating}}{}
-  \jsontablerow{coolingtower_type    }{\TypeTag{E}}{\ReqTag{CR}}{}{\texttt{type} = ``chiller''}{\shortstack[c]{ closed \\ open}}{}
-  \jsontablerow{coolingtower_control }{\TypeTag{E}}{\ReqTag{CR}}{}{\texttt{type} = ``chiller''}{\shortstack[c]{single-speed \\ two-speed}}{}
-  \jsontablerow{hotwater_supply      }{\TypeTag{B}}{\ReqTag{CR}}{}{\texttt{type} = ``boiler'' OR ``district\_heating''}{}{}
-  \jsontablerow{coolingtower_capacity}{\TypeTag{F}}{\ReqTag{CO}}{\texttt{null}}{\texttt{type} = ``chiller''}{(0, $Inf$)}{W}
-  \jsontablerow{boiler_efficiency    }{\TypeTag{F}}{\ReqTag{CO}}{0.85}{\texttt{type} = ``absorption\_chiller''}{(0,1)}{1}
-  \jsontablerow{capacity_cooling     }{\TypeTag{F}}{\ReqTag{CO}}{\texttt{null}}{\texttt{type} = ``chiller'' OR ``heatpump'' OR ``geothermal\_heatpump'' OR ``absorption\_chiller''}{(0,$Inf$)}{W}
-  \jsontablerow{capacity_heating     }{\TypeTag{F}}{\ReqTag{CO}}{\texttt{null}}{\texttt{type} = ``heatpump'' OR ``geothermal\_heatpump'' OR ``boiler''}{(0,$Inf$)}{W}
-  \jsontablerow{cop_cooling          }{\TypeTag{F}}{\ReqTag{CO}}{3.0}{\texttt{type} = ``heatpump'' OR ``geothermal\_heatpump'' OR ``chiller'' OR ``absorption\_chiller''}{(0,$Inf$)}{W/W}
-  \jsontablerow{cop_heating          }{\TypeTag{F}}{\ReqTag{CO}}{3.0}{\texttt{type} = ``heatpump'' OR ``geothermal\_heatpump''}{(0,$Inf$)}{W/W}
-  \jsontablerow{efficiency           }{\TypeTag{F}}{\ReqTag{CO}}{0.85}{\texttt{type} = ``boiler''}{(0,1)}{1}
-}
-
-\paragraph{id} 생산설비의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
-
-\paragraph{name} 사용자 편의를 위해 제공되는 생산설비 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
-
-\paragraph{type} 생산설비의 종류. 공급설비에 열을 제공하는 기기의 종류를 선택하며, 선택가능한 유형은 히트펌프(``heatpump''), 지열 히트펌프(``geothermal\_heatpump''), 칠러(``chiller''), 흡수식 칠러(``absorption\_chiller''), 보일러(``boiler''), 지역난방(``district\_heating'')이다.
-
-\paragraph{fuel\_type} 연료의 종류. 생산설비의 사용 연료를 의미하며, 선택 가능한 항목은 전기(``electricity''), 천연가스/가스(``natural\_gas''), 난방유(``oil''), 지역난방(``district\_heating'')이다.
 
 
-\paragraph{compressor\_type} 압축기의 종류. 
 
-\paragraph{coolingtower\_type} 냉각탑의 종류. 
+\renewcommand{\arraystretch}{1.4}
+\begin{table}[h]
+  \caption{생산 설비 클래스의 속성들}
+  \label{tbl:sourcesystem_info}  
+  \centering
+  \begin{tabular}{lcccccc}
+    \toprule
+    변수명 & 타입 & 필수 & 기본값 & 조건 & 범위/길이/선택지 & 단위\\ \midrule
+    이름 & \TypeTag{S} & \InputTag{R} & - & - & - & -\\
+    유형  & \TypeTag{E} & \InputTag{R} & - & - & \makecell[c]{히트펌프 \\ 지열히트펌프 \\ 냉동기 \\ 흡수식냉동기 \\ 지역난방 \\ 보일러 } & -\\
+    냉방COP & \TypeTag{F} & \ReqTag{CO} & 3.0 & \makecell[c]{유형 = `냉동기' \\ OR \\ `히트펌프' \\OR \\ `지열히트펌프' \\OR \\ `흡수식냉동기'} & (0,Inf) & W/W \\
+    냉방용량 & \TypeTag{F} & \ReqTag{CO} & null & \makecell[c]{유형 = `냉동기' \\ OR \\ `히트펌프' \\OR \\ `지열히트펌프' \\OR \\ `흡수식냉동기' } &  (0,Inf) & W \\
+    난방COP & \TypeTag{F} & \ReqTag{CO} & 3.0 & \makecell[c]{유형 = `히트펌프' \\OR \\ `지열히트펌프'} & (0,Inf) & W/W \\
+    난방용량 & \TypeTag{F} & \ReqTag{CR} & null & \makecell[c]{유형 = `히트펌프' \\ OR \\ `지열히트펌프' \\ OR \\ `보일러'}  &  (0,Inf) & W \\
+    효율 & \TypeTag{F} & \ReqTag{CO} & 0.85 & 유형 = `보일러' & (0,1) & - \\ 
+    급탕용 & \TypeTag{B} & \ReqTag{CR} & - & \makecell[c]{유형 = `보일러' \\ OR \\ 지역난방} & (0,Inf) &  - \\
+    연료종류 & \TypeTag{E} & \ReqTag{CR} & 3.0 & 유형 $\neq$ `지역난방' & \makecell[c]{전기 \\ 가스 \\ 난방유 \\ 지역난방} & - \\
+    압축기 종류 & \TypeTag{E} & \InputTag{R} & - & 유형 = `냉동기' & \makecell[c]{터보식 \\ 스크류식 \\ 왕복동식} & - \\
+    냉각탑 종류 & \TypeTag{E} & \ReqTag{CR} & - & 유형 = `냉동기' & \makecell[c]{개방형 \\ 밀폐형} & - \\
+    냉각탑 용량 & \TypeTag{F} & \ReqTag{CO} & null & 유형 = `냉동기' & (0,Inf) & W \\
+    냉각탑 제어방식 & \TypeTag{E} & \ReqTag{CR} & - & 유형 = `냉동기' & \makecell[c]{single-speed \\ two-speed} & - \\
+    연동보일러 효율 & \TypeTag{F} & \ReqTag{CO} & 0.85 & 유형 = `흡수식냉동기' & (0,1) & - \\
+  \end{tabular}
+\end{table}
 
-\paragraph{coolingtower\_control} 냉각탑에 적용된 제어. 
 
-\paragraph{hotwater\_supply} 급탕공급 여부. 급탕을 공급하는 모든 생산설비들은 급탕효율 계산에 이용되며, 모든 설비가 동등하게 급탕 부하를 분담하는 것으로 가정한다.
+\paragraph{이름} 사용자 편의를 위해 제공되는 생산설비 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
 
-\paragraph{coolingtower\_capacity} 냉각탑용량. 해당 값을 입력하지 않을 경우 (\texttt{null}) EnergyPlus의 autosizing을 이용한다.
+\paragraph{유형} 생산설비의 종류. 공급설비에 열을 제공하는 기기의 종류를 선택하며, 선택가능한 유형은 히트펌프(``heatpump''), 지열 히트펌프(``geothermal\_heatpump''), 칠러(``chiller''), 흡수식 칠러(``absorption\_chiller''), 보일러(``boiler''), 지역난방(``district\_heating'')이다.
 
-\paragraph{boiler\_efficiency} 연동된 보일러의 효율.
+\paragraph{냉방COP} 정격 냉방성능계수(COP). 정격 운전 조건에서의 냉방 출력을 소비 전력으로 나눈 값이다.
 
-\paragraph{capacity\_cooling} 냉방용량. 해당 값을 입력하지 않을 경우 (\texttt{null}) EnergyPlus의 autosizing을 이용한다.
+\paragraph{냉방용량} 해당 값을 입력하지 않을 경우 (\texttt{null}) EnergyPlus의 autosizing을 이용한다.
 
-\paragraph{capacity\_heating} 난방용량. 해당 값을 입력하지 않을 경우 (\texttt{null}) EnergyPlus의 autosizing을 이용한다.
+\paragraph{난방COP} 정격 난방성능계수(COP). 정격 운전 조건에서의 난방 출력을 소비 전력으로 나눈 값이다.
 
-\paragraph{cop\_cooling} 정격 냉방성능계수(COP). 정격 운전 조건에서의 냉방 출력을 소비 전력으로 나눈 값이다.
+\paragraph{난방용량} 해당 값을 입력하지 않을 경우 (\texttt{null}) EnergyPlus의 autosizing을 이용한다.
 
-\paragraph{cop\_heating} 정격 난방성능계수(COP). 정격 운전 조건에서의 난방 출력을 소비 전력으로 나눈 값이다.
+\paragraph{효율} 보일러의 효율.
 
-\paragraph{efficiency} 보일러의 효율.
+\paragraph{급탕용} 급탕공급 여부. 급탕을 공급하는 모든 생산설비들은 급탕효율 계산에 이용되며, 모든 설비가 동등하게 급탕 부하를 분담하는 것으로 가정한다.
+
+\paragraph{연료종류} 연료의 종류. 생산설비의 사용 연료를 의미하며, 선택 가능한 항목은 전기(``electricity''), 천연가스/가스(``natural\_gas''), 난방유(``oil''), 지역난방(``district\_heating'')이다.
+
+\paragraph{압축기 종류} 냉동기의 냉매를 압축하는 방식에 따른 압축기의 유형을 의미한다. 
+원심력을 이용하는 \texttt{터보식}, 나사형 로터의 회전에 의해 압축하는 \texttt{스크류식}, 
+피스톤의 왕복 운동에 의해 압축하는 \texttt{왕복동식} 중 선택하여 입력한다.
+
+\paragraph{냉각탑 종류} 냉각탑의 열교환 방식에 따른 유형을 의미한다. 
+냉각수가 외기와 직접 접촉하는 \texttt{개방형}과, 
+열교환기를 통해 간접적으로 열을 교환하는 \texttt{밀폐형} 중 선택하여 입력한다.
+
+\paragraph{냉각탑 용량} 해당 값을 입력하지 않을 경우 (\texttt{null}) EnergyPlus의 autosizing을 이용한다.
+
+\paragraph{냉각탑 제어방식} 냉각탑에 적용된 제어. 
+
+\paragraph{연동보일러 효율} 연동된 보일러의 효율.
 
 \subsubsection{환기설비} \label{subsubsection:ioref:ventilationsystem}
 
