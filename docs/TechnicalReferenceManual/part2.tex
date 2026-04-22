@@ -353,7 +353,7 @@ run_grjson(
 \label{subsubsection:ioref:zone}
 건물에서 하나의 실, 또는 같은 열적 특성(유사한 용도, 공통 설비 등)을 공유하는 서로 연결된 여러 실을 모사하는 최소 단위이다.
 
-
+\renewcommand{\arraystretch}{1.4}
 \begin{table}[ht]
   \caption{실 클래스의 속성들}
   \label{tbl:zone_info}  
@@ -364,13 +364,13 @@ run_grjson(
     층 & \TypeTag{I} & \InputTag{R} & 0 & - & - & -\\
     천정고 & \TypeTag{F} & \InputTag{R} & - & - & (0,Inf) & m \\
     이름  & \TypeTag{S} & \InputTag{R} & - & - & - & -\\
-    용도프로필 & \TypeTag{S} & \InputTag{R} & - & - & 상세설명참고 & -\\
+    용도프로필 & \TypeTag{E} & \InputTag{R} & - & - & 상세설명참고 & -\\
     현장조사프로필 & \TypeTag{S} & \InputTag{R} & - & - & 상세설명참고 & -\\
     조명밀도 & \TypeTag{F} & \InputTag{R} & - & - & [0,Inf) & W/m$^2$\\
     침기율 & \TypeTag{F} & \InputTag{R} & - & - & [0,Inf) & ACH50 \\
     난방 공급 설비 & \TypeTag{S} & \InputTag{R} & - & - &  {\hyperref[subsubsection:ioref:supplysystem]{\texttt{난방 공급 설비}}의 \texttt{이름}} & -\\
     냉방 공급 설비 & \TypeTag{S} & \InputTag{R} & - & - & {\hyperref[subsubsection:ioref:supplysystem]{\texttt{냉방 공급 설비}}의 \texttt{이름}} & -\\
-    환기 설비 & \TypeTag{I} & \InputTag{R} & - & - & {\hyperref[subsubsection:ioref:ventilationsystem]{\texttt{환기 설비}}의 \texttt{이름}} & -\\
+    환기 설비 & \TypeTag{S} & \InputTag{R} & - & - & {\hyperref[subsubsection:ioref:ventilationsystem]{\texttt{환기 설비}}의 \texttt{이름}} & -\\
     면 개수 & - & \InputTag{D} & - & - & - & 개 \\
     바닥 면적 & - & \InputTag{D} & - & - & - & m$^2$\\
     \bottomrule
@@ -505,78 +505,68 @@ run_grjson(
   \end{tabular}
 \end{table}
 
+\paragraph{이름} 사용자 편의를 위해 제공되는 개구부 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
+
+\paragraph{소속 면} 각 개구부가 귀속된 면의 이름.
+
+\paragraph{유형} 개구부의 유형.
+유리창(``window''), 유리문(``glassdoor''), 또는 유리가 아닌 일반 문(``door'', 예: 방화문, 나무문 등)으로 구분된다.
 
 
-\jsontable{building}{
-  \jsontablerow{supply_systems       }{[ \hyperref[subsubsection:ioref:supplysystem]{\texttt{supply\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
-  \jsontablerow{source_systems       }{[ \hyperref[subsubsection:ioref:sourcesystem]{\texttt{source\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
-  \jsontablerow{ventilation_systems  }{[ \hyperref[subsubsection:ioref:ventilationsystem]{\texttt{ventilation\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
-  \jsontablerow{photovoltaic_systems }{[ \hyperref[subsubsection:ioref:photovoltaicsystem]{\texttt{photovoltaic\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
-}
+\paragraph{면적} 개구부의 면적.
+해당 개구부가 속한 면의 면적보다 작아야 한다.
+
+\paragraph{구조체 이름} 개구부에 적용되는 구조체를 의미한다. 
+\texttt{유형}이 ``window'' 또는 ``glassdoor''인 경우, {\hyperref[subsubsection:ioref:fenestrationconstruction]{\texttt{개구부 구조체}}}의 \texttt{투명여부} 속성값은 \texttt{투명} 이어야 한다.
+\texttt{유형}이 ``door''인 경우, \texttt{투명여부} 속성값은 \texttt{불투명}이어야 한다.
+
+\paragraph{블라인드} 블라인드 설치 여부. 값이 \texttt{null} 혹은 \texttt{FALSE}이면 블라인드가 없는 것을 의미하며, 값이 \texttt{TRUE}이면 EnergyPlus의 기본 shade가 적용된다. 
 
 
-
-
-
-
-\jsontable{surface}{
-  \jsontablerow{fenestrations       }{[ \hyperref[subsubsection:ioref:fenestration]{\texttt{fenestration}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
-}
-
-
-\jsontable{fenestration}{
-  \jsontablerow{id             }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
-  \jsontablerow{name           }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
-  \jsontablerow{type           }{\TypeTag{E}}{\ReqTag{R}}{}{}{\shortstack[c]{window \\ door \\ glassdoor}}{}
-  \jsontablerow{area           }{\TypeTag{F}}{\ReqTag{R}}{}{}{(0,$Inf$)}{m^2}
-  \jsontablerow{construction_id}{\TypeTag{S}}{\ReqTag{R}}{}{}{\hyperref[subsubsection:ioref:fenestrationconstruction]{\texttt{fenewtration\_construction}}의 \texttt{id}}{}
-  \jsontablerow{blind          }{\TypeTag{E}}{\ReqTag{O}}{\texttt{null}}{}{\shortstack[c]{ venetian \\ shade}}{}
-}
-
-\paragraph{id} 개구부의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
-
-\paragraph{name} 사용자 편의를 위해 제공되는 개구부 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
-
-\paragraph{type} 개구부의 유형. 유리창(``window''), 유리문(``glassdoor''), 또는 유리가 아닌 일반 문(``door'', 예: 방화문, 나무문 등)으로 구분된다.
-
-\paragraph{area} 개구부의 면적. 해당 개구부가 속한 면의 면적보다 작아야 한다.
-
-\paragraph{construction\_id} 개구부의 구조체. \texttt{type}이 ``window'' 또는 ``glassdoor''인 경우, \texttt{is\_transparent} 속성이 \texttt{True}인 구조체여야 한다. 반대로, \texttt{type}이 ``door''인 경우, \texttt{is\_transparent} 속성이 \texttt{False}인 구조체여야 한다
-
-\paragraph{blind} 블라인드의 종류. 값이 \texttt{null}이면 블라인드가 없는 것을 의미한다.
 
 \subsubsection{공급 설비} \label{subsubsection:ioref:supplysystem}
 각 존에 존재하는 말단 공급설비이다. 
 
-\jsontable{supply\_system}{
-  \jsontablerow{id              }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
-  \jsontablerow{name            }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
-  \jsontablerow{type            }{\TypeTag{E}}{\ReqTag{R}}{}{}{\shortstack[c]{ packaged\_air\_conditioner \\ air\_handling\_unit \\ fan\_coil\_unit \\ radiator \\ electric\_radiator \\ radiant\_floor}}{}
-  \jsontablerow{cop_cooling     }{\TypeTag{F}}{\ReqTag{CR}}{3.0}{\texttt{type} = ``packaged\_air\_conditioner''}{(0,$Inf$)}{W/W}
-  \jsontablerow{capacity_cooling}{\TypeTag{F}}{\ReqTag{CR}}{\texttt{null}}{\texttt{type} = ``packaged\_air\_conditioner''}{(0,$Inf$)}{W}
-  \jsontablerow{capacity_heating}{\TypeTag{F}}{\ReqTag{CR}}{\texttt{null}}{\texttt{type} = ``radiator'' OR ``electric\_radiator''}{(0,$Inf$)}{W}
-  \jsontablerow{source_system_id}{\TypeTag{S}}{\ReqTag{CR}}{}{}{\hyperref[subsubsection:ioref:sourcesystem]{\texttt{source\_system}}의 \texttt{id}}{}
-}
 
-\paragraph{id} 공급설비의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
+\renewcommand{\arraystretch}{1.4}
+\begin{table}[ht]
+  \caption{공급 설비 클래스의 속성들}
+  \label{tbl:supplysystem_info}  
+  \centering
+  \begin{tabular}{lcccccc}
+    \toprule
+    변수명 & 타입 & 필수 & 기본값 & 조건 & 범위/길이/선택지 & 단위\\ \midrule
+    이름 & \TypeTag{S} & \InputTag{R} & - & - & - & -\\
+    유형  & \TypeTag{E} & \InputTag{R} & - & - & \makecell[c]{패키지에어컨 \\ 공조기 \\ 팬코일유닛 \\ 방열기 \\ 전기방열기 \\ 바닥난방} & -\\
+    냉방COP & \TypeTag{F} & \ReqTag{CR} & 3.0 & 유형 = `패키지에어컨' & (0,Inf) & W/W \\
+    냉방용량 & \TypeTag{F} & \ReqTag{CR} & null & 유형 = `패키지에어컨' &  (0,Inf) & W \\
+    난방용량 & \TypeTag{F} & \ReqTag{CR} & null & \makecell[c]{유형 = `방열기' \\ OR \\ `전기방열기'}  &  (0,Inf) & W \\
+    생산설비명 & \TypeTag{S} & \ReqTag{CR} & - & - & \makecell[c]{\hyperref[subsubsection:ioref:sourcesystem]{\texttt{생산설비}}의 \texttt{이름}} & -\\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
-\paragraph{name} 사용자 편의를 위해 제공되는 공급설비 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
+\paragraph{이름} 사용자 편의를 위해 제공되는 공급설비 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
 
-\paragraph{type} 공급설비의 종류. 선택한 공급설비 유형에 따라 냉·난방 제공 가능 여부가 달라진다. 각 공급설비별 냉·난방 지원 가능 여부는 Figure \ref{fig:supply_and_source_properties_and_connection}에 제시되어 있다.
+\paragraph{유형} 공급설비의 종류. 선택한 공급설비 유형에 따라 냉·난방 제공 가능 여부가 달라진다. 각 공급설비별 냉·난방 지원 가능 여부는 Figure \ref{fig:supply_and_source_properties_and_connection}에 제시되어 있다.
 
-\paragraph{cop\_cooling} 정격 냉방 성능계수(COP). 정격 운전 조건에서의 냉방 출력을 소비 전력으로 나눈 값이다. 공급설비의 유형을 ``packaged\_airconditioner''로 선택한 경우에만 입력한다.
+\paragraph{냉방COP} 정격 냉방 성능계수(COP). 정격 운전 조건에서의 냉방 출력을 소비 전력으로 나눈 값이다. 공급설비의 유형을 ``패키지에어컨''으로 선택한 경우에만 입력한다.
 
-\paragraph{capacity\_cooling} 냉방용량. 설비의 최대 냉방 출력을 의미한다. 해당 값을 입력하지 않을 경우 (\texttt{null}), EnergyPlus의 autosizing을 이용한다. 공급설비의 유형을 ``packaged\_airconditioner''로 선택한 경우에만 입력한다.
+\paragraph{냉방용량} 설비의 최대 냉방 출력을 의미한다. 해당 값을 입력하지 않을 경우 (\texttt{null}), EnergyPlus의 autosizing을 이용한다. \footnote{Autosizing은 설계일(design day) 조건에서의 피크 냉방부하를 기준으로, 
+설비가 해당 부하를 만족할 수 있도록 용량을 자동으로 산정하는 방법이다. 
+냉방 설계일은 일반적으로 ASHRAE 기준에 따른 연간 0.4\% 빈도 조건의 고온 기상 데이터를 사용한다.} 공급설비의 유형을 ``패키지에어컨''로 선택한 경우에만 입력한다.
 
-\paragraph{capacity\_heating} 난방용량. 설비의 최대 난방 출력을 의미한다. 해당 값을 입력하지 않을 경우 (\texttt{null}), EnergyPlus의 autosizing을 이용한다. 공급설비의 유형을 ``radiator''혹은 ``electric\_radiator''로 선택한 경우에만 입력한다.
 
-\paragraph{source\_system\_id} 연결된 생산설비의 ID. 연결가능한 생산설비는 Figure \ref{fig:supply_and_source_properties_and_connection}\와 같다.
+\paragraph{난방용량} 설비의 최대 난방 출력을 의미한다. 해당 값을 입력하지 않을 경우 (\texttt{null}), EnergyPlus의 autosizing을 이용한다. 공급설비의 유형을 ``방열기''혹은 ``전기 방열기''로 선택한 경우에만 입력한다.
+
+\paragraph{생산설비} 공급설비와 연결된 생산설비의 이름. 연결가능한 생산설비는 \cref{fig:supply_and_source_properties_and_connection}\와 같다.
 
 \begin{defaultfigure}
   \includegraphics[width=\textwidth]{HVAC_properties_and_connectables.png}
   \caption{공급 및 생산설비 종류에 따른 요구 속성 및 연결 가능성 (적색 선은 난방, 청색 선은 냉방이 가능함을 의미하며, packaged\_air\_conditioner와 electric\_radiator는 생산설비의 연결을 요구하지 않는다.)}
   \label{fig:supply_and_source_properties_and_connection}
 \end{defaultfigure}
+
 
 \subsubsection{생산설비} \label{subsubsection:ioref:sourcesystem}
 건물에 존재하는 생산설비이다.
