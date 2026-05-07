@@ -282,6 +282,61 @@ def parse_gas_ignore(masterdict: dict) -> tuple[bool, bool, bool]:
         for prefix in SCENARIO_PREFIXES
     )
 
+def _draw_monthly_value_table(
+    ax: plt.Axes,
+    values_3x12: np.ndarray,
+    digits: int = 1,
+    fontsize: float = 8.2,
+) -> None:
+    """
+    values_3x12[0, :] = GR 이전
+    values_3x12[1, :] = GR 이후
+    values_3x12[2, :] = 운영특성 반영
+    """
+    ax.axis("off")
+
+    row_labels = ["이전", "이후", "운영"]
+    month_labels = [f"{m}월" for m in range(1, 13)]
+
+    cell_text = [
+        [f"{v:.{digits}f}" for v in row]
+        for row in values_3x12
+    ]
+
+    # month 열 폭은 약간 줄이고, row label(인덱스) 쪽은 별도 폭 확보
+    table = ax.table(
+        cellText=cell_text,
+        rowLabels=row_labels,
+        colLabels=month_labels,
+        cellLoc="center",
+        rowLoc="center",
+        colLoc="center",
+        loc="center",
+        bbox=[0.00, 0.06, 1.00, 0.88],
+        colWidths=[0.070] * 12,
+    )
+
+    table.auto_set_font_size(False)
+    table.set_fontsize(fontsize)
+    table.scale(1.0, 1.32)   # 표 세로 높이 확대
+
+    for (r, c), cell in table.get_celld().items():
+        cell.set_linewidth(0.35)
+        cell.PAD = 0.025
+        cell.get_text().set_clip_on(False)
+
+        if r == 0:
+            cell.set_facecolor("#F2F2F2")
+            cell.set_text_props(weight="bold")
+
+        if c == -1:
+            cell.set_width(0.11)
+            cell.set_facecolor("#F7F7F7")
+            cell.set_text_props(weight="bold")
+
+        if c >= 0:
+            cell.set_width(0.072)
+
 def _draw_monthly_stacked_bar(
     category_key: str,
     category_label: str,
@@ -290,65 +345,101 @@ def _draw_monthly_stacked_bar(
     grr_afterN: dict,
     datatype: str = "source_uses",
     gas_ignore: list[bool] | tuple[bool, bool, bool] | None = None,
-    ax: plt.Figure | None = None
-) -> plt.Figure:
-    """HTML의 월별 stacked bar (ex. 난방, 냉방 등)"""
+    ax: plt.Axes | None = None
+) -> np.ndarray:
+    """월별 stacked bar"""
+
+    if ax is None:
+        _, ax = plt.subplots()
 
     gas_ignore = _normalize_gas_ignore(gas_ignore)
     energy_types = _display_energy_types(gas_ignore)
+
     month_labels = np.arange(1, 13)
     bottom_before = np.zeros(12)
     bottom_after  = np.zeros(12)
     bottom_afterN = np.zeros(12)
 
     for et_key, et_label in energy_types:
-        bvals = _get_energy_values(grr_before[datatype].get(category_key, {}), et_key, gas_ignore[0])
-        avals = _get_energy_values(grr_after[datatype].get(category_key, {}), et_key, gas_ignore[1])
-        nvals = _get_energy_values(grr_afterN[datatype].get(category_key, {}), et_key, gas_ignore[2])
+        bvals = np.asarray(
+            _get_energy_values(
+                grr_before[datatype].get(category_key, {}),
+                et_key,
+                gas_ignore[0]
+            ),
+            dtype=float
+        )
+        avals = np.asarray(
+            _get_energy_values(
+                grr_after[datatype].get(category_key, {}),
+                et_key,
+                gas_ignore[1]
+            ),
+            dtype=float
+        )
+        nvals = np.asarray(
+            _get_energy_values(
+                grr_afterN[datatype].get(category_key, {}),
+                et_key,
+                gas_ignore[2]
+            ),
+            dtype=float
+        )
+
+        bvals = np.nan_to_num(bvals, nan=0.0)
+        avals = np.nan_to_num(avals, nan=0.0)
+        nvals = np.nan_to_num(nvals, nan=0.0)
 
         color = DEFAULT_COLORS_BEFORE[et_key]
 
-        ax.bar(month_labels - 0.25, bvals, width=0.25, bottom=bottom_before,
-               label=f"{et_label} (전)",
-               fc=color)
-        ax.bar(month_labels - 0.25, bvals, width=0.25, bottom=bottom_before,
-               ec=None, fc='none', zorder=5, lw=1.0)
-        
-        ax.bar(month_labels, avals, width=0.25, bottom=bottom_after,
-               label=f"{et_label} (후)",
-               ec=None, fc=color+'40', hatch='//////', lw=0.8)
-        ax.bar(month_labels, avals, width=0.25, bottom=bottom_after,
-               ec=None, fc='none', zorder=5, lw=1.0)
+        ax.bar(
+            month_labels - 0.25, bvals, width=0.25, bottom=bottom_before,
+            label=f"{et_label} (전)", fc=color
+        )
+        ax.bar(
+            month_labels - 0.25, bvals, width=0.25, bottom=bottom_before,
+            ec=None, fc="none", zorder=5, lw=1.0
+        )
 
-        ax.bar(month_labels + 0.25, nvals, width=0.25, bottom=bottom_afterN,
-               label=f"{et_label} (N)",
-               ec=None, fc=color+'40', zorder=5, lw=1.0)
+        ax.bar(
+            month_labels, avals, width=0.25, bottom=bottom_after,
+            label=f"{et_label} (후)",
+            ec=None, fc=color + "40", hatch="//////", lw=0.8
+        )
+        ax.bar(
+            month_labels, avals, width=0.25, bottom=bottom_after,
+            ec=None, fc="none", zorder=5, lw=1.0
+        )
+
+        ax.bar(
+            month_labels + 0.25, nvals, width=0.25, bottom=bottom_afterN,
+            label=f"{et_label} (N)",
+            ec=None, fc=color + "40", zorder=5, lw=1.0
+        )
 
         bottom_before += bvals
         bottom_after += avals
         bottom_afterN += nvals
 
-    ax.set_xticks(month_labels)
-    ax.set_xticklabels([f"{m}월" for m in month_labels])
-    ax.set_ylabel("(kWh/$\\mathrm{m^2\\cdot}$월)")
-    ax.set_title(f"{category_label}")
-    ax.grid(axis="y", linestyle="--", alpha=0.4)
-    # legend는 나중에 한 번에
-    # ax.legend(fontsize=8, ncols=2)
-    
-    # --- ylim 자동 여유 설정 ---
-    all_values = np.concatenate([
-        _get_energy_values(grr_before[datatype].get(category_key, {}), et_key, gas_ignore[0])
-        for et_key, _ in energy_types
-    ] + [
-        _get_energy_values(grr_after[datatype].get(category_key, {}), et_key, gas_ignore[1])
-        for et_key, _ in energy_types
-    ] + [
-        _get_energy_values(grr_afterN[datatype].get(category_key, {}), et_key, gas_ignore[2])
-        for et_key, _ in energy_types
+    monthly_totals = np.vstack([
+        bottom_before,
+        bottom_after,
+        bottom_afterN,
     ])
-    ymax = all_values.max() if len(all_values) > 0 else 0
-    ax.set_ylim(0, max(5, ymax * 1.15))  # 상단 15% 여유
+
+    ax.set_xticks(month_labels)
+    ax.set_xticklabels([f"{m}월" for m in month_labels], fontsize=9)
+    ax.tick_params(axis="y", labelsize=9)
+
+    ax.set_ylabel("(kWh/$\\mathrm{m^2\\cdot}$월)", fontsize=11)
+    ax.set_title(category_label, pad=10, fontsize=13, fontweight="bold")
+    ax.grid(axis="y", linestyle="--", alpha=0.4)
+    ax.margins(x=0.03)
+
+    ymax = monthly_totals.max() if monthly_totals.size > 0 else 0
+    ax.set_ylim(0, max(5, ymax * 1.12))
+
+    return monthly_totals
 
 
 def _draw_monthly_stacked_bars(
@@ -359,35 +450,90 @@ def _draw_monthly_stacked_bars(
     datatype: str = "source_uses",
     gas_ignore: list[bool] | tuple[bool, bool, bool] | None = None,
 ) -> None:
-    
+
     gas_ignore = _normalize_gas_ignore(gas_ignore)
     energy_types = _display_energy_types(gas_ignore)
-    axs = fig.subplots(3, 2)
 
-    # (1) 난방, 냉방, 조명, 팬/펌프/전열, 급탕, 발전량
+    fig.clear()
+    fig.set_constrained_layout(False)
+
+    # 기존보다 세로는 조금 줄이고, 가로는 조금 넓힘
+    fig.set_size_inches(11.6, 12.5)
+
+    # 각 블록 = [그래프, 표, spacer]
+    # 그래프 높이는 줄이고 표는 키움
+    gs = fig.add_gridspec(
+        nrows=9,
+        ncols=2,
+        height_ratios=[
+            2.35, 1.05, 0.28,
+            2.35, 1.05, 0.28,
+            2.35, 1.05, 0.28,
+        ],
+        left=0.065,
+        right=0.985,
+        top=0.93,
+        bottom=0.090,   # 핵심: 아래 여백 축소
+        wspace=0.18,
+        hspace=0.00,
+    )
+
     for cat_idx, (cat_key, cat_label) in enumerate(GRAPH_ORDER):
-        _draw_monthly_stacked_bar(
-            cat_key, cat_label, grr_before, grr_after, grr_afterN, datatype,
+        block = cat_idx // 2
+        col = cat_idx % 2
+
+        graph_row = block * 3
+        table_row = graph_row + 1
+
+        ax_graph = fig.add_subplot(gs[graph_row, col])
+        ax_table = fig.add_subplot(gs[table_row, col])
+
+        values_3x12 = _draw_monthly_stacked_bar(
+            cat_key,
+            cat_label,
+            grr_before,
+            grr_after,
+            grr_afterN,
+            datatype,
             gas_ignore=gas_ignore,
-            ax = axs.ravel()[cat_idx]
+            ax=ax_graph,
+        )
+
+        _draw_monthly_value_table(
+            ax_table,
+            values_3x12,
+            digits=1,      # 소수점 한자리
+            fontsize=8.2,  # 8pt 이상
         )
 
     handles = []
     labels = []
+
     for et_key, et_label in energy_types:
         for l_idx, label in enumerate(["GR 이전", "GR 이후", "운영특성 반영"]):
             color = DEFAULT_COLORS_BEFORE[et_key]
-            handles.append(Patch(ec=None, lw=0.8,
-                                 fc=[color, color+'40', color+'40'][l_idx],
-                                 hatch=[None, '//////', None][l_idx]))
+            handles.append(
+                Patch(
+                    ec=None,
+                    lw=0.8,
+                    fc=[color, color + "40", color + "40"][l_idx],
+                    hatch=[None, "//////", None][l_idx],
+                )
+            )
             labels.append(f"{et_label} {label}")
-
-    legend_ncol = 3
 
     fig.legend(
         handles=handles,
         labels=labels,
-        loc='outside lower center', ncol=legend_ncol,
+        loc="lower center",
+        bbox_to_anchor=(0.5, 0.018),  # 아래쪽에 두되
+        ncol=3,
+        fontsize=10.5,
+        frameon=True,
+        borderaxespad=0.2,
+        handletextpad=0.6,
+        columnspacing=1.6,
+        labelspacing=0.45,
     )
 
 
