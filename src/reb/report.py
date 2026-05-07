@@ -80,66 +80,106 @@ PALETTE = ['#e15759', '#4e79a7', '#F28e3b', '#b07aa1', '#FFC61E', '#00CD6C', '#A
 #                               FIGURE FUNCTIONS                               #
 # ---------------------------------------------------------------------------- #
 
+def _scenario_bar_style(et_key: str, scenario_idx: int) -> dict:
+    """
+    monthly stacked bars와 동일한 scenario 표현:
+    0: GR 이전       -> 원색
+    1: GR 이후       -> 연한색 + hatch
+    2: 운영특성 반영 -> 연한색
+    """
+    color = DEFAULT_COLORS_BEFORE[et_key]
+
+    return {
+        "ec": None,
+        "fc": [color, color + "40", color + "40"][scenario_idx],
+        "hatch": [None, "//////", None][scenario_idx],
+        "lw": 0.8,
+    }
+
+
 def draw_3step_bargraph(
-    title : str,
-    values: list[list[int|float]],
-    index : list[str],
+    title: str,
+    values: list[list[int | float]],
+    index: list[str],
     *,
     ylabel: str = "Value",
-    ax    : plt.Axes
-    ) -> None:
+    ax: plt.Axes,
+    scenario_style: bool = False,
+    show_legend: bool = True,
+) -> np.ndarray:
 
-    num_bars = len(values)
-    x_positions = range(num_bars) # [0, 1, 2]
-    width = 0.7  # 그룹이 아니므로 막대 폭을 넓게 설정
-    num_subbars = len(ENERGY_TYPES)
+    values_arr = np.asarray(values, dtype=float)
+
+    num_bars = values_arr.shape[0]
+    x_positions = np.arange(num_bars)
+
+    width = 0.7
+    num_subbars = values_arr.shape[1]
+    energy_types = ENERGY_TYPES[:num_subbars]
     subbar_width = width / num_subbars
 
-    for n, (pos, val) in enumerate(zip(x_positions, values)):
-        for et_idx, (et_key, et_label) in enumerate(ENERGY_TYPES):
+    for n, pos in enumerate(x_positions):
+        for et_idx, (et_key, et_label) in enumerate(energy_types):
             color = DEFAULT_COLORS_BEFORE[et_key]
-            subbar_pos = pos - subbar_width*(num_subbars/2-et_idx-0.5)
-            bar = ax.bar(subbar_pos, val[et_idx], width=subbar_width,
-                   ec=None, fc=color+'90', lw=1)
+            subbar_pos = pos - subbar_width * (num_subbars / 2 - et_idx - 0.5)
 
-    # --- 축 및 레이블 수정 ---
-    # x축 눈금 위치를 막대 위치(0, 1, 2)와 동일하게 설정
+            if scenario_style:
+                style = _scenario_bar_style(et_key, n)
+                ax.bar(
+                    subbar_pos,
+                    values_arr[n, et_idx],
+                    width=subbar_width,
+                    ec=style["ec"],
+                    fc=style["fc"],
+                    hatch=style["hatch"],
+                    lw=style["lw"],
+                    zorder=3,
+                )
+            else:
+                # 기존 draw_mainfigures fig2 유지
+                ax.bar(
+                    subbar_pos,
+                    values_arr[n, et_idx],
+                    width=subbar_width,
+                    ec=None,
+                    fc=color + "90",
+                    lw=1,
+                    zorder=3,
+                )
+
     ax.set_xticks(x_positions)
-    # x축 눈금 레이블을 index 리스트로 설정
     ax.set_xticklabels(index, fontsize=10)
-    
+
     ax.set_ylabel(ylabel)
-    ax.set_title(title, fontsize=11, y=1.1)
+    ax.set_title(title, fontsize=11, y=1.08, fontweight="bold")
     ax.grid(axis="y", linestyle="--", alpha=0.4)
     ax.set_axisbelow(True)
-    
-    # xlim을 막대 좌우로 0.5만큼 여유 있게 설정 (-0.5 ~ 2.5)
+
     ax.set_xlim(-0.5, num_bars - 0.5)
-    
-    # bar_label이 잘 보이도록 y축 상단에 15% 여유 공간 추가
-    max_value = max((max(val) if len(val) > 0 else 0) for val in values)
-    ax.set_ylim(top=max(1, max_value * 1.1))
-    
-    ax.legend(
-        fontsize=8,
-        handles=[
-            Patch(ec=None, fc=DEFAULT_COLORS_BEFORE[et_key]+'90')
-            for et_key, _ in ENERGY_TYPES
-        ],
-        labels=[et_label for _, et_label in ENERGY_TYPES],
-        loc="upper center", ncol=4, bbox_to_anchor=(0.5, -0.15),
-    )
 
-# ---------------------------------------------------------------------------
-# New functions: Python versions of HTML Chart.js visualizations
-# ---------------------------------------------------------------------------
+    max_value = np.nanmax(values_arr) if values_arr.size > 0 else 0
+    ax.set_ylim(0, max(1, max_value * 1.12))
 
+    if show_legend:
+        ax.legend(
+            fontsize=8,
+            handles=[
+                Patch(ec=None, fc=DEFAULT_COLORS_BEFORE[et_key] + "90")
+                for et_key, _ in energy_types
+            ],
+            labels=[et_label for _, et_label in energy_types],
+            loc="upper center",
+            ncol=4,
+            bbox_to_anchor=(0.5, -0.15),
+        )
+
+    return values_arr
 
 GRAPH_ORDER = [
     ("heating", "난방"),
     ("cooling", "냉방"),
     ("lighting", "조명"),
-    ("circulation", "팬/펌프/전열"),
+    ("circulation", "팬,펌프,전열"),
     ("hotwater", "급탕"),
     ("generators", "발전량"),
 ]
@@ -266,6 +306,109 @@ def parse_lpg_usage(masterdict: dict) -> dict[str, bool]:
         prefix: _value_is_lpg(_find_heating_energy_source(masterdict, prefix))
         for prefix in SCENARIO_PREFIXES
     }
+
+def _scenario_bar_style(et_key: str, scenario_idx: int) -> dict:
+    """
+    monthly stacked bars와 동일한 scenario 표현:
+    0: GR 이전          -> 원색
+    1: GR 이후          -> 연한색 + hatch
+    2: 운영특성 반영    -> 연한색
+    """
+    color = DEFAULT_COLORS_BEFORE[et_key]
+
+    fcs = [color, color + "40", color + "40"]
+    hatches = [None, "//////", None]
+
+    return {
+        "ec": None,
+        "fc": fcs[scenario_idx],
+        "hatch": hatches[scenario_idx],
+        "lw": 0.8,
+    }
+
+
+def _make_energy_scenario_legend_handles() -> tuple[list[Patch], list[str]]:
+    """
+    monthly stacked bars의 legend와 동일한 handles/labels 생성
+    """
+    handles = []
+    labels = []
+
+    for et_key, et_label in ENERGY_TYPES:
+        for l_idx, label in enumerate(["GR 이전", "GR 이후", "운영특성 반영"]):
+            style = _scenario_bar_style(et_key, l_idx)
+
+            handles.append(
+                Patch(
+                    ec=style["ec"],
+                    lw=style["lw"],
+                    fc=style["fc"],
+                    hatch=style["hatch"],
+                )
+            )
+            labels.append(f"{et_label} {label}")
+
+    return handles, labels
+
+
+def _draw_value_table(
+    ax: plt.Axes,
+    values: np.ndarray,
+    *,
+    row_labels: list[str],
+    col_labels: list[str],
+    digits: int = 1,
+    fontsize: float = 8.2,
+    row_label_width: float = 0.15,
+) -> None:
+    """
+    summary figure용 범용 표.
+    monthly_stacked_bars의 표 스타일과 맞추되, 열/행 개수가 달라도 사용 가능.
+    """
+    ax.axis("off")
+
+    values = np.asarray(values, dtype=float)
+
+    cell_text = [
+        [f"{v:.{digits}f}" for v in row]
+        for row in values
+    ]
+
+    ncols = values.shape[1]
+    col_width = 1.0 / max(ncols, 1)
+
+    table = ax.table(
+        cellText=cell_text,
+        rowLabels=row_labels,
+        colLabels=col_labels,
+        cellLoc="center",
+        rowLoc="center",
+        colLoc="center",
+        loc="center",
+        bbox=[0.00, 0.00, 1.00, 1.00],  # summary table에서는 높이 전체 사용
+        colWidths=[col_width] * ncols,
+    )
+
+    table.auto_set_font_size(False)
+    table.set_fontsize(fontsize)
+    table.scale(1.0, 1.45)  # monthly stacked table보다 작아 보이는 문제 완화
+
+    for (r, c), cell in table.get_celld().items():
+        cell.set_linewidth(0.35)
+        cell.PAD = 0.035
+        cell.get_text().set_clip_on(False)
+
+        if r == 0:
+            cell.set_facecolor("#F2F2F2")
+            cell.set_text_props(weight="bold")
+
+        if c == -1:
+            cell.set_width(row_label_width)
+            cell.set_facecolor("#F7F7F7")
+            cell.set_text_props(weight="bold")
+
+        if c >= 0:
+            cell.set_width(col_width)
 
 def _draw_monthly_value_table(
     ax: plt.Axes,
@@ -432,7 +575,7 @@ def _draw_monthly_stacked_bars(
     fig.set_constrained_layout(False)
 
     # 기존보다 세로는 조금 줄이고, 가로는 조금 넓힘
-    fig.set_size_inches(11.6, 12.5)
+    fig.set_size_inches(11.6, 12)
 
     # 각 블록 = [그래프, 표, spacer]
     # 그래프 높이는 줄이고 표는 키움
@@ -440,14 +583,14 @@ def _draw_monthly_stacked_bars(
         nrows=9,
         ncols=2,
         height_ratios=[
-            2.35, 1.05, 0.28,
-            2.35, 1.05, 0.28,
-            2.35, 1.05, 0.28,
+            1.75, 1.08, 0.25,
+            1.75, 1.08, 0.25,
+            1.75, 1.08, 0.25,
         ],
         left=0.065,
         right=0.985,
-        top=0.93,
-        bottom=0.090,   # 핵심: 아래 여백 축소
+        top=0.925,
+        bottom=0.105,
         wspace=0.18,
         hspace=0.00,
     )
@@ -499,14 +642,14 @@ def _draw_monthly_stacked_bars(
         handles=handles,
         labels=labels,
         loc="lower center",
-        bbox_to_anchor=(0.5, 0.018),  # 아래쪽에 두되
+        bbox_to_anchor=(0.5, 0.020),
         ncol=4,
-        fontsize=10.5,
+        fontsize=9.5,
         frameon=True,
-        borderaxespad=0.2,
-        handletextpad=0.6,
-        columnspacing=1.6,
-        labelspacing=0.45,
+        borderaxespad=0.15,
+        handletextpad=0.45,
+        columnspacing=1.2,
+        labelspacing=0.30,
     )
 
 
@@ -516,42 +659,70 @@ def _draw_annual_by_purpose(
     grr_after: dict,
     grr_afterN: dict,
     datatype="source_uses",
-) -> None:
-    """HTML의 연간 용도별 stacked bar (bar-annual-by-purpose)"""
+) -> np.ndarray:
+    """연간 용도별 stacked bar"""
+
     x = np.arange(len(GRAPH_ORDER))
     width = 0.25
 
+    scenario_totals = np.zeros((3, len(GRAPH_ORDER)), dtype=float)
+
     ymax = 0.0
+
     for idx, (label, dataset) in enumerate([
         ("GR 이전", grr_before),
         ("GR 이후", grr_after),
         ("운영특성 반영", grr_afterN),
     ]):
         bottoms = np.zeros(len(GRAPH_ORDER))
+
         for et_key, et_label in ENERGY_TYPES:
-            vals = [
+            vals = np.asarray([
                 _energy_values(dataset[datatype].get(cat_key, {}), et_key).sum()
                 for cat_key, _ in GRAPH_ORDER
-            ]
-            color = DEFAULT_COLORS_BEFORE[et_key]
-            ax.bar(x + (idx - 1) * width, vals, width=width,
-                   bottom=bottoms,
-                   label=f"{et_label} {label}",
-                   ec=None, lw=0.8,
-                   fc=[color, color+'40', color+'40'][idx],
-                   hatch=[None, '//////', None][idx])
-            ax.bar(x + (idx - 1) * width, vals, width=width,
-                   bottom=bottoms, ec=None, fc='none', zorder=5, lw=1.0)
-            bottoms += vals
-            ymax = max(ymax, bottoms.max())
+            ], dtype=float)
 
-    ax.set_ylim(0, max(5, ymax * 1.15))  # 상단 15% 여유
+            color = DEFAULT_COLORS_BEFORE[et_key]
+
+            ax.bar(
+                x + (idx - 1) * width,
+                vals,
+                width=width,
+                bottom=bottoms,
+                label=f"{et_label} {label}",
+                ec=None,
+                lw=0.8,
+                fc=[color, color + "40", color + "40"][idx],
+                hatch=[None, "//////", None][idx],
+                zorder=3,
+            )
+
+            ax.bar(
+                x + (idx - 1) * width,
+                vals,
+                width=width,
+                bottom=bottoms,
+                ec=None,
+                fc="none",
+                zorder=5,
+                lw=1.0,
+            )
+
+            bottoms += vals
+
+        scenario_totals[idx, :] = bottoms
+        ymax = max(ymax, bottoms.max())
+
+    ax.set_ylim(0, max(5, ymax * 1.15))
 
     ax.set_xticks(x)
-    ax.set_xticklabels([lbl.replace('/', '/\n') for _, lbl in GRAPH_ORDER])
+    ax.set_xticklabels([lbl.replace("/", "/\n") for _, lbl in GRAPH_ORDER])
     ax.set_ylabel("연간 합계 (kWh/$\\mathrm{m^2\\cdot}$연)")
-    ax.set_title("연간 용도별 1차에너지소요량")
+    ax.set_title("연간 용도별 1차에너지소요량", fontweight="bold")
     ax.grid(axis="y", linestyle="--", alpha=0.4)
+    ax.set_axisbelow(True)
+
+    return scenario_totals
 
 def _draw_total_monthly_bar(
     ax: plt.Axes,
@@ -641,32 +812,89 @@ def draw_page3_summaryfigures(
     grr_before: dict,
     grr_after: dict,
     grr_afterN: dict,
-    ) -> plt.Figure:
-    
-    fig = plt.figure(figsize=(9, 3), constrained_layout=True)
-    axes = fig.subplots(1, 2)
-    
-    _draw_annual_by_purpose(
-        axes[0],
-        grr_before, grr_after, grr_afterN,  "source_uses",
+) -> plt.Figure:
+
+    fig = plt.figure(figsize=(11.6, 4.9), constrained_layout=False)
+
+    gs = fig.add_gridspec(
+        nrows=2,
+        ncols=2,
+        height_ratios=[2.45, 1.35],  # 표 row를 monthly stacked 쪽에 가깝게 키움
+        left=0.070,
+        right=0.985,
+        top=0.82,
+        bottom=0.075,  # legend 제거했으므로 아래 여백 축소
+        wspace=0.22,
+        hspace=0.035,  # 그래프와 표는 붙여 보이게
     )
-    
-    draw_3step_bargraph(
-        "면적당 온실가스 배출량 (연간)",
+
+    ax_energy = fig.add_subplot(gs[0, 0])
+    ax_co2 = fig.add_subplot(gs[0, 1])
+
+    ax_energy_table = fig.add_subplot(gs[1, 0])
+    ax_co2_table = fig.add_subplot(gs[1, 1])
+
+    scenario_labels = ["GR이전", "GR이후", "운영특성 반영"]
+
+    # ------------------------------------------------------------------
+    # 1) 좌측: 연간 용도별 1차에너지
+    #    그래프 x축 = 용도
+    #    표 열 = 용도
+    # ------------------------------------------------------------------
+    energy_values_3x6 = _draw_annual_by_purpose(
+        ax_energy,
+        grr_before,
+        grr_after,
+        grr_afterN,
+        "source_uses",
+    )
+
+    _draw_value_table(
+        ax_energy_table,
+        energy_values_3x6,
+        row_labels=["이전", "이후", "운영"],
+        col_labels=[lbl.replace("/", "/\n") for _, lbl in GRAPH_ORDER],
+        digits=1,
+        fontsize=8.2,
+        row_label_width=0.14,
+    )
+
+    # ------------------------------------------------------------------
+    # 2) 우측: 연간 온실가스 배출량
+    #    그래프 x축 = GR이전 / GR이후 / 운영특성 반영
+    #    따라서 표 열도 동일하게 scenario 3개로 구성
+    # ------------------------------------------------------------------
+    co2_values_3x4 = [
         [
-            [
-                _sum_grr_energy_total(result, "co2", et_key)
-                for et_key, _ in ENERGY_TYPES
-            ]
-            for result in [grr_before, grr_after, grr_afterN]
-        ],
-        ["GR이전","GR이후","운영특성 반영"],
-        ylabel = r"$\mathrm{CO_2,eq}$ (kg/$\mathrm{m^2\cdot}$년)",
-        ax = axes[1]
+            _sum_grr_energy_total(result, "co2", et_key)
+            for et_key, _ in ENERGY_TYPES
+        ]
+        for result in [grr_before, grr_after, grr_afterN]
+    ]
+
+    co2_values_3x4 = draw_3step_bargraph(
+        "면적당 온실가스 배출량 (연간)",
+        co2_values_3x4,
+        scenario_labels,
+        ylabel=r"$\mathrm{CO_2,eq}$ (kg/$\mathrm{m^2\cdot}$년)",
+        ax=ax_co2,
+        scenario_style=True,
+        show_legend=False,  # page3에는 legend 없음
     )
-    
-    fig.suptitle('요약', fontsize=16, fontweight='bold')
-    
+
+    # 표는 에너지원 행 × scenario 열
+    _draw_value_table(
+        ax_co2_table,
+        co2_values_3x4.T,
+        row_labels=[et_label for _, et_label in ENERGY_TYPES],
+        col_labels=scenario_labels,
+        digits=1,
+        fontsize=8.2,
+        row_label_width=0.18,
+    )
+
+    fig.suptitle("요약", fontsize=16, fontweight="bold", y=0.96)
+
     return fig
     
 
