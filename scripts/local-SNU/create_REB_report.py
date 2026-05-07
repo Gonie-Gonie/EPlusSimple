@@ -180,10 +180,7 @@ def main(
                 commentdict,
                 masterdict ,
                 pdfpath    ,
-            )
-            
-            break
-        
+            )        
         
         finally:
             if os.path.exists(workingpath):

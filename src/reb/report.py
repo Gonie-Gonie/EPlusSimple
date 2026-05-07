@@ -1047,8 +1047,8 @@ def parse_majorchange(masterdict: dict) -> str:
         sparse_index=True,
         multirow_align="c",
         column_format=(
-            r">{\centering\arraybackslash}p{1cm}|"
-            r">{\centering\arraybackslash}p{2.6cm}|"
+            r">{\centering\arraybackslash}p{2cm}|"
+            r">{\centering\arraybackslash}p{2cm}|"
             r">{\centering\arraybackslash}p{3.2cm}|"
             r">{\centering\arraybackslash}p{3.2cm}|"
             r">{\centering\arraybackslash}p{3.2cm}|"
@@ -1063,15 +1063,6 @@ def parse_majorchange(masterdict: dict) -> str:
     tex = tex.replace(
         "& & GR이전 & GR이후 & N년차 & 비고 \\\n",
         r"\multicolumn{2}{c|}{구분} & GR이전 & GR이후 & N년차 & 비고 \\" + "\n"
-    )
-
-    tex = tex.replace(
-        r"{기술요소}",
-        r"{\shortstack{기\\술\\요\\소}}"
-    )
-    tex = tex.replace(
-        r"{운영특성}",
-        r"{\shortstack{운\\영\\특\\성}}"
     )
 
     tex = tex.replace(r"\cline{1-6} \cline{2-6}", r"\hline")
@@ -1623,51 +1614,59 @@ def parse_equinity(masterdict: dict) -> str:
                 masterdict.get("GR이후_그린리모델링 공사내역_벽체단열_보고서"),
                 masterdict.get("GR이후_그린리모델링 공사내역_벽체단열_현장확인"),
                 masterdict.get("GR이후_그린리모델링 공사내역_벽체단열_일치여부"),
+                "예시: 남쪽 면에만 시공함.",
             ],
             [
                 "지붕단열",
                 masterdict.get("GR이후_그린리모델링 공사내역_지붕단열_보고서"),
                 masterdict.get("GR이후_그린리모델링 공사내역_지붕단열_현장확인"),
                 masterdict.get("GR이후_그린리모델링 공사내역_지붕단열_일치여부"),
+                "",
             ],
             [
                 "바닥단열",
                 masterdict.get("GR이후_그린리모델링 공사내역_바닥단열_보고서"),
                 masterdict.get("GR이후_그린리모델링 공사내역_바닥단열_현장확인"),
                 masterdict.get("GR이후_그린리모델링 공사내역_바닥단열_일치여부"),
+                "예시: 그냥 바닥난방 다시 깐 것임. 단열 했다고 보기 어려움.",
             ],
             [
                 "창호",
                 masterdict.get("GR이후_그린리모델링 공사내역_창호_보고서"),
                 masterdict.get("GR이후_그린리모델링 공사내역_창호_현장확인"),
                 masterdict.get("GR이후_그린리모델링 공사내역_창호_일치여부"),
+                "",
             ],
             [
                 "환기장치",
                 masterdict.get("GR이후_그린리모델링 공사내역_환기장치_보고서"),
                 masterdict.get("GR이후_그린리모델링 공사내역_환기장치_현장확인"),
                 masterdict.get("GR이후_그린리모델링 공사내역_환기장치_일치여부"),
+                "",
             ],
             [
                 "냉난방장치",
                 masterdict.get("GR이후_그린리모델링 공사내역_냉난방장치_보고서"),
                 masterdict.get("GR이후_그린리모델링 공사내역_냉난방장치_현장확인"),
                 masterdict.get("GR이후_그린리모델링 공사내역_냉난방장치_일치여부"),
+                "",
             ],
             [
                 "고효율 보일러",
                 masterdict.get("GR이후_그린리모델링 공사내역_고효율 보일러_보고서"),
                 masterdict.get("GR이후_그린리모델링 공사내역_고효율 보일러_현장확인"),
                 masterdict.get("GR이후_그린리모델링 공사내역_고효율 보일러_일치여부"),
+                "",
             ],
             [
                 "조명(LED)",
                 masterdict.get("GR이후_그린리모델링 공사내역_조명(LED)_보고서"),
                 masterdict.get("GR이후_그린리모델링 공사내역_조명(LED)_현장확인"),
                 masterdict.get("GR이후_그린리모델링 공사내역_조명(LED)_일치여부"),
+                "",
             ]
         ],
-        columns = ["항목","보고서","현장확인","일치여부"],
+        columns = ["항목","보고서","현장확인","일치여부","비고"],
     )
     
     def prettify_latex_table(tex: str, header_color: str = "EAEAEA", arraystretch: float = 1) -> str:
@@ -1714,7 +1713,8 @@ def parse_equinity(masterdict: dict) -> str:
                 r">{\centering\arraybackslash}p{4cm}|"
                 r">{\centering\arraybackslash}p{2.5cm}|"
                 r">{\centering\arraybackslash}p{2.5cm}|"
-                r">{\centering\arraybackslash}p{2.5cm}"
+                r">{\centering\arraybackslash}p{2.5cm}|"
+                r">{\centering\arraybackslash}p{4.5cm}"
             ),
         )
         .replace("~", "-")
