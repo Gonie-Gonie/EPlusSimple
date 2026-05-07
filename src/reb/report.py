@@ -1153,7 +1153,12 @@ def parse_perfchange(masterdict: dict) -> str:
         columns = ["항목","그린리모델링 이전", "그린리모델링 이후", "운영특성 반영", "근거"],
     )
     
-    def prettify_latex_table(tex: str, header_color: str = "EAEAEA", arraystretch: float = 1.5) -> str:
+    def prettify_latex_table(
+        tex: str,
+        header_color: str = "EAEAEA",
+        arraystretch: float = 1.1,
+        fontsize: str = r"\small",
+    ) -> str:
         lines = tex.splitlines()
         new_lines = []
         in_tabular = False
@@ -1164,6 +1169,8 @@ def parse_perfchange(masterdict: dict) -> str:
 
             if stripped.startswith(r"\begin{tabular}"):
                 in_tabular = True
+                new_lines.append(r"\begingroup")
+                new_lines.append(fontsize)
                 new_lines.append(rf"\renewcommand{{\arraystretch}}{{{arraystretch}}}")
                 new_lines.append(line)
                 new_lines.append(r"\hline")
@@ -1173,6 +1180,7 @@ def parse_perfchange(masterdict: dict) -> str:
                 in_tabular = False
                 new_lines.append(line)
                 new_lines.append(r"\renewcommand{\arraystretch}{1}")
+                new_lines.append(r"\endgroup")
                 continue
 
             if in_tabular and stripped.endswith(r"\\"):
@@ -1186,19 +1194,37 @@ def parse_perfchange(masterdict: dict) -> str:
             new_lines.append(line)
 
         return "\n".join(new_lines)
-        
+    
+    def highlight_changed_row(row):
+        cols = ["그린리모델링 이전", "그린리모델링 이후", "운영특성 반영"]
+
+        # "-", NaN 등은 문자열로 통일해서 비교
+        values = [str(row[c]).strip() for c in cols]
+
+        changed = len(set(values)) > 1
+
+        if changed:
+            return [
+                "background-color: #FFF2CC; font-weight: bold;"
+                for _ in row
+            ]
+        else:
+            return ["" for _ in row]
+    
     tex = (
         df.style
         .hide(axis="index")
-        .format(escape="latex")   # %, _, & 같은 LaTeX 특수문자 자동 처리
+        .apply(highlight_changed_row, axis=1)
+        .format(escape="latex")
         .to_latex(
-            hrules=False,         # hline은 우리가 직접 넣을 것
+            hrules=False,
+            convert_css=True,
             column_format=(
                 r">{\centering\arraybackslash}p{4cm}|"
                 r">{\centering\arraybackslash}p{2.5cm}|"
                 r">{\centering\arraybackslash}p{2.5cm}|"
                 r">{\centering\arraybackslash}p{2.5cm}|"
-                r">{\centering\arraybackslash}p{4.5cm}"   # 마지막 | 제거
+                r">{\centering\arraybackslash}p{4.5cm}"
             ),
         )
         .replace("~", "-")
@@ -1362,7 +1388,12 @@ def parse_surveychange(masterdict: dict) -> str:
             columns = ["항목","그린리모델링 이전", "그린리모델링 이후", "운영특성 반영"],
         )
     
-    def prettify_latex_table(tex: str, header_color: str = "EAEAEA", arraystretch: float = 1) -> str:
+    def prettify_latex_table(
+        tex: str,
+        header_color: str = "EAEAEA",
+        arraystretch: float = 1.1,
+        fontsize: str = r"\small",
+    ) -> str:
         lines = tex.splitlines()
         new_lines = []
         in_tabular = False
@@ -1373,6 +1404,8 @@ def parse_surveychange(masterdict: dict) -> str:
 
             if stripped.startswith(r"\begin{tabular}"):
                 in_tabular = True
+                new_lines.append(r"\begingroup")
+                new_lines.append(fontsize)
                 new_lines.append(rf"\renewcommand{{\arraystretch}}{{{arraystretch}}}")
                 new_lines.append(line)
                 new_lines.append(r"\hline")
@@ -1382,6 +1415,7 @@ def parse_surveychange(masterdict: dict) -> str:
                 in_tabular = False
                 new_lines.append(line)
                 new_lines.append(r"\renewcommand{\arraystretch}{1}")
+                new_lines.append(r"\endgroup")
                 continue
 
             if in_tabular and stripped.endswith(r"\\"):
@@ -1395,13 +1429,31 @@ def parse_surveychange(masterdict: dict) -> str:
             new_lines.append(line)
 
         return "\n".join(new_lines)
-        
+    
+    def highlight_changed_row(row):
+        cols = ["그린리모델링 이전", "그린리모델링 이후", "운영특성 반영"]
+
+        # "-", NaN 등은 문자열로 통일해서 비교
+        values = [str(row[c]).strip() for c in cols]
+
+        changed = len(set(values)) > 1
+
+        if changed:
+            return [
+                "background-color: #FFF2CC; font-weight: bold;"
+                for _ in row
+            ]
+        else:
+            return ["" for _ in row]
+    
     tex = (
         df.style
         .hide(axis="index")
+        .apply(highlight_changed_row, axis=1)
         .format(escape="latex")   # %, _, & 같은 LaTeX 특수문자 자동 처리
         .to_latex(
-            hrules=False,         # hline은 우리가 직접 넣을 것
+            hrules=False,
+            convert_css=True,
             column_format=(
                 r">{\centering\arraybackslash}p{4cm}|"
                 r">{\centering\arraybackslash}p{4cm}|"

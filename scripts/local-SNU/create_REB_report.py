@@ -181,6 +181,8 @@ def main(
                 masterdict ,
                 pdfpath    ,
             )
+            
+            break
         
         
         finally:
