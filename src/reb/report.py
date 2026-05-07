@@ -7,6 +7,8 @@
 from __future__ import annotations
 import os
 import json
+import re
+import re
 import shutil
 import subprocess
 from pathlib  import Path
@@ -609,6 +611,8 @@ def summarytable(
     
     df1 = pd.DataFrame(
         [
+            ["A", "B", "B'"],
+            ["a", "a", "b" ],
             [
                 _sum_grr_annual_total(grrbefore, "source_uses", gas_ignore[0]),
                 _sum_grr_annual_total(grrafter, "source_uses", gas_ignore[1]),
@@ -621,16 +625,16 @@ def summarytable(
             ],
         ],
         columns=["GR 이전 (①)", "GR 이후 (②)", "운영특성 반영시 (③)"],
-        index  =["1차에너지[$kWh/m^2$]", "온실가스[$kgCO_{2,eq}/m^2$]"]
+        index  =["건물특성","운영특성","1차에너지[$kWh/m^2$]", "온실가스[$kgCO_{2,eq}/m^2$]"]
     )
     
     df2 = pd.DataFrame(
         columns=["GR 감축량 (①-②)","운영특성 반영 감축량 (①-③)","운영특성 반영 영향 (③-②)"],
         index  =["1차에너지[$kWh/m^2$]", "온실가스[$kgCO_{2,eq}/m^2$]"]
         )
-    df2["GR 감축량 (①-②)"] = df1["GR 이전 (①)"] - df1["GR 이후 (②)"]
-    df2["운영특성 반영 감축량 (①-③)"] = df1["GR 이전 (①)"] - df1["운영특성 반영시 (③)"]
-    df2["운영특성 반영 영향 (③-②)"] = df1["운영특성 반영시 (③)"] - df1["GR 이후 (②)"]
+    df2["GR 감축량 (①-②)"] = df1["GR 이전 (①)"][2:] - df1["GR 이후 (②)"][2:]
+    df2["운영특성 반영 감축량 (①-③)"] = df1["GR 이전 (①)"][2:] - df1["운영특성 반영시 (③)"][2:]
+    df2["운영특성 반영 영향 (③-②)"] = df1["운영특성 반영시 (③)"][2:] - df1["GR 이후 (②)"][2:]
     
     return df1, df2
 
@@ -762,6 +766,47 @@ def parse_majorchange(masterdict: dict) -> str:
             return r"히트펌프 [W/W], 보일러 [\%]"
         return r"[\%]"
 
+    surveyresult, _ = parse_surveychange(masterdict)
+    
+    if masterdict["구분"] == "어린이집":
+        time_min = {
+            "기본보육 인원": 8.5 * 60,   # 07:30~16:00
+            "연장보육A 인원": 2.0 * 60,  # 16:00~18:00
+            "연장보육B 인원": 1.5 * 60,  # 18:00~19:30
+            "야간보육 인원": 1.5 * 60,   # 19:30~21:00
+        }
+
+        occlist = [
+            sum(
+                float(surveyresult.loc[surveyresult["항목"].eq(k), c].iloc[0]) * t
+                for k, t in time_min.items()
+                if float(surveyresult.loc[surveyresult["항목"].eq(k), c].iloc[0]) > 0
+            )
+            /
+            sum(
+                t
+                for k, t in time_min.items()
+                if float(surveyresult.loc[surveyresult["항목"].eq(k), c].iloc[0]) > 0
+            )
+            for c in ["그린리모델링 이전", "그린리모델링 이후", "운영특성 반영"]
+        ]
+    else:
+        occlist = [
+            float(surveyresult.loc[surveyresult["항목"].eq("직원"), c].iloc[0])
+            + (
+                float(re.search(r"(\d+(?:\.\d+)?)\s*명", v).group(1))
+                * float(re.search(r"(\d+(?:\.\d+)?)\s*분", v).group(1))
+                / (
+                    (lambda t:
+                        (int(t.split("~")[1].split(":")[0]) * 60 + int(t.split("~")[1].split(":")[1]))
+                        - (int(t.split("~")[0].split(":")[0]) * 60 + int(t.split("~")[0].split(":")[1]))
+                    )(surveyresult.loc[surveyresult["항목"].eq("운영시간"), c].iloc[0])
+                )
+            )
+            for c in ["그린리모델링 이전", "그린리모델링 이후", "그린리모델링 이후"]
+            for v in [surveyresult.loc[surveyresult["항목"].str.contains("방문객수"), c].iloc[0]]
+        ]
+    
     rows = [
         [
             fmt_num(masterdict.get("GR이전_외벽_열관류율 [W/m2·K]"), 3),
@@ -823,9 +868,9 @@ def parse_majorchange(masterdict: dict) -> str:
             ),
             r"[면적 m2], [효율 \%]",
         ],
-        ["-", "-", "-", "-"],
-        ["-", "-", "-", "-"],
-        ["-", "-", "-", "-"],
+        [f"{v:.1f}" for v in occlist] + ["명, 운영시간 평균"],
+        [f"{float(v):.1f}" for v in surveyresult.query("항목 == '난방 설정온도(℃)'").iloc[0].values[1:]] + ["℃"],
+        [f"{float(v):.1f}" for v in surveyresult.query("항목 == '냉방 설정온도(℃)'").iloc[0].values[1:]] + ["℃"],
     ]
 
     df = pd.DataFrame(
@@ -841,8 +886,8 @@ def parse_majorchange(masterdict: dict) -> str:
                 ("기술요소", "조명"),
                 ("기술요소", "신재생"),
                 ("운영특성", "재실인원"),
-                ("운영특성", "운영시간"),
-                ("운영특성", "설정온도"),
+                ("운영특성", "난방설정온도"),
+                ("운영특성", "냉방설정온도"),
             ],
             names=["대분류", "구분"]
         )
@@ -888,7 +933,7 @@ def parse_majorchange(masterdict: dict) -> str:
     return tex
 
 
-def parse_allchange(masterdict: dict) -> str:
+def parse_perfchange(masterdict: dict) -> str:
     
     df = pd.DataFrame(
         [
@@ -1180,7 +1225,7 @@ def parse_surveychange(masterdict: dict) -> str:
                     f"{(0 if pd.isna(masterdict.get("N년차_어린이집_연장보육A교사수")) else masterdict.get("N년차_어린이집_연장보육A교사수")) + (0 if pd.isna(masterdict.get("N년차_어린이집_연장보육A원생수")) else masterdict.get("N년차_어린이집_연장보육A원생수")):.0f}",
                 ],
                 [
-                    "연장보육 B인원",
+                    "연장보육B 인원",
                     f"{(0 if pd.isna(masterdict.get("GR이전_어린이집_연장보육B교사수")) else masterdict.get("GR이전_어린이집_연장보육B교사수")) + (0 if pd.isna(masterdict.get("GR이전_어린이집_연장보육B원생수")) else masterdict.get("GR이전_어린이집_연장보육B원생수")):.0f}",
                     f"{(0 if pd.isna(masterdict.get("GR이후_어린이집_연장보육B교사수")) else masterdict.get("GR이후_어린이집_연장보육B교사수")) + (0 if pd.isna(masterdict.get("GR이후_어린이집_연장보육B원생수")) else masterdict.get("GR이후_어린이집_연장보육B원생수")):.0f}",
                     f"{(0 if pd.isna(masterdict.get("N년차_어린이집_연장보육B교사수")) else masterdict.get("N년차_어린이집_연장보육B교사수")) + (0 if pd.isna(masterdict.get("N년차_어린이집_연장보육B원생수")) else masterdict.get("N년차_어린이집_연장보육B원생수")):.0f}",
@@ -1368,7 +1413,7 @@ def parse_surveychange(masterdict: dict) -> str:
     )
 
     tex = prettify_latex_table(tex, header_color="EAEAEA")
-    return tex
+    return df,tex
 
 
 def parse_equinity(masterdict: dict) -> str:
@@ -1536,11 +1581,11 @@ def build_report(
         "metadata": metadata,
         "master"  : masterdict,
         "imagesrc": (Path(__file__).parent / "imagesrc").resolve().as_posix(),
-        "surveychangetex": parse_surveychange(masterdict),
+        "surveychangetex": parse_surveychange(masterdict)[1],
         "majorchangetex" :  parse_majorchange(masterdict),
-        "allchangetex"   : parse_allchange(masterdict),
+        "perfchangetex"   : parse_perfchange(masterdict),
         "equinitytex"    : parse_equinity(masterdict),
-        "summarytabletex" : [df.style.format(lambda x: f"{x:>6,.1f}").to_latex(**summarytablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline") for df in summarytable(grrbefore, grrafter, grrafterN, gas_ignore=gas_ignore)],
+        "summarytabletex" : [df.style.format(lambda x: f"{x:>6,.1f}" if isinstance(x, int|float) else x).to_latex(**summarytablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline") for df in summarytable(grrbefore, grrafter, grrafterN, gas_ignore=gas_ignore)],
         "comment": {k:escape_str(v) for k,v in commentdict.items()}
     }
     

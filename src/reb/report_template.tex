@@ -109,14 +109,23 @@
 \begin{tabular}{L|C|L|C}
 \hline
 건축물명 & {{metadata.name}} & 주소 / 용도 & {{metadata.addr}} / {{master["구분"]}} \\ \hline
-건축 허가일자 & {{metadata.date}} & GR 허가일자 & {{master["GR이후_그린리모델링 허가일자"]}} \\ \hline
+건축 허가일자 & {{metadata.date}} & GR 준공일자 & {{master["GR이후_그린리모델링 허가일자"]}} \\ \hline
 연면적 & {{comment.연면적}}$\mathrm{m^2}$ & 층수  & 지하 {{ "%.0f"|format(master["GR이전_규모_지하"])}}층 / 지상{{"%.0f"|format(master["GR이전_규모_지상"])}}층            \\ \hline
-시뮬레이션 엔진 & EplusSimple V0.6.1 & 기상데이터 & 23년도 (기상청) \\ \hline
+시뮬레이션 엔진 & EplusSimple V0.6.1 & 기상데이터 & 24년도 (기상청) \\ \hline
 
 \end{tabular}
 \end{tcolorbox}
 
-\section{시뮬레이션 주요 결과}
+\section{변화 내용}
+\begin{tcolorbox}[mysection, bottom=2mm, top=2mm]
+\small
+
+{{majorchangetex}}
+
+\vspace{1mm}
+\end{tcolorbox}
+
+\section{시뮬레이션 결과}
 
 \begin{tcolorbox}[
   mysection,
@@ -136,16 +145,6 @@
 \end{center}
 \end{tcolorbox}
 
-\section{주요 변경사항}
-\begin{tcolorbox}[mysection, bottom=2mm, top=2mm]
-\small
-
-{{majorchangetex}}
-
-\vspace{1mm}
-\end{tcolorbox}
-
-
 % ==================== 을지 ====================
 
 \clearpage
@@ -153,7 +152,7 @@
 \begin{tcolorbox}[mysection, bottom=2mm, top=2mm]
 \small
 
-{{allchangetex}}
+{{perfchangetex}}
 
 \vspace{1mm}
 \end{tcolorbox}
@@ -167,12 +166,12 @@
 \vspace{1mm}
 \end{tcolorbox}
 
-\section{종합의견}
+\section{현장 관리자 의견}
 \begin{tcolorbox}[mysection,  bottom=2mm, top=2mm]
   \begin{itemize}
-  \item \textbf{현장조사 의견 (재실)}: {{comment.occupant}}
-  \item \textbf{현장조사 의견 (냉난방)}: {{comment.hvac}} 
-  \item \textbf{종합}: {{comment.conclusion}}
+  \item \textbf{재실}: {{comment.occupant}}
+  \item \textbf{냉난방}: {{comment.hvac}} 
+  \item \textbf{기타}: {{comment.conclusion}}
 \end{itemize}
 \end{tcolorbox}
 
