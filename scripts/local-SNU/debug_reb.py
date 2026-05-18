@@ -31,7 +31,7 @@ def process_file(args):
 
 if __name__ == "__main__":
     
-    inputexcel_dir = r"B:\공유 드라이브\01 진행과제\(안전원) 시뮬레이터\12 개발\scripts\run_REB_excel\input_excel"
+    inputexcel_dir = r"Z:\01 진행과제\(부동산원) GR정성평가\23 수신자료\260515 데이터셋 수정\엑셀파일"
     
     target_files = os.listdir(inputexcel_dir)
     args_list = [(inputexcel_dir, file) for file in target_files]
