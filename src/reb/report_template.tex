@@ -20,6 +20,7 @@
 \setstretch{1.25}
 \usepackage[most]{tcolorbox}
 \usepackage{longtable}
+\usepackage{multirow}
 \usepackage{tikzpagenodes}
 \tcbuselibrary{skins}
 
@@ -95,10 +96,8 @@
 % ==================== 갑지 ====================
 \topbar{그린리모델링 정성평가 결과서}
 
-\section{건물 개요}
-
-\newcolumntype{L}{>{\columncolor[gray]{0.9}\bfseries\centering\arraybackslash}p{0.25\textwidth}}
-\newcolumntype{C}{>{\centering\arraybackslash}p{0.65\textwidth}}
+\newcolumntype{L}{>{\columncolor[gray]{0.9}\bfseries\centering\arraybackslash}p{0.2\textwidth}}
+\newcolumntype{C}{>{\centering\arraybackslash}p{0.3\textwidth}}
 
 % 본문
 \setlength{\tabcolsep}{0pt}
@@ -107,169 +106,88 @@
 \begin{tcolorbox}[mysection,
   boxsep=0pt]
   \centering
-\begin{tabular}{L|C}
+\begin{tabular}{L|C|L|C}
 \hline
-건물명 & {{metadata.name}} \\ \hline
-주소(시군구) & {{metadata.addr}} \\ \hline
-연면적 & {{comment.연면적}}$\mathrm{m^2}$ \\ \hline
-허가연도 & {{metadata.date}} \\ \hline
+건축물명 & {{metadata.name}} & 주소 / 용도 & {{metadata.addr}} / {{master["구분"]}} \\ \hline
+건축 허가일자 & {{metadata.date}} & GR 준공일자 & {{master["GR이후_그린리모델링 허가일자"]}} \\ \hline
+연면적 & {{comment.연면적}}$\mathrm{m^2}$ & 층수  & 지하 {{ "%.0f"|format(master["GR이전_규모_지하"])}}층 / 지상{{"%.0f"|format(master["GR이전_규모_지상"])}}층            \\ \hline
+시뮬레이션 엔진 & EplusSimple V0.6.1 & 기상데이터 & 24년도 (기상청) \\ \hline
+
 \end{tabular}
 \end{tcolorbox}
 
-\section{열원별 1차에너지소요량 및 온실가스 배출량 비교 (시뮬레이션)}
-\begin{tcolorbox}[mysection, top=0mm, bottom=0mm,]
-\begin{center}
-  \includegraphics[width=\textwidth]{energy_summary.png}
-\end{center}
-  
+\section{주요 변화}
+\begin{tcolorbox}[mysection, bottom=2mm, top=2mm]
+\small
+
+{{majorchangetex}}
+
+\vspace{1mm}
 \end{tcolorbox}
 
-\section{총 1차에너지소요량, 온실가스 배출량 및 감축량 비교}
+\section{시뮬레이션 결과}
+
 \begin{tcolorbox}[
   mysection,
   boxsep=0pt,      % 내부 기본 붕 뜬 여백 제거 (표 넣을 때 중요)
   left=2.5mm,        % 왼쪽 여백 추가
   right=5mm,       % 오른쪽 여백 추가
-  top=3mm,         % 위쪽 살짝
-  bottom=3mm       % 아래쪽 살짝
+  top=2mm,         % 위쪽 살짝
+  bottom=2mm       % 아래쪽 살짝
   ]
 \small
 {{summarytabletex[0]}}
 \vspace{4mm}
 {{summarytabletex[1]}}
-\end{tcolorbox}
 
-\section{현장조사 종합의견 (만족도 \textbf{ {{comment.point}} }/7점)}
-\begin{tcolorbox}[mysection]
-  {{comment.conclusion}}
+\begin{center}
+  \includegraphics[height=5.5cm]{energy_summary.png}
+\end{center}
 \end{tcolorbox}
 
 % ==================== 을지 ====================
 
 \clearpage
-\topbar{그린리모델링 사업 전후 에너지사용량 영향 요소}
-
-\section{그린리모델링 요소 (건축 {{passivechange.countbefore2after}}개, 설비 {{activechange.countbefore2after}}개)}
+\topbar{그린리모델링 요소기술}
+\section{건물성능 입력변수}
 \begin{tcolorbox}[mysection, bottom=2mm, top=2mm]
-\includegraphics[width=0.09\linewidth]{ 벽체단열보강-{{passivechange.before2after[0]}}.png }
-\hfill
-\includegraphics[width=0.09\linewidth]{ 지붕단열보강-{{passivechange.before2after[1]}}.png }
-\hfill
-\includegraphics[width=0.09\linewidth]{ 바닥단열보강-{{passivechange.before2after[2]}}.png }
-\hfill
-\includegraphics[width=0.09\linewidth]{ 창호교체-{{passivechange.before2after[3]}}.png }
-\hfill
-\includegraphics[width=0.09\linewidth]{ 쿨루프-{{passivechange.before2after[4]}}.png }
-\hfill
-\includegraphics[width=0.09\linewidth]{ 고효율난방설비-{{activechange.before2after[0]}}.png }
-\hfill
-\includegraphics[width=0.09\linewidth]{ 고효율냉방설비-{{activechange.before2after[1]}}.png }
-\hfill
-\includegraphics[width=0.09\linewidth]{ 전열교환기설치-{{activechange.before2after[2]}}.png }
-\hfill
-\includegraphics[width=0.09\linewidth]{ 고효율조명-{{activechange.before2after[3]}}.png }
-\hfill
-\includegraphics[width=0.09\linewidth]{ 태양광-{{activechange.before2after[4]}}.png }
-\vspace{3mm}
-
-\begin{tabular}{>{\centering\arraybackslash}p{4.3cm}|>{\centering\arraybackslash}p{6cm}|>{\centering\arraybackslash}p{6cm}}
-\hline
-성능 요소 & 그린리모델링 사업 이전 & 그린리모델링 사업 직후 \\
-\hline
-외벽 평균열관류율\footnote{외벽의 단열수준을 나타내는 지표로, 에너지절약설계기준에서 0.17 $W/m^2K$ 이하(서울)가 요구됨.} & {{passivechange.before.wallU}} $W/m^2K$ & {{passivechange.after.wallU}} $W/m^2K$ \\
-\cline{1-3}
-지붕 평균열관류율 & {{passivechange.before.roofU}} $W/m^2K$ & {{passivechange.after.roofU}} $W/m^2K$ \\
-\cline{1-3}
-바닥 평균열관류율 & {{passivechange.before.floorU}} $W/m^2K$ & {{passivechange.after.floorU}} $W/m^2K$ \\
-\cline{1-3}
-창호 평균열관류율\footnote{창호의 단열수준을 나타내는 지표로, 에너지절약설계기준에서 기준 1.3 $W/m^2K$ 이하(서울)가 요구됨.} & {{passivechange.before.winU}} $W/m^2K$ & {{passivechange.after.winU}} $W/m^2K$ \\
-\cline{1-3}
-평균 조명밀도\footnote{조명에 의한 발열수준을 나타내는 지표로, 에너지절약형 친환경주택의 건설기준에서 6 $W/m^2$ 이하가 요구됨.} & {{passivechange.before.ld}} $W/m^2$ & {{passivechange.after.ld}} $W/m^2$ \\
-\cline{1-3}
-난방설비 & \multicolumn{2}{c}{ {{activechange.before2afterdetail.heating}} } \\
-\cline{1-3}
-냉방설비 & \multicolumn{2}{c}{ {{activechange.before2afterdetail.cooling}} } \\
-\cline{1-3}
-환기설비 & \multicolumn{2}{c}{ {{activechange.before2afterdetail.ventilation}} } \\
-\hline
-\end{tabular}
+\small
+{{perfchangetex}}
 \vspace{1mm}
-
-
 \end{tcolorbox}
 
-\section{기후}
-\noindent
+\section{운영특성 입력변수}
 \begin{tcolorbox}[mysection, bottom=2mm, top=2mm]
-  \includegraphics[width=\textwidth]{weather_compare.png}
-$\rightarrow$ 난방도일\footnote{매 시간별로 외기온도가 기준온도($18^\circ C$)에 비해 추운 정도를 모두 더한 값 (24로 나누어 날짜로 환산함)}(Heating Degree Days;HDD)이 {{degreedays.HDDchange}}하였으므로, \textbf{난방에너지도 {{degreedays.HDDchange}}할 가능성}이 있음.\\
-$\rightarrow$  냉방도일\footnote{매 시간별로 외기온도가 기준온도($18^\circ C$)에 비해 더운 정도를 모두 더한 값 (24로 나누어 날짜로 환산함)}(Cooling Degree Days;CDD)이 {{degreedays.CDDchange}}하였으므로, \textbf{냉방에너지도 {{degreedays.CDDchange}}할 가능성}이 있음.
-\vspace{3mm}
+{{surveychangetex}}
+\vspace{1mm}
 \end{tcolorbox}
 
 \clearpage
-\topbar{그린리모델링 사업 이후 에너지사용량 영향 요인}
+\topbar{용도별, 열원별, 월별 시뮬레이션 결과}
+\par\noindent
+\includegraphics[width=\linewidth]{page3_summary.png}
+\vspace{2mm}
+\includegraphics[width=\linewidth]{simulation_results.png}
 
-\section{그린리모델링 요소 (건축 {{passivechange.countafter2afterN}}개, 설비 {{activechange.countafter2afterN}}개)}
+\clearpage
+\topbar{현장조사}
+
+\section{기술요소 시공현황}
+
 \begin{tcolorbox}[mysection, bottom=2mm, top=2mm]
-\includegraphics[width=0.09\linewidth]{ 벽체단열보강-{{passivechange.after2afterN[0]}}.png }
-\hfill
-\includegraphics[width=0.09\linewidth]{ 지붕단열보강-{{passivechange.after2afterN[1]}}.png }
-\hfill
-\includegraphics[width=0.09\linewidth]{ 바닥단열보강-{{passivechange.after2afterN[2]}}.png }
-\hfill
-\includegraphics[width=0.09\linewidth]{ 창호교체-{{passivechange.after2afterN[3]}}.png }
-\hfill
-\includegraphics[width=0.09\linewidth]{ 쿨루프-{{passivechange.after2afterN[4]}}.png }
-\hfill
-\includegraphics[width=0.09\linewidth]{ 고효율난방설비-{{activechange.after2afterN[0]}}.png }
-\hfill
-\includegraphics[width=0.09\linewidth]{ 고효율냉방설비-{{activechange.after2afterN[1]}}.png }
-\hfill
-\includegraphics[width=0.09\linewidth]{ 전열교환기설치-{{activechange.after2afterN[2]}}.png }
-\hfill
-\includegraphics[width=0.09\linewidth]{ 고효율조명-{{activechange.after2afterN[3]}}.png }
-\hfill
-\includegraphics[width=0.09\linewidth]{ 태양광-{{activechange.after2afterN[4]}}.png }
-\vspace{3mm}
-
-\begin{tabular}{>{\centering\arraybackslash}p{4.3cm}|>{\centering\arraybackslash}p{6cm}|>{\centering\arraybackslash}p{6cm}}
-\hline
-성능 요소 & 그린리모델링 사업 직후 & 2025년 \\
-\hline
-외벽 평균열관류율 & {{passivechange.after.wallU}} $W/m^2K$ & {{passivechange.afterN.wallU}} $W/m^2K$ \\
-\cline{1-3}
-지붕 평균열관류율 & {{passivechange.after.roofU}} $W/m^2K$ & {{passivechange.afterN.roofU}} $W/m^2K$ \\
-\cline{1-3}
-바닥 평균열관류율 & {{passivechange.after.floorU}} $W/m^2K$ & {{passivechange.afterN.floorU}} $W/m^2K$ \\
-\cline{1-3}
-창호 평균열관류율 & {{passivechange.after.winU}} $W/m^2K$ & {{passivechange.afterN.winU}} $W/m^2K$ \\
-\cline{1-3}
-평균 조명밀도 & {{passivechange.after.ld}} $W/m^2$ & {{passivechange.afterN.ld}} $W/m^2$ \\
-\cline{1-3}
-난방설비 & \multicolumn{2}{c}{ {{activechange.after2afterNdetail.heating}} } \\
-\cline{1-3}
-냉방설비 & \multicolumn{2}{c}{ {{activechange.after2afterNdetail.cooling}} } \\
-\cline{1-3}
-환기설비 & \multicolumn{2}{c}{ {{activechange.after2afterNdetail.ventilation}} } \\
-\hline
-\end{tabular}
+{{equinitytex}}
 \end{tcolorbox}
 
-\section{운영특성}
-\begin{tcolorbox}[mysection, bottom=2mm, top=2mm]
-{{occupantchangetex}}
-\vspace{3mm}
-{{hvacoperchangetex}}
-\vspace{1mm}
-\begin{itemize}
-  \item \textbf{현장조사 의견 (재실)}: {{comment.occupant}}
-  \item \textbf{현장조사 의견 (냉난방)}: {{comment.hvac}} 
+\section{현장 조사자 의견}
+\begin{tcolorbox}[mysection,  bottom=2mm, top=2mm]
+  \begin{itemize}
+  \item \textbf{재실}: {{comment.occupant}}
+  \item \textbf{냉난방}: {{comment.hvac}} 
+  \item \textbf{기타}: {{comment.conclusion}}
 \end{itemize}
 \end{tcolorbox}
 
-
-\section{만족도 현장조사 의견}
+\section{만족도 의견 (\textbf{ {{comment.point}} }/7점)}
 \definecolor{starGold}{RGB}{255, 180, 0} % 진한 노란색 (가독성 좋음)
 \begin{tcolorbox}[mysection, bottom=2mm, top=2mm]
   \begin{tabular}{ @{} l @{\hspace{2mm}} l @{\hspace{6mm}} l @{\hspace{2mm}} l @{\hspace{6mm}} l @{\hspace{2mm}} l @{} }
@@ -281,19 +199,11 @@ $\rightarrow$  냉방도일\footnote{매 시간별로 외기온도가 기준온�
   {{comment.satisfaction}}
 \end{tcolorbox}
 
-\clearpage
-\topbar{용도별, 열원별, 월별 시뮬레이션 결과}
-
-\begin{tcolorbox}[
-  mysection,
-  width=0.85\paperwidth,
-  enlarge left by={-0.425\paperwidth +0.5\textwidth},
-  boxsep=0pt, left=0pt, right=0pt
-  ]
-  \includegraphics[width=\linewidth]{page3_summary.png}
-  \vspace{3mm}
-  \includegraphics[width=\linewidth]{simulation_results.png}
-
-\end{tcolorbox}
+\vspace{6mm}
+\par\par\noindent
+  ※ 본 분석은 도면과 현장조사에 기반한 시뮬레이션 분석으로, 도면의 해상도, 현장 조사의 정확도, 조사 수준 등에 따라 실제 에너지사용량과는 상이할 수 있음.
+{% if lpgusetext -%}
+  ※ {{ lpgusetext }}
+{% endif -%}
 
 \end{document}

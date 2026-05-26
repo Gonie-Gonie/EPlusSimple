@@ -4,6 +4,7 @@
 # ------------------------------------------------------------------------ #
 
 # built-in modules
+from operator import contains
 import os
 import re
 
@@ -18,10 +19,11 @@ from reb.report import build_report, MetaData, escape_str
 #                                   SETTINGS                                   #
 # ---------------------------------------------------------------------------- #
 
-rebexcel_dir = r"B:\공유 드라이브\01 진행과제\(안전원) 시뮬레이터\12 개발\scripts\run_REB_excel\input_excel"
-grr_dir      = r"B:\공유 드라이브\01 진행과제\(안전원) 시뮬레이터\12 개발\scripts\run_REB_excel\result_grr"
-report_dir   = r"B:\공유 드라이브\01 진행과제\(안전원) 시뮬레이터\12 개발\scripts\run_REB_excel\report"
-comment_path = r"B:\공유 드라이브\01 진행과제\(안전원) 시뮬레이터\12 개발\scripts\run_REB_excel\comment.csv"
+rebexcel_dir  = r"B:\공유 드라이브\01 진행과제\(안전원) 시뮬레이터\12 개발\scripts\run_REB_excel\input_excel"
+grr_dir       = r"B:\공유 드라이브\01 진행과제\(안전원) 시뮬레이터\12 개발\scripts\run_REB_excel\result_grr"
+report_dir    = r"B:\공유 드라이브\01 진행과제\(안전원) 시뮬레이터\12 개발\scripts\run_REB_excel\report"
+comment_path  = r"B:\공유 드라이브\01 진행과제\(안전원) 시뮬레이터\12 개발\scripts\run_REB_excel\comment.csv"
+masterdb_path = r"B:\공유 드라이브\01 진행과제\(안전원) 시뮬레이터\12 개발\scripts\run_REB_excel\masterdb.xlsx"
 
 # ---------------------------------------------------------------------------- #
 #                                   MAIN FUNC                                  #
@@ -113,6 +115,35 @@ def find_comment(
     }
     
     return commentdict
+
+
+def get_master_df() -> pd.DataFrame:
+    
+    df =  pd.read_excel(masterdb_path, sheet_name="총괄리스트", header=[0,1,2,3])
+    
+    # multicolumn 정리
+    df.columns = [
+        "_".join([str(x).strip().replace("\n"," ") for x in col if "Unnamed" not in str(x)])
+        for col in df.columns
+    ]
+    
+    # 데이터 없는 열 삭제
+    garbagecols = []
+    for idx, col in enumerate(df.columns):
+        if idx >=1 and col == df.columns[idx-1]:
+            garbagecols.append(idx)            
+    df = df.iloc[:, [i for i in range(len(df.columns)) if i not in garbagecols]]
+    
+    # 중복 열 (근거) 정리
+    df.columns = [
+        "_".join(df.columns[idx-1].split("_")[:2]) + "_근거" if re.match(r"(GR이전|GR이후|N년차)_근거", col) else col
+        for idx, col in enumerate(df.columns)
+    ]
+    
+    # 인덱스 정리
+    df.index = df.loc[:,["임시 고유번호","건축물명"]].apply(lambda x: f"{int(x[0]):03d}_{x[1].strip()}".replace(" ", ""), axis=1)
+    
+    return df
     
 
 def main(
@@ -122,16 +153,12 @@ def main(
     ) -> None:    
     
     commentdf = pd.read_csv(comment_path, encoding="cp949")
+    masterdf  = get_master_df()
     commentdf["건축물명"] = commentdf["건축물명"].map(lambda x: x.strip())
     validlist, invalidlist = find_building_sets(
         rebexcel_dir,
         grr_dir     ,
     )
-    
-    for d in invalidlist:
-        lacked_files = [f"excel({k})" for k,v in d["excel"].items() if v is None] +\
-                       [f"grr({k})"   for k,v in d["grr"].items()   if v is None]
-        print(f"Cannot build report for {d["name"]}: {",".join(lacked_files)}")
     
     for d in validlist:
         
@@ -145,13 +172,15 @@ def main(
         
         try:
             commentdict = find_comment(commentdf, d["name"])
+            masterdict  = masterdf.loc[d["name"].replace(" ", "")].to_dict()
+            
             build_report(
                 *d["excel"].values(),
                 *d["grr"].values()  ,
                 commentdict,
-                pdfpath
-            )
-            
+                masterdict ,
+                pdfpath    ,
+            )        
         
         finally:
             if os.path.exists(workingpath):

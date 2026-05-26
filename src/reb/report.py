@@ -7,12 +7,16 @@
 from __future__ import annotations
 import os
 import json
+import re
+import re
 import shutil
 import subprocess
 from pathlib  import Path
 from dataclasses import dataclass
 
 # third-party modules
+
+import numpy             as np
 import pandas            as pd
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
@@ -76,268 +80,106 @@ PALETTE = ['#e15759', '#4e79a7', '#F28e3b', '#b07aa1', '#FFC61E', '#00CD6C', '#A
 #                               FIGURE FUNCTIONS                               #
 # ---------------------------------------------------------------------------- #
 
-EPW_COLUMNS = [
-    "Year","Month","Day","Hour","Minute","Data Source and Uncertainty Flags",
-    "Dry Bulb Temperature","Dew Point Temperature","Relative Humidity",
-    "Atmospheric Station Pressure","Extraterrestrial Horizontal Radiation",
-    "Extraterrestrial Direct Normal Radiation","Horizontal Infrared Radiation Intensity",
-    "Global Horizontal Radiation","Direct Normal Radiation","Diffuse Horizontal Radiation",
-    "Global Horizontal Illuminance","Direct Normal Illuminance","Diffuse Horizontal Illuminance",
-    "Zenith Luminance","Wind Direction","Wind Speed","Total Sky Cover","Opaque Sky Cover",
-    "Visibility","Ceiling Height","Present Weather Observation","Present Weather Codes",
-    "Precipitable Water","Aerosol Optical Depth","Snow Depth","Days Since Last Snowfall",
-    "Albedo","Liquid Precipitation Depth","Liquid Precipitation Quantity"
-]
-
-def read_epw_drybulb(epw_path: str | Path) -> pd.DataFrame:
+def _scenario_bar_style(et_key: str, scenario_idx: int) -> dict:
     """
-    EPW 파일에서 Dry Bulb Temperature(°C)와 (Year, Month, Day, Hour) 추출.
-    - 헤더/주석('!')/DATA PERIODS 라인 자동 건너뛰기
-    - EPW는 1~24시가 '해당 시각 종료' time stamp → 시간대를 0~23으로 보정(Hour-1)
-    반환: df[["datetime","Year","Month","Day","Hour","DryBulb"]]
+    monthly stacked bars와 동일한 scenario 표현:
+    0: GR 이전       -> 원색
+    1: GR 이후       -> 연한색 + hatch
+    2: 운영특성 반영 -> 연한색
     """
-    epw_path = Path(epw_path)
-    rows = []
-    with epw_path.open("r", encoding="utf-8", errors="ignore") as f:
-        for line in f:
-            if not line or line.startswith("!"):
-                continue
-            parts = [p.strip() for p in line.rstrip("\n").split(",")]
-            # 데이터 레코드 후보: 최소 30~35열, 앞 5개가 숫자
-            if len(parts) < 30:
-                continue
-            y, m, d, h, mi = parts[0:5]
-            if not (y.isdigit() and m.isdigit() and d.isdigit() and h.isdigit() and mi.isdigit()):
-                continue
-            # EPW 표준 컬럼에서 DryBulb는 7번째(0-base 6)
-            try:
-                dry = float(parts[6])
-            except Exception:
-                continue
+    color = DEFAULT_COLORS_BEFORE[et_key]
 
-            Y = int(y); M = int(m); D = int(d); H = int(h)
-            # EPW는 Hour=1..24 (end-of-hour). pandas에 맞게 0~23로 보정
-            H_adj = max(0, min(23, H - 1))
-            # 빠르게 문자열 조합보다 pandas에 맡기기
-            rows.append((Y, M, D, H_adj, dry))
-
-    if not rows:
-        raise ValueError(f"EPW 데이터 행을 찾지 못했습니다: {epw_path}")
-
-    df = pd.DataFrame(rows, columns=["Year","Month","Day","Hour","DryBulb"])
-    # 연도 정보가 0이거나 비정상인 EPW도 있으니, 가짜 기준년도 보정은 하지 않음 (그대로 사용)
-    dt = pd.to_datetime(df[["Year","Month","Day","Hour"]], errors="coerce")
-    df.insert(0, "datetime", dt)
-    return df
-
-# ===== (1) 월별 평균 + 박스플롯 비교 =====
-def draw_weather_monthlycomparision(
-    epw1: str | Path,
-    epw2: str | Path,
-    *,
-    label1: str | None = None,
-    label2: str | None = None,
-    colors: list[str,str] = PALETTE[:2],
-    ax: plt.Axes
-) -> None:
-    """
-    두 EPW의 월별 DryBulb 분포(boxplot)와 월평균(라인)을 한 그림에 비교.
-    """
-    df1 = read_epw_drybulb(epw1)
-    df2 = read_epw_drybulb(epw2)
-    if label1 is None: label1 = Path(epw1).stem
-    if label2 is None: label2 = Path(epw2).stem
-
-    # 월별 시계열 → 박스플롯 데이터
-    box1 = [df1.loc[df1["Month"]==m, "DryBulb"].to_numpy() for m in range(1,13)]
-    box2 = [df2.loc[df2["Month"]==m, "DryBulb"].to_numpy() for m in range(1,13)]
-    mean1 = [float(pd.Series(b).mean()) if len(b)>0 else float("nan") for b in box1]
-    mean2 = [float(pd.Series(b).mean()) if len(b)>0 else float("nan") for b in box2]
-
-    pos1 = list(range(1,13))
-    shift = 0.3
-    pos2 = [p + shift for p in pos1]
-
-    bp1 = ax.boxplot(
-        box1, positions=pos1, widths=0.25, patch_artist=True, showfliers=False,
-        boxprops=dict(ec=colors[0], fc='none', linewidth=1.0),
-        medianprops=dict(color=colors[0], linewidth=1.0),
-        whiskerprops=dict(color=colors[0], linewidth=1.0),
-        capprops=dict(color=colors[0], linewidth=1.0),
-        flierprops=dict(markeredgecolor=colors[0], alpha=0.4, markersize=3),
-    )
-    bp2 = ax.boxplot(
-        box2, positions=pos2, widths=0.25, patch_artist=True, showfliers=False,
-        boxprops=dict(ec=colors[1], fc='none', linewidth=1.0),
-        medianprops=dict(color=colors[1], linewidth=1.0),
-        whiskerprops=dict(color=colors[1], linewidth=1.0),
-        capprops=dict(color=colors[1], linewidth=1.0),
-        flierprops=dict(markeredgecolor=colors[1], alpha=0.4, markersize=3),
-    )
-
-    # 월평균 표시(점선+마커)
-    ax.plot(pos1, mean1, color=colors[0], marker="o", ms=3, linestyle="--", linewidth=1.3, label=f"{label1.split('_')[1]}년")
-    ax.plot(pos2, mean2, color=colors[1], marker="o", ms=3, linestyle="--", linewidth=1.3, label=f"{label2.split('_')[1]}년")
-
-    ax.set_xticks(range(1,13))
-    ax.set_xticklabels(MONTH_LBLS, fontsize=9)
-    ax.set_xlim(0.5, 12.5 + shift)
-    ax.set_title("월평균 외기 온도 및 범위", fontsize=11, weight="bold")
-    ax.set_ylabel("온도 (°C)")
-    ax.grid(axis="both", linestyle="--", alpha=0.4)
-    ax.set_axisbelow(True)
-    all_values = pd.concat([
-        df1["DryBulb"].dropna(),
-        df2["DryBulb"].dropna()
-    ])
-    vmin, vmax = all_values.min(), all_values.max()
-    margin = (vmax - vmin) * 0.1  # 상하단 10% 여유
-
-    # ax.set_ylim(vmin - margin, vmax + margin)
-    ax.set_ylim(-30, 45)
-    ax.legend(fontsize=9, ncols=2, loc='upper center', bbox_to_anchor=(0.5, -0.1))
-
-
-# ===== (2) HDD/CDD 비교 =====
-def draw_weather_degreedays(
-    epw1: str | Path,
-    epw2: str | Path,
-    *,
-    base_temp: float = 18.0,
-    label1: str | None = None,
-    label2: str | None = None,
-    colors: list[str,str] = PALETTE[:2],
-    ax: plt.Axes
-) -> None:
-    """
-    두 EPW 파일의 연간 Heating/Cooling Degree Days를 막대 4개로 비교.
-    HDD/CDD는 °C·day 단위로 계산.
-    """
-
-    # --- EPW 데이터 읽기 (Month, DryBulb) ---
-    df1 = read_epw_drybulb(epw1)
-    df2 = read_epw_drybulb(epw2)
-    if label1 is None: label1 = Path(epw1).stem
-    if label2 is None: label2 = Path(epw2).stem
-
-    # --- HDD/CDD 계산 ---
-    def degree_days(df: pd.DataFrame, base: float):
-        hdd = (base - df["DryBulb"]).clip(lower=0).sum() / 24.0
-        cdd = (df["DryBulb"] - base).clip(lower=0).sum() / 24.0
-        return hdd, cdd
-
-    hdd1, cdd1 = degree_days(df1, base_temp)
-    hdd2, cdd2 = degree_days(df2, base_temp)
-
-    # --- Figure 구성 ---
-    x_positions = [0, 1, 3, 4]  # HDD1, HDD2, CDD1, CDD2
-    degreedays = [hdd1, hdd2, cdd1, cdd2]
-    colors_seq = [colors[0], colors[1], colors[0], colors[1]]
-
-    bars = ax.bar(x_positions, degreedays, width=0.8, color=colors_seq, alpha=0.8)
-
-    # --- x축 그룹 라벨 ---
-    ax.set_xticks([0.5, 3.5])
-    ax.set_xticklabels(["난방도일", "냉방도일"], fontsize=10)
-    ax.set_ylabel("도일 (°C·day)")
-    ax.set_title(f"연간 냉난방부하(도일) 비교",
-                 fontsize=11, weight="bold")
-    ax.grid(axis="y", linestyle="--", alpha=0.4)
-
-    # --- 막대 위 값 표시 ---
-    ax.bar_label(bars, fmt="%.0f", padding=3, fontsize=9)
-    ax.set_ylim(0, max(degreedays)*1.15)
-
-    # --- 범례 ---
-    custom = [plt.Rectangle((0,0),1,1,color=colors[0],alpha=0.8),
-              plt.Rectangle((0,0),1,1,color=colors[1],alpha=0.8)]
-    ax.legend(custom, [f"{l.split('_')[1]}년" for l in [label1, label2]], fontsize=9, ncols=2, loc='upper center', bbox_to_anchor=(0.5, -0.1))
-    
-    return degreedays
-
-
-def draw_weather_figures(
-    before_weatherdata_filepath:str,
-    after_weatherdata_filepath :str,
-    ) -> tuple[plt.Figure]:
-
-    fig, axs = plt.subplots(1, 2, figsize=(8, 3), gridspec_kw={'width_ratios': [2, 1]}, layout='constrained')
-    
-    draw_weather_monthlycomparision(
-        before_weatherdata_filepath,
-        after_weatherdata_filepath ,
-        ax = axs[0]
-    )
-    degreedays = draw_weather_degreedays(
-        before_weatherdata_filepath,
-        after_weatherdata_filepath ,
-        ax = axs[1]
-    )
-    fig.get_layout_engine().set(wspace=0.1)
-    
-    return fig, degreedays
+    return {
+        "ec": None,
+        "fc": [color, color + "40", color + "40"][scenario_idx],
+        "hatch": [None, "//////", None][scenario_idx],
+        "lw": 0.8,
+    }
 
 
 def draw_3step_bargraph(
-    title : str,
-    values: list[list[int|float]],
-    index : list[str],
+    title: str,
+    values: list[list[int | float]],
+    index: list[str],
     *,
     ylabel: str = "Value",
-    ax    : plt.Axes
-    ) -> None:
+    ax: plt.Axes,
+    scenario_style: bool = False,
+    show_legend: bool = True,
+) -> np.ndarray:
 
-    num_bars = len(values)
-    x_positions = range(num_bars) # [0, 1, 2]
-    width = 0.7  # 그룹이 아니므로 막대 폭을 넓게 설정
-    num_subbars =len(ENERGY_TYPES)
+    values_arr = np.asarray(values, dtype=float)
+
+    num_bars = values_arr.shape[0]
+    x_positions = np.arange(num_bars)
+
+    width = 0.7
+    num_subbars = values_arr.shape[1]
+    energy_types = ENERGY_TYPES[:num_subbars]
     subbar_width = width / num_subbars
 
-    for n, (pos, val) in enumerate(zip(x_positions, values)):
-        for et_idx, (et_key, et_label) in enumerate(ENERGY_TYPES):
+    for n, pos in enumerate(x_positions):
+        for et_idx, (et_key, et_label) in enumerate(energy_types):
             color = DEFAULT_COLORS_BEFORE[et_key]
-            subbar_pos = pos - subbar_width*(num_subbars/2-et_idx-0.5)
-            bar = ax.bar(subbar_pos, val[et_idx], width=subbar_width,
-                   ec=None, fc=color+'90', lw=1)
+            subbar_pos = pos - subbar_width * (num_subbars / 2 - et_idx - 0.5)
 
-    # --- 축 및 레이블 수정 ---
-    # x축 눈금 위치를 막대 위치(0, 1, 2)와 동일하게 설정
+            if scenario_style:
+                style = _scenario_bar_style(et_key, n)
+                ax.bar(
+                    subbar_pos,
+                    values_arr[n, et_idx],
+                    width=subbar_width,
+                    ec=style["ec"],
+                    fc=style["fc"],
+                    hatch=style["hatch"],
+                    lw=style["lw"],
+                    zorder=3,
+                )
+            else:
+                # 기존 draw_mainfigures fig2 유지
+                ax.bar(
+                    subbar_pos,
+                    values_arr[n, et_idx],
+                    width=subbar_width,
+                    ec=None,
+                    fc=color + "90",
+                    lw=1,
+                    zorder=3,
+                )
+
     ax.set_xticks(x_positions)
-    # x축 눈금 레이블을 index 리스트로 설정
     ax.set_xticklabels(index, fontsize=10)
-    
+
     ax.set_ylabel(ylabel)
-    ax.set_title(title, fontsize=11, y=1.1)
+    ax.set_title(title, fontsize=11, y=1.08, fontweight="bold")
     ax.grid(axis="y", linestyle="--", alpha=0.4)
     ax.set_axisbelow(True)
-    
-    # xlim을 막대 좌우로 0.5만큼 여유 있게 설정 (-0.5 ~ 2.5)
+
     ax.set_xlim(-0.5, num_bars - 0.5)
-    
-    # bar_label이 잘 보이도록 y축 상단에 15% 여유 공간 추가
-    ax.set_ylim(top=max([max(val) for val in values]) * 1.1)
-    
-    ax.legend(
-        fontsize=8,
-        handles=[
-            Patch(ec=None, fc=DEFAULT_COLORS_BEFORE[et_key]+'90')
-            for et_key, _ in ENERGY_TYPES
-        ],
-        labels=[et_label for _, et_label in ENERGY_TYPES],
-        loc="upper center", ncol=4, bbox_to_anchor=(0.5, -0.15),
-    )
 
-# ---------------------------------------------------------------------------
-# New functions: Python versions of HTML Chart.js visualizations
-# ---------------------------------------------------------------------------
+    max_value = np.nanmax(values_arr) if values_arr.size > 0 else 0
+    ax.set_ylim(0, max(1, max_value * 1.12))
 
-import numpy as np
+    if show_legend:
+        ax.legend(
+            fontsize=8,
+            handles=[
+                Patch(ec=None, fc=DEFAULT_COLORS_BEFORE[et_key] + "90")
+                for et_key, _ in energy_types
+            ],
+            labels=[et_label for _, et_label in energy_types],
+            loc="upper center",
+            ncol=4,
+            bbox_to_anchor=(0.5, -0.15),
+        )
+
+    return values_arr
 
 GRAPH_ORDER = [
     ("heating", "난방"),
     ("cooling", "냉방"),
     ("lighting", "조명"),
-    ("circulation", "팬/펌프/전열"),
+    ("circulation", "팬,펌프,전열"),
     ("hotwater", "급탕"),
     ("generators", "발전량"),
 ]
@@ -347,11 +189,281 @@ ENERGY_TYPES = [
     ("OIL", "유류"),
     ("DISTRICTHEATING", "지역난방"),
 ]
+SCENARIO_PREFIXES = ("GR이전", "GR이후", "N년차")
 
 DEFAULT_COLORS_BEFORE = {
-    k: PALETTE[k_idx]
-    for k_idx, k in enumerate(["NATURALGAS", "ELECTRICITY", "OIL", "DISTRICTHEATING"])
+    "NATURALGAS": PALETTE[0],
+    "ELECTRICITY": PALETTE[1],
+    "OIL": PALETTE[2],
+    "DISTRICTHEATING": PALETTE[3],
 }
+
+def _energy_values(category_data: dict, et_key: str) -> np.ndarray:
+    return np.asarray(category_data.get(et_key, [0] * 12), dtype=float)
+
+def _sum_grr_monthly_totals(
+    result: dict,
+    datatype: str,
+) -> np.ndarray:
+    totals = np.zeros(12)
+
+    for cat_key, _ in GRAPH_ORDER:
+        sign = -1 if cat_key == "generators" else 1
+        category_data = result[datatype].get(cat_key, {})
+        for et_key, _ in ENERGY_TYPES:
+            totals += sign * _energy_values(category_data, et_key)
+
+    return totals
+
+def _sum_grr_annual_total(
+    result: dict,
+    datatype: str,
+) -> float:
+    return float(_sum_grr_monthly_totals(result, datatype).sum())
+
+def _sum_grr_energy_total(
+    result: dict,
+    datatype: str,
+    et_key: str,
+) -> float:
+    total = 0.0
+
+    for cat_key, _ in GRAPH_ORDER:
+        sign = -1 if cat_key == "generators" else 1
+        total += sign * _energy_values(
+            result[datatype].get(cat_key, {}),
+            et_key,
+        ).sum()
+
+    return float(total)
+
+def _is_empty_value(value) -> bool:
+    if value is None:
+        return True
+
+    isna = pd.isna(value)
+    if isinstance(isna, (bool, np.bool_)):
+        return bool(isna)
+
+    return False
+
+def _value_is_lpg(value) -> bool:
+    if _is_empty_value(value):
+        return False
+
+    normalized = str(value).upper().replace(" ", "")
+    return any(token in normalized for token in ("LPG", "액화석유가스"))
+
+def _find_heating_energy_source(masterdict: dict, prefix: str):
+    exact_suffixes = (
+        "_난방1_열원",
+        "_난방1_에너지원",
+        "_난방1_ET",
+        "_보일러_열원",
+        "_보일러_에너지원",
+        "_보일러_ET",
+        "_난방_열원",
+        "_난방_에너지원",
+        "_난방_ET",
+        "_열원",
+        "_에너지원",
+        "_연료종류",
+        "_ET",
+    )
+
+    for suffix in exact_suffixes:
+        key = f"{prefix}{suffix}"
+        if key in masterdict and not _is_empty_value(masterdict[key]):
+            return masterdict[key]
+
+    candidates = []
+    for key, value in masterdict.items():
+        if not isinstance(key, str) or not key.startswith(f"{prefix}_"):
+            continue
+        if _is_empty_value(value):
+            continue
+        if not any(token in key for token in ("열원", "에너지원", "연료종류", "_ET")):
+            continue
+        if key == f"{prefix}_ET" or any(token in key for token in ("난방", "보일러")):
+            score = 0
+            if "난방1" in key:
+                score -= 4
+            if "보일러" in key:
+                score -= 2
+            if key.endswith("_ET"):
+                score -= 1
+            score += len(key)
+            candidates.append((score, key, value))
+
+    if not candidates:
+        return None
+
+    candidates.sort(key=lambda item: (item[0], item[1]))
+    return candidates[0][2]
+
+def parse_lpg_usage(masterdict: dict) -> dict[str, bool]:
+    return {
+        prefix: _value_is_lpg(_find_heating_energy_source(masterdict, prefix))
+        for prefix in SCENARIO_PREFIXES
+    }
+
+def _scenario_bar_style(et_key: str, scenario_idx: int) -> dict:
+    """
+    monthly stacked bars와 동일한 scenario 표현:
+    0: GR 이전          -> 원색
+    1: GR 이후          -> 연한색 + hatch
+    2: 운영특성 반영    -> 연한색
+    """
+    color = DEFAULT_COLORS_BEFORE[et_key]
+
+    fcs = [color, color + "40", color + "40"]
+    hatches = [None, "//////", None]
+
+    return {
+        "ec": None,
+        "fc": fcs[scenario_idx],
+        "hatch": hatches[scenario_idx],
+        "lw": 0.8,
+    }
+
+
+def _make_energy_scenario_legend_handles() -> tuple[list[Patch], list[str]]:
+    """
+    monthly stacked bars의 legend와 동일한 handles/labels 생성
+    """
+    handles = []
+    labels = []
+
+    for et_key, et_label in ENERGY_TYPES:
+        for l_idx, label in enumerate(["GR 이전", "GR 이후", "운영특성 반영"]):
+            style = _scenario_bar_style(et_key, l_idx)
+
+            handles.append(
+                Patch(
+                    ec=style["ec"],
+                    lw=style["lw"],
+                    fc=style["fc"],
+                    hatch=style["hatch"],
+                )
+            )
+            labels.append(f"{et_label} {label}")
+
+    return handles, labels
+
+
+def _draw_value_table(
+    ax: plt.Axes,
+    values: np.ndarray,
+    *,
+    row_labels: list[str],
+    col_labels: list[str],
+    digits: int = 1,
+    fontsize: float = 8.2,
+    row_label_width: float = 0.15,
+) -> None:
+    """
+    summary figure용 범용 표.
+    monthly_stacked_bars의 표 스타일과 맞추되, 열/행 개수가 달라도 사용 가능.
+    """
+    ax.axis("off")
+
+    values = np.asarray(values, dtype=float)
+
+    cell_text = [
+        [f"{v:.{digits}f}" for v in row]
+        for row in values
+    ]
+
+    ncols = values.shape[1]
+    col_width = 1.0 / max(ncols, 1)
+
+    table = ax.table(
+        cellText=cell_text,
+        rowLabels=row_labels,
+        colLabels=col_labels,
+        cellLoc="center",
+        rowLoc="center",
+        colLoc="center",
+        loc="center",
+        bbox=[0.00, 0.00, 1.00, 1.00],  # summary table에서는 높이 전체 사용
+        colWidths=[col_width] * ncols,
+    )
+
+    table.auto_set_font_size(False)
+    table.set_fontsize(fontsize)
+    table.scale(1.0, 1.45)  # monthly stacked table보다 작아 보이는 문제 완화
+
+    for (r, c), cell in table.get_celld().items():
+        cell.set_linewidth(0.35)
+        cell.PAD = 0.035
+        cell.get_text().set_clip_on(False)
+
+        if r == 0:
+            cell.set_facecolor("#F2F2F2")
+            cell.set_text_props(weight="bold")
+
+        if c == -1:
+            cell.set_width(row_label_width)
+            cell.set_facecolor("#F7F7F7")
+            cell.set_text_props(weight="bold")
+
+        if c >= 0:
+            cell.set_width(col_width)
+
+def _draw_monthly_value_table(
+    ax: plt.Axes,
+    values_3x12: np.ndarray,
+    digits: int = 1,
+    fontsize: float = 8.2,
+) -> None:
+    """
+    values_3x12[0, :] = GR 이전
+    values_3x12[1, :] = GR 이후
+    values_3x12[2, :] = 운영특성 반영
+    """
+    ax.axis("off")
+
+    row_labels = ["이전", "이후", "운영"]
+    month_labels = [f"{m}월" for m in range(1, 13)]
+
+    cell_text = [
+        [f"{v:.{digits}f}" for v in row]
+        for row in values_3x12
+    ]
+
+    # month 열 폭은 약간 줄이고, row label(인덱스) 쪽은 별도 폭 확보
+    table = ax.table(
+        cellText=cell_text,
+        rowLabels=row_labels,
+        colLabels=month_labels,
+        cellLoc="center",
+        rowLoc="center",
+        colLoc="center",
+        loc="center",
+        bbox=[0.00, 0.06, 1.00, 0.88],
+        colWidths=[0.070] * 12,
+    )
+
+    table.auto_set_font_size(False)
+    table.set_fontsize(fontsize)
+    table.scale(1.0, 1.32)   # 표 세로 높이 확대
+
+    for (r, c), cell in table.get_celld().items():
+        cell.set_linewidth(0.35)
+        cell.PAD = 0.025
+        cell.get_text().set_clip_on(False)
+
+        if r == 0:
+            cell.set_facecolor("#F2F2F2")
+            cell.set_text_props(weight="bold")
+
+        if c == -1:
+            cell.set_width(0.11)
+            cell.set_facecolor("#F7F7F7")
+            cell.set_text_props(weight="bold")
+
+        if c >= 0:
+            cell.set_width(0.072)
 
 def _draw_monthly_stacked_bar(
     category_key: str,
@@ -360,63 +472,95 @@ def _draw_monthly_stacked_bar(
     grr_after: dict,
     grr_afterN: dict,
     datatype: str = "source_uses",
-    ax: plt.Figure | None = None
-) -> plt.Figure:
-    """HTML의 월별 stacked bar (ex. 난방, 냉방 등)"""
+    ax: plt.Axes | None = None
+) -> np.ndarray:
+    """월별 stacked bar"""
+
+    if ax is None:
+        _, ax = plt.subplots()
 
     month_labels = np.arange(1, 13)
     bottom_before = np.zeros(12)
-    bottom_after = np.zeros(12)
+    bottom_after  = np.zeros(12)
     bottom_afterN = np.zeros(12)
 
     for et_key, et_label in ENERGY_TYPES:
-        bvals = np.array(grr_before[datatype][category_key].get(et_key, [0]*12))
-        avals = np.array(grr_after[datatype][category_key].get(et_key, [0]*12))
-        nvals = np.array(grr_afterN[datatype][category_key].get(et_key, [0]*12))
+        bvals = np.asarray(
+            _energy_values(
+                grr_before[datatype].get(category_key, {}),
+                et_key,
+            ),
+            dtype=float
+        )
+        avals = np.asarray(
+            _energy_values(
+                grr_after[datatype].get(category_key, {}),
+                et_key,
+            ),
+            dtype=float
+        )
+        nvals = np.asarray(
+            _energy_values(
+                grr_afterN[datatype].get(category_key, {}),
+                et_key,
+            ),
+            dtype=float
+        )
+
+        bvals = np.nan_to_num(bvals, nan=0.0)
+        avals = np.nan_to_num(avals, nan=0.0)
+        nvals = np.nan_to_num(nvals, nan=0.0)
 
         color = DEFAULT_COLORS_BEFORE[et_key]
 
-        ax.bar(month_labels - 0.25, bvals, width=0.25, bottom=bottom_before,
-               label=f"{et_label} (전)",
-               fc=color)
-        ax.bar(month_labels - 0.25, bvals, width=0.25, bottom=bottom_before,
-               ec=None, fc='none', zorder=5, lw=1.0)
-        
-        ax.bar(month_labels, avals, width=0.25, bottom=bottom_after,
-               label=f"{et_label} (후)",
-               ec=None, fc=color+'40', hatch='//////', lw=0.8)
-        ax.bar(month_labels, avals, width=0.25, bottom=bottom_after,
-               ec=None, fc='none', zorder=5, lw=1.0)
+        ax.bar(
+            month_labels - 0.25, bvals, width=0.25, bottom=bottom_before,
+            label=f"{et_label} (전)", fc=color
+        )
+        ax.bar(
+            month_labels - 0.25, bvals, width=0.25, bottom=bottom_before,
+            ec=None, fc="none", zorder=5, lw=1.0
+        )
 
-        ax.bar(month_labels + 0.25, nvals, width=0.25, bottom=bottom_afterN,
-               label=f"{et_label} (N)",
-               ec=None, fc=color+'40', zorder=5, lw=1.0)
+        ax.bar(
+            month_labels, avals, width=0.25, bottom=bottom_after,
+            label=f"{et_label} (후)",
+            ec=None, fc=color + "40", hatch="//////", lw=0.8
+        )
+        ax.bar(
+            month_labels, avals, width=0.25, bottom=bottom_after,
+            ec=None, fc="none", zorder=5, lw=1.0
+        )
+
+        ax.bar(
+            month_labels + 0.25, nvals, width=0.25, bottom=bottom_afterN,
+            label=f"{et_label} (N)",
+            ec=None, fc=color + "40", zorder=5, lw=1.0
+        )
 
         bottom_before += bvals
         bottom_after += avals
         bottom_afterN += nvals
 
-    ax.set_xticks(month_labels)
-    ax.set_xticklabels([f"{m}월" for m in month_labels])
-    ax.set_ylabel("(kWh/$\\mathrm{m^2\\cdot}$월)")
-    ax.set_title(f"{category_label}")
-    ax.grid(axis="y", linestyle="--", alpha=0.4)
-    # legend는 나중에 한 번에
-    # ax.legend(fontsize=8, ncols=2)
-    
-    # --- ylim 자동 여유 설정 ---
-    all_values = np.concatenate([
-        np.array(grr_before[datatype][category_key].get(et_key, [0]*12))
-        for et_key, _ in ENERGY_TYPES
-    ] + [
-        np.array(grr_after[datatype][category_key].get(et_key, [0]*12))
-        for et_key, _ in ENERGY_TYPES
-    ] + [
-        np.array(grr_afterN[datatype][category_key].get(et_key, [0]*12))
-        for et_key, _ in ENERGY_TYPES
+    monthly_totals = np.vstack([
+        bottom_before,
+        bottom_after,
+        bottom_afterN,
     ])
-    ymax = all_values.max() if len(all_values) > 0 else 0
-    ax.set_ylim(0, max(5, ymax * 1.15))  # 상단 15% 여유
+
+    ax.set_xticks(month_labels)
+    ax.set_xticklabels([f"{m}월" for m in month_labels], fontsize=9)
+    ax.tick_params(axis="y", labelsize=9)
+
+    ax.set_ylabel("(kWh/$\\mathrm{m^2\\cdot}$월)", fontsize=11)
+    ax.set_title(category_label, pad=10, fontsize=13, fontweight="bold")
+    ax.grid(axis="y", linestyle="--", alpha=0.4)
+    ax.margins(x=0.03)
+
+    ymax = monthly_totals.max() if monthly_totals.size > 0 else 0
+    ax.set_ylim(0, max(5, ymax * 1.12))
+
+    return monthly_totals
 
 
 def _draw_monthly_stacked_bars(
@@ -424,94 +568,188 @@ def _draw_monthly_stacked_bars(
     grr_before: dict,
     grr_after: dict,
     grr_afterN: dict,
-    datatype: str = "source_uses"
+    datatype: str = "source_uses",
 ) -> None:
-    
-    axs = fig.subplots(3, 2)
 
-    # (1) 난방, 냉방, 조명, 팬/펌프/전열, 급탕, 발전량
+    fig.clear()
+    fig.set_constrained_layout(False)
+
+    # 기존보다 세로는 조금 줄이고, 가로는 조금 넓힘
+    fig.set_size_inches(11.6, 12)
+
+    # 각 블록 = [그래프, 표, spacer]
+    # 그래프 높이는 줄이고 표는 키움
+    gs = fig.add_gridspec(
+        nrows=9,
+        ncols=2,
+        height_ratios=[
+            1.75, 1.08, 0.25,
+            1.75, 1.08, 0.25,
+            1.75, 1.08, 0.25,
+        ],
+        left=0.065,
+        right=0.985,
+        top=0.925,
+        bottom=0.105,
+        wspace=0.18,
+        hspace=0.00,
+    )
+
     for cat_idx, (cat_key, cat_label) in enumerate(GRAPH_ORDER):
-        _draw_monthly_stacked_bar(
-            cat_key, cat_label, grr_before, grr_after, grr_afterN, datatype,
-            ax = axs.ravel()[cat_idx]
+        block = cat_idx // 2
+        col = cat_idx % 2
+
+        graph_row = block * 3
+        table_row = graph_row + 1
+
+        ax_graph = fig.add_subplot(gs[graph_row, col])
+        ax_table = fig.add_subplot(gs[table_row, col])
+
+        values_3x12 = _draw_monthly_stacked_bar(
+            cat_key,
+            cat_label,
+            grr_before,
+            grr_after,
+            grr_afterN,
+            datatype,
+            ax=ax_graph,
+        )
+
+        _draw_monthly_value_table(
+            ax_table,
+            values_3x12,
+            digits=1,      # 소수점 한자리
+            fontsize=8.2,  # 8pt 이상
         )
 
     handles = []
     labels = []
-    for et_key, et_label in ENERGY_TYPES:
-        for l_idx, label in enumerate(["GR 이전", "GR 이후", "(운영특성 반영)"]):
-            color = DEFAULT_COLORS_BEFORE[et_key]
-            handles.append(Patch(ec=None, lw=0.8,
-                                 fc=[color, color+'40', color+'40'][l_idx],
-                                 hatch=[None, '//////', None][l_idx]))
-            labels.append(f"{et_label} {label}")
 
-    legend_ncol = 4
+    for et_key, et_label in ENERGY_TYPES:
+        for l_idx, label in enumerate(["GR 이전", "GR 이후", "운영특성 반영"]):
+            color = DEFAULT_COLORS_BEFORE[et_key]
+            handles.append(
+                Patch(
+                    ec=None,
+                    lw=0.8,
+                    fc=[color, color + "40", color + "40"][l_idx],
+                    hatch=[None, "//////", None][l_idx],
+                )
+            )
+            labels.append(f"{et_label} {label}")
 
     fig.legend(
         handles=handles,
         labels=labels,
-        loc='outside lower center', ncol=legend_ncol,
+        loc="lower center",
+        bbox_to_anchor=(0.5, 0.020),
+        ncol=4,
+        fontsize=9.5,
+        frameon=True,
+        borderaxespad=0.15,
+        handletextpad=0.45,
+        columnspacing=1.2,
+        labelspacing=0.30,
     )
 
 
-def _draw_annual_by_purpose(ax: plt.Axes, grr_before: dict, grr_after: dict, grr_afterN: dict, datatype="source_uses") -> None:
-    """HTML의 연간 용도별 stacked bar (bar-annual-by-purpose)"""
+def _draw_annual_by_purpose(
+    ax: plt.Axes,
+    grr_before: dict,
+    grr_after: dict,
+    grr_afterN: dict,
+    datatype="source_uses",
+) -> np.ndarray:
+    """연간 용도별 stacked bar"""
+
     x = np.arange(len(GRAPH_ORDER))
     width = 0.25
 
-    ymax = -np.inf
+    scenario_totals = np.zeros((3, len(GRAPH_ORDER)), dtype=float)
+
+    ymax = 0.0
+
     for idx, (label, dataset) in enumerate([
         ("GR 이전", grr_before),
         ("GR 이후", grr_after),
-        ("(운영특성 반영)", grr_afterN),
+        ("운영특성 반영", grr_afterN),
     ]):
         bottoms = np.zeros(len(GRAPH_ORDER))
-        for et_key, et_label in ENERGY_TYPES:
-            vals = [
-                sum(dataset[datatype][cat_key].get(et_key, [0]*12))
-                for cat_key, _ in GRAPH_ORDER
-            ]
-            color = DEFAULT_COLORS_BEFORE[et_key]
-            ax.bar(x + (idx - 1) * width, vals, width=width,
-                   bottom=bottoms,
-                   label=f"{et_label} {label}",
-                   ec=None, lw=0.8,
-                   fc=[color, color+'40', color+'40'][idx],
-                   hatch=[None, '//////', None][idx])
-            ax.bar(x + (idx - 1) * width, vals, width=width,
-                   bottom=bottoms, ec=None, fc='none', zorder=5, lw=1.0)
-            bottoms += vals
-            ymax = max(ymax, bottoms.max())
 
-    ax.set_ylim(0, max(5, ymax * 1.15))  # 상단 15% 여유
+        for et_key, et_label in ENERGY_TYPES:
+            vals = np.asarray([
+                _energy_values(dataset[datatype].get(cat_key, {}), et_key).sum()
+                for cat_key, _ in GRAPH_ORDER
+            ], dtype=float)
+
+            color = DEFAULT_COLORS_BEFORE[et_key]
+
+            ax.bar(
+                x + (idx - 1) * width,
+                vals,
+                width=width,
+                bottom=bottoms,
+                label=f"{et_label} {label}",
+                ec=None,
+                lw=0.8,
+                fc=[color, color + "40", color + "40"][idx],
+                hatch=[None, "//////", None][idx],
+                zorder=3,
+            )
+
+            ax.bar(
+                x + (idx - 1) * width,
+                vals,
+                width=width,
+                bottom=bottoms,
+                ec=None,
+                fc="none",
+                zorder=5,
+                lw=1.0,
+            )
+
+            bottoms += vals
+
+        scenario_totals[idx, :] = bottoms
+        ymax = max(ymax, bottoms.max())
+
+    ax.set_ylim(0, max(5, ymax * 1.15))
 
     ax.set_xticks(x)
-    ax.set_xticklabels([lbl.replace('/', '/\n') for _, lbl in GRAPH_ORDER])
+    ax.set_xticklabels([lbl.replace("/", "/\n") for _, lbl in GRAPH_ORDER])
     ax.set_ylabel("연간 합계 (kWh/$\\mathrm{m^2\\cdot}$연)")
-    ax.set_title("연간 용도별 1차에너지소요량")
+    ax.set_title("연간 용도별 1차에너지소요량", fontweight="bold")
     ax.grid(axis="y", linestyle="--", alpha=0.4)
+    ax.set_axisbelow(True)
 
-def _draw_total_monthly_bar(ax: plt.Axes, grr_before: dict, grr_after: dict, grr_afterN: dict, datatype="source_uses") -> None:
+    return scenario_totals
+
+def _draw_total_monthly_bar(
+    ax: plt.Axes,
+    grr_before: dict,
+    grr_after: dict,
+    grr_afterN: dict,
+    datatype="source_uses",
+) -> None:
     """HTML의 bar-total (월별 총합 비교 - 막대그래프)"""
     months = np.arange(1, 13)
     
     # 막대 너비 설정
     width = 0.25 
 
-    before_vals = grr_before["summary_per_area"][datatype]["total_monthly"]
-    after_vals = grr_after["summary_per_area"][datatype]["total_monthly"]
-    afterN_vals = grr_afterN["summary_per_area"][datatype]["total_monthly"]
+    before_vals = _sum_grr_monthly_totals(grr_before, datatype)
+    after_vals = _sum_grr_monthly_totals(grr_after, datatype)
+    afterN_vals = _sum_grr_monthly_totals(grr_afterN, datatype)
 
     # x축 위치를 조정하여 막대를 그립니다 (왼쪽, 가운데, 오른쪽)
     # zorder=3을 주어 그리드 위로 막대가 올라오게 합니다.
     ax.bar(months - width, before_vals, width=width, color=PALETTE[0], label="GR 이전", zorder=3)
     ax.bar(months, after_vals, width=width, color=PALETTE[1], label="GR 이후", zorder=3)
     
-    # (운영특성 반영)은 기존 스타일(점선/빈 원)을 반영하여 빗금(hatch)이나 테두리 스타일로 표현
+    # 운영특성 반영은 기존 스타일(점선/빈 원)을 반영하여 빗금(hatch)이나 테두리 스타일로 표현
     ax.bar(months + width, afterN_vals, width=width, 
            color='white', edgecolor=PALETTE[2], hatch='////', linewidth=1.0, 
-           label="(운영특성 반영)", zorder=3)
+           label="운영특성 반영", zorder=3)
 
     ax.set_ylim(bottom=0)
     ax.set_xticks(months)
@@ -524,7 +762,11 @@ def _draw_total_monthly_bar(ax: plt.Axes, grr_before: dict, grr_after: dict, grr
     ax.legend(fontsize=8, loc="upper center", ncol=3, bbox_to_anchor=(0.5, -0.15))
 
 
-def draw_simulation_figures(grr_before: dict, grr_after: dict, grr_afterN: dict):
+def draw_mainfigures(
+    grr_before: dict,
+    grr_after: dict,
+    grr_afterN: dict,
+):
     """
     matplotlib로 두 개의 Figure(메인 그래프, 요약 그래프)를 생성하여 반환
     Returns:
@@ -547,69 +789,112 @@ def draw_simulation_figures(grr_before: dict, grr_after: dict, grr_afterN: dict)
     fig2 = plt.figure(figsize=(9, 3), constrained_layout=True)
     
     # 1행 2열로 서브플롯 생성
-    summary_axs = fig2.subplots(1, 2)
+    summary_ax = fig2.subplots(1, 1)
 
     # (3) 월별 총합 라인 그래프
-    _draw_total_monthly_bar(summary_axs[0], grr_before, grr_after, grr_afterN)
-
     draw_3step_bargraph(
         "면적당 1차에너지소요량 (연간)",
         [
             [
-                sum([
-                    # cat이 'generators'이면 음수(-)로, 아니면 양수(+)로 합산
-                    -sum(result["source_uses"][cat][et_key]) if cat == "generators" 
-                    else sum(result["source_uses"][cat][et_key])
-                    
-                    for cat, _ in GRAPH_ORDER
-                ])
+                _sum_grr_energy_total(result, "source_uses", et_key)
                 for et_key, _ in ENERGY_TYPES
             ]
             for result in [grr_before, grr_after, grr_afterN]
         ],
-        ["GR이전","GR이후","(운영특성 반영)"],
+        ["GR이전","GR이후","운영특성 반영"],
         ylabel = "1차에너지 (kWh/$\\mathrm{m^2\\cdot}$년)",
-        ax = summary_axs[1]
+        ax = summary_ax
     )
     
     return fig1, fig2
 
-def draw_page3_summaryfigure(
+def draw_page3_summaryfigures(
     grr_before: dict,
     grr_after: dict,
     grr_afterN: dict,
-    ) -> plt.Figure:
-    
-    fig = plt.figure(figsize=(9, 3), constrained_layout=True)
-    axes = fig.subplots(1, 2)
-    
-    _draw_annual_by_purpose(
-        axes[0],
-        grr_before, grr_after, grr_afterN,  "source_uses"
+) -> plt.Figure:
+
+    fig = plt.figure(figsize=(11.6, 4.9), constrained_layout=False)
+
+    gs = fig.add_gridspec(
+        nrows=2,
+        ncols=2,
+        height_ratios=[2.45, 1.35],  # 표 row를 monthly stacked 쪽에 가깝게 키움
+        left=0.070,
+        right=0.985,
+        top=0.82,
+        bottom=0.075,  # legend 제거했으므로 아래 여백 축소
+        wspace=0.22,
+        hspace=0.035,  # 그래프와 표는 붙여 보이게
     )
-    
-    draw_3step_bargraph(
-        "면적당 온실가스 배출량 (연간)",
+
+    ax_energy = fig.add_subplot(gs[0, 0])
+    ax_co2 = fig.add_subplot(gs[0, 1])
+
+    ax_energy_table = fig.add_subplot(gs[1, 0])
+    ax_co2_table = fig.add_subplot(gs[1, 1])
+
+    scenario_labels = ["GR이전", "GR이후", "운영특성 반영"]
+
+    # ------------------------------------------------------------------
+    # 1) 좌측: 연간 용도별 1차에너지
+    #    그래프 x축 = 용도
+    #    표 열 = 용도
+    # ------------------------------------------------------------------
+    energy_values_3x6 = _draw_annual_by_purpose(
+        ax_energy,
+        grr_before,
+        grr_after,
+        grr_afterN,
+        "source_uses",
+    )
+
+    _draw_value_table(
+        ax_energy_table,
+        energy_values_3x6,
+        row_labels=["이전", "이후", "운영"],
+        col_labels=[lbl.replace("/", "/\n") for _, lbl in GRAPH_ORDER],
+        digits=1,
+        fontsize=8.2,
+        row_label_width=0.14,
+    )
+
+    # ------------------------------------------------------------------
+    # 2) 우측: 연간 온실가스 배출량
+    #    그래프 x축 = GR이전 / GR이후 / 운영특성 반영
+    #    따라서 표 열도 동일하게 scenario 3개로 구성
+    # ------------------------------------------------------------------
+    co2_values_3x4 = [
         [
-            [
-                sum([
-                    # cat이 'generators'이면 음수(-)로, 아니면 양수(+)로 합산
-                    -sum(result["co2"][cat][et_key]) if cat == "generators" 
-                    else sum(result["co2"][cat][et_key])
-                    
-                    for cat, _ in GRAPH_ORDER
-                ])
-                for et_key, _ in ENERGY_TYPES
-            ]
-            for result in [grr_before, grr_after, grr_afterN]
-        ],
-        ["GR이전","GR이후","(운영특성 반영)"],
-        ylabel = r"$\mathrm{CO_2,eq}$ (kg/$\mathrm{m^2\cdot}$년)",
-        ax = axes[1]
+            _sum_grr_energy_total(result, "co2", et_key)
+            for et_key, _ in ENERGY_TYPES
+        ]
+        for result in [grr_before, grr_after, grr_afterN]
+    ]
+
+    co2_values_3x4 = draw_3step_bargraph(
+        "면적당 온실가스 배출량 (연간)",
+        co2_values_3x4,
+        scenario_labels,
+        ylabel=r"$\mathrm{CO_2,eq}$ (kg/$\mathrm{m^2\cdot}$년)",
+        ax=ax_co2,
+        scenario_style=True,
+        show_legend=False,  # page3에는 legend 없음
     )
-    
-    fig.suptitle('요약', fontsize=16, fontweight='bold')
-    
+
+    # 표는 에너지원 행 × scenario 열
+    _draw_value_table(
+        ax_co2_table,
+        co2_values_3x4.T,
+        row_labels=[et_label for _, et_label in ENERGY_TYPES],
+        col_labels=scenario_labels,
+        digits=1,
+        fontsize=8.2,
+        row_label_width=0.18,
+    )
+
+    fig.suptitle("요약", fontsize=16, fontweight="bold", y=0.96)
+
     return fig
     
 
@@ -652,32 +937,34 @@ def summarytable(
     grrbefore:dict,
     grrafter :dict,
     grrafterN:dict,
-    ) -> pd.DataFrame:
+    ) -> tuple[pd.DataFrame, pd.DataFrame]:
     
     df1 = pd.DataFrame(
         [
+            ["A", "B", "B'"],
+            ["a", "a", "b" ],
             [
-                grrbefore["summary_per_area"]["source_uses"]["total_annual"],
-                grrafter["summary_per_area"]["source_uses"]["total_annual"],
-                grrafterN["summary_per_area"]["source_uses"]["total_annual"],
+                _sum_grr_annual_total(grrbefore, "source_uses"),
+                _sum_grr_annual_total(grrafter, "source_uses"),
+                _sum_grr_annual_total(grrafterN, "source_uses"),
             ],
             [
-                grrbefore["summary_per_area"]["co2"]["total_annual"],
-                grrafter["summary_per_area"]["co2"]["total_annual"],
-                grrafterN["summary_per_area"]["co2"]["total_annual"],
+                _sum_grr_annual_total(grrbefore, "co2"),
+                _sum_grr_annual_total(grrafter, "co2"),
+                _sum_grr_annual_total(grrafterN, "co2"),
             ],
         ],
         columns=["GR 이전 (①)", "GR 이후 (②)", "운영특성 반영시 (③)"],
-        index  =["1차에너지[$kWh/m^2$]", "온실가스[$kgCO_{2,eq}/m^2$]"]
+        index  =["건물특성","운영특성","1차에너지[$kWh/m^2$]", "온실가스[$kgCO_{2,eq}/m^2$]"]
     )
     
     df2 = pd.DataFrame(
         columns=["GR 감축량 (①-②)","운영특성 반영 감축량 (①-③)","운영특성 반영 영향 (③-②)"],
         index  =["1차에너지[$kWh/m^2$]", "온실가스[$kgCO_{2,eq}/m^2$]"]
         )
-    df2["GR 감축량 (①-②)"] = df1["GR 이전 (①)"] - df1["GR 이후 (②)"]
-    df2["운영특성 반영 감축량 (①-③)"] = df1["GR 이전 (①)"] - df1["운영특성 반영시 (③)"]
-    df2["운영특성 반영 영향 (③-②)"] = df1["운영특성 반영시 (③)"] - df1["GR 이후 (②)"]
+    df2["GR 감축량 (①-②)"] = df1["GR 이전 (①)"][2:] - df1["GR 이후 (②)"][2:]
+    df2["운영특성 반영 감축량 (①-③)"] = df1["GR 이전 (①)"][2:] - df1["운영특성 반영시 (③)"][2:]
+    df2["운영특성 반영 영향 (③-②)"] = df1["운영특성 반영시 (③)"][2:] - df1["GR 이후 (②)"][2:]
     
     return df1, df2
 
@@ -756,228 +1043,869 @@ def parse_activechange(
     else:
         ventchangedstr =  f"{ventadded}개 실에 전열교환기 추가, {ventchanged}개 실에서 전열교환기 교체됨."
     
-    return heatingchangestr, coolingchangestr, ventchangedstr
+    return heatingchangestr, coolingchangestr, ventchangedstr   
+    
+def parse_majorchange(masterdict: dict) -> str:
 
-def parse_hvacoperationchange(
-    checklist1:현장조사체크리스트,
-    checklist2:현장조사체크리스트,
-    ) -> tuple[str]:
-    
-    func_certaincoolingsetpoint = lambda x: x if isinstance(x, int|float) else 26
-    func_certainheatingsetpoint = lambda x: x if isinstance(x, int|float) else 20
-    
-    # heating
-    if checklist1.일반존.난방설비1 is None:
-        heatingtime1     = "사용안함"
-        heatingsetpoint1 = "(없음)"
-    else:
-        heatingtime1 = f"{checklist1.일반존.난방설비1.사용기간} {checklist1.일반존.난방설비1.사용시간}"
-        heatingsetpoint1 = f"{func_certainheatingsetpoint(checklist1.일반존.난방설비1.설정온도):.1f}$^\\circ C$"
-        
-    if checklist2.일반존.난방설비1 is None:
-        heatingtime2     = "사용안함"
-        heatingsetpoint2 = "(없음)"
-    else:
-        heatingtime2 = f"{checklist2.일반존.난방설비1.사용기간} {checklist2.일반존.난방설비1.사용시간}"
-        heatingsetpoint2 = f"{func_certainheatingsetpoint(checklist2.일반존.난방설비1.설정온도):.1f}$^\\circ C$"
-    
-    if heatingtime1 == heatingtime2:
-        heatingtime = "변화 없음."
-    else:
-        heatingtime = f"{heatingtime1} $\\rightarrow$ {heatingtime2}"
-    
-    if heatingsetpoint1 == heatingsetpoint2:
-        heatingsetpoint = "변화 없음."
-    else:
-        heatingsetpoint = f"{heatingsetpoint1} $\\rightarrow$ {heatingsetpoint2}"
-    
-    # cooling
-    if checklist1.일반존.냉방설비1 is None:
-        coolingtime1     = "사용안함"
-        coolingsetpoint1 = "(없음)"
-    else:
-        coolingtime1 = f"{checklist1.일반존.냉방설비1.사용기간} {checklist1.일반존.냉방설비1.사용시간}"
-        coolingsetpoint1 = f"{func_certaincoolingsetpoint(checklist1.일반존.냉방설비1.설정온도):.1f}$^\\circ C$"
-        
-    if checklist2.일반존.냉방설비1 is None:
-        coolingtime2     = "사용안함"
-        coolingsetpoint2 = "(없음)"
-    else:
-        coolingtime2 = f"{checklist2.일반존.냉방설비1.사용기간} {checklist2.일반존.냉방설비1.사용시간}"
-        coolingsetpoint2 = f"{func_certaincoolingsetpoint(checklist2.일반존.냉방설비1.설정온도):.1f}$^\\circ C$"
-    
-    if coolingtime1 == coolingtime2:
-        coolingtime = "변화 없음."
-    else:
-        coolingtime = f"{coolingtime1} $\\rightarrow$ {coolingtime2}"
-    
-    if coolingsetpoint1 == coolingsetpoint2:
-        coolingsetpoint = "변화 없음."
-    else:
-        coolingsetpoint = f"{coolingsetpoint1} $\\rightarrow$ {coolingsetpoint2}"
-        
-    df = pd.DataFrame(
-            [
-                [heatingtime1, heatingsetpoint1, coolingtime1, coolingsetpoint1],
-                [heatingtime2, heatingsetpoint2, coolingtime2, coolingsetpoint2], 
-            ],
-            columns = ["난방 사용시간", "난방 설정온도", "냉방 사용시간", "냉방 설정온도"],
-            index   = ["GR 직후", "2025년"], 
-    )
-    
-    tablestyle = {
-        "column_format":">{\\centering\\arraybackslash}p{3cm}" + "|>{\\centering\\arraybackslash}p{3.325cm}" * 4,
-        "clines":"all;data",  
-        "hrules":True,
+    def is_missing(v) -> bool:
+        return v is None or (isinstance(v, str) and v.strip() == "") or pd.isna(v)
+
+    def fmt_num(v, digits: int = 3) -> str:
+        if is_missing(v):
+            return "-"
+        v = float(v)
+        return f"{v:.{digits}f}".rstrip("0").rstrip(".")
+
+    def fmt_pct_from_ratio(v, digits: int = 1) -> str:
+        if is_missing(v):
+            return "-"
+        return f"{float(v) * 100:.{digits}f}".rstrip("0").rstrip(".") + r"\%"
+
+    def fmt_pct_direct(v, digits: int = 1) -> str:
+        if is_missing(v):
+            return "-"
+        return f"{float(v):.{digits}f}".rstrip("0").rstrip(".") + r"\%"
+
+    def fmt_hrv(h, c) -> str:
+        if is_missing(h) and is_missing(c):
+            return "-"
+        return f"{fmt_pct_from_ratio(h)} / {fmt_pct_from_ratio(c)}"
+
+    def fmt_solar(area, eff) -> str:
+        if is_missing(area) and is_missing(eff):
+            return "-"
+        area_txt = "-" if is_missing(area) else f"{fmt_num(area, 1)} m2"
+        eff_txt = "-" if is_missing(eff) else fmt_pct_direct(eff, 1)
+        return f"{area_txt}, {eff_txt}"
+
+    def heating_value(prefix: str):
+        heating_type = masterdict.get(f"{prefix}_난방1_유형")
+        if heating_type == "히트펌프":
+            return masterdict.get(f"{prefix}_난방1_COP [W/W]")
+        return masterdict.get(f"{prefix}_난방1_효율 [%]")
+
+    def heating_note() -> str:
+        types = {
+            masterdict.get("GR이전_난방1_유형"),
+            masterdict.get("GR이후_난방1_유형"),
+            masterdict.get("N년차_난방1_유형"),
         }
-    tex =  df.style.to_latex(**tablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline").replace("~","-")
-        
+        if types == {"히트펌프"}:
+            return "[W/W]"
+        if "히트펌프" in types:
+            return r"히트펌프 [W/W], 보일러 [\%]"
+        return r"[\%]"
+
+    surveyresult, _ = parse_surveychange(masterdict)
     
+    if masterdict["구분"] == "어린이집":
+        time_min = {
+            "기본보육 인원": 8.5 * 60,   # 07:30~16:00
+            "연장보육A 인원": 2.0 * 60,  # 16:00~18:00
+            "연장보육B 인원": 1.5 * 60,  # 18:00~19:30
+            "야간보육 인원": 1.5 * 60,   # 19:30~21:00
+        }
+
+        occlist = [
+            sum(
+                float(surveyresult.loc[surveyresult["항목"].eq(k), c].iloc[0]) * t
+                for k, t in time_min.items()
+                if float(surveyresult.loc[surveyresult["항목"].eq(k), c].iloc[0]) > 0
+            )
+            /
+            sum(
+                t
+                for k, t in time_min.items()
+                if float(surveyresult.loc[surveyresult["항목"].eq(k), c].iloc[0]) > 0
+            )
+            for c in ["그린리모델링 이전", "그린리모델링 이후", "운영특성 반영"]
+        ]
+    else:
+        occlist = [
+            float(surveyresult.loc[surveyresult["항목"].eq("직원"), c].iloc[0])
+            + (
+                float(re.search(r"(\d+(?:\.\d+)?)\s*명", v).group(1))
+                * float(re.search(r"(\d+(?:\.\d+)?)\s*분", v).group(1))
+                / (
+                    (lambda t:
+                        (int(t.split("~")[1].split(":")[0]) * 60 + int(t.split("~")[1].split(":")[1]))
+                        - (int(t.split("~")[0].split(":")[0]) * 60 + int(t.split("~")[0].split(":")[1]))
+                    )(surveyresult.loc[surveyresult["항목"].eq("운영시간"), c].iloc[0])
+                )
+            )
+            for c in ["그린리모델링 이전", "그린리모델링 이후", "그린리모델링 이후"]
+            for v in [surveyresult.loc[surveyresult["항목"].str.contains("방문객수"), c].iloc[0]]
+        ]
+    
+    rows = [
+        [
+            fmt_num(masterdict.get("GR이전_외벽_열관류율 [W/m2·K]"), 3),
+            fmt_num(masterdict.get("GR이후_외벽_열관류율 [W/m2·K]"), 3),
+            fmt_num(masterdict.get("N년차_외벽_열관류율 [W/m2·K]"), 3),
+            "[W/m2·K]",
+        ],
+        [
+            fmt_num(masterdict.get("GR이전_창 및 문_열관류율 [W/m2·K]"), 3),
+            fmt_num(masterdict.get("GR이후_창 및 문_열관류율 [W/m2·K]"), 3),
+            fmt_num(masterdict.get("N년차_창 및 문_열관류율 [W/m2·K]"), 3),
+            "[W/m2·K]",
+        ],
+        [
+            fmt_num(masterdict.get("GR이전_냉방1_COP [W/W]"), 2),
+            fmt_num(masterdict.get("GR이후_냉방1_COP [W/W]"), 2),
+            fmt_num(masterdict.get("N년차_냉방1_COP [W/W]"), 2),
+            "[W/W]",
+        ],
+        [
+            fmt_num(heating_value("GR이전"), 2),
+            fmt_num(heating_value("GR이후"), 2),
+            fmt_num(heating_value("N년차"), 2),
+            heating_note(),
+        ],
+        [
+            fmt_hrv(
+                masterdict.get("GR이전_전열 교환기_난방[%]"),
+                masterdict.get("GR이전_전열 교환기_냉방[%]")
+            ),
+            fmt_hrv(
+                masterdict.get("GR이후_전열 교환기_난방[%]"),
+                masterdict.get("GR이후_전열 교환기_냉방[%]")
+            ),
+            fmt_hrv(
+                masterdict.get("N년차_전열 교환기_난방[%]"),
+                masterdict.get("N년차_전열 교환기_냉방[%]")
+            ),
+            r"[난방] / [냉방]",
+        ],
+        [
+            fmt_num(masterdict.get("GR이전_조명밀도 [W/m2]"), 2),
+            fmt_num(masterdict.get("GR이후_조명밀도 [W/m2]"), 2),
+            fmt_num(masterdict.get("N년차_조명밀도 [W/m2]"), 2),
+            "[W/m2]",
+        ],
+        [
+            fmt_solar(
+                masterdict.get("GR이전_태양광_면적[m2]"),
+                masterdict.get("GR이전_태양광_효율[%]")
+            ),
+            fmt_solar(
+                masterdict.get("GR이후_태양광_면적[m2]"),
+                masterdict.get("GR이후_태양광_효율[%]")
+            ),
+            fmt_solar(
+                masterdict.get("N년차_태양광_면적[m2]"),
+                masterdict.get("N년차_태양광_효율[%]")
+            ),
+            r"[면적 m2], [효율 \%]",
+        ],
+        [f"{v:.1f}" for v in occlist] + ["명, 운영시간 평균"],
+        [f"{float(v):.1f}" for v in surveyresult.query("항목 == '난방 설정온도(℃)'").iloc[0].values[1:]] + ["℃"],
+        [f"{float(v):.1f}" for v in surveyresult.query("항목 == '냉방 설정온도(℃)'").iloc[0].values[1:]] + ["℃"],
+    ]
+
+    df = pd.DataFrame(
+        rows,
+        columns=["GR이전", "GR이후", "N년차", "비고"],
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("기술요소", "외피"),
+                ("기술요소", "창호"),
+                ("기술요소", "냉방"),
+                ("기술요소", "난방"),
+                ("기술요소", "환기"),
+                ("기술요소", "조명"),
+                ("기술요소", "신재생"),
+                ("운영특성", "재실인원"),
+                ("운영특성", "난방설정온도"),
+                ("운영특성", "냉방설정온도"),
+            ],
+            names=["대분류", "구분"]
+        )
+    )
+
+    df = df[df[["GR이전", "GR이후", "N년차"]].nunique(axis=1) > 1]
+
+    tex = df.style.hide(axis="index", names=True).to_latex(
+        hrules=True,
+        clines="all;data",
+        sparse_index=True,
+        multirow_align="c",
+        column_format=(
+            r">{\centering\arraybackslash}p{2cm}|"
+            r">{\centering\arraybackslash}p{2cm}|"
+            r">{\centering\arraybackslash}p{3.2cm}|"
+            r">{\centering\arraybackslash}p{3.2cm}|"
+            r">{\centering\arraybackslash}p{3.2cm}|"
+            r">{\centering\arraybackslash}p{2.8cm}"
+        ),
+    )
+
+    tex = tex.replace(r"\toprule", r"\hline")
+    tex = tex.replace(r"\midrule", r"\hline")
+    tex = tex.replace(r"\bottomrule", r"\hline")
+
+    tex = tex.replace(
+        "& & GR이전 & GR이후 & N년차 & 비고 \\\n",
+        r"\multicolumn{2}{c|}{구분} & GR이전 & GR이후 & N년차 & 비고 \\" + "\n"
+    )
+
+    tex = tex.replace(r"\cline{1-6} \cline{2-6}", r"\hline")
+
     return tex
 
-def parse_occupantchange(
-    checklist1:현장조사체크리스트,
-    checklist2:현장조사체크리스트,
-    ):
+
+def parse_perfchange(masterdict: dict) -> str:
     
-    if isinstance(checklist1, 어린이집체크리스트):
-        
-        func_nanto0 =  lambda x: 0 if pd.isna(x) else x
-        
+    df = pd.DataFrame(
+        [
+            [
+                "외벽 열관류율 [W/m2·K]",
+                f"{masterdict.get('GR이전_외벽_열관류율 [W/m2·K]'):.2f}",
+                f"{masterdict.get('GR이후_외벽_열관류율 [W/m2·K]'):.2f}",
+                f"{masterdict.get('N년차_외벽_열관류율 [W/m2·K]'):.2f}",
+                "/".join(set([
+                    masterdict.get("GR이전_외벽_근거"),
+                    masterdict.get("GR이후_외벽_근거"),
+                    masterdict.get("N년차_외벽_근거"),
+                ]) - {"-"})
+            ],
+            [
+                "창호 열관류율 [W/m2·K]",
+                f"{masterdict.get('GR이전_창 및 문_열관류율 [W/m2·K]'):.2f}",
+                f"{masterdict.get('GR이후_창 및 문_열관류율 [W/m2·K]'):.2f}",
+                f"{masterdict.get('N년차_창 및 문_열관류율 [W/m2·K]'):.2f}",
+                "/".join(set([
+                    masterdict.get("GR이전_창 및 문_근거"),
+                    masterdict.get("GR이후_창 및 문_근거"),
+                    masterdict.get("N년차_창 및 문_근거"),
+                ]) - {"-"})
+            ],
+            [
+                "창호 취득계수(SHGC)",
+                f"{masterdict.get('GR이전_창 및 문_취득계수'):.2f}",
+                f"{masterdict.get('GR이후_창 및 문_취득계수'):.2f}",
+                f"{masterdict.get('N년차_창 및 문_취득계수'):.2f}",
+                "/".join(set([
+                    masterdict.get("GR이전_창 및 문_근거"),
+                    masterdict.get("GR이후_창 및 문_근거"),
+                    masterdict.get("N년차_창 및 문_근거"),
+                ]) - {"-"})
+            ],
+            [
+                "지붕 열관류율 [W/m2·K]",
+                f"{masterdict.get('GR이전_지붕_열관류율 [W/m2·K]'):.2f}",
+                f"{masterdict.get('GR이후_지붕_열관류율 [W/m2·K]'):.2f}",
+                f"{masterdict.get('N년차_지붕_열관류율 [W/m2·K]'):.2f}",
+                "/".join(set([
+                    masterdict.get("GR이전_지붕_근거"),
+                    masterdict.get("GR이후_지붕_근거"),
+                    masterdict.get("N년차_지붕_근거"),
+                ]) - {"-"})
+            ],
+            [
+                "바닥 열관류율 [W/m2·K]",
+                f"{masterdict.get('GR이전_바닥_열관류율 [W/m2·K]'):.2f}",
+                f"{masterdict.get('GR이후_바닥_열관류율 [W/m2·K]'):.2f}",
+                f"{masterdict.get('N년차_바닥_열관류율 [W/m2·K]'):.2f}",
+                "/".join(set([
+                    masterdict.get("GR이전_바닥_근거"),
+                    masterdict.get("GR이후_바닥_근거"),
+                    masterdict.get("N년차_바닥_근거"),
+                ]) - {"-"})
+            ],
+            [
+                "조명밀도",
+                f"{masterdict.get('GR이전_조명밀도 [W/m2]'):.2f}",
+                f"{masterdict.get('GR이후_조명밀도 [W/m2]'):.2f}",
+                f"{masterdict.get('N년차_조명밀도 [W/m2]'):.2f}",
+                "-"
+            ],
+            [
+                "침기율",
+                f"{masterdict.get('GR이전_침기율 [ACH]'):.2f}",
+                f"{masterdict.get('GR이후_침기율 [ACH]'):.2f}",
+                f"{masterdict.get('N년차_침기율 [ACH]'):.2f}",
+                "-",
+            ],
+            [
+                "난방1 유형/열원",
+                masterdict.get("GR이전_난방1_유형") + " / " + str(masterdict.get("GR이전_난방1_열원")),
+                masterdict.get("GR이후_난방1_유형") + " / " + str(masterdict.get("GR이후_난방1_열원")),
+                masterdict.get("N년차_난방1_유형") + " / " + str(masterdict.get("N년차_난방1_열원")),
+                "/".join(set([
+                    "-" if pd.isna(masterdict.get("GR이전_난방1_근거")) else masterdict.get("GR이전_난방1_근거"),
+                    "-" if pd.isna(masterdict.get("GR이후_난방1_근거")) else masterdict.get("GR이후_난방1_근거"),
+                    "-" if pd.isna(masterdict.get("N년차_난방1_근거")) else masterdict.get("N년차_난방1_근거"),
+                ]) - {"-"})
+            ],
+            [
+                "난방1 용량 [kW]",
+                "-" if pd.isna(masterdict.get("GR이전_난방1_용량 [kW]")) else f"{masterdict.get('GR이전_난방1_용량 [kW]')*1E-3:.2f}",
+                "-" if pd.isna(masterdict.get("GR이후_난방1_용량 [kW]")) else f"{masterdict.get('GR이후_난방1_용량 [kW]')*1E-3:.2f}",
+                "-" if pd.isna(masterdict.get("N년차_난방1_용량 [kW]")) else f"{masterdict.get('N년차_난방1_용량 [kW]')*1E-3:.2f}",
+                "/".join(set([
+                    "-" if pd.isna(masterdict.get("GR이전_난방1_근거")) else masterdict.get("GR이전_난방1_근거"),
+                    "-" if pd.isna(masterdict.get("GR이후_난방1_근거")) else masterdict.get("GR이후_난방1_근거"),
+                    "-" if pd.isna(masterdict.get("N년차_난방1_근거")) else masterdict.get("N년차_난방1_근거"),
+                ]) - {"-"})
+            ],
+            [
+                "난방1 COP [W/W]",
+                "-" if pd.isna(masterdict.get("GR이전_난방1_COP [W/W]")) else f"{masterdict.get('GR이전_난방1_COP [W/W]'):.2f}",
+                "-" if pd.isna(masterdict.get("GR이후_난방1_COP [W/W]")) else f"{masterdict.get('GR이후_난방1_COP [W/W]'):.2f}",
+                "-" if pd.isna(masterdict.get("N년차_난방1_COP [W/W]")) else f"{masterdict.get('N년차_난방1_COP [W/W]'):.2f}",
+                "/".join(set([
+                    "-" if pd.isna(masterdict.get("GR이전_난방1_근거")) else masterdict.get("GR이전_난방1_근거"),
+                    "-" if pd.isna(masterdict.get("GR이후_난방1_근거")) else masterdict.get("GR이후_난방1_근거"),
+                    "-" if pd.isna(masterdict.get("N년차_난방1_근거")) else masterdict.get("N년차_난방1_근거"),
+                ]) - {"-"})
+            ],
+            [
+                "난방1 효율 [%]",
+                "-" if pd.isna(masterdict.get("GR이전_난방1_효율 [%]")) else f"{masterdict.get('GR이전_난방1_효율 [%]'):.1f}",
+                "-" if pd.isna(masterdict.get("GR이후_난방1_효율 [%]")) else f"{masterdict.get('GR이후_난방1_효율 [%]'):.1f}",
+                "-" if pd.isna(masterdict.get("N년차_난방1_효율 [%]")) else f"{masterdict.get('N년차_난방1_효율 [%]'):.1f}",
+                "/".join(set([
+                    "-" if pd.isna(masterdict.get("GR이전_난방1_근거")) else masterdict.get("GR이전_난방1_근거"),
+                    "-" if pd.isna(masterdict.get("GR이후_난방1_근거")) else masterdict.get("GR이후_난방1_근거"),
+                    "-" if pd.isna(masterdict.get("N년차_난방1_근거")) else masterdict.get("N년차_난방1_근거"),
+                ]) - {"-"})
+            ],
+            [
+                "냉방1 유형/열원",
+                f"{masterdict.get('GR이전_냉방1_유형')} / {str(masterdict.get('GR이전_냉방1_열원'))}",
+                f"{masterdict.get('GR이후_냉방1_유형')} / {str(masterdict.get('GR이후_냉방1_열원'))}",
+                f"{masterdict.get('N년차_냉방1_유형')} / {str(masterdict.get('N년차_냉방1_열원'))}",
+                "/".join(set([
+                    "-" if pd.isna(masterdict.get("GR이전_냉방1_근거")) else masterdict.get("GR이전_냉방1_근거"),
+                    "-" if pd.isna(masterdict.get("GR이후_냉방1_근거")) else masterdict.get("GR이후_냉방1_근거"),
+                    "-" if pd.isna(masterdict.get("N년차_냉방1_근거")) else masterdict.get("N년차_냉방1_근거"),
+                ]) - {"-"})
+            ],
+            [
+                "냉방1 용량 [kW]",
+                "-" if pd.isna(masterdict.get("GR이전_냉방1_용량 [kW]")) else f"{masterdict.get('GR이전_냉방1_용량 [kW]')*1E-3:.2f}",
+                "-" if pd.isna(masterdict.get("GR이후_냉방1_용량 [kW]")) else f"{masterdict.get('GR이후_냉방1_용량 [kW]')*1E-3:.2f}",
+                "-" if pd.isna(masterdict.get("N년차_냉방1_용량 [kW]")) else f"{masterdict.get('N년차_냉방1_용량 [kW]')*1E-3:.2f}",
+                "/".join(set([
+                    "-" if pd.isna(masterdict.get("GR이전_냉방1_근거")) else masterdict.get("GR이전_냉방1_근거"),
+                    "-" if pd.isna(masterdict.get("GR이후_냉방1_근거")) else masterdict.get("GR이후_냉방1_근거"),
+                    "-" if pd.isna(masterdict.get("N년차_냉방1_근거")) else masterdict.get("N년차_냉방1_근거"),
+                ]) - {"-"})
+            ],
+            [
+                "냉방1 COP [W/W]",
+                "-" if pd.isna(masterdict.get("GR이전_냉방1_COP [W/W]")) else f"{masterdict.get('GR이전_냉방1_COP [W/W]'):.2f}",
+                "-" if pd.isna(masterdict.get("GR이후_냉방1_COP [W/W]")) else f"{masterdict.get('GR이후_냉방1_COP [W/W]'):.2f}",
+                "-" if pd.isna(masterdict.get("N년차_냉방1_COP [W/W]")) else f"{masterdict.get('N년차_냉방1_COP [W/W]'):.2f}",
+                "/".join(set([
+                    "-" if pd.isna(masterdict.get("GR이전_냉방1_근거")) else masterdict.get("GR이전_냉방1_근거"),
+                    "-" if pd.isna(masterdict.get("GR이후_냉방1_근거")) else masterdict.get("GR이후_냉방1_근거"),
+                    "-" if pd.isna(masterdict.get("N년차_냉방1_근거")) else masterdict.get("N년차_냉방1_근거"),
+                ]) - {"-"})
+            ],
+            [
+                "냉방1 효율 [%]",
+                "-" if pd.isna(masterdict.get("GR이전_냉방1_효율 [%]")) else f"{masterdict.get('GR이전_냉방1_효율 [%]'):.1f}",
+                "-" if pd.isna(masterdict.get("GR이후_냉방1_효율 [%]")) else f"{masterdict.get('GR이후_냉방1_효율 [%]'):.1f}",
+                "-" if pd.isna(masterdict.get("N년차_냉방1_효율 [%]")) else f"{masterdict.get('N년차_냉방1_효율 [%]'):.1f}",
+                "/".join(set([
+                    "-" if pd.isna(masterdict.get("GR이전_냉방1_근거")) else masterdict.get("GR이전_냉방1_근거"),
+                    "-" if pd.isna(masterdict.get("GR이후_냉방1_근거")) else masterdict.get("GR이후_냉방1_근거"),
+                    "-" if pd.isna(masterdict.get("N년차_냉방1_근거")) else masterdict.get("N년차_냉방1_근거"),
+                ]) - {"-"})
+            ],
+            [
+                "전열교환기 효율(난방)",
+                "-" if pd.isna(masterdict.get("GR이전_전열 교환기_난방[%]")) else f"{masterdict.get('GR이전_전열 교환기_난방[%]'):.1f}%",
+                "-" if pd.isna(masterdict.get("GR이후_전열 교환기_난방[%]")) else f"{masterdict.get('GR이후_전열 교환기_난방[%]'):.1f}%",
+                "-" if pd.isna(masterdict.get("N년차_전열 교환기_난방[%]")) else f"{masterdict.get('N년차_전열 교환기_난방[%]'):.1f}%",
+                "/".join(set([
+                    "-" if pd.isna(masterdict.get("GR이전_전열 교환기_난방 근거")) else masterdict.get("GR이전_전열 교환기_난방 근거"),
+                    "-" if pd.isna(masterdict.get("GR이후_전열 교환기_난방 근거")) else masterdict.get("GR이후_전열 교환기_난방 근거"),
+                    "-" if pd.isna(masterdict.get("N년차_전열 교환기_난방 근거")) else masterdict.get("N년차_전열 교환기_난방 근거"),
+                ]) - {"-"})
+            ],
+            [
+                "전열교환기 효율(냉방)",
+                "-" if pd.isna(masterdict.get("GR이전_전열 교환기_냉방[%]")) else f"{masterdict.get('GR이전_전열 교환기_냉방[%]'):.1f}%",
+                "-" if pd.isna(masterdict.get("GR이후_전열 교환기_냉방[%]")) else f"{masterdict.get('GR이후_전열 교환기_냉방[%]'):.1f}%",
+                "-" if pd.isna(masterdict.get("N년차_전열 교환기_냉방[%]")) else f"{masterdict.get('N년차_전열 교환기_냉방[%]'):.1f}%", 
+                "/".join(set([
+                    "-" if pd.isna(masterdict.get("GR이전_전열 교환기_냉방 근거")) else masterdict.get("GR이전_전열 교환기_냉방 근거"),
+                    "-" if pd.isna(masterdict.get("GR이후_전열 교환기_냉방 근거")) else masterdict.get("GR이후_전열 교환기_냉방 근거"),
+                    "-" if pd.isna(masterdict.get("N년차_전열 교환기_냉방 근거")) else masterdict.get("N년차_전열 교환기_냉방 근거"),
+                ]) - {"-"})
+            ],
+            [
+                "태양광 설치 여부",
+                "O" if not pd.isna(masterdict.get("GR이전_태양광_면적[m2]")) and masterdict.get("GR이전_태양광_면적[m2]") > 0 else "X",
+                "O" if not pd.isna(masterdict.get("GR이후_태양광_면적[m2]")) and masterdict.get("GR이후_태양광_면적[m2]") > 0 else "X",
+                "O" if not pd.isna(masterdict.get("N년차_태양광_면적[m2]")) and masterdict.get("N년차_태양광_면적[m2]") > 0 else "X",
+                "/".join(set([
+                    "-" if pd.isna(masterdict.get("GR이전_태양광_근거")) else masterdict.get("GR이전_태양광_근거"),
+                    "-" if pd.isna(masterdict.get("GR이후_태양광_근거")) else masterdict.get("GR이후_태양광_근거"),
+                    "-" if pd.isna(masterdict.get("N년차_태양광_근거")) else masterdict.get("N년차_태양광_근거"),
+                ]) - {"-"})
+            ],
+            [
+                "태양광 면적[m2]",
+                f"{masterdict.get('GR이전_태양광_면적[m2]'):.1f}" if not pd.isna(masterdict.get("GR이전_태양광_면적[m2]")) else "-",
+                f"{masterdict.get('GR이후_태양광_면적[m2]'):.1f}" if not pd.isna(masterdict.get("GR이후_태양광_면적[m2]")) else "-",
+                f"{masterdict.get('N년차_태양광_면적[m2]'):.1f}" if not pd.isna(masterdict.get("N년차_태양광_면적[m2]")) else "-",
+                "/".join(set([
+                    "-" if pd.isna(masterdict.get("GR이전_태양광_근거")) else masterdict.get("GR이전_태양광_근거"),
+                    "-" if pd.isna(masterdict.get("GR이후_태양광_근거")) else masterdict.get("GR이후_태양광_근거"),
+                    "-" if pd.isna(masterdict.get("N년차_태양광_근거")) else masterdict.get("N년차_태양광_근거"),
+                ]) - {"-"})
+            ],
+            [
+                "태양광 효율[%]",
+                f"{masterdict.get('GR이전_태양광_효율[%]'):.1f}" if not pd.isna(masterdict.get("GR이전_태양광_효율[%]")) else "-",
+                f"{masterdict.get('GR이후_태양광_효율[%]'):.1f}" if not pd.isna(masterdict.get("GR이후_태양광_효율[%]")) else "-",
+                f"{masterdict.get('N년차_태양광_효율[%]'):.1f}" if not pd.isna(masterdict.get("N년차_태양광_효율[%]")) else "-",
+                "/".join(set([
+                    "-" if pd.isna(masterdict.get("GR이전_태양광_근거")) else masterdict.get("GR이전_태양광_근거"),
+                    "-" if pd.isna(masterdict.get("GR이후_태양광_근거")) else masterdict.get("GR이후_태양광_근거"),
+                    "-" if pd.isna(masterdict.get("N년차_태양광_근거")) else masterdict.get("N년차_태양광_근거"),
+                ]) - {"-"})
+            ]
+        ],
+        columns = ["항목","그린리모델링 이전", "그린리모델링 이후", "운영특성 반영", "근거"],
+    )
+    
+    def prettify_latex_table(
+        tex: str,
+        header_color: str = "EAEAEA",
+        arraystretch: float = 1.1,
+        fontsize: str = r"\small",
+    ) -> str:
+        lines = tex.splitlines()
+        new_lines = []
+        in_tabular = False
+        header_done = False
+
+        for line in lines:
+            stripped = line.strip()
+
+            if stripped.startswith(r"\begin{tabular}"):
+                in_tabular = True
+                new_lines.append(r"\begingroup")
+                new_lines.append(fontsize)
+                new_lines.append(rf"\renewcommand{{\arraystretch}}{{{arraystretch}}}")
+                new_lines.append(line)
+                new_lines.append(r"\hline")
+                continue
+
+            if stripped.startswith(r"\end{tabular}"):
+                in_tabular = False
+                new_lines.append(line)
+                new_lines.append(r"\renewcommand{\arraystretch}{1}")
+                new_lines.append(r"\endgroup")
+                continue
+
+            if in_tabular and stripped.endswith(r"\\"):
+                if not header_done:
+                    new_lines.append(rf"\rowcolor[HTML]{{{header_color}}}")
+                    header_done = True
+                new_lines.append(line)
+                new_lines.append(r"\hline")
+                continue
+
+            new_lines.append(line)
+
+        return "\n".join(new_lines)
+    
+    def highlight_changed_row(row):
+        cols = ["그린리모델링 이전", "그린리모델링 이후", "운영특성 반영"]
+
+        # "-", NaN 등은 문자열로 통일해서 비교
+        values = [str(row[c]).strip() for c in cols]
+
+        changed = len(set(values)) > 1
+
+        if changed:
+            return [
+                "background-color: #FFF2CC; font-weight: bold;"
+                for _ in row
+            ]
+        else:
+            return ["" for _ in row]
+    
+    tex = (
+        df.style
+        .hide(axis="index")
+        .apply(highlight_changed_row, axis=1)
+        .format(escape="latex")
+        .to_latex(
+            hrules=False,
+            convert_css=True,
+            column_format=(
+                r">{\centering\arraybackslash}p{4cm}|"
+                r">{\centering\arraybackslash}p{2.5cm}|"
+                r">{\centering\arraybackslash}p{2.5cm}|"
+                r">{\centering\arraybackslash}p{2.5cm}|"
+                r">{\centering\arraybackslash}p{4.5cm}"
+            ),
+        )
+        .replace("~", "-")
+    )
+
+    tex = prettify_latex_table(tex, header_color="EAEAEA")
+    return tex
+
+def parse_surveychange(masterdict: dict) -> str:
+    
+    if masterdict.get("구분") == "어린이집":
         df = pd.DataFrame(
             [
                 [
-                    func_nanto0(checklist1.일반존.기본보육교사  + checklist1.일반존.기본보육원생),
-                    func_nanto0(checklist1.일반존.연장보육A교사 + checklist1.일반존.연장보육A원생),
-                    func_nanto0(checklist1.일반존.연장보육B교사 + checklist1.일반존.연장보육B원생),
-                    func_nanto0(checklist1.일반존.야간보육교사  + checklist1.일반존.야간보육원생),
-                    func_nanto0(checklist1.일반존.주말보육교사  + checklist1.일반존.주말보육원생),
+                    "기본보육 인원",
+                    f"{(0 if pd.isna(masterdict.get("GR이전_어린이집_기본보육교사수")) else masterdict.get("GR이전_어린이집_기본보육교사수")) + (0 if pd.isna(masterdict.get("GR이전_어린이집_기본보육 원생수")) else masterdict.get("GR이전_어린이집_기본보육 원생수")):.0f}",
+                    f"{(0 if pd.isna(masterdict.get("GR이후_어린이집_기본보육교사수")) else masterdict.get("GR이후_어린이집_기본보육교사수")) + (0 if pd.isna(masterdict.get("GR이후_어린이집_기본보육 원생수")) else masterdict.get("GR이후_어린이집_기본보육 원생수")):.0f}",
+                    f"{(0 if pd.isna(masterdict.get("N년차_어린이집_기본보육교사수")) else masterdict.get("N년차_어린이집_기본보육교사수")) + (0 if pd.isna(masterdict.get("N년차_어린이집_기본보육 원생수")) else masterdict.get("N년차_어린이집_기본보육 원생수")):.0f}",
                 ],
-                                [
-                    func_nanto0(checklist2.일반존.기본보육교사  + checklist2.일반존.기본보육원생),
-                    func_nanto0(checklist2.일반존.연장보육A교사 + checklist2.일반존.연장보육A원생),
-                    func_nanto0(checklist2.일반존.연장보육B교사 + checklist2.일반존.연장보육B원생),
-                    func_nanto0(checklist2.일반존.야간보육교사  + checklist2.일반존.야간보육원생),
-                    func_nanto0(checklist2.일반존.주말보육교사  + checklist2.일반존.주말보육원생),
-                ]    
+                [
+                    "연장보육A 인원",
+                    f"{(0 if pd.isna(masterdict.get("GR이전_어린이집_연장보육A교사수")) else masterdict.get("GR이전_어린이집_연장보육A교사수")) + (0 if pd.isna(masterdict.get("GR이전_어린이집_연장보육A원생수")) else masterdict.get("GR이전_어린이집_연장보육A원생수")):.0f}",
+                    f"{(0 if pd.isna(masterdict.get("GR이후_어린이집_연장보육A교사수")) else masterdict.get("GR이후_어린이집_연장보육A교사수")) + (0 if pd.isna(masterdict.get("GR이후_어린이집_연장보육A원생수")) else masterdict.get("GR이후_어린이집_연장보육A원생수")):.0f}",
+                    f"{(0 if pd.isna(masterdict.get("N년차_어린이집_연장보육A교사수")) else masterdict.get("N년차_어린이집_연장보육A교사수")) + (0 if pd.isna(masterdict.get("N년차_어린이집_연장보육A원생수")) else masterdict.get("N년차_어린이집_연장보육A원생수")):.0f}",
+                ],
+                [
+                    "연장보육B 인원",
+                    f"{(0 if pd.isna(masterdict.get("GR이전_어린이집_연장보육B교사수")) else masterdict.get("GR이전_어린이집_연장보육B교사수")) + (0 if pd.isna(masterdict.get("GR이전_어린이집_연장보육B원생수")) else masterdict.get("GR이전_어린이집_연장보육B원생수")):.0f}",
+                    f"{(0 if pd.isna(masterdict.get("GR이후_어린이집_연장보육B교사수")) else masterdict.get("GR이후_어린이집_연장보육B교사수")) + (0 if pd.isna(masterdict.get("GR이후_어린이집_연장보육B원생수")) else masterdict.get("GR이후_어린이집_연장보육B원생수")):.0f}",
+                    f"{(0 if pd.isna(masterdict.get("N년차_어린이집_연장보육B교사수")) else masterdict.get("N년차_어린이집_연장보육B교사수")) + (0 if pd.isna(masterdict.get("N년차_어린이집_연장보육B원생수")) else masterdict.get("N년차_어린이집_연장보육B원생수")):.0f}",
+                ],
+                [
+                    "야간보육 인원",
+                    f"{(0 if pd.isna(masterdict.get("GR이전_어린이집_야간보육 교사수")) else masterdict.get("GR이전_어린이집_야간보육 교사수")) + (0 if pd.isna(masterdict.get("GR이전_어린이집_야간보육 원생수")) else masterdict.get("GR이전_어린이집_야간보육 원생수")):.0f}",
+                    f"{(0 if pd.isna(masterdict.get("GR이후_어린이집_야간보육 교사수")) else masterdict.get("GR이후_어린이집_야간보육 교사수")) + (0 if pd.isna(masterdict.get("GR이후_어린이집_야간보육 원생수")) else masterdict.get("GR이후_어린이집_야간보육 원생수")):.0f}",
+                    f"{(0 if pd.isna(masterdict.get("N년차_어린이집_야간보육 교사수")) else masterdict.get("N년차_어린이집_야간보육 교사수")) + (0 if pd.isna(masterdict.get("N년차_어린이집_야간보육 원생수")) else masterdict.get("N년차_어린이집_야간보육 원생수")):.0f}",
+                ],
+                [
+                    "주말보육 인원",
+                    f"{(0 if pd.isna(masterdict.get("GR이전_어린이집_주말보육 교사수")) else masterdict.get("GR이전_어린이집_주말보육 교사수")) + (0 if pd.isna(masterdict.get("GR이전_어린이집_주말보육 원생수")) else masterdict.get("GR이전_어린이집_주말보육 원생수")):.0f}",
+                    f"{(0 if pd.isna(masterdict.get("GR이후_어린이집_주말보육 교사수")) else masterdict.get("GR이후_어린이집_주말보육 교사수")) + (0 if pd.isna(masterdict.get("GR이후_어린이집_주말보육 원생수")) else masterdict.get("GR이후_어린이집_주말보육 원생수")):.0f}",
+                    f"{(0 if pd.isna(masterdict.get("N년차_어린이집_주말보육 교사수")) else masterdict.get("N년차_어린이집_주말보육 교사수")) + (0 if pd.isna(masterdict.get("N년차_어린이집_주말보육 원생수")) else masterdict.get("N년차_어린이집_주말보육 원생수")):.0f}",
+                ],
+                [
+                    "난방 사용기간",
+                    masterdict.get("GR이전_일반존_난방1 사용기간"),
+                    masterdict.get("GR이후_일반존_난방1 사용기간"),
+                    masterdict.get("N년차_일반존_난방1 사용기간"),
+                ],
+                [
+                    "난방 사용시간",
+                    masterdict.get("GR이전_일반존_난방1 사용시간"),
+                    masterdict.get("GR이후_일반존_난방1 사용시간"),
+                    masterdict.get("N년차_일반존_난방1 사용시간"),
+                ],
+                [
+                    "난방 설정온도(℃)",
+                    f"{masterdict.get('GR이전_일반존_난방1 설정온도'):.0f}" if not pd.isna(masterdict.get("GR이전_일반존_난방1 설정온도")) else "-",
+                    f"{masterdict.get('GR이후_일반존_난방1 설정온도'):.0f}" if not pd.isna(masterdict.get("GR이후_일반존_난방1 설정온도")) else "-",
+                    f"{masterdict.get('N년차_일반존_난방1 설정온도'):.0f}" if not pd.isna(masterdict.get("N년차_일반존_난방1 설정온도")) else "-",
+                ],
+                [
+                    "냉방 사용기간",
+                    masterdict.get("GR이전_일반존_냉방1 사용기간"),
+                    masterdict.get("GR이후_일반존_냉방1 사용기간"),
+                    masterdict.get("N년차_일반존_냉방1 사용기간"),
+                ],
+                [
+                    "냉방 사용시간",
+                    masterdict.get("GR이전_일반존_냉방1 사용시간"),
+                    masterdict.get("GR이후_일반존_냉방1 사용시간"),
+                    masterdict.get("N년차_일반존_냉방1 사용시간"),
+                ],
+                [
+                    "냉방 설정온도(℃)",
+                    f"{masterdict.get('GR이전_일반존_냉방1 설정온도'):.0f}" if not pd.isna(masterdict.get("GR이전_일반존_냉방1 설정온도")) else "-",
+                    f"{masterdict.get('GR이후_일반존_냉방1 설정온도'):.0f}" if not pd.isna(masterdict.get("GR이후_일반존_냉방1 설정온도")) else "-",
+                    f"{masterdict.get('N년차_일반존_냉방1 설정온도'):.0f}" if not pd.isna(masterdict.get("N년차_일반존_냉방1 설정온도")) else "-",
+                ],
             ],
-            columns = ["기본 (-16:00)", "연장 (-18:00)", "연장 (-19:30)","야간 (-21:00)","주말"],
-            index   = ["GR 직후", "2025년"] 
+            columns = ["항목","그린리모델링 이전", "그린리모델링 이후", "운영특성 반영"],
         )
-        
-        tablestyle = {
-            "column_format":">{\\centering\\arraybackslash}p{3cm}" + "|>{\\centering\\arraybackslash}p{2.66cm}" * 5,
-            "clines":"all;data",  
-            "hrules":True,
-            }
-        tex = df.style.format(lambda x: f"{x}명").to_latex(**tablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline")
-        
-        return tex
-    
     else:
-        
-        집중진료연인원1 = ((checklist1.일반존.집중진료오전방문객 * checklist1.일반존.집중진료오전체류시간) + (checklist1.일반존.집중진료오후방문객 * checklist1.일반존.집중진료오후체류시간))/60 * len(checklist1.일반존.집중진료요일.split(","))
-        집중진료연인원2 = ((checklist2.일반존.집중진료오전방문객 * checklist2.일반존.집중진료오전체류시간) + (checklist2.일반존.집중진료오후방문객 * checklist2.일반존.집중진료오후체류시간))/60 * len(checklist2.일반존.집중진료요일.split(","))
-        
         df = pd.DataFrame(
             [
                 [
-                    f"{checklist1.일반존.운영시간.replace("~","-")}",
-                    f"{checklist1.일반존.직원}명 상주",
-                    f"주 {집중진료연인원1:.0f}명$\\cdot$시간",
-                    f"{checklist1.특화존2.사용관사수}개소",
+                    "운영시간",
+                    masterdict.get("GR이전_보건지소·진료소_기본운영 시간"),
+                    masterdict.get("GR이후_보건지소·진료소_기본운영 시간"),
+                    masterdict.get("N년차_보건지소·진료소_기본운영 시간"),
                 ],
                 [
-                    f"{checklist2.일반존.운영시간.replace("~","-")}",
-                    f"{checklist2.일반존.직원}명 상주",
-                    f"주 {집중진료연인원1:.0f}명$\\cdot$시간",
-                    f"{checklist2.특화존2.사용관사수}개소",
-                ]    
+                    "외근시간",
+                    masterdict.get("GR이전_보건지소·진료소_외근시간"),
+                    masterdict.get("GR이후_보건지소·진료소_외근시간"),
+                    masterdict.get("N년차_보건지소·진료소_외근시간"),
+                ],
+                [
+                    "외근요일",
+                    masterdict.get("GR이전_보건지소·진료소_외근요일"),
+                    masterdict.get("GR이후_보건지소·진료소_외근요일"),
+                    masterdict.get("N년차_보건지소·진료소_외근요일"),
+                ],
+                [
+                    "직원",
+                    f"{masterdict.get('GR이전_보건지소·진료소_직원수'):.0f}" if not pd.isna(masterdict.get("GR이전_보건지소·진료소_직원수")) else "-",
+                    f"{masterdict.get('GR이후_보건지소·진료소_직원수'):.0f}" if not pd.isna(masterdict.get("GR이후_보건지소·진료소_직원수")) else "-",
+                    f"{masterdict.get('N년차_보건지소·진료소_직원수'):.0f}" if not pd.isna(masterdict.get("N년차_보건지소·진료소_직원수")) else "-",
+                ],
+                [
+                    "방문객수 / 체류시간",
+                    f"{(0 if pd.isna(masterdict.get('GR이전_보건지소·진료소_오전 방문객수')) else masterdict.get('GR이전_보건지소·진료소_오전 방문객수'))+(0 if pd.isna(masterdict.get('GR이전_보건지소·진료소_오후 방문객수')) else masterdict.get('GR이전_보건지소·진료소_오후 방문객수')):.0f}명 / {(0 if pd.isna((masterdict.get('GR이전_보건지소·진료소_오전 체류시간')+masterdict.get("GR이전_보건지소·진료소_오후 체류시간"))/2) else (masterdict.get('GR이전_보건지소·진료소_오전 체류시간')+masterdict.get("GR이전_보건지소·진료소_오후 체류시간"))/2):.0f}분",
+                    f"{(0 if pd.isna(masterdict.get('GR이후_보건지소·진료소_오전 방문객수')) else masterdict.get('GR이후_보건지소·진료소_오전 방문객수'))+(0 if pd.isna(masterdict.get('GR이후_보건지소·진료소_오후 방문객수')) else masterdict.get('GR이후_보건지소·진료소_오후 방문객수')):.0f}명 / {(0 if pd.isna((masterdict.get('GR이후_보건지소·진료소_오전 체류시간')+masterdict.get("GR이후_보건지소·진료소_오후 체류시간"))/2) else (masterdict.get('GR이후_보건지소·진료소_오전 체류시간')+masterdict.get("GR이후_보건지소·진료소_오후 체류시간"))/2):.0f}분",
+                    f"{(0 if pd.isna(masterdict.get('N년차_보건지소·진료소_오전 방문객수')) else masterdict.get('N년차_보건지소·진료소_오전 방문객수'))+(0 if pd.isna(masterdict.get('N년차_보건지소·진료소_오후 방문객수')) else masterdict.get('N년차_보건지소·진료소_오후 방문객수')):.0f}명 / {(0 if pd.isna((masterdict.get('N년차_보건지소·진료소_오전 체류시간')+masterdict.get("N년차_보건지소·진료소_오후 체류시간"))/2) else (masterdict.get('N년차_보건지소·진료소_오전 체류시간')+masterdict.get("N년차_보건지소·진료소_오후 체류시간"))/2):.0f}분"
+                ],
+                [
+                    "관사 수",
+                    "-" if pd.isna(masterdict.get("GR이전_특화존2_사용 관사수")) else f"{masterdict.get("GR이전_특화존2_사용 관사수"):.0f}",
+                    "-" if pd.isna(masterdict.get("GR이후_특화존2_사용 관사수")) else f"{masterdict.get("GR이후_특화존2_사용 관사수"):.0f}",
+                    "-" if pd.isna(masterdict.get("N년차_특화존2_사용 관사수")) else f"{masterdict.get("N년차_특화존2_사용 관사수"):.0f}",
+
+                ],
+                [
+                    "난방 사용기간",
+                    masterdict.get("GR이전_일반존_난방1 사용기간"),
+                    masterdict.get("GR이후_일반존_난방1 사용기간"),
+                    masterdict.get("N년차_일반존_난방1 사용기간"),
+                ],
+                [
+                    "난방 사용시간",
+                    masterdict.get("GR이전_일반존_난방1 사용시간"),
+                    masterdict.get("GR이후_일반존_난방1 사용시간"),
+                    masterdict.get("N년차_일반존_난방1 사용시간"),
+                ],
+                [
+                    "난방 설정온도(℃)",
+                    f"{masterdict.get('GR이전_일반존_난방1 설정온도'):.0f}" if not pd.isna(masterdict.get("GR이전_일반존_난방1 설정온도")) else "-",
+                    f"{masterdict.get('GR이후_일반존_난방1 설정온도'):.0f}" if not pd.isna(masterdict.get("GR이후_일반존_난방1 설정온도")) else "-",
+                    f"{masterdict.get('N년차_일반존_난방1 설정온도'):.0f}" if not pd.isna(masterdict.get("N년차_일반존_난방1 설정온도")) else "-",
+                ],
+                [
+                    "냉방 사용기간",
+                    masterdict.get("GR이전_일반존_냉방1 사용기간"),
+                    masterdict.get("GR이후_일반존_냉방1 사용기간"),
+                    masterdict.get("N년차_일반존_냉방1 사용기간"),
+
+                ],
+                [
+                    "냉방 사용시간",
+                    masterdict.get("GR이전_일반존_냉방1 사용시간"),
+                    masterdict.get("GR이후_일반존_냉방1 사용시간"),
+                    masterdict.get("N년차_일반존_냉방1 사용시간"),
+                ],
+                [
+                    "냉방 설정온도(℃)",
+                    f"{masterdict.get('GR이전_일반존_냉방1 설정온도'):.0f}" if not pd.isna(masterdict.get("GR이전_일반존_냉방1 설정온도")) else "-",
+                    f"{masterdict.get('GR이후_일반존_냉방1 설정온도'):.0f}" if not pd.isna(masterdict.get("GR이후_일반존_냉방1 설정온도")) else "-",
+                    f"{masterdict.get('N년차_일반존_냉방1 설정온도'):.0f}" if not pd.isna(masterdict.get("N년차_일반존_냉방1 설정온도")) else "-",
+                ],
             ],
-            columns = ["운영시간", "직원", "집중진료 방문객","이용 관사 수"],
-            index   = ["GR 직후", "2025년"] 
+            columns = ["항목","그린리모델링 이전", "그린리모델링 이후", "운영특성 반영"],
         )
-        
-        tablestyle = {
-            "column_format":">{\\centering\\arraybackslash}p{3cm}" + "|>{\\centering\\arraybackslash}p{3.325cm}" * 4,
-            "clines":"all;data",  
-            "hrules":True,
-            }
-        tex =  df.style.to_latex(**tablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline").replace("~","-")
-        
-        return tex
+    
+    def prettify_latex_table(
+        tex: str,
+        header_color: str = "EAEAEA",
+        arraystretch: float = 1.1,
+        fontsize: str = r"\small",
+    ) -> str:
+        lines = tex.splitlines()
+        new_lines = []
+        in_tabular = False
+        header_done = False
 
-def bool_to_적용(b:bool|list[bool]) -> str|list[str]:
-    
-    if isinstance(b, list):
-        return [bool_to_적용(bi) for bi in b]
-    
-    return "적용" if b else "미적용"
-    
-def get_passivechange_bool(
-    grm1:GreenRetrofitModel,
-    grm2:GreenRetrofitModel,
-    ) -> list[bool]:
-    
-    bools = [False]*5 # 벽체, 지붕, 바닥, 창호, 쿨루프
-    
-    # 벽체
-    if round(grm1.averaged_exteriorwall_Uvalue,3) != round(grm2.averaged_exteriorwall_Uvalue,3):
-        bools[0] = True
-        
-    # 지붕
-    if round(grm1.averaged_exteriorroof_Uvalue,3) != round(grm2.averaged_exteriorroof_Uvalue,3):
-        bools[1] = True
-    
-    # 바닥
-    if round(grm1.averaged_exteriorfloor_Uvalue,3) != round(grm2.averaged_exteriorfloor_Uvalue,3):
-        bools[2] = True
-    
-    # 창호
-    if round(grm1.averaged_window_Uvalue,3) != round(grm2.averaged_window_Uvalue,3):
-        bools[3] = True
-    
-    # 쿨루프
-    coolroof1 = [roof for roof in grm1.exteriorroofs if roof.reflectance is not None]
-    coolroof2 = [roof for roof in grm2.exteriorroofs if roof.reflectance is not None]
-    if len(coolroof1) < len(coolroof2):
-        bools[4] = True
-        
-    return bools
+        for line in lines:
+            stripped = line.strip()
 
-def get_activechange_bool(
-    grm1:GreenRetrofitModel,
-    grm2:GreenRetrofitModel,
-    ) -> list[bool]:
+            if stripped.startswith(r"\begin{tabular}"):
+                in_tabular = True
+                new_lines.append(r"\begingroup")
+                new_lines.append(fontsize)
+                new_lines.append(rf"\renewcommand{{\arraystretch}}{{{arraystretch}}}")
+                new_lines.append(line)
+                new_lines.append(r"\hline")
+                continue
+
+            if stripped.startswith(r"\end{tabular}"):
+                in_tabular = False
+                new_lines.append(line)
+                new_lines.append(r"\renewcommand{\arraystretch}{1}")
+                new_lines.append(r"\endgroup")
+                continue
+
+            if in_tabular and stripped.endswith(r"\\"):
+                if not header_done:
+                    new_lines.append(rf"\rowcolor[HTML]{{{header_color}}}")
+                    header_done = True
+                new_lines.append(line)
+                new_lines.append(r"\hline")
+                continue
+
+            new_lines.append(line)
+
+        return "\n".join(new_lines)
     
-    bools = [False]*5 # 난방, 냉방, 환기, 조명, 태양광
+    def highlight_changed_row(row):
+        cols = ["그린리모델링 이전", "그린리모델링 이후", "운영특성 반영"]
+
+        # "-", NaN 등은 문자열로 통일해서 비교
+        values = [str(row[c]).strip() for c in cols]
+
+        changed = len(set(values)) > 1
+
+        if changed:
+            return [
+                "background-color: #FFF2CC; font-weight: bold;"
+                for _ in row
+            ]
+        else:
+            return ["" for _ in row]
     
-    heatingchanged, coolingchanged, ventchanged = parse_activechange(grm1, grm2)
+    tex = (
+        df.style
+        .hide(axis="index")
+        .apply(highlight_changed_row, axis=1)
+        .format(escape="latex")   # %, _, & 같은 LaTeX 특수문자 자동 처리
+        .to_latex(
+            hrules=False,
+            convert_css=True,
+            column_format=(
+                r">{\centering\arraybackslash}p{4cm}|"
+                r">{\centering\arraybackslash}p{4cm}|"
+                r">{\centering\arraybackslash}p{4cm}|"
+                r">{\centering\arraybackslash}p{4cm}"
+            ),
+        )
+        .replace("~", "-")
+    )
+
+    tex = prettify_latex_table(tex, header_color="EAEAEA")
+    return df,tex
+
+
+def parse_equinity(masterdict: dict) -> str:
     
-    if heatingchanged != "변화 없음.":
-        bools[0] = True
-    if coolingchanged != "변화 없음.":
-        bools[1] = True
-    if ventchanged != "변화 없음.":
-        bools[2] = True
+    df = pd.DataFrame(
+        [
+            [
+                "벽체단열",
+                masterdict.get("GR이후_그린리모델링 공사내역_벽체단열_보고서"),
+                masterdict.get("GR이후_그린리모델링 공사내역_벽체단열_현장확인"),
+                masterdict.get("GR이후_그린리모델링 공사내역_벽체단열_일치여부"),
+                "예시: 남쪽 면에만 시공함.",
+            ],
+            [
+                "지붕단열",
+                masterdict.get("GR이후_그린리모델링 공사내역_지붕단열_보고서"),
+                masterdict.get("GR이후_그린리모델링 공사내역_지붕단열_현장확인"),
+                masterdict.get("GR이후_그린리모델링 공사내역_지붕단열_일치여부"),
+                "",
+            ],
+            [
+                "바닥단열",
+                masterdict.get("GR이후_그린리모델링 공사내역_바닥단열_보고서"),
+                masterdict.get("GR이후_그린리모델링 공사내역_바닥단열_현장확인"),
+                masterdict.get("GR이후_그린리모델링 공사내역_바닥단열_일치여부"),
+                "예시: 그냥 바닥난방 다시 깐 것임. 단열 했다고 보기 어려움.",
+            ],
+            [
+                "창호",
+                masterdict.get("GR이후_그린리모델링 공사내역_창호_보고서"),
+                masterdict.get("GR이후_그린리모델링 공사내역_창호_현장확인"),
+                masterdict.get("GR이후_그린리모델링 공사내역_창호_일치여부"),
+                "",
+            ],
+            [
+                "환기장치",
+                masterdict.get("GR이후_그린리모델링 공사내역_환기장치_보고서"),
+                masterdict.get("GR이후_그린리모델링 공사내역_환기장치_현장확인"),
+                masterdict.get("GR이후_그린리모델링 공사내역_환기장치_일치여부"),
+                "",
+            ],
+            [
+                "냉난방장치",
+                masterdict.get("GR이후_그린리모델링 공사내역_냉난방장치_보고서"),
+                masterdict.get("GR이후_그린리모델링 공사내역_냉난방장치_현장확인"),
+                masterdict.get("GR이후_그린리모델링 공사내역_냉난방장치_일치여부"),
+                "",
+            ],
+            [
+                "고효율 보일러",
+                masterdict.get("GR이후_그린리모델링 공사내역_고효율 보일러_보고서"),
+                masterdict.get("GR이후_그린리모델링 공사내역_고효율 보일러_현장확인"),
+                masterdict.get("GR이후_그린리모델링 공사내역_고효율 보일러_일치여부"),
+                "",
+            ],
+            [
+                "조명(LED)",
+                masterdict.get("GR이후_그린리모델링 공사내역_조명(LED)_보고서"),
+                masterdict.get("GR이후_그린리모델링 공사내역_조명(LED)_현장확인"),
+                masterdict.get("GR이후_그린리모델링 공사내역_조명(LED)_일치여부"),
+                "",
+            ]
+        ],
+        columns = ["항목","보고서","현장확인","일치여부","비고"],
+    )
+    
+    def prettify_latex_table(tex: str, header_color: str = "EAEAEA", arraystretch: float = 1) -> str:
+        lines = tex.splitlines()
+        new_lines = []
+        in_tabular = False
+        header_done = False
+
+        for line in lines:
+            stripped = line.strip()
+
+            if stripped.startswith(r"\begin{tabular}"):
+                in_tabular = True
+                new_lines.append(rf"\renewcommand{{\arraystretch}}{{{arraystretch}}}")
+                new_lines.append(line)
+                new_lines.append(r"\hline")
+                continue
+
+            if stripped.startswith(r"\end{tabular}"):
+                in_tabular = False
+                new_lines.append(line)
+                new_lines.append(r"\renewcommand{\arraystretch}{1}")
+                continue
+
+            if in_tabular and stripped.endswith(r"\\"):
+                if not header_done:
+                    new_lines.append(rf"\rowcolor[HTML]{{{header_color}}}")
+                    header_done = True
+                new_lines.append(line)
+                new_lines.append(r"\hline")
+                continue
+
+            new_lines.append(line)
+
+        return "\n".join(new_lines)
         
-    # 조명
-    if round(grm1.averaged_lightdensity,3) != round(grm2.averaged_lightdensity,3):
-        bools[3] = True
-        
-    # 태양광
-    if len(grm1.pv) != len(grm2.pv):
-        bools[4] = True
-    elif any(
-        round(pv1.efficiency,3) != round(pv2.efficiency,3) or
-        round(pv1.area,3) != round(pv2.area,3) or
-        round(pv1.azimuth,2) != round(pv2.azimuth,2) or
-        round(pv1.tilt,2) != round(pv2.tilt,2)
-        for pv1, pv2 in zip(grm1.pv, grm2.pv)
-    ):
-        bools[4] = True
-    
-    return bools
+    tex = (
+        df.style
+        .hide(axis="index")
+        .format(escape="latex")   # %, _, & 같은 LaTeX 특수문자 자동 처리
+        .to_latex(
+            hrules=False,         # hline은 우리가 직접 넣을 것
+            column_format=(
+                r">{\centering\arraybackslash}p{4cm}|"
+                r">{\centering\arraybackslash}p{2.5cm}|"
+                r">{\centering\arraybackslash}p{2.5cm}|"
+                r">{\centering\arraybackslash}p{2.5cm}|"
+                r">{\centering\arraybackslash}p{4.5cm}"
+            ),
+        )
+        .replace("~", "-")
+    )
+
+    tex = prettify_latex_table(tex, header_color="EAEAEA")
+    return tex
 
 def build_report(
     before_rebexcelpath:str,
@@ -987,6 +1915,7 @@ def build_report(
     after_grrpath :str,
     afterN_grrpath:str,
     commentdict   :dict[str,str],
+    masterdict    :dict,
     pdfpath:str,
     ) -> None:
     
@@ -1003,11 +1932,6 @@ def build_report(
     checklistafter  = 현장조사체크리스트.from_excel(after_rebexcelpath)
     checklistafterN = 현장조사체크리스트.from_excel(afterN_rebexcelpath)
     
-    # model
-    idfbefore,grmbefore = rebexcel_to_idf_and_grm(before_rebexcelpath)
-    idfafter ,grmafter  = rebexcel_to_idf_and_grm(after_rebexcelpath)
-    idfafterN,grmafterN = rebexcel_to_idf_and_grm(afterN_rebexcelpath)
-    
     # metadata
     building_info = pd.read_excel(before_rebexcelpath, sheet_name="건물정보", usecols=range(6), nrows=1).iloc[0]
     metadata = MetaData(
@@ -1017,74 +1941,13 @@ def build_report(
         building_info["허가일자"]   , 
     )
     
-    # passive change
-    passivechangedict = {
-        "before": {
-            "wallU": round(grmbefore.averaged_exteriorwall_Uvalue,3),
-            "roofU": round(grmbefore.averaged_exteriorroof_Uvalue,3),
-            "floorU": round(grmbefore.averaged_exteriorfloor_Uvalue,3),
-            "winU" : round(grmbefore.averaged_window_Uvalue,3),
-            "ld"   : round(grmbefore.averaged_lightdensity,2),
-        },
-        "after": {
-            "wallU": round(grmafter.averaged_exteriorwall_Uvalue,3),
-            "roofU": round(grmafter.averaged_exteriorroof_Uvalue,3),
-            "floorU": round(grmafter.averaged_exteriorfloor_Uvalue,3),
-            "winU" : round(grmafter.averaged_window_Uvalue,3),
-            "ld"   : round(grmafter.averaged_lightdensity,2),
-        },
-        "afterN": {
-            "wallU": round(grmafterN.averaged_exteriorwall_Uvalue,3),
-            "roofU": round(grmafterN.averaged_exteriorroof_Uvalue,3),
-            "floorU": round(grmafterN.averaged_exteriorfloor_Uvalue,3),
-            "winU" : round(grmafterN.averaged_window_Uvalue,3),
-            "ld"   : round(grmafterN.averaged_lightdensity,2),
-            "infil": round(grmafterN.averaged_infiltration*0.07,2),
-        },
-        "before2after": bool_to_적용(get_passivechange_bool(grmbefore, grmafter)),
-        "countbefore2after": sum(get_passivechange_bool(grmbefore, grmafter)),
-        "after2afterN": bool_to_적용(get_passivechange_bool(grmafter, grmafterN)),
-        "countafter2afterN": sum(get_passivechange_bool(grmafter, grmafterN)),
-    }
-    # active change
-    activechange_before2after = parse_activechange(grmbefore, grmafter)
-    activechange_after2afterN = parse_activechange(grmafter, grmafterN)
-    activechangedict = {
-        "before2after": bool_to_적용(get_activechange_bool(grmbefore, grmafter)),
-        "countbefore2after": sum(get_activechange_bool(grmbefore, grmafter)),
-        "after2afterN": bool_to_적용(get_activechange_bool(grmafter, grmafterN)),
-        "countafter2afterN": sum(get_activechange_bool(grmafter, grmafterN)),
-        "before2afterdetail":{
-            "heating": activechange_before2after[0],
-            "cooling": activechange_before2after[1],
-            "ventilation": activechange_before2after[2],
-        },
-        "after2afterNdetail":{
-            "heating": activechange_after2afterN[0],
-            "cooling": activechange_after2afterN[1],
-            "ventilation": activechange_after2afterN[2],
-        }
-    }
-    
-    # occupant change
-    occupantchange = parse_occupantchange(checklistafter, checklistafterN)
-    # hvacoperation change
-    hvacoperationchange = parse_hvacoperationchange(checklistafter, checklistafterN)
-    
     # get figures
-    fig_detail, fig_summary = draw_simulation_figures(grrbefore, grrafter, grrafterN)
+    fig_detail, fig_summary = draw_mainfigures(grrbefore, grrafter, grrafterN)
     fig_detail.savefig(FIG_DIR / "simulation_results.png", dpi=400, format="png", bbox_inches="tight")
     fig_summary.savefig(FIG_DIR / "energy_summary.png", dpi=400, format="png", bbox_inches="tight")
     
     # get figures (by weather)
-    before_weatherdata_filepath = find_weatherdata(building_info["주소"], "이전")
-    after_weatherdata_filepath  = find_weatherdata(building_info["주소"], "이후")
-    fig_weather, degreedays = draw_weather_figures(
-        before_weatherdata_filepath,
-        after_weatherdata_filepath ,
-    )
-    fig_weather.savefig(FIG_DIR / "weather_compare.png", dpi=400, format="png", bbox_inches="tight")
-    fig_page3_summary = draw_page3_summaryfigure(grrbefore, grrafter, grrafterN)
+    fig_page3_summary = draw_page3_summaryfigures(grrbefore, grrafter, grrafterN)
     fig_page3_summary.savefig(FIG_DIR / "page3_summary.png", dpi=400, format="png", bbox_inches="tight")
         
     # arrange the results
@@ -1093,15 +1956,23 @@ def build_report(
     "clines":"all;data",  
     "hrules":True,
     }
+    
+    lpguse_conditions = [k for k, v in parse_lpg_usage(masterdict).items() if v]
+    if len(lpguse_conditions) == 0:
+        lpgusetext = ""
+    else:
+        lpgusetext = ", ".join(lpguse_conditions) + " 에서 LPG보일러 사용하는 건물임"
+        
     context = {
         "metadata": metadata,
+        "master"  : masterdict,
         "imagesrc": (Path(__file__).parent / "imagesrc").resolve().as_posix(),
-        "passivechange": passivechangedict,
-        "activechange": activechangedict,
-        "hvacoperchangetex": hvacoperationchange,
-        "occupantchangetex": occupantchange,
-        "summarytabletex" : [df.style.format(lambda x: f"{x:>6,.1f}").to_latex(**summarytablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline") for df in summarytable(grrbefore, grrafter, grrafterN)],
-        "degreedays": {k:v for k,v in zip(["HDD2018","HDD2023","CDD2018","CDD2023"], degreedays)}|{"HDDchange": ("증가" if (degreedays[1]-degreedays[0])>0 else "감소"),"CDDchange": ("증가" if (degreedays[3]-degreedays[2])>0 else "감소")},
+        "surveychangetex": parse_surveychange(masterdict)[1],
+        "majorchangetex" :  parse_majorchange(masterdict),
+        "perfchangetex"   : parse_perfchange(masterdict),
+        "equinitytex"    : parse_equinity(masterdict),
+        "lpgusetext"    : lpgusetext,
+        "summarytabletex" : [df.style.format(lambda x: f"{x:>6,.1f}" if isinstance(x, int|float) else x).to_latex(**summarytablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline") for df in summarytable(grrbefore, grrafter, grrafterN)],
         "comment": {k:escape_str(v) for k,v in commentdict.items()}
     }
     
