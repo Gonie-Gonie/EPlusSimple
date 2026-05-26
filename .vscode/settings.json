@@ -1,8 +1,23 @@
 {
+    
     "python.analysis.extraPaths": [
         "${workspaceFolder}/src"
     ],
     "python.defaultInterpreterPath": "${workspaceFolder}/runtime/PythonV3-12-7/python.exe",
+
+
+    "go.alternateTools": {
+    "go": "${workspaceFolder}/runtime/GoV1-26-3/bin/go.exe"
+    },
+    "terminal.integrated.env.windows": {
+        "GOROOT": "${workspaceFolder}\\runtime\\GoV1-26-3",
+        "GOPATH": "${workspaceFolder}\\runtime\\go-path",
+        "GOCACHE": "${workspaceFolder}\\runtime\\go-build-cache",
+        "GOMODCACHE": "${workspaceFolder}\\runtime\\go-mod-cache",
+        "PATH": "${workspaceFolder}\\runtime\\GoV1-26-3\\bin;${env:PATH}"
+    },
+
+
     "latex-workshop.latex.outDir": "../dist/docs",
     "latex-workshop.latex.autoBuild.run": "never",
     "latex-workshop.latex.recipes": [
@@ -13,6 +28,8 @@
             ]
         },
     ],
+
+    
     "files.associations": {
         "*.grm": "json",
         "*.grr": "json",
