@@ -80,7 +80,7 @@ $DownloadDir = Join-Path $RuntimeDir 'downloads'
 
 $PythonVersionShort = '312'
 $PythonVersionFull = '3.12.7'
-$PythonDir = Join-Path $RuntimeDir 'python'
+$PythonDir = Join-Path $RuntimeDir 'PythonV3-12-7'
 $PythonExe = Join-Path $PythonDir 'python.exe'
 $PipExe = Join-Path $PythonDir 'Scripts\pip.exe'
 $PythonZipFileName = "python-$PythonVersionFull-embed-amd64.zip"

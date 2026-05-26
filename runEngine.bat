@@ -8,7 +8,7 @@ REM -----------------------------------------
 
 REM --- Configuration Variables ---
 SET "BATCH_DIR=%~dp0"
-SET "PYTHON_EXE=%BATCH_DIR%venv\python.exe"
+SET "PYTHON_EXE=%BATCH_DIR%runtime\PythonV3-12-7\python.exe"
 SET "MODULE_NAME=epsimple"
 SET "LOG_FILE=%BATCH_DIR%log.log"
 

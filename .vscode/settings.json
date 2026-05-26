@@ -2,7 +2,7 @@
     "python.analysis.extraPaths": [
         "${workspaceFolder}/src"
     ],
-    "python.defaultInterpreterPath": "${workspaceFolder}/venv/python.exe",
+    "python.defaultInterpreterPath": "${workspaceFolder}/runtime/PythonV3-12-7/python.exe",
     "latex-workshop.latex.outDir": "../dist/docs",
     "latex-workshop.latex.autoBuild.run": "never",
     "latex-workshop.latex.recipes": [
