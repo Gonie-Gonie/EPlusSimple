@@ -1111,7 +1111,7 @@ class IDD(StaticIndexedDict):
     """
     
     def to_pickle(self,
-        save_dir:str = Directory.IDD
+        save_dir:str = Directory.IDD_DIR
         ) -> None:
         """ save the IDD instance as a pickle with the naming rule
         
@@ -1145,7 +1145,7 @@ class IDD(StaticIndexedDict):
         if tuple(version) not in IDD.loaded.keys():
             
             # find the saved idd file and save into cache
-            with open(os.path.join(Directory.IDD, version._pyiddname), "rb") as f:
+            with open(os.path.join(Directory.IDD_DIR, version._pyiddname), "rb") as f:
                 
                 idd = pickle.load(f)
                 IDD.loaded[tuple(version)] = idd

@@ -155,15 +155,15 @@ def find_executable_dir(version:Version|str):
     
     ep_dirname = Version.to_version_anyway(version).ep_dirname
     
-    # 모듈 내부 포터블?
-    if ep_dirname in os.listdir(Directory.ENERGYPLUS):
-        return os.path.join(Directory.ENERGYPLUS, ep_dirname)
+    # package runtime directory
+    if ep_dirname in os.listdir(Directory.ENERGYPLUS_DIR):
+        return os.path.join(Directory.ENERGYPLUS_DIR, ep_dirname)
     
-    # 님 컴?
+    # local PC (EnergyPlus defatult installation directory)
     elif ep_dirname in os.listdir("C:\\"):
         return os.path.join("C:\\", ep_dirname)
     
-    # ㅅㄱㄱ
+    # exception
     else:
         raise ExecutableEnergyPlusNotFoundError(
             f"EnergyPlus 버전 맞는걸로 안깔려있는듯"

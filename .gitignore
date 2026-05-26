@@ -9,6 +9,9 @@ dist/docs/mainER.pdf
 dist/docs/mainPM.pdf
 dist/docs/
 
+# 내가 추가한 것 (runtime)
+/runtime/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

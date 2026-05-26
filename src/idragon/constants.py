@@ -6,7 +6,8 @@
 # built-in modules
 from __future__ import annotations
 import os
-from enum import Enum
+from enum    import Enum
+from pathlib import Path
 
 # third-party modules
 
@@ -18,11 +19,20 @@ from enum import Enum
 
 class Directory:
     
-    DATA      = os.path.join(os.path.dirname(__file__), "_data")
-    IDD       = os.path.join(DATA, "idd")
-    WEATHER   = os.path.join(DATA, "weather")
-    PROFILE   = os.path.join(DATA, "profile")
-    ENERGYPLUS= os.path.join(os.path.dirname(__file__), "_energyPlus")
+    # module related - reference
+    _MODULE_ROOT  = Path(__file__).resolve().parent
+    _DATA_DIR    = _MODULE_ROOT / "_data"
+    
+    # module related - api
+    IDD_DIR     = _DATA_DIR / "idd"
+    WEATHER_DIR = _DATA_DIR / "weather"
+    PROFILE_DIR = _DATA_DIR / "profile"
+    
+    # package related - reference
+    _PACKAGE_ROOT   = Path(__file__).resolve().parents[2]
+    
+    # package related - api
+    ENERGYPLUS_DIR = _PACKAGE_ROOT / "runtime"
 
 
 class PackageInfo:
