@@ -44,7 +44,7 @@ $GoModFile = Join-Path $GoModuleDir "go.mod"
 $RunEnginePackage = ".\cmd\runEngine"
 $RunExcelLauncherPackage = ".\cmd\runExcelLauncher"
 
-$RunEngineOutput = Join-Path $RepoRoot "EPlusSimple.exe"
+$RunEngineOutput = Join-Path $RepoRoot "EPlusSimpleCLI.exe"
 $RunExcelLauncherOutput = Join-Path $RepoRoot "EPlusSimpleLauncher.exe"
 
 # -----------------------------------------------------------------------------
@@ -112,7 +112,7 @@ try {
     }
 
     Write-Host ""
-    Write-Host "[build] runEngine -> EPlusSimple.exe"
+    Write-Host "[build] runEngine -> EPlusSimpleCLI.exe"
 
     if (Test-Path -LiteralPath $RunEngineOutput) {
         Remove-Item -LiteralPath $RunEngineOutput -Force
