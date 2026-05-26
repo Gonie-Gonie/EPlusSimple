@@ -12,6 +12,9 @@ dist/docs/
 # 내가 추가한 것 (runtime)
 /runtime/
 
+# go build
+*.exe
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
