@@ -9,22 +9,19 @@
 #   scripts/dev/release.bat
 #
 # This script creates a portable release package under:
-#   dist/EPlusSimple_V<version>[R]/
-#   dist/EPlusSimple_V<version>[R].zip
+#   dist/EPlusSimple_V[R]/
+#   dist/EPlusSimple_V[R].zip
 #
 # Runtime layout assumed by setup.ps1:
 #   runtime/PythonV3-12-7/
 #   runtime/EnergyPlusV24-2-0/
 #
 # Design notes:
-#   - release.bat should remain a small Windows wrapper.
-#   - This PowerShell file owns the actual release logic.
-#   - All paths are resolved relative to the repository root.
-#   - setup download caches are not copied into the release package.
-#   - Diagnostic output is intentionally generic. It reports the current step,
-#     failed command, log tail, and PowerShell location. It is not tied only to
-#     regression testing, so the same structure remains useful for documentation
-#     build, archive creation, and future release steps.
+# - release.bat should remain a small Windows wrapper.
+# - This PowerShell file owns the actual release logic.
+# - All paths are resolved relative to the repository root.
+# - setup download caches are not copied into the release package.
+# - Root launchers are now built from Go sources by scripts/dev/build-go.ps1.
 # ============================================================================
 
 [CmdletBinding()]
@@ -58,9 +55,6 @@ $ProgressPreference = 'SilentlyContinue'
 # ----------------------------------------------------------------------------
 # Path configuration
 # ----------------------------------------------------------------------------
-# $PSScriptRoot would also work in a .ps1 file, but using
-# $MyInvocation.MyCommand.Path is explicit and compatible with older Windows
-# PowerShell versions.
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RepoRoot = (Resolve-Path (Join-Path $ScriptDir '..\..')).Path
@@ -69,6 +63,7 @@ $RepoRoot = (Resolve-Path (Join-Path $ScriptDir '..\..')).Path
 Set-Location $RepoRoot
 
 $ProjectName = 'EPlusSimple'
+
 $BuildFor = $BuildFor.ToLowerInvariant()
 
 $VersionSuffix = ''
@@ -89,6 +84,7 @@ $ReleaseLogDir = Join-Path $DistDir '_release_logs'
 $ReleaseSummaryLog = Join-Path $ReleaseLogDir 'release-summary.log'
 
 $RuntimeDir = Join-Path $RepoRoot 'runtime'
+
 $PythonRuntimeName = 'PythonV3-12-7'
 $EnergyPlusRuntimeName = 'EnergyPlusV24-2-0'
 
@@ -100,15 +96,19 @@ $PythonPthFile = Join-Path $PythonDir $PythonPthFileName
 $EnergyPlusDir = Join-Path $RuntimeDir $EnergyPlusRuntimeName
 $EnergyPlusExe = Join-Path $EnergyPlusDir 'energyplus.exe'
 
+# Go launcher build.
+$BuildGoScript = Join-Path $RepoRoot 'scripts\dev\build-go.ps1'
+$EPlusSimpleExe = Join-Path $RepoRoot 'EPlusSimple.exe'
+$EPlusSimpleLauncherExe = Join-Path $RepoRoot 'EPlusSimpleLauncher.exe'
+
 # Folders that are useful in a full EnergyPlus installation but are not needed
-# for the packaged EPlusSimple runtime. The original setup runtime is left
-# untouched; these folders are removed only from the copied release runtime.
+# for the packaged EPlusSimple runtime.
 #
-# DataSets       : library IDF snippets for model authors
-# Documentation  : local EnergyPlus manuals
-# ExampleFiles   : sample IDF/output files
-# WeatherData    : sample EPW/DDY files; EPlusSimple supplies/uses its own weather files
-# MacroDataSets  : macro-oriented data snippets; not needed unless users rely on EP-Macro libraries
+# DataSets      : library IDF snippets for model authors
+# Documentation : local EnergyPlus manuals
+# ExampleFiles  : sample IDF/output files
+# WeatherData   : sample EPW/DDY files; EPlusSimple supplies/uses its own weather files
+# MacroDataSets : macro-oriented data snippets; not needed unless users rely on EP-Macro libraries
 $EnergyPlusPruneDirs = @(
     'DataSets',
     'Documentation',
@@ -120,6 +120,7 @@ $EnergyPlusPruneDirs = @(
 $ExamplesDir = Join-Path $RepoRoot 'examples'
 $DocsDir = Join-Path $RepoRoot 'docs'
 $SrcDir = Join-Path $RepoRoot 'src'
+
 $RegressionTestScript = Join-Path $RepoRoot 'scripts\dev\regressiontest.py'
 $RegressionLog = Join-Path $RepoRoot 'regtest.log'
 
@@ -134,6 +135,7 @@ $script:CommandLogs = New-Object System.Collections.Generic.List[string]
 
 function Write-Section {
     param([string]$Message)
+
     Write-Host ''
     Write-Host '============================================================================'
     Write-Host " $Message"
@@ -143,7 +145,6 @@ function Write-Section {
 function Write-Step {
     param([string]$Message)
 
-    # Store the current step so any failure can report where it happened.
     $script:CurrentStep = $Message
     Write-Host $Message
 }
@@ -228,7 +229,7 @@ function ConvertTo-CommandLineArgument {
 
     # Start-Process receives a single command-line string on Windows.
     # Therefore each argument must be quoted explicitly when it contains
-    # whitespace or special characters. This is intentionally conservative.
+    # whitespace or special characters.
     if ($null -eq $Value) {
         return '""'
     }
@@ -241,8 +242,6 @@ function ConvertTo-CommandLineArgument {
         return $Value
     }
 
-    # Escape embedded double quotes. This is enough for the paths and simple
-    # options used by this release script.
     $escaped = $Value.Replace('"', '\"')
     return '"' + $escaped + '"'
 }
@@ -257,16 +256,17 @@ function Invoke-LoggedCommand {
     )
 
     # Do not use:
-    #     & $FilePath @Arguments *> $LogPath
+    #   & $FilePath @Arguments *> $LogPath
     #
     # In Windows PowerShell, native stderr can be converted into ErrorRecord
     # objects. If $ErrorActionPreference is 'Stop', ordinary stderr output
-    # from tools such as Python/tqdm can terminate the release script even when
-    # the process exit code is 0.
+    # from tools can terminate the release script even when the process exit
+    # code is 0.
     #
     # Start-Process with RedirectStandardOutput/RedirectStandardError avoids
     # that problem. It treats stdout/stderr as process streams and lets us judge
     # success only by the real process exit code.
+
     $logParent = Split-Path -Parent $LogPath
     Ensure-Directory $logParent
     Register-CommandLog $LogPath
@@ -281,9 +281,9 @@ function Invoke-LoggedCommand {
     $argumentText = ($Arguments | ForEach-Object { ConvertTo-CommandLineArgument $_ }) -join ' '
     $cmdText = "$FilePath $argumentText".Trim()
 
-    Write-Host "    ...Running: $Description"
-    Write-Host "       Command : $cmdText"
-    Write-Host "       Log     : $LogPath"
+    Write-Host " ...Running: $Description"
+    Write-Host " Command : $cmdText"
+    Write-Host " Log     : $LogPath"
 
     $process = Start-Process `
         -FilePath $FilePath `
@@ -298,9 +298,9 @@ function Invoke-LoggedCommand {
     $exitCode = $process.ExitCode
 
     # Create a single combined log file. Keeping stdout/stderr separated in the
-    # log makes it easier to identify progress messages, warnings, and actual
-    # errors without relying on PowerShell stream behavior.
+    # log makes it easier to identify progress messages, warnings, and errors.
     $logLines = New-Object System.Collections.Generic.List[string]
+
     $logLines.Add("===== COMMAND =====")
     $logLines.Add($cmdText)
     $logLines.Add("")
@@ -310,10 +310,6 @@ function Invoke-LoggedCommand {
     $logLines.Add("===== STDOUT =====")
 
     if (Test-Path -LiteralPath $stdoutLog) {
-        # Get-Content returns $null when a file is empty. Passing $null to
-        # List[string].AddRange() raises an exception, which would make the
-        # release script fail even when the external command succeeded.
-        # Use a foreach loop instead of AddRange so empty stdout/stderr is safe.
         $stdoutLines = Get-Content -LiteralPath $stdoutLog -ErrorAction SilentlyContinue
         if ($null -ne $stdoutLines) {
             foreach ($line in @($stdoutLines)) {
@@ -326,9 +322,6 @@ function Invoke-LoggedCommand {
     $logLines.Add("===== STDERR =====")
 
     if (Test-Path -LiteralPath $stderrLog) {
-        # stderr may legitimately be empty. This is common for commands such as
-        # `python --version` or `energyplus --version`. Treat an empty stderr file
-        # as normal instead of as a release-script failure.
         $stderrLines = Get-Content -LiteralPath $stderrLog -ErrorAction SilentlyContinue
         if ($null -ne $stderrLines) {
             foreach ($line in @($stderrLines)) {
@@ -361,36 +354,13 @@ function Copy-Directory {
     )
 
     Assert-DirectoryExists -Path $Source -Message 'Cannot copy directory because the source directory was not found.'
+
     Remove-DirectoryIfExists $Destination
 
     $parent = Split-Path -Parent $Destination
     Ensure-Directory $parent
 
     Copy-Item -LiteralPath $Source -Destination $Destination -Recurse -Force
-}
-
-function Remove-EnergyPlusReleaseExtras {
-    param([string]$ReleaseEnergyPlusDir)
-
-    # Keep setup/runtime/EnergyPlusV... intact. This function operates only on
-    # dist/.../runtime/EnergyPlusV..., after the runtime has been copied into
-    # the release directory. This avoids breaking the developer runtime while
-    # still reducing the size of the distributed package.
-    Assert-DirectoryExists -Path $ReleaseEnergyPlusDir -Message 'Release EnergyPlus runtime was not found.'
-
-    Write-Host '    ...Removing non-runtime EnergyPlus folders from release copy.'
-
-    foreach ($dirname in $EnergyPlusPruneDirs) {
-        $target = Join-Path $ReleaseEnergyPlusDir $dirname
-
-        if (Test-Path -LiteralPath $target -PathType Container) {
-            Remove-DirectoryIfExists $target
-            Write-Host "       Removed: $dirname"
-        }
-        else {
-            Write-Host "       Not found, skipped: $dirname"
-        }
-    }
 }
 
 function Copy-File {
@@ -407,6 +377,28 @@ function Copy-File {
     Copy-Item -LiteralPath $Source -Destination $Destination -Force
 }
 
+function Remove-EnergyPlusReleaseExtras {
+    param([string]$ReleaseEnergyPlusDir)
+
+    # Keep setup/runtime/EnergyPlusV... intact. This function operates only on
+    # dist/.../runtime/EnergyPlusV..., after the runtime has been copied into
+    # the release directory.
+    Assert-DirectoryExists -Path $ReleaseEnergyPlusDir -Message 'Release EnergyPlus runtime was not found.'
+
+    Write-Host ' ...Removing non-runtime EnergyPlus folders from release copy.'
+
+    foreach ($dirname in $EnergyPlusPruneDirs) {
+        $target = Join-Path $ReleaseEnergyPlusDir $dirname
+
+        if (Test-Path -LiteralPath $target -PathType Container) {
+            Remove-DirectoryIfExists $target
+            Write-Host "    Removed: $dirname"
+        } else {
+            Write-Host "    Not found, skipped: $dirname"
+        }
+    }
+}
+
 function Add-UniqueLine {
     param(
         [string]$Path,
@@ -418,11 +410,10 @@ function Add-UniqueLine {
     $lines = Get-Content -LiteralPath $Path -ErrorAction Stop
 
     if ($lines -contains $Line) {
-        Write-Host "    ...Already present: $Line"
-    }
-    else {
+        Write-Host " ...Already present: $Line"
+    } else {
         Add-Content -LiteralPath $Path -Value $Line
-        Write-Host "    ...Added: $Line"
+        Write-Host " ...Added: $Line"
     }
 }
 
@@ -430,6 +421,7 @@ function Write-ReleaseSummary {
     param([string]$Message)
 
     Ensure-Directory $ReleaseLogDir
+
     $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
     Add-Content -LiteralPath $ReleaseSummaryLog -Value "[$timestamp] $Message"
 }
@@ -447,20 +439,23 @@ function Validate-Inputs {
 
     Assert-FileExists -Path $PythonExe -Message 'Python runtime was not found. Run setup.bat before release.'
     Assert-FileExists -Path $PythonPthFile -Message 'Python ._pth file was not found. Run setup.bat before release.'
+
     Assert-FileExists -Path $EnergyPlusExe -Message 'EnergyPlus runtime was not found. Run setup.bat before release.'
 
-    Assert-FileExists -Path (Join-Path $RepoRoot 'runEngine.bat') -Message 'runEngine.bat was not found.'
-    Assert-FileExists -Path (Join-Path $RepoRoot 'runExcelLauncher.bat') -Message 'runExcelLauncher.bat was not found.'
+    Assert-FileExists -Path $BuildGoScript -Message 'Go build script was not found.'
+    Assert-DirectoryExists -Path (Join-Path $RepoRoot 'tools\go') -Message 'Go source directory was not found.'
+    Assert-FileExists -Path (Join-Path $RepoRoot 'tools\go\go.mod') -Message 'Go module file was not found.'
 
     if (-not $SkipRegressionTest) {
         Assert-FileExists -Path $RegressionTestScript -Message 'Regression test script was not found.'
     }
 
-    Write-Host "    ...Repository : $RepoRoot"
-    Write-Host "    ...Target     : $BuildFor"
-    Write-Host "    ...Version    : $VersionString"
-    Write-Host "    ...Python     : $PythonExe"
-    Write-Host "    ...EnergyPlus : $EnergyPlusExe"
+    Write-Host " ...Repository : $RepoRoot"
+    Write-Host " ...Target     : $BuildFor"
+    Write-Host " ...Version    : $VersionString"
+    Write-Host " ...Python     : $PythonExe"
+    Write-Host " ...EnergyPlus : $EnergyPlusExe"
+    Write-Host " ...Go build   : $BuildGoScript"
 }
 
 function Prepare-Dist {
@@ -472,6 +467,7 @@ function Prepare-Dist {
 
     Ensure-Directory $ReleaseDir
     Ensure-Directory $ReleaseLogDir
+
     Remove-FileIfExists $ReleaseSummaryLog
 
     Write-ReleaseSummary "Release started: $ReleaseName"
@@ -479,6 +475,32 @@ function Prepare-Dist {
     Write-ReleaseSummary "Target: $BuildFor"
     Write-ReleaseSummary "Python: $PythonExe"
     Write-ReleaseSummary "EnergyPlus: $EnergyPlusExe"
+}
+
+function Build-GoLaunchers {
+    Write-Host ' ...Building Go launchers.'
+
+    $goBuildLog = Join-Path $ReleaseLogDir 'go-build.log'
+
+    Invoke-LoggedCommand `
+        -FilePath 'powershell.exe' `
+        -Arguments @(
+            '-NoProfile',
+            '-ExecutionPolicy',
+            'Bypass',
+            '-File',
+            $BuildGoScript,
+            '-RepoRoot',
+            $RepoRoot
+        ) `
+        -LogPath $goBuildLog `
+        -WorkingDirectory $RepoRoot `
+        -Description 'Go launcher build' | Out-Null
+
+    Assert-FileExists -Path $EPlusSimpleExe -Message 'EPlusSimple.exe was not generated by build-go.ps1.'
+    Assert-FileExists -Path $EPlusSimpleLauncherExe -Message 'EPlusSimpleLauncher.exe was not generated by build-go.ps1.'
+
+    Write-ReleaseSummary 'Go launchers built.'
 }
 
 function Copy-RuntimeAndRootFiles {
@@ -499,12 +521,14 @@ function Copy-RuntimeAndRootFiles {
     # examples/ is currently part of the user-facing distribution.
     Copy-Directory -Source $ExamplesDir -Destination (Join-Path $ReleaseDir 'examples')
 
-    # Keep root launchers at release root so users can run them directly.
-    Copy-File -Source (Join-Path $RepoRoot 'runEngine.bat') -Destination (Join-Path $ReleaseDir 'runEngine.bat')
-    Copy-File -Source (Join-Path $RepoRoot 'runExcelLauncher.bat') -Destination (Join-Path $ReleaseDir 'runExcelLauncher.bat')
+    # Build native Go launchers and place them at release root.
+    # Replaces the previous runEngine.bat / runExcelLauncher.bat copy step.
+    Build-GoLaunchers
 
-    # README.md is intentionally not copied. The user-facing release package is
-    # documented by the generated PDFs under docs/.
+    Copy-File -Source $EPlusSimpleExe -Destination (Join-Path $ReleaseDir 'EPlusSimple.exe')
+    Copy-File -Source $EPlusSimpleLauncherExe -Destination (Join-Path $ReleaseDir 'EPlusSimpleLauncher.exe')
+
+    Write-ReleaseSummary 'Runtime and root launchers copied.'
 }
 
 function Configure-ReleaseRuntime {
@@ -514,8 +538,10 @@ function Configure-ReleaseRuntime {
 
     # python312._pth is located in:
     #   release/runtime/PythonV3-12-7/python312._pth
+    #
     # The source package directory is:
     #   release/src
+    #
     # Therefore, the correct relative path is:
     #   ..\..\src
     #
@@ -524,13 +550,15 @@ function Configure-ReleaseRuntime {
     Add-UniqueLine -Path $ReleasePthFile -Line 'Lib\site-packages'
     Add-UniqueLine -Path $ReleasePthFile -Line '..\..\src'
     Add-UniqueLine -Path $ReleasePthFile -Line 'import site'
+
+    Write-ReleaseSummary 'Release runtime paths configured.'
 }
 
 function Set-ReleaseEnvironment {
     # These variables let epsimple/idragon find the repository runtime while the
     # codebase is being refactored away from hard-coded runtime locations.
-    # They are set here before running regression tests, but the same convention
-    # should also be used by runEngine.bat and runExcelLauncher.bat.
+    # They are set here before running regression tests.
+
     $env:EPSIMPLE_RUNTIME_DIR = $RuntimeDir
     $env:IDRAGON_RUNTIME_DIR = $RuntimeDir
     $env:IDRAGON_ENERGYPLUS_DIR = $EnergyPlusDir
@@ -550,13 +578,13 @@ function Run-RegressionTest {
 
     Set-ReleaseEnvironment
 
-    Write-Host "    ...Working dir       : $RepoRoot"
-    Write-Host "    ...Python exe        : $PythonExe"
-    Write-Host "    ...Regression script : $RegressionTestScript"
-    Write-Host "    ...Regression log    : $RegressionLog"
-    Write-Host "    ...Runtime dir       : $RuntimeDir"
-    Write-Host "    ...EnergyPlus dir    : $EnergyPlusDir"
-    Write-Host "    ...PATH head         : $($env:PATH.Split(';')[0])"
+    Write-Host " ...Working dir       : $RepoRoot"
+    Write-Host " ...Python exe        : $PythonExe"
+    Write-Host " ...Regression script : $RegressionTestScript"
+    Write-Host " ...Regression log    : $RegressionLog"
+    Write-Host " ...Runtime dir       : $RuntimeDir"
+    Write-Host " ...EnergyPlus dir    : $EnergyPlusDir"
+    Write-Host " ...PATH head         : $($env:PATH.Split(';')[0])"
 
     $pythonVersionLog = Join-Path $ReleaseLogDir 'python-version.log'
     $epVersionLog = Join-Path $ReleaseLogDir 'energyplus-version.log'
@@ -577,8 +605,6 @@ function Run-RegressionTest {
 
     # Keep the regression invocation intentionally close to the manual command:
     #   runtime\PythonV3-12-7\python.exe scripts\dev\regressiontest.py
-    # The output is redirected to regtest.log, and failure is judged only from
-    # the native process exit code captured immediately after execution.
     Invoke-LoggedCommand `
         -FilePath $PythonExe `
         -Arguments @($RegressionTestScript) `
@@ -593,12 +619,12 @@ function Write-ReleaseInfo {
     $today = Get-Date -Format 'yyyy.MM.dd.'
     $releaseInfoPath = Join-Path $DocsDir 'releaseinfo.tex'
 
-    @"
+@"
 \newcommand{\releaseversion}{$VersionString}
 \newcommand{\releasedate}{$today}
 "@ | Set-Content -LiteralPath $releaseInfoPath -Encoding UTF8
 
-    Write-Host "    ...Updated: $releaseInfoPath"
+    Write-Host " ...Updated: $releaseInfoPath"
 }
 
 function Build-AndCopyDoc {
@@ -645,7 +671,7 @@ function Build-Documentation {
 
     Build-AndCopyDoc -SourceName 'mainTRM' -DisplayName 'Technical Reference Manual'
     Build-AndCopyDoc -SourceName 'mainRTR' -DisplayName 'Regression Test Report'
-    Build-AndCopyDoc -SourceName 'mainRN'  -DisplayName 'Release Note'
+    Build-AndCopyDoc -SourceName 'mainRN' -DisplayName 'Release Note'
 
     Write-ReleaseSummary 'Documentation build completed.'
 }
@@ -661,36 +687,40 @@ function Copy-SourceForTarget {
 
     $LauncherSrcDir = Join-Path $SrcDir 'launcher'
     $LauncherReleaseDir = Join-Path $ReleaseSrcDir 'launcher'
+
     Ensure-Directory $LauncherReleaseDir
 
     Copy-Directory -Source (Join-Path $LauncherSrcDir 'static') -Destination (Join-Path $LauncherReleaseDir 'static')
+
     Copy-File -Source (Join-Path $LauncherSrcDir '__init__.py') -Destination (Join-Path $LauncherReleaseDir '__init__.py')
     Copy-File -Source (Join-Path $LauncherSrcDir '__main__.py') -Destination (Join-Path $LauncherReleaseDir '__main__.py')
 
     $configPath = Join-Path $LauncherReleaseDir 'config.py'
 
     if ($BuildFor -eq 'kalis') {
-        Write-Host '    ...Configuring launcher for KALIS.'
+        Write-Host ' ...Configuring launcher for KALIS.'
+
         Copy-Directory -Source (Join-Path $LauncherSrcDir 'templates') -Destination (Join-Path $LauncherReleaseDir 'templates')
         Copy-File -Source (Join-Path $LauncherSrcDir 'core.py') -Destination (Join-Path $LauncherReleaseDir 'core.py')
 
-        @"
+@"
 TEMPLATE_DIRNAME = "templates"
 COREMODULE_NAME = "core"
 "@ | Set-Content -LiteralPath $configPath -Encoding UTF8
-    }
-    elseif ($BuildFor -eq 'reb') {
-        Write-Host '    ...Configuring launcher for REB.'
+
+    } elseif ($BuildFor -eq 'reb') {
+        Write-Host ' ...Configuring launcher for REB.'
+
         Copy-Directory -Source (Join-Path $SrcDir 'reb') -Destination (Join-Path $ReleaseSrcDir 'reb')
         Copy-Directory -Source (Join-Path $LauncherSrcDir 'templates_reb') -Destination (Join-Path $LauncherReleaseDir 'templates_reb')
         Copy-File -Source (Join-Path $LauncherSrcDir 'core_reb.py') -Destination (Join-Path $LauncherReleaseDir 'core_reb.py')
 
-        @"
+@"
 TEMPLATE_DIRNAME = "templates_reb"
 COREMODULE_NAME = "core_reb"
 "@ | Set-Content -LiteralPath $configPath -Encoding UTF8
-    }
-    else {
+
+    } else {
         throw "Invalid build target: $BuildFor"
     }
 
@@ -716,7 +746,7 @@ function Create-Archive {
 
     Assert-FileExists -Path $OutputZip -Message 'Release zip was not created.'
 
-    Write-Host "    ...Created: $OutputZip"
+    Write-Host " ...Created: $OutputZip"
     Write-ReleaseSummary "Archive created: $OutputZip"
 }
 
@@ -752,19 +782,19 @@ function Write-FailureReport {
         Write-Host ''
     }
 
-    # Show logs from external commands. This is generic: it covers regression,
-    # latexmk, archive creation, and future command-based steps.
     foreach ($logPath in $script:CommandLogs) {
         Write-LogTail -Path $logPath -Tail 80
     }
 
     Write-Host ''
     Write-Host 'Suggested checks:'
-    Write-Host ' 1. Confirm setup.bat completed and runtime folders exist.'
-    Write-Host ' 2. Check the current step above; it usually identifies the failing phase.'
-    Write-Host ' 3. Check the log tails printed above for native command failures.'
-    Write-Host ' 4. If documentation failed, verify latexmk is available in PATH.'
-    Write-Host ' 5. If regression failed, compare regtest.log with a manual run.'
+    Write-Host '  1. Confirm setup.bat completed and runtime folders exist.'
+    Write-Host '  2. Confirm runtime\GoV1-26-3\bin\go.exe exists.'
+    Write-Host '  3. Confirm scripts\dev\build-go.ps1 works when run manually.'
+    Write-Host '  4. Check the current step above; it usually identifies the failing phase.'
+    Write-Host '  5. Check the log tails printed above for native command failures.'
+    Write-Host '  6. If documentation failed, verify latexmk is available in PATH.'
+    Write-Host '  7. If regression failed, compare regtest.log with a manual run.'
     Write-Host ''
 }
 
@@ -789,6 +819,7 @@ try {
     Write-Host "Release archive   : $OutputZip"
     Write-Host "Release logs      : $ReleaseLogDir"
     Write-Host ''
+
     exit 0
 }
 catch {
