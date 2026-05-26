@@ -834,7 +834,7 @@ class NotUsedSupplySystem(ExcelWarning):
     def inspect(exceldata:dict[str, pd.DataFrame]) -> list[NotUsedSupplySystem]:
         
         # for the reference
-        used_supply_systems = set(exceldata["실"][["난방 공급 설비", "난방 공급 설비2", "냉방 공급 설비"]].values.flatten().tolist())
+        used_supply_systems = set(exceldata["실"][["난방 공급 설비", "난방 공급 설비2", "냉방 공급 설비", "냉방 공급 설비2"]].values.flatten().tolist())
         used_supply_systems = [item for item in used_supply_systems if not pd.isna(item)]
         
         # check
@@ -873,7 +873,7 @@ class NotUsedSourceSystem(ExcelWarning):
             
             if (row["이름"] not in used_source_systems) and (row["급탕용"] == 0.0):
                 warnings.append(
-                    NotUsedSupplySystem(
+                    NotUsedSourceSystem(
                         row["이름"]
                     )
                 )
