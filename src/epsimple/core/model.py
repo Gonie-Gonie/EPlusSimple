@@ -112,7 +112,7 @@ def address_to_weather(
     
     terrain = sigungu_info["terrain"]
     weather_location = sigungu_info["기상지역명"]
-    weather_filepath = os.path.join(idragon.constants.Directory.WEATHER, sigungu_info["EPW파일명"])
+    weather_filepath = os.path.join(idragon.constants.Directory.WEATHER_DIR, sigungu_info["EPW파일명"])
     
     climate = CLIMATE_TABLE.at[sigungu, max(datestr for datestr in CLIMATE_TABLE.columns if datestr < vintage.strftime(r"%Y%m%d"))]
     
