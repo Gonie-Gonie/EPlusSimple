@@ -90,8 +90,12 @@ class EnergyModel:
         return list({zone.profile.name: zone.profile for zone in self.zone}.values())
     
     @property
-    def conditioned_zone(self) -> list[Zone]:
+    def conditioned_zones(self) -> list[Zone]:
         return [zone for zone in self.zone if zone.is_conditioned]
+    
+    @property
+    def unconditioned_zones(self) -> list[Zone]:
+        return [zone for zone in self.zone if not zone.is_conditioned]
 
     """ idf-related
     """
@@ -199,7 +203,7 @@ class EnergyModel:
         
         # HVAC: Source
         created_sources = set([None])
-        for zone in self.conditioned_zone:
+        for zone in self.conditioned_zones:
             
             if isinstance(zone.cooling_supply, SupplyGroup):
                 
@@ -231,7 +235,7 @@ class EnergyModel:
     
         # HVAC: Supply 
         # Should be after adding supply systems and zones to the idf
-        for zone in self.conditioned_zone:
+        for zone in self.conditioned_zones:
             
             if zone.cooling_supply is zone.heating_supply:
                 EnergyModel.add_supply_system(idf,
@@ -252,7 +256,30 @@ class EnergyModel:
                         zone, zone.heating_supply,
                         for_heating=True, for_cooling=False
                     )          
-                
+        
+        if len(self.unconditioned_zones) > 0:
+            
+            idf.append(
+                IdfObject(
+                    "HVACTemplate:Thermostat",{
+                        "Name": "UNCONDITIONED_THERMOSTAT",
+                        "Constant Heating Setpoint": -30,
+                        "Constant Cooling Setpoint":  50,
+                    }
+                )
+            )
+            
+            for zone in self.unconditioned_zones:
+                idf.append(
+                    IdfObject(
+                        "HVACTemplate:Zone:IdealLoadsAirSystem",{
+                            "Zone Name": zone.name,
+                            "Template Thermostat Name": "UNCONDITIONED_THERMOSTAT",
+                            "System Availability Schedule Name": "ALLON",
+                        },
+                    )
+                )           
+        
         # PV panel
         for pv in self.pv:
             idf.append(*pv.to_idf_object())
