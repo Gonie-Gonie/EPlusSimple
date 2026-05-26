@@ -41,11 +41,11 @@ $GoModCacheDir = Join-Path $GoDataDir "mod-cache"
 $GoModuleDir = Join-Path $RepoRoot $GoModuleRelativePath
 $GoModFile = Join-Path $GoModuleDir "go.mod"
 
-$RunEnginePackage = ".\cmd\runEngine"
-$RunExcelLauncherPackage = ".\cmd\runExcelLauncher"
+$CliPackage = ".\cmd\eplussimple-cli"
+$LauncherPackage = ".\cmd\eplussimple-launcher"
 
-$RunEngineOutput = Join-Path $RepoRoot "EPlusSimpleCLI.exe"
-$RunExcelLauncherOutput = Join-Path $RepoRoot "EPlusSimpleLauncher.exe"
+$CliOutput = Join-Path $RepoRoot "EPlusSimpleCLI.exe"
+$LauncherOutput = Join-Path $RepoRoot "EPlusSimpleLauncher.exe"
 
 # -----------------------------------------------------------------------------
 # Validate
@@ -112,34 +112,34 @@ try {
     }
 
     Write-Host ""
-    Write-Host "[build] runEngine -> EPlusSimpleCLI.exe"
+    Write-Host "[build] EPlusSimpleCLI.exe"
 
-    if (Test-Path -LiteralPath $RunEngineOutput) {
-        Remove-Item -LiteralPath $RunEngineOutput -Force
+    if (Test-Path -LiteralPath $CliOutput) {
+        Remove-Item -LiteralPath $CliOutput -Force
     }
 
     & $GoExe build `
         -trimpath `
         -ldflags "-s -w" `
-        -o $RunEngineOutput `
-        $RunEnginePackage
+        -o $CliOutput `
+        $CliPackage
 
     if ($LASTEXITCODE -ne 0) {
         throw "go build failed for runEngine with exit code $LASTEXITCODE"
     }
 
     Write-Host ""
-    Write-Host "[build] runExcelLauncher -> EPlusSimpleLauncher.exe"
+    Write-Host "[build] EPlusSimpleLauncher.exe"
 
-    if (Test-Path -LiteralPath $RunExcelLauncherOutput) {
-        Remove-Item -LiteralPath $RunExcelLauncherOutput -Force
+    if (Test-Path -LiteralPath $LauncherOutput) {
+        Remove-Item -LiteralPath $LauncherOutput -Force
     }
 
     & $GoExe build `
         -trimpath `
         -ldflags "-s -w" `
-        -o $RunExcelLauncherOutput `
-        $RunExcelLauncherPackage
+        -o $LauncherOutput `
+        $LauncherPackage
 
     if ($LASTEXITCODE -ne 0) {
         throw "go build failed for runExcelLauncher with exit code $LASTEXITCODE"
@@ -153,6 +153,6 @@ Write-Host ""
 Write-Host "=============================="
 Write-Host "Build completed successfully."
 Write-Host "Generated:"
-Write-Host " - $RunEngineOutput"
-Write-Host " - $RunExcelLauncherOutput"
+Write-Host " - $CliOutput"
+Write-Host " - $LauncherOutput"
 Write-Host "=============================="
