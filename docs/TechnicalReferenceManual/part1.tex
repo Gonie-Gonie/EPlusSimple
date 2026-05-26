@@ -65,17 +65,15 @@
 
 \section{\simulator 의 개념 및 구조}
 
-\simulator 은 국제적으로 검증된 건물 에너지 해석 프로그램인 EnergyPlus(EP)를 핵심 연산 코어로 사용하되, 사용자가 EP의 복잡한 입출력 과정을 직접 다루지 않도록 설계된 추상화 계층(Abstraction Layer)이다 \parencref{fig:simulator_concept_structure}.
-사용자는 그린리모델링 현장에서 수집 가능한 수준의 정보로 이루어진, tree 구조(json 형식)로 표준화된 건물 데이터 파일\footnote{이에 대한 상세한 기술은 \ref{section:format-explanation-grm} 참고}을 직접, 또는 적절한 GUI를 이용하여 생성하고, 이를 \simulator 에 전달한다.
-이는 사용자가 복잡한 IDF 문법이나 수많은 상세 필드를 직접 다루지 않고도, 자신의 언어에 가까운 구조로 모델을 정의할 수 있음을 의미한다.
+\epreb \은 국제적으로 검증된 건물 에너지 해석 프로그램인 EnergyPlus(EP)를 핵심 연산 코어로 사용하되, 사용자가 EP의 복잡한 입출력 과정을 직접 다루지 않도록 설계된 \simulator \를, 실제 기상 데이터 및 운영 정보를 반영할 수 있도록 설계된 추상화 계층(Abstraction Layer)이다 \parencref{fig:simulator_concept_structure}.
+사용자는 그린리모델링 현장에서 수집 가능한 수준의 정보로 이루어진, tree 구조(json 형식)로 표준화된 건물 데이터 파일\footnote{이에 대한 상세한 기술은 \ref{section:format-explanation-grm} 참고}을 직접, 또는 \excel 입력 인터페이스(User Interface, UI)를 이용하여 생성하고, 이를 \simulator 에 전달한다. 이때, \excel \footnote{이에 대한 상세한 기술은  \ref{section:format-explanation-excel} 참고}\을 활용하는 경우 ``현장조사" 정보를 제외한 모든 정보가 이 단계에서 작성된다. 이는 사용자가 복잡한 IDF 문법이나 수많은 상세 필드를 직접 다루지 않고도, 자신의 언어에 가까운 구조로 모델을 정의할 수 있음을 의미한다.
 
 \begin{defaultfigure}
-  \includegraphics[width=\textwidth]{시뮬레이터 개념 및 구조.png}
-  \caption{\simulator 의 개념 및 구조}
+  \includegraphics[width=\textwidth]{시뮬레이터부동산원 개념 및 구조.png}
+  \caption{\epreb 의 개념 및 구조}
   \label{fig:simulator_concept_structure}
 \end{defaultfigure}
 
-이후 Python 모듈 \pymodule\이 이를 Python 객체 (그림에서, Input-Friendly class)로 변환하고, 데이터베이스 값 삽입, 세부 변수 가정, EnergyPlus 구조에 맞춘 재구성을 수행하여 EnergyPlus의 데이터 구조와 유사한 Python 객체(그림에서, EP-Friendly class)로 변환한다. 이는 템플릿 기반의 IDF 객체 생성 절차를 거쳐 idf 파일로 자동 변환되고, \ep 해석이 수행된 뒤 결과 파일이 다시 Python 객체 (그림에서, EnergyPlusResult) 객체로 읽혀 들어온다. 이후 이 결과는 월별·용도별 에너지 지표 등 그린리모델링 의사결정에 바로 활용 가능한 형태의 json 형식의 파일\footnote{이에 대한 상세한 기술은  \ref{section:format-explanation-grr} 참고}로 재가공된다.
+이후 Python 모듈 \pymodule\이 이를 Python 객체 (그림에서, Input-Friendly class)로 변환하고, 데이터베이스 값 삽입, 세부 변수 가정, EnergyPlus 구조에 맞춘 재구성을 수행하여 EnergyPlus의 데이터 구조와 유사한 Python 객체(그림에서, EP-Friendly class)로 변환한다. 이때, \excel 에서 입력한 ``현장조사'' 정보를 연계한다. 이후, 템플릿 기반의 IDF 객체 생성 절차를 거쳐 idf 파일로 자동 변환되고, \ep 해석이 수행된 뒤 결과 파일이 다시 Python 객체 (그림에서, EnergyPlusResult) 객체로 읽혀 들어온다. 이후 이 결과는 월별·용도별 에너지 지표 등 그린리모델링 의사결정에 바로 활용 가능한 형태의 json 형식의 파일\footnote{이에 대한 상세한 기술은  \ref{section:format-explanation-grr} 참고}로 재가공되어 전용 뷰어를 통해 출력한다.
 
-즉, \simulator 은 입력 단계에서 건물 데이터 구조를 단순화·표준화하고, 해석 단계에서는 EnergyPlus의 물리 기반 고정밀 해석을 그대로 활용하며, 출력 단계에서는 실무자가 이해하기 쉬운 지표와 형식으로 재구성하는, Python 기반 변환 모듈이다.
-이를 통해 사용자는 EnergyPlus의 복잡한 내부 구조를 직접 다루지 않고도 고정밀 동적 시뮬레이션을 활용할 수 있게 된다.
+즉, \epreb \은 사용자가 익숙한 \excel 기반 UI에서 건물 정보와 현장조사 정보를 입력하면, 이를 \simulator 에 필요한 형식으로 변환·연계하고, 해석 단계에서는 EnergyPlus의 물리 기반 동적 시뮬레이션을 활용할 수 있도록 구성되었다. 또한 출력 결과는 실무자가 이해하기 쉬운 지표와 형식으로 재구성된다. 이를 통해 사용자는 EnergyPlus의 복잡한 입력 구조를 직접 다루지 않고도 동적 시뮬레이션을 활용할 수 있다.

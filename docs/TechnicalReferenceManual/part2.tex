@@ -148,18 +148,21 @@ run_grjson(
 
 \chapter{입력 및 출력 파일 명세}
 
-\section{입력파일 (grm)}
-\label{section:format-explanation-grm}
+\section{입력파일 (\excel)}
+\label{section:format-explanation-excel}
 
-\simulator 의 입력파일은 실제 건물의 물리적 구성 관계를 반영하여 계층적으로 구성되어 있다 \parencref{fig:grm_structure}. 즉, 건물(\texttt{building})을 최상위 객체로 하여 층(\texttt{floor}), 실(\texttt{zone}), 면(\texttt{surface}), 개구부(\texttt{fenestration}) 등과 같은 공간 요소가 실제 건물의 포함 관계와 유사한 형태로 단계적으로 조직된다. 이러한 구조를 통해 건물의 공간적 구성과 시스템 연결 관계를 직관적으로 표현할 수 있다.
+\excel 의 입력파일은 실제 건물의 물리적 구성 관계를 반영하여 계층적으로 구성되어 있다 \parencref{fig:grm_structure}. 즉, 건물(\texttt{building})을 최상위 객체로 하여 층(\texttt{floor}), 실(\texttt{zone}), 면(\texttt{surface}), 개구부(\texttt{fenestration}) 등과 같은 공간 요소가 실제 건물의 포함 관계와 유사한 형태로 단계적으로 조직된다. 이러한 구조를 통해 건물의 공간적 구성과 시스템 연결 관계를 직관적으로 표현할 수 있다.
 
 한편, 재료(\texttt{material})나 구조체(\texttt{construction})과 같은 물리적 속성은 공간 객체 내부에 직접 중복 정의되지 않고 별도의 객체로 정의된 뒤 참조 방식으로 연결된다. 예를 들어 면(\texttt{surface})은 특정 구조체(\texttt{surface\_construction})를 참조하는 방식으로 구성된다. 이러한 구조는 동일한 정보를 여러 객체에서 재사용할 수 있도록 한다. 또한, 설비 시스템(\texttt{hvac\_system})과 제어 로직(\texttt{control\_logic})은 건물 객체의 하위에 별도의 분류로 정의되어, 공간 요소와는 독립적으로 구성되며, 필요한 경우 공간 요소와 연결될 수 있도록 설계되어 있다. 이는 건물의 물리적 구성과 시스템 구성을 명확히 구분한다.
 
-\begin{defaultfigure}
+\begin{figure}[ht]
   \includegraphics[width=0.99\textwidth]{grm-datastructure.png}
   \caption{\simulator\ 입력파일 체계도}
   \label{fig:grm_structure}
-\end{defaultfigure}
+\end{figure}
+
+
+
 
 \subsection{규칙}
 
@@ -167,16 +170,16 @@ run_grjson(
 
 \paragraph{사용가능한 문자} 모든 변수의 명칭은 영문 소문자 및 밑줄(\_)로만 구성한다.
 
-\paragraph{복수형과 단수형} 복수 객체 \texttt{array}를 담는 변수의 명칭(예: ``floors") 또는 복수 객체를 담는 하위 분류를 사용하는 변수의 명칭(예: ``profile\_components"), 길는 복수형을 사용하며, 단일 값을 담는 변수의 명칭(예: ``name")은 단수형을 사용한다. 단, 길이가 정해져있거나 각 위치별 의미가 명시적으로 다른 \texttt{array}를 담는 변수의 명칭(예: ``vintage")은 단수형을 사용한다.
+\subsubsection{이름 기반 객체 참조 관련}
+\label{subsubsection:ioref:id_description}
+\excel 에서 ``이름''의 값을 입력하는 경우, 객체가 생성되며, 다른 객체의 지칭은 ``이름''값에 기반하여 이루어진다.
 
-\paragraph{축약형의 사용} 모든 변수의 명칭은 축약형을 사용하지 않는 것을 원칙으로 하되, 약어 자체로 통용되는 경우(예: ``cop\_heating")에는 축약형을 사용한다.
+\paragraph{사용가능한 문자} 모든 ``이름''은 한글 혹은 영문 대소문자, 숫자, 하이픈(-) 및 밑줄(\_)로만 구성하며, 특수 문자로는 작성하지 않는다.
 
-\subsubsection{ID 기반 객체 참조 관련} \label{subsubsection:ioref:id_description}
-grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어지며, 모든 객체의 이름(``name")은 사용자 편의를 위한 이름으로 실제 데이터 변환 과정에서 사용되지 않는다.
+\paragraph{이름의 중복} 동일한 ``이름''은 같은 \texttt{class} (\excel 에서, 각 \texttt{sheet}를 의미한다.)의 객체끼리 공유할 수 없다. 
+한글 혹은 영문 대소문자, 숫자, 하이픈(-) 및 밑줄(\_)로만 구성하며, 특수 문자로는 작성하지 않는다.
 
-\paragraph{사용가능한 문자} 모든 ID는 영문 대소문자, 숫자, 하이픈(-), 밑줄(\_)로만 구성되며, 숫자, 하이픈(-) 또는 밑줄(\_)로 시작하지 않는다.
 
-\paragraph{ID의 중복} 동일한 \texttt{ID}는 같은 \texttt{class}의 객체끼리 공유할 수 없다. (모든 \texttt{class}에 대하여 서로 다른 \texttt{ID} 사용을 권장)
 
 \subsubsection{변수의 유효성}
 
@@ -202,6 +205,13 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 \definecolor{reqGrayDark}{RGB}{107,114,128}
 \definecolor{reqGrayLight}{RGB}{209,213,219}
 
+
+% --- 엑셀 요구수준 색상 ---
+\definecolor{excelRequired}{RGB}{169,209,142}
+\definecolor{excelOptional}{RGB}{155,194,230}
+\definecolor{excelDisabled}{RGB}{191,191,191}
+
+
 % --- TypeTag (S/F/I/E) ---
 \newcommand{\TypeTag}[1]{%
   \begingroup
@@ -225,6 +235,18 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
   \tagchip[colback=\shade,coltext=\fg]{#1}%
   \endgroup
 }
+
+
+% --- excel tag ---
+\newcommand{\InputTag}[1]{%
+  \begingroup
+  \ifthenelse{\equal{#1}{R}}{\tagchip[colback=excelRequired,coltext=black]{필수입력}}{%
+  \ifthenelse{\equal{#1}{O}}{\tagchip[colback=excelOptional,coltext=black]{optional}}{%
+  \ifthenelse{\equal{#1}{D}}{\tagchip[colback=excelDisabled,coltext=black]{입력불가}}{%
+  \tagchip[colback=gray!60,coltext=black]{#1}}}}%
+  \endgroup
+}
+
 
 % --- table definition --- 
 \newcommand{\jsontableunit}[1]{%
@@ -262,37 +284,41 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 
 \paragraph{타입} 모든 변수는 정해진 타입의 변수여야 한다. 모든 변수의 타입은 문자\TypeTag{S}($String$), 실수\TypeTag{F}($Float$), 정수\TypeTag{I}($Integer$), 열거형\TypeTag{E}($Enum$), 불리언\TypeTag{B} 로 구분할 수 있다. 
 
-\paragraph{필수 여부} 입력되지 않을 경우 에러가 발생하는 필수 변수\ReqTag{R}($Required$)와 달리, 비 필수 변수\ReqTag{O}($Optional$)는 미 입력 시 기본값이 사용된다. 단, 입력하지 않았다는 것을 명시적으로 \texttt{null}로 지정해야 하고, 변수 자체를 생락하면 안된다.
+\paragraph{필수 여부} \excel 에서는 각 변수의 필수 입력 여부에 따라, 셀 색상을 구분하고 있으며, 입력되지 않을 경우 에러가 발생하는 필수 변수 \InputTag{R}($Required$)와 달리, 비 필수 변수 \InputTag{O}($Optional$)는 미 입력 시 기본값이 사용된다. 단, 입력하지 않았다는 것을 명시적으로 \texttt{null}로 지정해야 하고, 변수 자체를 생락하면 안된다. 사용자 편의를 위한 정보 제공 목적의 변수는 사용자가 직접 입력하는 항목이 아니며, \excel 에서 \InputTag{D}로 구분된다.
 
-\paragraph{조건부 사용 여부} 어떤 변수는 다른 변수(주로 \texttt{type})의 값에 따라 조건부로 사용된다. 이 경우에도 해당 조건에서 필수적으로 요구되는 변수\ReqTag{CR}($Conditional Required$)와 그렇지 않은 변수\ReqTag{CO}($Conditional Optional$)로 구분할 수 있다. 조건에 만족하지 않는 경우, 해당 변수는 json에서 생략될 수 있다.
+\paragraph{조건부 사용 여부} 어떤 변수는 다른 변수(주로 \texttt{type})의 값에 따라 조건부로 사용된다. 이 경우에도 해당 조건에서 필수적으로 요구되는 변수 \ReqTag{CR}($Conditional Required$)와 그렇지 않은 변수 \ReqTag{CO}($Conditional Optional$)로 구분할 수 있으며, \excel 에서는 각각 \InputTag{R}과 \InputTag{D}로 표기된다.
 
-\paragraph{범위 및 열거형 상수} array면 길이 제약 따짐.
-실수\TypeTag{F} 및 정수\TypeTag{I} 타입의 변수는 Python 부동소수점 및 정수 형식에서 표현 가능한 범위 내에서 처리된다.
 
 \subsubsection{기타 규칙}
 
-\paragraph{단위} 모든 변수는 SI 기본단위를 사용한다 (예: $m$, $J$, $W$, $kg$).
+\paragraph{단위} 모든 변수는 SI 기본단위를 사용하며, \excel 에서 변수명에 명시된 단위를 적용한다 (예: $m$, $J$, $W$, $kg$).
 
 \subsection{class별 명세}
 
-\subsubsection{building} \label{subsubsection:ioref:building}
+\subsubsection{건물정보}
+\label{subsubsection:ioref:building}
 실재하는 건물에 대한 최상위 정보 체계이다.
 
-\jsontable{building}{
-  \jsontablerow{name                 }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
-  \jsontablerow{north_axis           }{\TypeTag{F}}{\ReqTag{R}}{}{}{[0,360)}{deg(^\circ)}
-  \jsontablerow{address              }{\TypeTag{S}}{\ReqTag{R}}{}{}{\needtobeexplain}{}
-  \jsontablerow{vintage              }{[ \TypeTag{I} ]}{\ReqTag{R}}{}{}{[3,3]}{}
-  \jsontablerow{num_aboveground_floor}{\TypeTag{I}}{\ReqTag{R}}{}{}{[1, $Inf$)}{}
-  \jsontablerow{num_underground_floor}{\TypeTag{I}}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
-  \jsontablerow{floors               }{[ \hyperref[subsubsection:ioref:floor]{\texttt{floor}} ]}{}{}{}{[1, $Inf$)}{}
-  \jsontablerow{supply_systems       }{[ \hyperref[subsubsection:ioref:supplysystem]{\texttt{supply\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
-  \jsontablerow{source_systems       }{[ \hyperref[subsubsection:ioref:sourcesystem]{\texttt{source\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
-  \jsontablerow{ventilation_systems  }{[ \hyperref[subsubsection:ioref:ventilationsystem]{\texttt{ventilation\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
-  \jsontablerow{photovoltaic_systems }{[ \hyperref[subsubsection:ioref:photovoltaicsystem]{\texttt{photovoltaic\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
-}
 
-\paragraph{name} 건물의 이름. 시뮬레이션에 직접 사용되지 않는다.
+\begin{table}[ht]
+  \caption{건물정보 클래스의 속성들}
+  \label{tbl:building_info}  
+  \centering
+  \begin{tabular}{lcccccc}
+    \toprule
+    변수명 & 타입 & 필수 & 기본값 & 조건 & 범위/길이/선택지 & 단위\\ \midrule
+    건물명 & \TypeTag{S} & \InputTag{R} & - & - & - & -\\
+    north\_axis & \TypeTag{F} & \InputTag{R} & - & - & [0,360) & deg(°) \\
+    주소  & \TypeTag{S} & \InputTag{R} & - & - & 상세설명참고 & -\\
+    허가일자 & {[ \TypeTag{I} ]} & \InputTag{R} & - & - & 상세설명참고 & -\\
+    지상층수 & \TypeTag{I} & \InputTag{R} & - & - & [1,Inf) & -\\
+    지하층수 & \TypeTag{I} & \InputTag{R} & - & - & [0,Inf) & -\\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+
+\paragraph{건물명} 건물의 이름. 시뮬레이션에 직접 사용되지 않는다.
 \paragraph{north\_axis} 건물의 방위각. 도면상에서 나침반이 가리키는 방향 (반시계방향), 또는 건물의 향 관련 입력을 모두 회전시키는 동작 (시계방향) 을 지칭한다 (\cref{fig:ioref:north_axis}).
 
 \begin{defaultfigure}
@@ -314,83 +340,124 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 
 \end{defaultfigure}
 
-\paragraph{address} 건물의 주소. 식별 가능한 법정 기초행정구역명(세종특별자치시와 제주특별자치도 제주시, 서귀포시를 포함)을 포함하여야 한다. 
+\paragraph{주소} 건물의 주소. 식별 가능한 법정 기초행정구역명(세종특별자치시, 제주특별자치도 제주시 및 서귀포시 포함)을 포함하여 시/군/구 수준까지만 작성하며, 상세주소는 작성하지 않는다.
+주소 정보는 \epreb 에서 허가일자와 함께 고려되어 건물의 기후지역(중부1, 중부2, 남부 등)을 판별하는 데 활용되며, 이에 따라 법적 기준 열관류율 등의 기준값을 적용하는 데 사용된다.\footnote{이에 대한 상세한 기술은 \ref{subsubsection:ioref:surface} 참고}  또한, 기상데이터(EPW)와의 연계에도 활용된다.\footnote{이에 대한 상세한 기술은 \ref{sec:address_weather_matching} 참고}
 
-\paragraph{vintage} 건물의 허가일자. 연(4자리 정수), 월(2자리 정수), 일(2자리 정수)로 이루어진 array이다.
+\paragraph{허가일자} 건물의 허가일자. YYYY(연, 4자리 정수)-MM(월, 2자리 정수)-DD(일, 2자리 정수)의 형식으로 입력한다. 이는, \epreb에서 법적 열관류율 등의 기준값을 적용하는 데 사용된다.\footnote{이에 대한 상세한 기술은 \ref{subsubsection:ioref:surface} 참고}
 
-\paragraph{num\_aboveground\_floor} 건물의 지상 층 수. 시뮬레이션에 직접 사용되지 않는다.
+\paragraph{지상층수} 건물의 지상 층 수. 시뮬레이션에 직접 사용되지 않는다.
 
-\paragraph{num\_underground\_floor} 건물의 지하 층 수. 시뮬레이션에 직접 사용되지 않는다.
+\paragraph{지하층수} 건물의 지하 층 수. 시뮬레이션에 직접 사용되지 않는다.
 
-\subsubsection{floor} \label{subsubsection:ioref:floor}
-하위 \hyperref[subsubsection:ioref:zone]{\texttt{zone}}들을 층 단위로 구분하기 위한 클래스이다.
-
-\jsontable{floor}{
-  \jsontablerow{floor_number}{\TypeTag{I}}{\ReqTag{O}}{0}{}{}{}
-  \jsontablerow{zones}{[ \hyperref[subsubsection:ioref:zone]{\texttt{zone}} ]}{\ReqTag{R}}{}{}{[1,$Inf$)}{}
-}
-
-\paragraph{floor\_number} 층을 구별하기 위한 식별자. 시뮬레이션에 직접 사용되지 않는다.
-
-\subsubsection{zone} \label{subsubsection:ioref:zone}
+\subsubsection{실}
+\label{subsubsection:ioref:zone}
 건물에서 하나의 실, 또는 같은 열적 특성(유사한 용도, 공통 설비 등)을 공유하는 서로 연결된 여러 실을 모사하는 최소 단위이다.
 
-\jsontable{zone}{
-  \jsontablerow{id                      }{\TypeTag{S}}{ \ReqTag{R} }{}{}{}{}
-  \jsontablerow{name                    }{\TypeTag{S}}{ \ReqTag{R} }{}{}{}{}
-  \jsontablerow{height                  }{\TypeTag{F}}{ \ReqTag{R} }{}{}{(0,$Inf$)}{m}
-  \jsontablerow{profile                 }{\TypeTag{S}}{ \ReqTag{R} }{}{}{\needtobeexplain}{}
-  \jsontablerow{light_density           }{\TypeTag{F}}{ \ReqTag{R} }{}{}{[0,$Inf$)}{W/m^{2}}
-  \jsontablerow{infiltration            }{\TypeTag{F}}{ \ReqTag{R} }{}{}{[0,$Inf$)}{ACH50}
-  \jsontablerow{supply_system_heating_id}{\TypeTag{S}}{ \ReqTag{R} }{}{}{\hyperref[subsubsection:ioref:supplysystem]{\texttt{supply\_system}}의 \texttt{id}}{}
-  \jsontablerow{supply_system_cooling_id}{\TypeTag{S}}{ \ReqTag{R} }{}{}{\hyperref[subsubsection:ioref:supplysystem]{\texttt{supply\_system}}의 \texttt{id}}{}
-  \jsontablerow{ventilation_system_id   }{\TypeTag{S}}{ \ReqTag{R} }{}{}{\hyperref[subsubsection:ioref:ventilationsystem]{\texttt{ventilation\_system}}의 \texttt{id}}{}
-  \jsontablerow{surface                 }{[ \hyperref[subsubsection:ioref:surface]{\texttt{surface}} ]}{ \ReqTag{R} }{}{}{[0, $Inf$)}{}
-}
+\renewcommand{\arraystretch}{1.4}
+\begin{table}[ht]
+  \caption{실 클래스의 속성들}
+  \label{tbl:zone_info}  
+  \centering
+  \begin{tabular}{lcccccc}
+    \toprule
+    변수명 & 타입 & 필수 & 기본값 & 조건 & 범위/길이/선택지 & 단위\\ \midrule
+    층 & \TypeTag{I} & \InputTag{R} & 0 & - & - & -\\
+    천정고 & \TypeTag{F} & \InputTag{R} & - & - & (0,Inf) & m \\
+    이름  & \TypeTag{S} & \InputTag{R} & - & - & - & -\\
+    용도프로필 & \TypeTag{E} & \InputTag{R} & - & - & 상세설명참고 & -\\
+    현장조사프로필 & \TypeTag{S} & \InputTag{R} & - & - & 상세설명참고 & -\\
+    조명밀도 & \TypeTag{F} & \InputTag{R} & - & - & [0,Inf) & W/m$^2$\\
+    침기율 & \TypeTag{F} & \InputTag{R} & - & - & [0,Inf) & ACH50 \\
+    난방 공급 설비 & \TypeTag{S} & \InputTag{R} & - & - &  {\hyperref[subsubsection:ioref:supplysystem]{\texttt{난방 공급 설비}}의 \texttt{이름}} & -\\
+    냉방 공급 설비 & \TypeTag{S} & \InputTag{R} & - & - & {\hyperref[subsubsection:ioref:supplysystem]{\texttt{냉방 공급 설비}}의 \texttt{이름}} & -\\
+    환기 설비 & \TypeTag{S} & \InputTag{R} & - & - & {\hyperref[subsubsection:ioref:ventilationsystem]{\texttt{환기 설비}}의 \texttt{이름}} & -\\
+    면 개수 & - & \InputTag{D} & - & - & - & 개 \\
+    바닥 면적 & - & \InputTag{D} & - & - & - & m$^2$\\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
-\paragraph{id} 존의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
 
-\paragraph{name} 사용자 편의를 위해 제공되는 존 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
+\paragraph{층} 층을 구별하기 위한 식별자. 시뮬레이션에 직접 사용되지 않는다.
 
-\paragraph{height} 존의 높이. 실의 부피 계산에 이용된다.
+\paragraph{천정고} 존의 높이. 실의 부피 계산에 이용된다.
 
-\paragraph{profile} 존의 용도프로필. 기본으로 제공되는 항목 중에서 입력 가능하다. 
 
-\paragraph{profile\_id} 존에 적용된 custom 용도프로필의 ID. 
+\paragraph{이름} 사용자 편의를 위해 제공되는 존 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
 
-\paragraph{light\_density} 조명 밀도.
+\paragraph{용도프로필} 존의 용도프로필. 건축물에너지효율등급인증규정에서 제공하는 항목 중에서 선택 입력 가능하다(\cref{tbl:eco2profiles}). 
 
-\paragraph{supply\_system\_heating\_id} 난방공급시스템의 ID. 
+\paragraph{현장조사프로필} 현장조사프로필의 이름. \footnote{이에 대한 상세한 기술은 \ref{subsubsection:ioref:surface} 참고} @여기
 
-\paragraph{supply\_system\_cooling\_id} 냉방공급시스템의 ID.
+\paragraph{조명밀도} 조명 밀도. 해당 실에 설치된 모든 조명기구의 정격 소비전력을 합산한 후, 이를 해당 실의 바닥면적으로 나누어 산정한다.
 
-\paragraph{ventilation\_system\_id} 환기시스템의 ID.
+\paragraph{침기율} 실의 침기율. \cref{tbl:airtightness_standard}와 같은 기준으로 입력한다.
 
-\paragraph{surface} 소속면. 해당 \texttt{zone}을 인접존으로 하는 \texttt{surface}를 포함하여, 1개 이상의 천장(\texttt{type} = ``ceiling''), 1개 이상의 바닥(\texttt{type} = ``floor'') 및 1개 이상의 벽체(\texttt{type} = ``wall'')를 필요로 한다. 즉, 인접존이 없을 경우, 3 이상의 길이를 가지는 list가 필요하다.
+\begin{table}[h]
+  \caption{준공연도별 기밀성능 기준 (n$_{50}$, h$^{-1}$)}
+  \label{tbl:airtightness_standard}
+  \centering
+  \begin{tabular}{lccc}
+    \toprule
+    준공연도 & GR전 & GR후 & GR후* \\ \midrule
+    1987        & 14.2 & 10.0 & 7.1 \\
+    1988--2000  & 9.5  & 6.7  & 4.8 \\
+    2001--2010  & 6.3  & 4.4  & 3.1 \\
+    2011--2017  & 4.6  & 3.2  & 2.3 \\
+    2018        & 4.0  & 2.8  & 2.0 \\
+    \bottomrule
+    \multicolumn{4}{l}{\footnotesize GR후: 준공연도별 약 30\% 성능 향상 (슬라이딩 창호)} \\
+    \multicolumn{4}{l}{\footnotesize GR후*: 준공연도별 약 50\% 성능 향상 시스템 (이외 창호)} \\
+  \end{tabular}
+\end{table}
 
-\subsubsection{surface} \label{subsubsection:ioref:surface}
-존과 존, 외부 (외기 또는 지면), 또는 단열선 사이의 면(벽체)이다.
 
-\jsontable{surface}{
-  \jsontablerow{id                  }{\TypeTag{S}}{\ReqTag{R} }{}{}{}{}
-  \jsontablerow{name                }{\TypeTag{S}}{\ReqTag{R} }{}{}{}{}
-  \jsontablerow{type                }{\TypeTag{E}}{\ReqTag{R} }{}{}{\shortstack[c]{floor \\ wall \\ ceiling}}{}
-  \jsontablerow{boundary_condition  }{\TypeTag{E}}{\ReqTag{R} }{}{}{\shortstack[c]{outdoors \\zone \\ ground \\ adiabatic}}{}
-  \jsontablerow{area                }{\TypeTag{F}}{\ReqTag{R} }{}{}{(0,$Inf$)}{m^2}
-  \jsontablerow{azimuth             }{\TypeTag{F}}{\ReqTag{CR} }{}{\texttt{type} = ``wall'' \newline AND \newline \texttt{boundary\_condition} = ``outdoors''}{[0,360)}{deg(^\circ)}
-  \jsontablerow{adjacent_zone_id    }{\TypeTag{S}}{\ReqTag{CR}}{}{\texttt{boundary\_condition} = ``zone''}{\hyperref[subsubsection:ioref:zone]{\texttt{zone}}의 \texttt{id}}{}
-  \jsontablerow{construction_id     }{\TypeTag{S}}{\ReqTag{R}}{}{}{\hyperref[subsubsection:ioref:construction]{\texttt{construction}}의 \texttt{id} \newline ``open'' \newline ``unknown''}{}
-  \jsontablerow{coolroof_reflectance}{\TypeTag{F}}{\ReqTag{CO}}{}{\texttt{type} = ``ceiling'' \newline AND \newline \texttt{boundary\_condition} = ``outdoors''}{(0,1]}{1}
-  \jsontablerow{fenestrations       }{[ \hyperref[subsubsection:ioref:fenestration]{\texttt{fenestration}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
-}
+\paragraph{난방 공급 설비} 난방 공급 설비의 이름. (\ref{subsubsection:ioref:supplysystem} 참고)
 
-\paragraph{id} 면의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
+\paragraph{냉방 공급 설비} 냉방 공급 설비의 이름. (\ref{subsubsection:ioref:supplysystem} 참고)
 
-\paragraph{name} 사용자 편의를 위해 제공되는 면 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
+\paragraph{환기 설비} 환기시스템의 이름. (\ref{subsubsection:ioref:ventilationsystem} 참고)
 
-\paragraph{type} 면의 유형. 천장(``ceiling''), 바닥(``floor''), 벽체(``wall'')로 구분된다. 유형이 바닥(``floor'')인 면의 면적은 해당 \texttt{zone}의 면적에 포함되며, 유형이 천장(``ceiling'')인 면은 경계조건이 외기(``outdoors'')인 경우 쿨루프 적용이 가능하다.
+\paragraph{면 개수} 해당 실에 연결된 면의 개수를 의미하며, 사용자 입력값이 아닌, 입력된 정보에 기반하여 자동으로 산정되는 값이다.
 
-\paragraph{boundary\_condition} 면의 경계조건. 일사와 바람의 영향을 받고 외기와 열교환을 하는 외기(``outdoors''), 다른 \texttt{zone}과 열교환을 하는 존(``zone''), 지면과 열교환을 하는 지면(``ground''), 어떠한 열교환도 하지 않고 축열의 역할만 담당하는 단열(``adiabatic'')로 구분된다 (Figure \ref{fig:surface_bo_description}).
+\paragraph{바닥 면적} 해당 실의 바닥 면적을 의미하며, 사용자 입력값이 아닌, 입력된 정보에 기반하여 자동으로 산정되는 값이다.
+
+
+\subsubsection{면} \label{subsubsection:ioref:surface}
+존과 존, 외부 (외기 또는 지면), 또는 단열선 사이의 면(벽체)이다. 하나의 실은 \texttt{실}을 인접존으로 하는 \texttt{면}을 포함하여, 1개 이상의 천장(\texttt{유형} = ``ceiling''), 1개 이상의 바닥(\texttt{type} = ``floor'') 및 1개 이상의 벽체(\texttt{type} = ``wall'')를 필요로 한다.
+
+\renewcommand{\arraystretch}{1.4}
+\begin{table}[ht]
+  \caption{면 클래스의 속성들}
+  \label{tbl:surface_info}  
+  \centering
+  \begin{tabular}{lcccccc}
+    \toprule
+    변수명 & 타입 & 필수 & 기본값 & 조건 & 범위/길이/선택지 & 단위\\ \midrule
+    이름 & \TypeTag{S} & \InputTag{R} & - & - & - & -\\
+    소속 실 & \TypeTag{S} & \InputTag{R} & - & - & - & - \\
+    유형  & \TypeTag{E} & \InputTag{R} & - & - & \makecell[c]{floor \\ wall \\ ceiling} & -\\
+    경계조건 & \TypeTag{E} & \InputTag{R} & - & \makecell[c]{outdoors \\ zone \\ ground \\ adiabatic} & - & -\\
+    면적 & \TypeTag{F} & \InputTag{R} & - & - & (0,Inf) & m$^2$ \\
+    향 & \TypeTag{F} & \ReqTag{CR} & - & \makecell[c]{\texttt{유형} = `wall' \\ AND \\ \texttt{경계조건} = `outdoors'} & [0,360) & deg(°) \\
+    인접존 이름 & \TypeTag{S} & \ReqTag{CR} & - & \makecell[c]{\texttt{경계조건} = `zone'} & - & - \\
+    구조체 이름 & \TypeTag{S} & \ReqTag{CR} & - & - &  \makecell[c]{\hyperref[subsubsection:ioref:construction]{\texttt{구조체}}의 이름 \\ open \\ null} & -\\
+    쿨루프 반사율 & \TypeTag{F} & \ReqTag{CO} & - &
+\makecell[c]{\texttt{유형} = `ceiling'\\ AND \\ \texttt{경계조건} = `outdoors'} & - & -\\
+    창문 개수 & - & \InputTag{D} & - & - & - & 개 \\
+    문 개수 & - & \InputTag{D} & - & - & - & 개 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+
+\paragraph{이름} 면 구별 식별자. 중복을 허용하지 않으며, 시뮬레이션에 직접 사용되지 않는다. 
+
+\paragraph{소속 실} 각 면이 귀속된 실의 이름.
+
+\paragraph{유형} 면의 유형. 천장(``ceiling''), 바닥(``floor''), 벽체(``wall'')로 구분된다. 유형이 바닥(``floor'')인 면의 면적은 해당 \texttt{실}의 면적에 포함되며, 유형이 천장(``ceiling'')인 면은 경계조건이 외기(``outdoors'')인 경우 쿨루프 적용이 가능하다.
+
+\paragraph{경계조건} 면의 경계조건. 일사와 바람의 영향을 받고 외기와 열교환을 하는 외기(``outdoors''), 다른 \texttt{실}과 열교환을 하는 존(``zone''), 지면과 열교환을 하는 지면(``ground''), 어떠한 열교환도 하지 않고 축열의 역할만 담당하는 단열(``adiabatic'')로 구분된다 (Figure \ref{fig:surface_bo_description}).
 
 \begin{defaultfigure}
   \includegraphics[width=0.8\textwidth]{면 경계조건 예시.png}
@@ -398,66 +465,101 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
   \label{fig:surface_bo_description}
 \end{defaultfigure}
 
-\paragraph{area} 면적. 해당 면에 개구부(예:창, 문 등)가 존재하는 경우, 이들의 면적을 포함한 전체 면적을 의미한다.
+\paragraph{면적} 면적. 해당 면에 개구부(예:창, 문 등)가 존재하는 경우, 이들의 면적을 포함한 전체 면적을 의미한다.
 
-\paragraph{azimuth} 면의 방위각. 기준은 북향을 0$^\circ$로 하며, 반시계 방향으로 증가한다. 예를들어, 서향은 90$^\circ$, 남향은 180$^\circ$, 동쪽은 270$^\circ$로 정의한다.
+\paragraph{향} 면의 방위각. 기준은 북향을 0$^\circ$로 하며, 반시계 방향으로 증가한다. 예를들어, 서향은 90$^\circ$, 남향은 180$^\circ$, 동쪽은 270$^\circ$로 정의한다.
 
-\paragraph{adjacent\_zone\_id} 인접존 ID. 면의 경계조건을 ``zone''으로 설정한 경우에만 입력한다.
+\paragraph{인접존 이름} 인접존 이름. 면의 경계조건을 ``zone''으로 설정한 경우에만 입력한다.
 
-\paragraph{construction\_id} 구조체 ID. 
+\paragraph{구조체 이름} 구조체 이름. 
 
-\paragraph{coolroof\_reflectance} 지붕면의 태양 반사율. 쿨루프(Cool Roof)시공이 적용된 경우에만 입력한다.
+\paragraph{쿨루프 반사율} 지붕면의 태양 반사율. 쿨루프(Cool Roof)시공이 적용된 경우에만 입력한다.
 
-\subsubsection{fenestration} \label{subsubsection:ioref:fenestration}
+\paragraph{창문 개수} 해당 면에 연결된 창문의 개수를 의미하며, 사용자 입력값이 아닌, 입력된 정보에 기반하여 자동으로 산정되는 값이다.
+
+\paragraph{문 개수} 해당 면에 연결된 문의 개수를 의미하며, 사용자 입력값이 아닌, 입력된 정보에 기반하여 자동으로 산정되는 값이다.
+
+
+
+
+\subsubsection{개구부} \label{subsubsection:ioref:fenestration}
 개구부. 벽체의 열린 부분을 의미하며, 창, 문(유리문, 방화문 등) 등 외기와의 접촉 또는 채광·환기를 목적으로 설치된 요소를 포함한다.
 
-\jsontable{fenestration}{
-  \jsontablerow{id             }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
-  \jsontablerow{name           }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
-  \jsontablerow{type           }{\TypeTag{E}}{\ReqTag{R}}{}{}{\shortstack[c]{window \\ door \\ glassdoor}}{}
-  \jsontablerow{area           }{\TypeTag{F}}{\ReqTag{R}}{}{}{(0,$Inf$)}{m^2}
-  \jsontablerow{construction_id}{\TypeTag{S}}{\ReqTag{R}}{}{}{\hyperref[subsubsection:ioref:fenestrationconstruction]{\texttt{fenewtration\_construction}}의 \texttt{id}}{}
-  \jsontablerow{blind          }{\TypeTag{E}}{\ReqTag{O}}{\texttt{null}}{}{\shortstack[c]{ venetian \\ shade}}{}
-}
 
-\paragraph{id} 개구부의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
 
-\paragraph{name} 사용자 편의를 위해 제공되는 개구부 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
+\renewcommand{\arraystretch}{1.4}
+\begin{table}[ht]
+  \caption{개구부 클래스의 속성들}
+  \label{tbl:fenestration_info}  
+  \centering
+  \begin{tabular}{lcccccc}
+    \toprule
+    변수명 & 타입 & 필수 & 기본값 & 조건 & 범위/길이/선택지 & 단위\\ \midrule
+    이름 & \TypeTag{S} & \InputTag{R} & - & - & - & -\\
+    소속 면 & \TypeTag{S} & \InputTag{R} & - & - & - & - \\
+    유형  & \TypeTag{E} & \InputTag{R} & - & - & \makecell[c]{window \\ door \\ glassdoor} & -\\
+    면적 & \TypeTag{F} & \InputTag{R} & - & - & (0,Inf) & m$^2$ \\
+    구조체 이름 & \TypeTag{S} & \ReqTag{R} & - & - &  \makecell[c]{\hyperref[subsubsection:ioref:fenestrationconstruction]{\texttt{개구부 구조체}}의 \texttt{이름}} & -\\
+    블라인드 & \TypeTag{E} & \ReqTag{O} & null & - & \makecell[c]{TRUE \\ FALSE} & -\\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
-\paragraph{type} 개구부의 유형. 유리창(``window''), 유리문(``glassdoor''), 또는 유리가 아닌 일반 문(``door'', 예: 방화문, 나무문 등)으로 구분된다.
+\paragraph{이름} 사용자 편의를 위해 제공되는 개구부 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
 
-\paragraph{area} 개구부의 면적. 해당 개구부가 속한 면의 면적보다 작아야 한다.
+\paragraph{소속 면} 각 개구부가 귀속된 면의 이름.
 
-\paragraph{construction\_id} 개구부의 구조체. \texttt{type}이 ``window'' 또는 ``glassdoor''인 경우, \texttt{is\_transparent} 속성이 \texttt{True}인 구조체여야 한다. 반대로, \texttt{type}이 ``door''인 경우, \texttt{is\_transparent} 속성이 \texttt{False}인 구조체여야 한다
+\paragraph{유형} 개구부의 유형.
+유리창(``window''), 유리문(``glassdoor''), 또는 유리가 아닌 일반 문(``door'', 예: 방화문, 나무문 등)으로 구분된다.
 
-\paragraph{blind} 블라인드의 종류. 값이 \texttt{null}이면 블라인드가 없는 것을 의미한다.
 
-\subsubsection{supply\_system} \label{subsubsection:ioref:supplysystem}
+\paragraph{면적} 개구부의 면적.
+해당 개구부가 속한 면의 면적보다 작아야 한다.
+
+\paragraph{구조체 이름} 개구부에 적용되는 구조체를 의미한다. 
+\texttt{유형}이 ``window'' 또는 ``glassdoor''인 경우, {\hyperref[subsubsection:ioref:fenestrationconstruction]{\texttt{개구부 구조체}}}의 \texttt{투명여부} 속성값은 \texttt{투명} 이어야 한다.
+\texttt{유형}이 ``door''인 경우, \texttt{투명여부} 속성값은 \texttt{불투명}이어야 한다.
+
+\paragraph{블라인드} 블라인드 설치 여부. 값이 \texttt{null} 혹은 \texttt{FALSE}이면 블라인드가 없는 것을 의미하며, 값이 \texttt{TRUE}이면 EnergyPlus의 기본 shade가 적용된다. 
+
+
+
+\subsubsection{공급 설비} \label{subsubsection:ioref:supplysystem}
 각 존에 존재하는 말단 공급설비이다. 
 
-\jsontable{supply\_system}{
-  \jsontablerow{id              }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
-  \jsontablerow{name            }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
-  \jsontablerow{type            }{\TypeTag{E}}{\ReqTag{R}}{}{}{\shortstack[c]{ packaged\_air\_conditioner \\ air\_handling\_unit \\ fan\_coil\_unit \\ radiator \\ electric\_radiator \\ radiant\_floor}}{}
-  \jsontablerow{cop_cooling     }{\TypeTag{F}}{\ReqTag{CR}}{3.0}{\texttt{type} = ``packaged\_air\_conditioner''}{(0,$Inf$)}{W/W}
-  \jsontablerow{capacity_cooling}{\TypeTag{F}}{\ReqTag{CR}}{\texttt{null}}{\texttt{type} = ``packaged\_air\_conditioner''}{(0,$Inf$)}{W}
-  \jsontablerow{capacity_heating}{\TypeTag{F}}{\ReqTag{CR}}{\texttt{null}}{\texttt{type} = ``radiator'' OR ``electric\_radiator''}{(0,$Inf$)}{W}
-  \jsontablerow{source_system_id}{\TypeTag{S}}{\ReqTag{CR}}{}{}{\hyperref[subsubsection:ioref:sourcesystem]{\texttt{source\_system}}의 \texttt{id}}{}
-}
 
-\paragraph{id} 공급설비의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
+\renewcommand{\arraystretch}{1.4}
+\begin{table}[ht]
+  \caption{공급 설비 클래스의 속성들}
+  \label{tbl:supplysystem_info}  
+  \centering
+  \begin{tabular}{lcccccc}
+    \toprule
+    변수명 & 타입 & 필수 & 기본값 & 조건 & 범위/길이/선택지 & 단위\\ \midrule
+    이름 & \TypeTag{S} & \InputTag{R} & - & - & - & -\\
+    유형  & \TypeTag{E} & \InputTag{R} & - & - & \makecell[c]{패키지에어컨 \\ 공조기 \\ 팬코일유닛 \\ 방열기 \\ 전기방열기 \\ 바닥난방} & -\\
+    냉방COP & \TypeTag{F} & \ReqTag{CR} & 3.0 & 유형 = `패키지에어컨' & (0,Inf) & W/W \\
+    냉방용량 & \TypeTag{F} & \ReqTag{CR} & null & 유형 = `패키지에어컨' &  (0,Inf) & W \\
+    난방용량 & \TypeTag{F} & \ReqTag{CR} & null & \makecell[c]{유형 = `방열기' \\ OR \\ `전기방열기'}  &  (0,Inf) & W \\
+    생산설비명 & \TypeTag{S} & \ReqTag{CR} & - & - & \makecell[c]{\hyperref[subsubsection:ioref:sourcesystem]{\texttt{생산설비}}의 \texttt{이름}} & -\\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
-\paragraph{name} 사용자 편의를 위해 제공되는 공급설비 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
+\paragraph{이름} 사용자 편의를 위해 제공되는 공급설비 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
 
-\paragraph{type} 공급설비의 종류. 선택한 공급설비 유형에 따라 냉·난방 제공 가능 여부가 달라진다. 각 공급설비별 냉·난방 지원 가능 여부는 Figure \ref{fig:supply_and_source_properties_and_connection}에 제시되어 있다.
+\paragraph{유형} 공급설비의 종류. 선택한 공급설비 유형에 따라 냉·난방 제공 가능 여부가 달라진다. 각 공급설비별 냉·난방 지원 가능 여부는 Figure \ref{fig:supply_and_source_properties_and_connection}에 제시되어 있다.
 
-\paragraph{cop\_cooling} 정격 냉방 성능계수(COP). 정격 운전 조건에서의 냉방 출력을 소비 전력으로 나눈 값이다. 공급설비의 유형을 ``packaged\_airconditioner''로 선택한 경우에만 입력한다.
+\paragraph{냉방COP} 정격 냉방 성능계수(COP). 정격 운전 조건에서의 냉방 출력을 소비 전력으로 나눈 값이다. 공급설비의 유형을 ``패키지에어컨''으로 선택한 경우에만 입력한다.
 
-\paragraph{capacity\_cooling} 냉방용량. 설비의 최대 냉방 출력을 의미한다. 해당 값을 입력하지 않을 경우 (\texttt{null}), EnergyPlus의 autosizing을 이용한다. 공급설비의 유형을 ``packaged\_airconditioner''로 선택한 경우에만 입력한다.
+\paragraph{냉방용량} 설비의 최대 냉방 출력을 의미한다. 해당 값을 입력하지 않을 경우 (\texttt{null}), EnergyPlus의 autosizing을 이용한다.\footnote{Autosizing은 설계일(design day) 조건에서의 피크 냉방부하를 기준으로, 
+설비가 해당 부하를 만족할 수 있도록 용량을 자동으로 산정하는 방법이다. 
+냉방 설계일은 일반적으로 ASHRAE 기준에 따른 연간 0.4\% 빈도 조건의 고온 기상 데이터를 사용한다.} 공급설비의 유형을 ``패키지에어컨''로 선택한 경우에만 입력한다.
 
-\paragraph{capacity\_heating} 난방용량. 설비의 최대 난방 출력을 의미한다. 해당 값을 입력하지 않을 경우 (\texttt{null}), EnergyPlus의 autosizing을 이용한다. 공급설비의 유형을 ``radiator''혹은 ``electric\_radiator''로 선택한 경우에만 입력한다.
 
-\paragraph{source\_system\_id} 연결된 생산설비의 ID. 연결가능한 생산설비는 Figure \ref{fig:supply_and_source_properties_and_connection}\와 같다.
+\paragraph{난방용량} 설비의 최대 난방 출력을 의미한다. 해당 값을 입력하지 않을 경우 (\texttt{null}), EnergyPlus의 autosizing을 이용한다. 공급설비의 유형을 ``방열기''혹은 ``전기 방열기''로 선택한 경우에만 입력한다.
+
+\paragraph{생산설비} 공급설비와 연결된 생산설비의 이름. 연결가능한 생산설비는 \cref{fig:supply_and_source_properties_and_connection}\와 같다.
 
 \begin{defaultfigure}
   \includegraphics[width=\textwidth]{HVAC_properties_and_connectables.png}
@@ -465,97 +567,135 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
   \label{fig:supply_and_source_properties_and_connection}
 \end{defaultfigure}
 
-\subsubsection{source\_system} \label{subsubsection:ioref:sourcesystem}
+
+\subsubsection{생산설비} \label{subsubsection:ioref:sourcesystem}
 건물에 존재하는 생산설비이다.
 
-\jsontable{source\_system}{
-  \jsontablerow{id                   }{\TypeTag{S}}{\ReqTag{R} }{}{}{}{}
-  \jsontablerow{name                 }{\TypeTag{S}}{\ReqTag{R} }{}{}{}{}
-  \jsontablerow{type                 }{\TypeTag{E}}{\ReqTag{R} }{}{}{\shortstack[c]{ heatpump \\ geothermal\_heatpump \\ chiller \\ absorption\_chiller \\ boiler \\ district\_heating}}{}
-  \jsontablerow{fuel_type            }{\TypeTag{E}}{\ReqTag{CR} }{}{\texttt{type} $\neq$ ``district\_heating''}{\shortstack[c]{electricity \\ natural\_gas \\ oil \\ district\_heating}}{}
-  \jsontablerow{compressor_type      }{\TypeTag{E}}{\ReqTag{CR}}{}{\texttt{type} = ``chiller''}{\shortstack[c]{ turbo \\ screw \\ reciporating}}{}
-  \jsontablerow{coolingtower_type    }{\TypeTag{E}}{\ReqTag{CR}}{}{\texttt{type} = ``chiller''}{\shortstack[c]{ closed \\ open}}{}
-  \jsontablerow{coolingtower_control }{\TypeTag{E}}{\ReqTag{CR}}{}{\texttt{type} = ``chiller''}{\shortstack[c]{single-speed \\ two-speed}}{}
-  \jsontablerow{hotwater_supply      }{\TypeTag{B}}{\ReqTag{CR}}{}{\texttt{type} = ``boiler'' OR ``district\_heating''}{}{}
-  \jsontablerow{coolingtower_capacity}{\TypeTag{F}}{\ReqTag{CO}}{\texttt{null}}{\texttt{type} = ``chiller''}{(0, $Inf$)}{W}
-  \jsontablerow{boiler_efficiency    }{\TypeTag{F}}{\ReqTag{CO}}{0.85}{\texttt{type} = ``absorption\_chiller''}{(0,1)}{1}
-  \jsontablerow{capacity_cooling     }{\TypeTag{F}}{\ReqTag{CO}}{\texttt{null}}{\texttt{type} = ``chiller'' OR ``heatpump'' OR ``geothermal\_heatpump'' OR ``absorption\_chiller''}{(0,$Inf$)}{W}
-  \jsontablerow{capacity_heating     }{\TypeTag{F}}{\ReqTag{CO}}{\texttt{null}}{\texttt{type} = ``heatpump'' OR ``geothermal\_heatpump'' OR ``boiler''}{(0,$Inf$)}{W}
-  \jsontablerow{cop_cooling          }{\TypeTag{F}}{\ReqTag{CO}}{3.0}{\texttt{type} = ``heatpump'' OR ``geothermal\_heatpump'' OR ``chiller'' OR ``absorption\_chiller''}{(0,$Inf$)}{W/W}
-  \jsontablerow{cop_heating          }{\TypeTag{F}}{\ReqTag{CO}}{3.0}{\texttt{type} = ``heatpump'' OR ``geothermal\_heatpump''}{(0,$Inf$)}{W/W}
-  \jsontablerow{efficiency           }{\TypeTag{F}}{\ReqTag{CO}}{0.85}{\texttt{type} = ``boiler''}{(0,1)}{1}
-}
 
-\paragraph{id} 생산설비의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
+\begin{longtable}{lcccccc}
+\caption{생산 설비 클래스의 속성들} \label{tbl:sourcesystem_info} \\
 
-\paragraph{name} 사용자 편의를 위해 제공되는 생산설비 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
+\toprule
+변수명 & 타입 & 필수 & 기본값 & 조건 & 범위/길이/선택지 & 단위\\ 
+\midrule
+\endfirsthead
 
-\paragraph{type} 생산설비의 종류. 공급설비에 열을 제공하는 기기의 종류를 선택하며, 선택가능한 유형은 히트펌프(``heatpump''), 지열 히트펌프(``geothermal\_heatpump''), 칠러(``chiller''), 흡수식 칠러(``absorption\_chiller''), 보일러(``boiler''), 지역난방(``district\_heating'')이다.
+\toprule
+변수명 & 타입 & 필수 & 기본값 & 조건 & 범위/길이/선택지 & 단위\\ 
+\midrule
+\endhead
 
-\paragraph{fuel\_type} 연료의 종류. 생산설비의 사용 연료를 의미하며, 선택 가능한 항목은 전기(``electricity''), 천연가스/가스(``natural\_gas''), 난방유(``oil''), 지역난방(``district\_heating'')이다.
+\midrule
+\multicolumn{7}{r}{다음 페이지 계속} \\
+\endfoot
 
+\bottomrule
+\endlastfoot
 
-\paragraph{compressor\_type} 압축기의 종류. 
+이름 & \TypeTag{S} & \InputTag{R} & - & - & - & -\\
+유형  & \TypeTag{E} & \InputTag{R} & - & - & \makecell[c]{히트펌프 \\ 지열히트펌프 \\ 냉동기 \\ 흡수식냉동기 \\ 지역난방 \\ 보일러 } & -\\
+냉방COP & \TypeTag{F} & \ReqTag{CO} & 3.0 & \makecell[c]{유형 = `냉동기' \\ OR \\ `히트펌프' \\ OR \\ `지열히트펌프' \\ OR \\ `흡수식냉동기'} & (0,Inf) & W/W \\
+냉방용량 & \TypeTag{F} & \ReqTag{CO} & null & \makecell[c]{유형 = `냉동기' \\ OR \\ `히트펌프' \\ OR \\ `지열히트펌프' \\ OR \\ `흡수식냉동기'} & (0,Inf) & W \\
+난방COP & \TypeTag{F} & \ReqTag{CO} & 3.0 & \makecell[c]{유형 = `히트펌프' \\ OR \\ `지열히트펌프'} & (0,Inf) & W/W \\
+난방용량 & \TypeTag{F} & \ReqTag{CR} & null & \makecell[c]{유형 = `히트펌프' \\ OR \\ `지열히트펌프' \\ OR \\ `보일러'} & (0,Inf) & W \\
+효율 & \TypeTag{F} & \ReqTag{CO} & 0.85 & 유형 = `보일러' & (0,1) & - \\
+급탕용 & \TypeTag{B} & \ReqTag{CR} & - & \makecell[c]{유형 = `보일러' \\ OR \\ 지역난방} & (0,Inf) & - \\
+연료종류 & \TypeTag{E} & \ReqTag{CR} & 3.0 & 유형 $\neq$ `지역난방' & \makecell[c]{전기 \\ 가스 \\ 난방유 \\ 지역난방} & - \\
+압축기 종류 & \TypeTag{E} & \InputTag{R} & - & 유형 = `냉동기' & \makecell[c]{터보식 \\ 스크류식 \\ 왕복동식} & - \\
+냉각탑 종류 & \TypeTag{E} & \ReqTag{CR} & - & 유형 = `냉동기' & \makecell[c]{개방형 \\ 밀폐형} & - \\
+냉각탑 용량 & \TypeTag{F} & \ReqTag{CO} & null & 유형 = `냉동기' & (0,Inf) & W \\
+냉각탑 제어방식 & \TypeTag{E} & \ReqTag{CR} & - & 유형 = `냉동기' & \makecell[c]{single-speed \\ two-speed} & - \\
+연동보일러 효율 & \TypeTag{F} & \ReqTag{CO} & 0.85 & 유형 = `흡수식냉동기' & (0,1) & - \\
 
-\paragraph{coolingtower\_type} 냉각탑의 종류. 
-
-\paragraph{coolingtower\_control} 냉각탑에 적용된 제어. 
-
-\paragraph{hotwater\_supply} 급탕공급 여부. 급탕을 공급하는 모든 생산설비들은 급탕효율 계산에 이용되며, 모든 설비가 동등하게 급탕 부하를 분담하는 것으로 가정한다.
-
-\paragraph{coolingtower\_capacity} 냉각탑용량. 해당 값을 입력하지 않을 경우 (\texttt{null}) EnergyPlus의 autosizing을 이용한다.
-
-\paragraph{boiler\_efficiency} 연동된 보일러의 효율.
-
-\paragraph{capacity\_cooling} 냉방용량. 해당 값을 입력하지 않을 경우 (\texttt{null}) EnergyPlus의 autosizing을 이용한다.
-
-\paragraph{capacity\_heating} 난방용량. 해당 값을 입력하지 않을 경우 (\texttt{null}) EnergyPlus의 autosizing을 이용한다.
-
-\paragraph{cop\_cooling} 정격 냉방성능계수(COP). 정격 운전 조건에서의 냉방 출력을 소비 전력으로 나눈 값이다.
-
-\paragraph{cop\_heating} 정격 난방성능계수(COP). 정격 운전 조건에서의 난방 출력을 소비 전력으로 나눈 값이다.
-
-\paragraph{efficiency} 보일러의 효율.
-
-\subsubsection{ventilation\_system} \label{subsubsection:ioref:ventilationsystem}
+\end{longtable}
 
 
-\jsontable{ventilation\_system}{
-  \jsontablerow{id             }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
-  \jsontablerow{name           }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
-  \jsontablerow{efficiency_heating}{\TypeTag{F}}{\ReqTag{O}}{0.70}{}{(0,1)}{1}
-  \jsontablerow{efficiency_cooling}{\TypeTag{F}}{\ReqTag{O}}{0.45}{}{(0,1)}{1}
-}
 
-\paragraph{id} 환기설비의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
+\paragraph{이름} 사용자 편의를 위해 제공되는 생산설비 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
 
-\paragraph{name} 사용자 편의를 위해 제공되는 생산설비 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
+\paragraph{유형} 생산설비의 종류. 공급설비에 열을 제공하는 기기의 종류를 선택하며, 선택가능한 유형은 히트펌프(``heatpump''), 지열 히트펌프(``geothermal\_heatpump''), 칠러(``chiller''), 흡수식 칠러(``absorption\_chiller''), 보일러(``boiler''), 지역난방(``district\_heating'')이다.
 
-\paragraph{efficiency\_heating} 유효 냉방 전열교환 효율.
+\paragraph{냉방COP} 정격 냉방성능계수(COP). 정격 운전 조건에서의 냉방 출력을 소비 전력으로 나눈 값이다.
 
-\paragraph{efficiency\_heating} 유효 난방 전열교환 효율.
+\paragraph{냉방용량} 해당 값을 입력하지 않을 경우 (\texttt{null}) EnergyPlus의 autosizing을 이용한다.
 
-\subsubsection{photovoltaic\_system} \label{subsubsection:ioref:photovoltaicsystem}
+\paragraph{난방COP} 정격 난방성능계수(COP). 정격 운전 조건에서의 난방 출력을 소비 전력으로 나눈 값이다.
+
+\paragraph{난방용량} 해당 값을 입력하지 않을 경우 (\texttt{null}) EnergyPlus의 autosizing을 이용한다.
+
+\paragraph{효율} 보일러의 효율.
+
+\paragraph{급탕용} 급탕공급 여부. 급탕을 공급하는 모든 생산설비들은 급탕효율 계산에 이용되며, 모든 설비가 동등하게 급탕 부하를 분담하는 것으로 가정한다.
+
+\paragraph{연료종류} 연료의 종류. 생산설비의 사용 연료를 의미하며, 선택 가능한 항목은 전기(``electricity''), 천연가스/가스(``natural\_gas''), 난방유(``oil''), 지역난방(``district\_heating'')이다.
+
+\paragraph{압축기 종류} 냉동기의 냉매를 압축하는 방식에 따른 압축기의 유형을 의미한다. 
+원심력을 이용하는 \texttt{터보식}, 나사형 로터의 회전에 의해 압축하는 \texttt{스크류식}, 
+피스톤의 왕복 운동에 의해 압축하는 \texttt{왕복동식} 중 선택하여 입력한다.
+
+\paragraph{냉각탑 종류} 냉각탑의 열교환 방식에 따른 유형을 의미한다. 
+냉각수가 외기와 직접 접촉하는 \texttt{개방형}과, 
+열교환기를 통해 간접적으로 열을 교환하는 \texttt{밀폐형} 중 선택하여 입력한다.
+
+\paragraph{냉각탑 용량} 해당 값을 입력하지 않을 경우 (\texttt{null}) EnergyPlus의 autosizing을 이용한다.
+
+\paragraph{냉각탑 제어방식} 냉각탑에 적용된 제어. 
+
+\paragraph{연동보일러 효율} 연동된 보일러의 효율.
+
+\subsubsection{환기설비} \label{subsubsection:ioref:ventilationsystem}
+
+
+\renewcommand{\arraystretch}{1.2}
+\begin{table}[h]
+  \caption{환기설비 클래스의 속성들}
+  \label{tbl:ventilationsystem_info}  
+  \centering
+  \begin{tabular}{lcccccc}
+    \toprule
+    변수명 & 타입 & 필수 & 기본값 & 조건 & 범위/길이/선택지 & 단위\\ \midrule
+    이름 & \TypeTag{S} & \InputTag{R} & - & - & - & -\\
+    난방효율  & \TypeTag{F} & \InputTag{O} & 0.70 & - & (0,1) & - \\
+    냉방효율 & \TypeTag{F} & \InputTag{O} & 0.45 & - & (0,1) & - \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\paragraph{이름} 사용자 편의를 위해 제공되는 생산설비 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
+
+\paragraph{난방효율} 유효 냉방 전열교환 효율.
+
+\paragraph{냉방효율} 유효 난방 전열교환 효율.
+
+
+\subsubsection{PV패널} \label{subsubsection:ioref:photovoltaicsystem}
 태양광 발전 설비.
 
-\jsontable{photovoltaic\_system}{
-  \jsontablerow{id        }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
-  \jsontablerow{name      }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
-  \jsontablerow{area      }{\TypeTag{F}}{\ReqTag{R}}{}{}{(0,$Inf$)}{m^2}
-  \jsontablerow{azimuth   }{\TypeTag{F}}{\ReqTag{R}}{}{}{[0,360)}{deg(^\circ)}
-  \jsontablerow{tilt      }{\TypeTag{F}}{\ReqTag{R}}{}{}{[0,90]}{deg(^\circ)}
-  \jsontablerow{efficiency}{\TypeTag{F}}{\ReqTag{R}}{}{}{(0,1)}{1}
-}
+\renewcommand{\arraystretch}{1.2}
+\begin{table}[h]
+  \caption{PV패널 클래스의 속성들}
+  \label{tbl:photovoltaicsystem_info}  
+  \centering
+  \begin{tabular}{lcccccc}
+    \toprule
+    변수명 & 타입 & 필수 & 기본값 & 조건 & 범위/길이/선택지 & 단위\\ \midrule
+    이름 & \TypeTag{S} & \InputTag{R} & - & - & - & -\\
+    면적  & \TypeTag{F} & \InputTag{R} & - & - & (0,Inf) & m$^2$ \\
+    효율 & \TypeTag{F} & \InputTag{R} & - & - & (0,1) & - \\
+    방위각 & \TypeTag{F} & \InputTag{R} & - & - & [0,360) & deg(°) \\
+    경사각 & \TypeTag{F} & \InputTag{R} & - & - & [0,90] & deg(°) \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
-\paragraph{id} 태양광설비의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
- 
-\paragraph{name} 사용자 편의를 위해 제공되는 태양광설비 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
 
-\paragraph{area} 태양광 패널의 면적.
+\paragraph{이름} 사용자 편의를 위해 제공되는 태양광설비 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
 
-\paragraph{efficiency} 태양광 모듈의 발전 효율.
+\paragraph{면적} 태양광 패널의 면적.
 
-\paragraph{azimuth} 패널의 방위각. \hyperref[subsubsection:ioref:building]{\texttt{building}}의 \texttt{north\_axis}를 고려하지 않고 독립적으로 계산된다 (Figure \ref{fig:azimuth_of_PVpanel}). 
+\paragraph{효율} 태양광 모듈의 발전 효율.
+
+\paragraph{방위각} 패널의 방위각. \hyperref[subsubsection:ioref:building]{\texttt{building}}의 \texttt{north\_axis}를 고려하지 않고 독립적으로 계산된다 (Figure \ref{fig:azimuth_of_PVpanel}). 
 
 \begin{defaultfigure}
   \includegraphics{태양광패널의 azimuth 설명.png}
@@ -563,66 +703,80 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
   \label{fig:azimuth_of_PVpanel}
 \end{defaultfigure}
 
-\paragraph{tilt} 패널의 경사각. 0$^\circ$는 수평면, 90$^\circ$는 수직면을 의미한다.
+\paragraph{경사각} 패널의 경사각. 0$^\circ$는 수평면, 90$^\circ$는 수직면을 의미한다.
 
-\subsubsection{material} \label{subsubsection:ioref:material}
 
-\jsontable{material}{
-  \jsontablerow{id           }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
-  \jsontablerow{name         }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
-  \jsontablerow{conductivity }{\TypeTag{F}}{\ReqTag{R}}{}{}{}{W{\cdot}m^{-1}{\cdot}K^{-1}}
-  \jsontablerow{density      }{\TypeTag{F}}{\ReqTag{R}}{}{}{}{kg{\cdot}m^{-3}}
-  \jsontablerow{specific_heat}{\TypeTag{F}}{\ReqTag{R}}{}{}{(100,$Inf$)}{J{\cdot}kg^{-1}{\cdot}K^{-1}}
-}
+\subsubsection{재료} \label{subsubsection:ioref:material}
 
-\paragraph{id} 재료의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
+\renewcommand{\arraystretch}{1.2}
+\begin{table}[h]
+  \caption{재료 클래스의 속성들}
+  \label{tbl:material_info}  
+  \centering
+  \begin{tabular}{lcccccc}
+    \toprule
+    변수명 & 타입 & 필수 & 기본값 & 조건 & 범위/길이/선택지 & 단위\\ \midrule
+    이름 & \TypeTag{S} & \InputTag{R} & - & - & - & -\\
+    열전도율  & \TypeTag{F} & \InputTag{R} & - & - & - & W/m·K \\
+    밀도 & \TypeTag{F} & \InputTag{R} & - & - & - & kg/m$^3$ \\
+    비열 & \TypeTag{F} & \InputTag{R} & - & - & (100,Inf) & J/kg·K \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
-\paragraph{name} 사용자 편의를 위해 제공되는 재료 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
+\paragraph{이름} 사용자 편의를 위해 제공되는 재료 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
 
-\paragraph{conductivity} 열전도율. 재료의 단위 두께를 통한 열 전달 능력을 나타낸다.
+\paragraph{열전도율} 재료의 단위 두께를 통한 열 전달 능력을 나타낸다.
 
-\paragraph{density} 밀도. 재료의 단위 부피당 질량을 나타낸다.
+\paragraph{밀도} 재료의 단위 부피당 질량을 나타낸다.
 
-\paragraph{specific\_heat} 비열. 재료의 단위 질량이 1K 상승할 때 필요한 열량을 나타낸다.
+\paragraph{비열} 재료의 단위 질량이 1K 상승할 때 필요한 열량을 나타낸다.
 
-\subsubsection{surface\_construction} \label{subsubsection:ioref:construction}
+\subsubsection{면 구조체} \label{subsubsection:ioref:construction}
 
-\jsontable{surface\_construction}{
-  \jsontablerow{id    }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
-  \jsontablerow{name  }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
-  \jsontablerow{layers}{[ \hyperref[subsubsection:ioref:layer]{\texttt{layer}} ]}{\ReqTag{R}}{}{}{[1, 10]}{}
-}
- 
-\paragraph{id} 레이어의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
+\renewcommand{\arraystretch}{1.2}
+\begin{table}[h]
+  \caption{면 구조체 클래스의 속성들}
+  \label{tbl:surface_construction_info}  
+  \centering
+  \begin{tabular}{lcccccc}
+    \toprule
+    변수명 & 타입 & 필수 & 기본값 & 조건 & 범위/길이/선택지 & 단위\\ \midrule
+    이름 & \TypeTag{S} & \InputTag{R} & - & - & - & -\\
+    레이어 재료  & \TypeTag{S} & \InputTag{R} & - & - & \hyperref[subsubsection:ioref:material]{\texttt{재료}}의 \texttt{이름} & - \\
+    레이어 두께  & \TypeTag{F} & \InputTag{R} & - & - & (0.003, Inf) & mm \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
-\paragraph{name} 사용자 편의를 위해 제공되는 레이어 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
+\paragraph{이름} 사용자 편의를 위해 제공되는 레이어 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
 
-\subsubsection{layer} \label{subsubsection:ioref:layer}
+\paragraph{레이어 재료} 레이어 구성 재료의 이름.
 
- \jsontable{layer}{
-  \jsontablerow{material_id}{\TypeTag{S}}{\ReqTag{R}}{}{}{\hyperref[subsubsection:ioref:material]{\texttt{material}}의 \texttt{id}}{}
-  \jsontablerow{thicknes   }{\TypeTag{F}}{\ReqTag{R}}{}{}{(0.003,$Inf$)}{m}
-}
+\paragraph{레이어 두께} 레이어 구성 재료의 두께.
 
-\paragraph{material\_id} 레이어 구성 재료의 ID.
 
-\paragraph{thickness} 레이어 구성 재료의 두께.
+\subsubsection{개구부 구조체} \label{subsubsection:ioref:fenestrationconstruction}
 
-\subsubsection{fenestration\_construction} \label{subsubsection:ioref:fenestrationconstruction}
+\renewcommand{\arraystretch}{1.2}
+\begin{table}[h]
+  \caption{개구부 구조체 클래스의 속성들}
+  \label{tbl:fenestration_construction_info}  
+  \centering
+  \begin{tabular}{lcccccc}
+    \toprule
+    변수명 & 타입 & 필수 & 기본값 & 조건 & 범위/길이/선택지 & 단위\\ \midrule
+    이름 & \TypeTag{S} & \InputTag{R} & - & - & - & -\\
+    투명여부  & \TypeTag{B} & \InputTag{R} & - & - & \makecell[c]{TRUE \\ FALSE} & - \\
+    열관류율  & \TypeTag{F} & \InputTag{R} & - & - & - & W/m$^2$·K \\
+    태양열취득계수  & \TypeTag{F} & \ReqTag{CR} & - & 투명여부 = `TRUE' & (0,1] & - \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
-\jsontable{fenestration\_construction}{
-  \jsontablerow{id            }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
-  \jsontablerow{name          }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
-  \jsontablerow{is_transparent}{\TypeTag{B}}{\ReqTag{R}}{}{}{}{}
-  \jsontablerow{u             }{\TypeTag{F}}{\ReqTag{R}}{}{}{(0, $Inf$)}{W{\cdot}m^{-1}{\cdot}K^{-1}}
-  \jsontablerow{g             }{\TypeTag{F}}{\ReqTag{CR}}{}{\texttt{is\_transparent} = \texttt{True}}{(0,1]}{}
-}
+\paragraph{이름} 창호 객체의 이름. 중복을 허용하지 않으며, 시뮬레이션에 직접 사용되지 않는다.
 
-\paragraph{id} 창호의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
-
-\paragraph{name} 사용자 편의를 위해 제공되는 창호 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
-
-\paragraph{is\_transparent} 구조체의 투명여부. 투명한 구조체의 개구부(예: 유리창, 유리문 등)는 ``True''로 입력하며, 불투명한 구조체의 개구부(예: 방화문, 나무문 등)는 ``False''로 입력한다.
+\paragraph{투명여부} 구조체의 투명여부. 투명한 구조체의 개구부(예: 유리창, 유리문 등)는 ``TRUE''로 입력하며, 불투명한 구조체의 개구부(예: 방화문, 나무문 등)는 ``FALSE''로 입력한다.
 
 \paragraph{u} 창호의 열관류율(U-value).
 
