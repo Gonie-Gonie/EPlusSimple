@@ -1,5 +1,6 @@
 # ============================================================================
 # EPlusSimple release script
+# Release script revision: streamwriter-no-addcontent-20260527
 # ============================================================================
 #
 # Expected location:
@@ -16,7 +17,10 @@
 # - Detailed release log is written to:
 #   logs/release.log
 # - logs/release.log is overwritten on every release run.
-# - Console output is intentionally kept concise.
+# - The log file is kept open with FileShare.ReadWrite during the release run.
+#   This avoids repeated file-open/write calls and prevents intermittent file-lock
+#   errors while the log is being viewed or indexed.
+# - Console output is intentionally concise.
 #
 # Runtime layout assumed by scripts/setup/setup.ps1:
 # runtime/PythonV3-12-7/
@@ -79,6 +83,7 @@ $OutputZip = Join-Path $DistDir "$ReleaseName.zip"
 
 $LogsDir = Join-Path $RepoRoot 'logs'
 $ReleaseLog = Join-Path $LogsDir 'release.log'
+$TempLogDir = Join-Path $LogsDir '_tmp_release'
 
 $RuntimeDir = Join-Path $RepoRoot 'runtime'
 
@@ -117,6 +122,8 @@ $RegressionTestScript = Join-Path $RepoRoot 'scripts\dev\regressiontest.py'
 $RegressionLogLegacy = Join-Path $RepoRoot 'regtest.log'
 
 $script:CurrentStep = 'initializing release script'
+$script:LogStream = $null
+$script:LogWriter = $null
 
 # ----------------------------------------------------------------------------
 # Logging functions
@@ -130,35 +137,76 @@ function Ensure-Directory {
     }
 }
 
-function Initialize-ReleaseLog {
+function Open-ReleaseLog {
     Ensure-Directory $LogsDir
 
-    if (Test-Path -LiteralPath $ReleaseLog) {
-        Remove-Item -LiteralPath $ReleaseLog -Force
+    if ($null -ne $script:LogWriter) {
+        Close-ReleaseLog
     }
 
-    $header = @(
-        '============================================================================'
-        ' EPlusSimple release log'
-        '============================================================================'
-        "Started      : $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
-        "Repository   : $RepoRoot"
-        "Target       : $BuildFor"
-        "Version      : $VersionString"
-        "Release dir  : $ReleaseDir"
-        "Release zip  : $OutputZip"
-        '============================================================================'
-        ''
+    $script:LogStream = [System.IO.FileStream]::new(
+        $ReleaseLog,
+        [System.IO.FileMode]::Create,
+        [System.IO.FileAccess]::Write,
+        [System.IO.FileShare]::ReadWrite
     )
 
-    Set-Content -LiteralPath $ReleaseLog -Value $header -Encoding UTF8
+    $encoding = [System.Text.UTF8Encoding]::new($false)
+    $script:LogWriter = [System.IO.StreamWriter]::new($script:LogStream, $encoding)
+    $script:LogWriter.AutoFlush = $true
+
+    Write-LogRaw '============================================================================'
+    Write-LogRaw ' EPlusSimple release log'
+    Write-LogRaw '============================================================================'
+    Write-LogRaw "Started      : $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+    Write-LogRaw "Repository   : $RepoRoot"
+    Write-LogRaw "Target       : $BuildFor"
+    Write-LogRaw "Version      : $VersionString"
+    Write-LogRaw "Release dir  : $ReleaseDir"
+    Write-LogRaw "Release zip  : $OutputZip"
+    Write-LogRaw '============================================================================'
+    Write-LogRaw ''
+}
+
+function Close-ReleaseLog {
+    if ($null -ne $script:LogWriter) {
+        try {
+            $script:LogWriter.Flush()
+            $script:LogWriter.Close()
+        } catch {
+            # Avoid masking the original release error.
+        }
+
+        $script:LogWriter = $null
+    }
+
+    if ($null -ne $script:LogStream) {
+        try {
+            $script:LogStream.Close()
+        } catch {
+            # Avoid masking the original release error.
+        }
+
+        $script:LogStream = $null
+    }
+}
+
+function Write-LogRaw {
+    param([string]$Message)
+
+    if ($null -eq $script:LogWriter) {
+        return
+    }
+
+    $script:LogWriter.WriteLine($Message)
+    $script:LogWriter.Flush()
 }
 
 function Write-Log {
     param([string]$Message)
 
     $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
-    Add-Content -LiteralPath $ReleaseLog -Value "[$timestamp] $Message" -Encoding UTF8
+    Write-LogRaw "[$timestamp] $Message"
 }
 
 function Write-LogBlock {
@@ -167,11 +215,15 @@ function Write-LogBlock {
         [string[]]$Lines = @()
     )
 
-    Add-Content -LiteralPath $ReleaseLog -Value '' -Encoding UTF8
-    Add-Content -LiteralPath $ReleaseLog -Value "===== $Title =====" -Encoding UTF8
+    Write-LogRaw ''
+    Write-LogRaw "===== $Title ====="
 
-    foreach ($line in $Lines) {
-        Add-Content -LiteralPath $ReleaseLog -Value $line -Encoding UTF8
+    foreach ($line in @($Lines)) {
+        if ($null -eq $line) {
+            Write-LogRaw ''
+        } else {
+            Write-LogRaw ([string]$line)
+        }
     }
 }
 
@@ -265,13 +317,12 @@ function Invoke-LoggedCommand {
         [string]$Description = 'external command'
     )
 
-    $tempDir = Join-Path $LogsDir '_tmp_release'
-    Ensure-Directory $tempDir
+    Ensure-Directory $TempLogDir
 
     $stamp = Get-Date -Format 'yyyyMMdd_HHmmss_fff'
     $safeName = ($Description -replace '[^a-zA-Z0-9_-]', '_')
-    $stdoutLog = Join-Path $tempDir "$stamp`_$safeName.stdout.tmp"
-    $stderrLog = Join-Path $tempDir "$stamp`_$safeName.stderr.tmp"
+    $stdoutLog = Join-Path $TempLogDir "$stamp`_$safeName.stdout.tmp"
+    $stderrLog = Join-Path $TempLogDir "$stamp`_$safeName.stderr.tmp"
 
     Remove-FileIfExists $stdoutLog
     Remove-FileIfExists $stderrLog
@@ -391,7 +442,7 @@ function Add-UniqueLine {
     if ($lines -contains $Line) {
         Write-Log "Already present in file: $Path :: $Line"
     } else {
-        Add-Content -LiteralPath $Path -Value $Line
+        [System.IO.File]::AppendAllText($Path, "`r`n$Line", [System.Text.UTF8Encoding]::new($false))
         Write-Log "Added to file: $Path :: $Line"
     }
 }
@@ -566,6 +617,7 @@ function Run-RegressionTest {
     if (Test-Path -LiteralPath $RegressionLogLegacy -PathType Leaf) {
         $regLines = Get-Content -LiteralPath $RegressionLogLegacy -ErrorAction SilentlyContinue
         Write-LogBlock -Title 'REGRESSION TEST LOG FILE: regtest.log' -Lines @($regLines)
+        Remove-FileIfExists $RegressionLogLegacy
     }
 
     Write-Log 'Regression test passed.'
@@ -737,8 +789,10 @@ function Write-FailureReport {
 # Main
 # ----------------------------------------------------------------------------
 
+$exitCode = 0
+
 try {
-    Initialize-ReleaseLog
+    Open-ReleaseLog
 
     Write-Host ''
     Write-Host "Building $ProjectName $VersionString for [$BuildFor]"
@@ -768,13 +822,14 @@ try {
     Write-Host "Log              : $ReleaseLog"
     Write-Host ''
 
-    $tmpDir = Join-Path $LogsDir '_tmp_release'
-    if (Test-Path -LiteralPath $tmpDir) {
-        Remove-DirectoryIfExists $tmpDir
+    if (Test-Path -LiteralPath $TempLogDir) {
+        Remove-DirectoryIfExists $TempLogDir
     }
-
-    exit 0
 } catch {
+    $exitCode = 1
     Write-FailureReport -ErrorRecord $_
-    exit 1
+} finally {
+    Close-ReleaseLog
 }
+
+exit $exitCode
