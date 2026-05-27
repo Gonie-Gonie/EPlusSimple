@@ -2592,7 +2592,6 @@ class IDF(StaticIndexedDict):
         temp_dir = tempfile.mkdtemp(prefix=PackageInfo.NAME)
         temp_filepath = os.path.join(temp_dir, self.default_filename)
         self.write(temp_filepath)
-        print(f"[DEBUG] idf 생성 위치: {temp_filepath}")  
         
         result = run(temp_filepath, weather, ep_dir=ep_dir, verbose=verbose, delete=True)
         shutil.rmtree(temp_dir)

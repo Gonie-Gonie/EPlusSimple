@@ -15,6 +15,8 @@ import (
 	"syscall"
 	"time"
 
+	"eplussimple-go/internal/applog"
+
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
@@ -23,6 +25,7 @@ import (
 const (
 	pythonFolderName = "PythonV3-12-7"
 	moduleName       = "launcher"
+	logFileName      = "launcher.log"
 
 	envHost  = "EPLUSSIMPLE_LAUNCHER_HOST"
 	envPort  = "EPLUSSIMPLE_LAUNCHER_PORT"
@@ -37,6 +40,7 @@ type App struct {
 	serverURL  *url.URL
 	cmd        *exec.Cmd
 	logFile    *os.File
+	logPath    string
 	ready      chan struct{}
 	startupErr error
 }
@@ -103,9 +107,12 @@ func (a *App) startup(ctx context.Context) {
 		a.startupErr = err
 		return
 	}
+
+	applog.WriteLine(a.logFile, "Flask backend is ready: "+serverURL.String())
 }
 
 func (a *App) shutdown(ctx context.Context) {
+	applog.WriteLine(a.logFile, "Launcher shutdown requested.")
 	a.stopFlask()
 }
 
@@ -127,7 +134,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w,
 			"EPlusSimple launcher failed to start.\n\n"+
 				a.startupErr.Error()+
-				"\n\nCheck logs\\eplussimple-launcher.log for Python-side errors.",
+				"\n\nCheck logs\\launcher.log for Python-side errors.",
 			http.StatusInternalServerError,
 		)
 		return
@@ -158,6 +165,8 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
+		applog.WriteLine(a.logFile, "Reverse proxy error: "+err.Error())
+
 		http.Error(
 			w,
 			"EPlusSimple launcher server is not available: "+err.Error(),
@@ -169,29 +178,30 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) startFlask(port int) error {
-	pythonExe := filepath.Join(a.workDir, "runtime", pythonFolderName, "python.exe")
+	logFile, logPath, err := applog.Open(a.workDir, logFileName)
+	if err != nil {
+		return err
+	}
 
+	a.logFile = logFile
+	a.logPath = logPath
+
+	pythonExe := filepath.Join(a.workDir, "runtime", pythonFolderName, "python.exe")
 	if _, err := os.Stat(pythonExe); err != nil {
+		applog.WriteLine(logFile, "Python executable not found: "+pythonExe)
+		_ = logFile.Close()
+		a.logFile = nil
 		return fmt.Errorf("Python executable not found: %s", pythonExe)
 	}
 
-	logDir := filepath.Join(a.workDir, "logs")
-	if err := os.MkdirAll(logDir, 0755); err != nil {
-		return fmt.Errorf("failed to create log directory: %w", err)
-	}
-
-	logPath := filepath.Join(logDir, "eplussimple-launcher.log")
-	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to open launcher log: %w", err)
-	}
-	a.logFile = logFile
+	applog.WriteLine(logFile, "Starting Flask launcher backend.")
+	applog.WriteLine(logFile, "Python executable: "+pythonExe)
+	applog.WriteLine(logFile, "Flask host: 127.0.0.1")
+	applog.WriteLine(logFile, fmt.Sprintf("Flask port: %d", port))
+	applog.WriteLine(logFile, "Log path: "+logPath)
 
 	cmd := exec.Command(pythonExe, "-s", "-m", moduleName)
 	cmd.Dir = a.workDir
-
-	cmd.Stdout = logFile
-	cmd.Stderr = logFile
 	cmd.Stdin = nil
 
 	cmd.Env = append(
@@ -209,24 +219,32 @@ func (a *App) startFlask(port int) error {
 		CreationFlags: createNoWindow,
 	}
 
+	// Keep Flask stdout/stderr in logs/launcher.log.
+	applog.RedirectCommand(cmd, logFile, false)
+
 	if err := cmd.Start(); err != nil {
+		applog.WriteLine(logFile, "Failed to start Flask server: "+err.Error())
 		_ = logFile.Close()
 		a.logFile = nil
 		return fmt.Errorf("failed to start Flask server: %w", err)
 	}
 
 	a.cmd = cmd
+	applog.WriteLine(logFile, fmt.Sprintf("Flask process started. PID: %d", cmd.Process.Pid))
+
 	return nil
 }
 
 func (a *App) stopFlask() {
 	if a.cmd != nil && a.cmd.Process != nil {
+		applog.WriteLine(a.logFile, "Stopping Flask process.")
 		_ = a.cmd.Process.Kill()
 		_, _ = a.cmd.Process.Wait()
 		a.cmd = nil
 	}
 
 	if a.logFile != nil {
+		applog.WriteLine(a.logFile, "Closing launcher log.")
 		_ = a.logFile.Close()
 		a.logFile = nil
 	}
