@@ -9,11 +9,10 @@
 #
 # /
 # |-- scripts/
-# |   `-- setup/
-# |       |-- setup.bat
-# |       |-- setup.ps1
-# |       `-- requirements.txt
-# |-- scripts/
+# |   |-- setup/
+# |   |   |-- setup.bat
+# |   |   |-- setup.ps1
+# |   |   `-- requirements.txt
 # |   `-- dev/
 # |       |-- build-go.bat
 # |       `-- build-go.ps1
@@ -21,6 +20,8 @@
 # `-- runtime/
 #     |-- PythonV3-12-7/      Embedded Python runtime
 #     |-- EnergyPlusV24-2-0/  Portable EnergyPlus 24.2 runtime
+#     |-- Weather/
+#     |   `-- TMY/            Korean TMY weather files
 #     |-- GoV1-26-3/          Portable Go SDK
 #     |-- .go/                Repository-local Go workspace and caches
 #     |   |-- gopath/         Go GOPATH for this repository
@@ -36,17 +37,20 @@
 # 2. runtime/EnergyPlusV24-2-0 is NOT installed into Program Files.
 #    It is extracted from the official EnergyPlus portable zip file.
 #
-# 3. runtime/GoV1-26-3 is NOT installed into Program Files.
+# 3. runtime/Weather/TMY stores Korean TMY weather files downloaded from:
+#    https://github.com/snu-bslab/EPlusSimple-resources/releases/tag/weather%2Fv1
+#
+# 4. runtime/GoV1-26-3 is NOT installed into Program Files.
 #    It is extracted from the official Go Windows archive.
 #
-# 4. This PowerShell script is used instead of putting all logic in setup.bat
+# 5. This PowerShell script is used instead of putting all logic in setup.bat
 #    because PowerShell is safer for:
 #    - downloading files,
 #    - extracting zip archives,
 #    - recursively locating executables,
 #    - copying directory contents without robocopy parsing issues.
 #
-# 5. This file intentionally uses ASCII comments. This avoids code-page issues
+# 6. This file intentionally uses ASCII comments. This avoids code-page issues
 #    when the file is opened or executed on different Windows environments.
 #
 # Recommended .gitignore entries:
@@ -57,17 +61,23 @@
 
 [CmdletBinding()]
 param(
-    # Force reinstallation of Python, EnergyPlus, and Go runtime directories.
+    # Force reinstallation of Python, EnergyPlus, Weather, and Go runtime directories.
     [switch]$Force,
 
     # Skip Python package installation from scripts/setup/requirements.txt.
     [switch]$SkipRequirements,
+
+    # Skip Korean TMY weather data setup.
+    [switch]$SkipWeather,
 
     # Skip Go SDK installation.
     [switch]$SkipGo,
 
     # Keep the temporary EnergyPlus extraction directory for debugging.
     [switch]$KeepExtractedEnergyPlus,
+
+    # Keep the temporary Weather extraction directory for debugging.
+    [switch]$KeepExtractedWeather,
 
     # Keep the temporary Go extraction directory for debugging.
     [switch]$KeepExtractedGo,
@@ -80,6 +90,13 @@ param(
 Set-StrictMode -Version 1.0
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
+
+# Force TLS 1.2 for older Windows PowerShell environments.
+try {
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+} catch {
+    # Ignore if unavailable.
+}
 
 # ============================================================================
 # [0] Common paths
@@ -149,7 +166,31 @@ $EnergyPlusExtractDir = Join-Path $RuntimeDir '_energyplus_extract'
 $EnergyPlusLegacyDir = Join-Path $RuntimeDir 'energyplus'
 
 # ============================================================================
-# [3] Go portable SDK configuration
+# [3] Korean TMY weather data configuration
+# ============================================================================
+# The weather release tag contains Korean TMY weather data.
+# The script queries the GitHub Release API, selects the uploaded asset whose
+# name looks like a Korean TMY zip archive, downloads it, and extracts it into:
+#
+# runtime/Weather/TMY
+#
+# If the release asset name changes later, update $WeatherAssetNamePattern.
+# ============================================================================
+
+$WeatherRootDir = Join-Path $RuntimeDir 'Weather'
+$WeatherTmyDir = Join-Path $WeatherRootDir 'TMY'
+$WeatherExtractDir = Join-Path $RuntimeDir '_weather_extract'
+$WeatherZipPath = Join-Path $DownloadDir 'Korean_TMY.zip'
+
+$WeatherReleaseApiUrl = 'https://api.github.com/repos/snu-bslab/EPlusSimple-resources/releases/tags/weather%2Fv1'
+
+# Prefer assets containing both "Korean" or "Korea" and "TMY".
+# Source-code archives are not returned as normal release assets by the release
+# asset API, but the zip suffix check is kept explicit.
+$WeatherAssetNamePattern = '(?i)(korean|korea).*tmy.*\.zip$|tmy.*(korean|korea).*\.zip$'
+
+# ============================================================================
+# [4] Go portable SDK configuration
 # ============================================================================
 # Use the official Windows amd64 zip archive instead of the MSI installer.
 # This keeps Go fully portable under runtime/.
@@ -185,6 +226,8 @@ $GoModCacheDir = Join-Path $GoDataDir 'mod-cache'
 
 function Write-Step {
     param([string]$Message)
+
+    Write-Host ''
     Write-Host $Message
 }
 
@@ -202,6 +245,20 @@ function Remove-DirectoryIfExists {
     if (Test-Path -LiteralPath $Path) {
         Remove-Item -LiteralPath $Path -Recurse -Force
     }
+}
+
+function Test-DirectoryHasFiles {
+    param([string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return $false
+    }
+
+    $firstFile = Get-ChildItem -LiteralPath $Path -Recurse -ErrorAction SilentlyContinue |
+        Where-Object { -not $_.PSIsContainer } |
+        Select-Object -First 1
+
+    return ($null -ne $firstFile)
 }
 
 function Download-FileIfMissing {
@@ -249,6 +306,23 @@ function Expand-ZipClean {
         Expand-Archive -LiteralPath $ZipPath -DestinationPath $Destination -Force
     } catch {
         throw "Zip extraction failed. Zip: $ZipPath. Error: $($_.Exception.Message)"
+    }
+}
+
+function Copy-DirectoryContents {
+    param(
+        [string]$Source,
+        [string]$Destination
+    )
+
+    if (-not (Test-Path -LiteralPath $Source)) {
+        throw "Source directory does not exist: $Source"
+    }
+
+    Ensure-Directory $Destination
+
+    Get-ChildItem -LiteralPath $Source -Force | ForEach-Object {
+        Copy-Item -LiteralPath $_.FullName -Destination $Destination -Recurse -Force
     }
 }
 
@@ -336,12 +410,66 @@ function Configure-PythonEnvironmentForCurrentProcess {
     $env:PIP_DISABLE_PIP_VERSION_CHECK = '1'
 }
 
+function Get-GitHubReleaseAsset {
+    param(
+        [string]$ReleaseApiUrl,
+        [string]$NamePattern
+    )
+
+    Write-Host " ...Querying GitHub release API:"
+    Write-Host "    $ReleaseApiUrl"
+
+    $headers = @{
+        'User-Agent' = 'EPlusSimple-setup'
+        'Accept'     = 'application/vnd.github+json'
+    }
+
+    try {
+        $release = Invoke-RestMethod -Uri $ReleaseApiUrl -Headers $headers -UseBasicParsing
+    } catch {
+        throw "Failed to query GitHub release API. URL: $ReleaseApiUrl. Error: $($_.Exception.Message)"
+    }
+
+    if ($null -eq $release.assets) {
+        throw "GitHub release API response did not include assets."
+    }
+
+    $assets = @($release.assets)
+
+    if ($assets.Count -eq 0) {
+        throw "No uploaded release assets were found in GitHub release: $ReleaseApiUrl"
+    }
+
+    Write-Host ' ...Available uploaded release assets:'
+    foreach ($asset in $assets) {
+        Write-Host "    - $($asset.name)"
+    }
+
+    $matched = $assets |
+        Where-Object { $_.name -match $NamePattern } |
+        Select-Object -First 1
+
+    if ($null -eq $matched) {
+        $names = ($assets | ForEach-Object { $_.name }) -join ', '
+        throw "No release asset matched pattern '$NamePattern'. Available assets: $names"
+    }
+
+    if ([string]::IsNullOrWhiteSpace($matched.browser_download_url)) {
+        throw "Matched release asset does not include browser_download_url: $($matched.name)"
+    }
+
+    Write-Host " ...Selected weather asset: $($matched.name)"
+    Write-Host "    Size: $($matched.size) bytes"
+
+    return $matched
+}
+
 # ============================================================================
 # Setup steps
 # ============================================================================
 
 function Setup-PythonRuntime {
-    Write-Step '[1/5] Checking Python runtime...'
+    Write-Step '[1/6] Checking Python runtime...'
 
     if ($Force -and (Test-Path -LiteralPath $PythonDir)) {
         Write-Host " ...Force enabled. Removing existing Python runtime: $PythonDir"
@@ -367,7 +495,7 @@ function Setup-PythonRuntime {
 }
 
 function Configure-PythonPaths {
-    Write-Step '[2/5] Configuring Python runtime paths...'
+    Write-Step '[2/6] Configuring Python runtime paths...'
 
     if (-not (Test-Path -LiteralPath $PythonPthFile)) {
         throw "Python ._pth file was not found: $PythonPthFile"
@@ -381,7 +509,7 @@ function Configure-PythonPaths {
 }
 
 function Setup-PipAndPackages {
-    Write-Step '[3/5] Installing pip and Python packages...'
+    Write-Step '[3/6] Installing pip and Python packages...'
 
     Configure-PythonEnvironmentForCurrentProcess
 
@@ -417,7 +545,7 @@ function Setup-PipAndPackages {
 }
 
 function Setup-EnergyPlusRuntime {
-    Write-Step '[4/5] Checking EnergyPlus runtime...'
+    Write-Step '[4/6] Checking EnergyPlus runtime...'
 
     if ($Force -and (Test-Path -LiteralPath $EnergyPlusDir)) {
         Write-Host " ...Force enabled. Removing existing EnergyPlus runtime: $EnergyPlusDir"
@@ -485,8 +613,79 @@ function Setup-EnergyPlusRuntime {
     & $EnergyPlusExe --version
 }
 
+function Setup-WeatherRuntime {
+    Write-Step '[5/6] Checking Korean TMY weather data...'
+
+    if ($SkipWeather) {
+        Write-Host ' ...SkipWeather enabled. Skipping Korean TMY weather data setup.'
+        return
+    }
+
+    if ($Force -and (Test-Path -LiteralPath $WeatherTmyDir)) {
+        Write-Host " ...Force enabled. Removing existing weather data directory: $WeatherTmyDir"
+        Remove-DirectoryIfExists $WeatherTmyDir
+    }
+
+    if (Test-DirectoryHasFiles -Path $WeatherTmyDir) {
+        Write-Host " ...Found existing weather data: $WeatherTmyDir"
+        return
+    }
+
+    Ensure-Directory $WeatherRootDir
+    Ensure-Directory $WeatherTmyDir
+
+    $asset = Get-GitHubReleaseAsset `
+        -ReleaseApiUrl $WeatherReleaseApiUrl `
+        -NamePattern $WeatherAssetNamePattern
+
+    # Use a stable local filename even if the GitHub asset name contains spaces
+    # or non-ASCII characters.
+    if (Test-Path -LiteralPath $WeatherZipPath) {
+        Write-Host " ...Using cached weather archive: $WeatherZipPath"
+    } else {
+        Download-FileIfMissing -Url $asset.browser_download_url -Destination $WeatherZipPath
+    }
+
+    Expand-ZipClean -ZipPath $WeatherZipPath -Destination $WeatherExtractDir
+
+    Remove-DirectoryIfExists $WeatherTmyDir
+    Ensure-Directory $WeatherTmyDir
+
+    # If the archive contains one top-level directory, copy its contents.
+    # Otherwise, copy the extracted contents as-is.
+    $topLevelItems = @(Get-ChildItem -LiteralPath $WeatherExtractDir -Force)
+
+    if ($topLevelItems.Count -eq 1 -and $topLevelItems[0].PSIsContainer) {
+        $sourceDir = $topLevelItems[0].FullName
+    } else {
+        $sourceDir = $WeatherExtractDir
+    }
+
+    Write-Host ' ...Copying Korean TMY weather files to:'
+    Write-Host "    $WeatherTmyDir"
+
+    Copy-DirectoryContents -Source $sourceDir -Destination $WeatherTmyDir
+
+    if (-not $KeepExtractedWeather) {
+        Remove-DirectoryIfExists $WeatherExtractDir
+    } else {
+        Write-Host " ...Keeping extracted weather directory for debugging: $WeatherExtractDir"
+    }
+
+    if (-not (Test-DirectoryHasFiles -Path $WeatherTmyDir)) {
+        throw "Weather data setup completed but no files were found in: $WeatherTmyDir"
+    }
+
+    $weatherFileCount = @(
+        Get-ChildItem -LiteralPath $WeatherTmyDir -Recurse -ErrorAction Stop |
+            Where-Object { -not $_.PSIsContainer }
+    ).Count
+
+    Write-Host " ...Korean TMY weather data setup complete. File count: $weatherFileCount"
+}
+
 function Setup-GoRuntime {
-    Write-Step '[5/5] Checking Go portable SDK...'
+    Write-Step '[6/6] Checking Go portable SDK...'
 
     if ($SkipGo) {
         Write-Host ' ...SkipGo enabled. Skipping Go SDK setup.'
@@ -615,6 +814,7 @@ try {
     Write-Host "Setup dir    : $SetupDir"
     Write-Host "Requirements : $RequirementsPath"
     Write-Host "Runtime      : $RuntimeDir"
+    Write-Host "Weather TMY  : $WeatherTmyDir"
     Write-Host ''
 
     Ensure-Directory $RuntimeDir
@@ -624,6 +824,7 @@ try {
     Configure-PythonPaths
     Setup-PipAndPackages
     Setup-EnergyPlusRuntime
+    Setup-WeatherRuntime
     Setup-GoRuntime
     Cleanup-DownloadsAfterSuccess
 
@@ -634,6 +835,7 @@ try {
     Write-Host ''
     Write-Host "Python       : $PythonExe"
     Write-Host "EnergyPlus   : $EnergyPlusExe"
+    Write-Host "Weather TMY  : $WeatherTmyDir"
 
     if (-not $SkipGo) {
         Write-Host "Go           : $GoExe"
@@ -651,6 +853,9 @@ try {
     Write-Host 'To check Go from PowerShell:'
     Write-Host "  & `"$GoExe`" version"
     Write-Host ''
+    Write-Host 'To check Korean TMY weather files:'
+    Write-Host "  dir `"$WeatherTmyDir`""
+    Write-Host ''
 
     exit 0
 } catch {
@@ -664,8 +869,9 @@ try {
     Write-Host 'Suggested checks:'
     Write-Host ' 1. Delete runtime/downloads if a cached zip file is corrupted.'
     Write-Host ' 2. Delete runtime/_energyplus_extract if a previous extraction was interrupted.'
-    Write-Host ' 3. Delete runtime/_go_extract if a previous Go extraction was interrupted.'
-    Write-Host ' 4. Re-run scripts\setup\setup.bat from the repository root.'
+    Write-Host ' 3. Delete runtime/_weather_extract if a previous weather extraction was interrupted.'
+    Write-Host ' 4. Delete runtime/_go_extract if a previous Go extraction was interrupted.'
+    Write-Host ' 5. Re-run scripts\setup\setup.bat from the repository root.'
     Write-Host ''
     Write-Host 'Note:'
     Write-Host ' runtime/downloads is intentionally kept when setup fails so that you can'

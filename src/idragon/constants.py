@@ -25,7 +25,6 @@ class Directory:
     
     # module related - api
     IDD_DIR     = _DATA_DIR / "idd"
-    WEATHER_DIR = _DATA_DIR / "weather"
     PROFILE_DIR = _DATA_DIR / "profile"
     
     # package related - reference
@@ -33,6 +32,7 @@ class Directory:
     
     # package related - api
     ENERGYPLUS_DIR = _PACKAGE_ROOT / "runtime"
+    WEATHER_DIR     = _PACKAGE_ROOT / "runtime" / "Weather" / "TMY"
 
 
 class PackageInfo:
