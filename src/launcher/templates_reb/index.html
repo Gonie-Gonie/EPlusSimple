@@ -117,6 +117,13 @@
         const box = document.getElementById('filenameBoxAfterN');
         box.textContent = (this.files && this.files[0]) ? this.files[0].name : '파일이 선택되지 않았습니다. (선택사항)';
     });
+    document.getElementById('uploadForm').addEventListener('submit', function() {
+        const submitButton = this.querySelector('button[type="submit"]');
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.textContent = '시뮬레이션 실행중';
+        }
+    });
     // --- 차트 관련 전역 변수 및 설정 ---
     let chartInstances = {};
     const graphOrder = [ { key: "heating", name: "난방" }, { key: "cooling", name: "냉방" }, { key: "lighting", name: "조명" }, { key: "circulation", name: "팬/펌프/전열" }, { key: "hotwater", name: "급탕" }, { key: "generators", name: "발전량" } ];

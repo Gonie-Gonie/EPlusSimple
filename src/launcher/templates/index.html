@@ -111,6 +111,13 @@
             box.textContent = '파일이 선택되지 않았습니다. (선택사항)';
         }
     });
+    document.getElementById('uploadForm').addEventListener('submit', function() {
+        const submitButton = this.querySelector('button[type="submit"]');
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.textContent = '시뮬레이션 실행중';
+        }
+    });
     </script>
 
     <script>
