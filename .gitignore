@@ -1,16 +1,14 @@
 # 내가 추가한 것 (engine)
-launchers/uploads/*.xlsx
-launchers/uploads/*.grm
-launchers/uploads/*.grr
+/launchers/uploads/
 *.log
 
-# 내가 추가한 것 (documentation)
-dist/docs/mainER.pdf
-dist/docs/mainPM.pdf
-dist/docs/
-
-# 내가 추가한 것 (runtime)
+# 내가 추가한 것 (runtime, build)
+/dist/
 /runtime/
+/logs/
+
+# 내가 추가한 것 (tool build 결과물)
+*.exe
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

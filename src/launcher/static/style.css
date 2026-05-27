@@ -3,6 +3,7 @@ body { font-family: sans-serif; margin: 2em; }
 .form-row { display: flex; align-items: center; margin-bottom: 1em; gap: 0.5em; }
 .file-label, .btn, #dataTypeSelector { display: flex; align-items: center; justify-content: center; height: 42px; padding: 0 1.5em; border-radius: 6px; font-size: 1rem; font-weight: bold; color: #fff; background: #36c46d; cursor: pointer; transition: background 0.15s; white-space: nowrap; border: 1px solid #2da15a; }
 .file-label:hover, .btn:hover, #dataTypeSelector:hover { background: #24994d; }
+.btn:disabled { background: #7b8794; border-color: #68727d; cursor: wait; }
 input[type="file"] { display: none; }
 .filename-box { flex-grow: 1; min-height: 2em; padding: 0.5em 1em; background: #fff; color: #222; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem; word-break: break-all; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
 #comparison-filenames { margin-top: 1em; padding: 0.8em 1.2em; background-color: #f0f8ff; border: 1px solid #cce5ff; border-radius: 6px; font-size: 0.9em; color: #004085; }

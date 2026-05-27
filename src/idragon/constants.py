@@ -19,21 +19,17 @@ from pathlib import Path
 
 class Directory:
     
-    # module related - reference
+    # root directories
     _MODULE_ROOT  = Path(__file__).resolve().parent
-    _DATA_DIR    = _MODULE_ROOT / "_data"
+    _PACKAGE_ROOT   = Path(__file__).resolve().parents[2]
     
     # module related - api
+    _DATA_DIR    = _MODULE_ROOT / "_data"
     IDD_DIR     = _DATA_DIR / "idd"
-    WEATHER_DIR = _DATA_DIR / "weather"
-    PROFILE_DIR = _DATA_DIR / "profile"
-    
-    # package related - reference
-    _PACKAGE_ROOT   = Path(__file__).resolve().parents[2]
+    PROFILE_DIR = _DATA_DIR / "profile"    
     
     # package related - api
     ENERGYPLUS_DIR = _PACKAGE_ROOT / "runtime"
-
 
 class PackageInfo:
     

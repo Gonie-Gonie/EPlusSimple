@@ -35,10 +35,10 @@ from idragon.utils  import (
 # ---------------------------------------------------------------------------- #
 
 # read datasheets
-df_dayschedule = pd.read_csv(os.path.join(Directory.PROFILE,"day_schedule.csv")).set_index("name")
-df_ruleset     = pd.read_csv(os.path.join(Directory.PROFILE,"ruleset.csv"     )).set_index("name")
-df_schedule    = pd.read_csv(os.path.join(Directory.PROFILE,"schedule.csv"    )).set_index("name")
-df_profile     = pd.read_csv(os.path.join(Directory.PROFILE,"profile.csv"     )).set_index("name")
+df_dayschedule = pd.read_csv(os.path.join(Directory.PROFILE_DIR,"day_schedule.csv")).set_index("name")
+df_ruleset     = pd.read_csv(os.path.join(Directory.PROFILE_DIR,"ruleset.csv"     )).set_index("name")
+df_schedule    = pd.read_csv(os.path.join(Directory.PROFILE_DIR,"schedule.csv"    )).set_index("name")
+df_profile     = pd.read_csv(os.path.join(Directory.PROFILE_DIR,"profile.csv"     )).set_index("name")
 
 # convert nan to None
 df_dayschedule = df_dayschedule.astype("object").where(pd.notna(df_dayschedule), None)
@@ -178,7 +178,7 @@ class DaySchedule:
         
         # special key to get path of the database
         if key == "__path__":
-            return os.path.join(Directory.PROFILE, "day_schedule.csv")
+            return os.path.join(Directory.PROFILE_DIR, "day_schedule.csv")
         
         # special key to get all item in the database
         if key == "__all__":
@@ -516,7 +516,7 @@ class RuleSet:
         
         # special key to get path of the database
         if key == "__path__":
-            return os.path.join(Directory.PROFILE, "ruleset.csv")
+            return os.path.join(Directory.PROFILE_DIR, "ruleset.csv")
         
         # special key to get all item in the database
         if key == "__all__":
@@ -827,7 +827,7 @@ class Schedule:
             return None
         
         if key == "__path__":
-            return os.path.join(Directory.PROFILE, "schedule.csv")
+            return os.path.join(Directory.PROFILE_DIR, "schedule.csv")
         
         elif key == "__all__":
             return [
@@ -1063,7 +1063,7 @@ class Profile:
             return None
         
         if key == "__path__":
-            return os.path.join(Directory.PROFILE, "profile.csv")
+            return os.path.join(Directory.PROFILE_DIR, "profile.csv")
         
         elif key == "__all__":
             return [

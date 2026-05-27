@@ -41,9 +41,9 @@ from ..constants import (
 # ---------------------------------------------------------------------------- #
 
 # databases
-df_material                  = pd.read_csv(os.path.join(Directory.CONSTRUCTION,"material.csv"))
-df_surface_construction      = pd.read_csv(os.path.join(Directory.CONSTRUCTION,"construction_regulation_surface.csv"))
-df_fenestration_construction = pd.read_csv(os.path.join(Directory.CONSTRUCTION,"construction_regulation_fenestration.csv"))
+df_material                  = pd.read_csv(os.path.join(Directory.CONSTRUCTION_DIR,"material.csv"))
+df_surface_construction      = pd.read_csv(os.path.join(Directory.CONSTRUCTION_DIR,"construction_regulation_surface.csv"))
+df_fenestration_construction = pd.read_csv(os.path.join(Directory.CONSTRUCTION_DIR,"construction_regulation_fenestration.csv"))
 
 # post-process
 df_material.set_index("name", inplace=True)
@@ -182,7 +182,7 @@ class Material:
         
         # special key to get path of the database
         if key == "__path__":
-            return os.path.join(Directory.CONSTRUCTION, "material.csv")
+            return os.path.join(Directory.CONSTRUCTION_DIR, "material.csv")
         
         # special key to get all item in the database
         if key == "__all__":
@@ -470,7 +470,7 @@ class SurfaceConstruction:
         
         # special key to get path of the database
         if key == "__path__":
-            return os.path.join(Directory.CONSTRUCTION, "construction_regulation_surface.csv")
+            return os.path.join(Directory.CONSTRUCTION_DIR, "construction_regulation_surface.csv")
         
         # special key to get all item in the database
         if key == "__all__":
@@ -720,7 +720,7 @@ class FenestrationConstruction:
         
         # special key to get path of the database
         if key == "__path__":
-            return os.path.join(Directory.CONSTRUCTION, "fenestration_regulation_surface.csv")
+            return os.path.join(Directory.CONSTRUCTION_DIR, "fenestration_regulation_surface.csv")
         
         # special key to get all item in the database
         if key == "__all__":

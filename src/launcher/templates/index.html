@@ -23,7 +23,7 @@
         <div id="comparison-filenames" style="display: none;"></div>
     </form>
     
-    {% if result and result.debug_reports %}
+    {% if result and (result.err or result.debug_reports) %}
     <div class="debug-reports-area">
         <h2>디버그 리포트</h2>
         {% if result.err %}
@@ -109,6 +109,13 @@
             box.textContent = Array.from(this.files).map(f => f.name).join(', ');
         } else {
             box.textContent = '파일이 선택되지 않았습니다. (선택사항)';
+        }
+    });
+    document.getElementById('uploadForm').addEventListener('submit', function() {
+        const submitButton = this.querySelector('button[type="submit"]');
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.textContent = '시뮬레이션 실행중';
         }
     });
     </script>
