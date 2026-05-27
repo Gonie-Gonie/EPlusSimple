@@ -6,7 +6,8 @@
 
 # built-in modules
 import os
-from enum import Enum
+from enum    import Enum
+from pathlib import Path
 
 # third-party modules
 
@@ -19,16 +20,18 @@ from enum import Enum
 
 class Directory:
     
-    # package root directory
-    PACKAGE = os.path.dirname(__file__)
+    # root directories
+    _MODULE_ROOT  = Path(__file__).resolve().parent
+    _PACKAGE_ROOT = Path(__file__).resolve().parents[2]
     
     # subdirectories
-    DATA    = os.path.join(PACKAGE, "_data")
+    _DATA_DIR    = _MODULE_ROOT / "_data"
     
     # data directories
-    WEATHER      = os.path.join(DATA, "weather")
-    PROFILE      = os.path.join(DATA, "profile")
-    CONSTRUCTION = os.path.join(DATA, "construction")
+    WEATHER_META_DIR = _DATA_DIR / "weather"
+    WEATHER_DATA_DIR = _PACKAGE_ROOT / "runtime" / "Weather" / "TMY"
+    PROFILE_DIR      = _DATA_DIR / "profile"
+    CONSTRUCTION_DIR = _DATA_DIR / "construction"
 
 
 class PackageInfo:

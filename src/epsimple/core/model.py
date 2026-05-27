@@ -69,8 +69,8 @@ from ..utils import (
 #                                   VARIABLES                                  #
 # ---------------------------------------------------------------------------- #
 
-ADDR_WEATHER_TABLE = pd.read_csv(os.path.join(Directory.WEATHER, "행정구역별기상데이터.csv")).set_index("행정구역명")
-CLIMATE_TABLE      = pd.read_csv(os.path.join(Directory.WEATHER, "기후지역.csv"          )).set_index("행정구역명")
+ADDR_WEATHER_TABLE = pd.read_csv(os.path.join(Directory.WEATHER_META_DIR, "행정구역별기상데이터.csv")).set_index("행정구역명")
+CLIMATE_TABLE      = pd.read_csv(os.path.join(Directory.WEATHER_META_DIR, "기후지역.csv"          )).set_index("행정구역명")
 
 # ---------------------------------------------------------------------------- #
 #                                  EXCEPTIONS                                  #
@@ -112,7 +112,7 @@ def address_to_weather(
     
     terrain = sigungu_info["terrain"]
     weather_location = sigungu_info["기상지역명"]
-    weather_filepath = os.path.join(idragon.constants.Directory.WEATHER_DIR, sigungu_info["EPW파일명"])
+    weather_filepath = Directory.WEATHER_DATA_DIR /  sigungu_info["EPW파일명"]
     
     climate = CLIMATE_TABLE.at[sigungu, max(datestr for datestr in CLIMATE_TABLE.columns if datestr < vintage.strftime(r"%Y%m%d"))]
     
@@ -812,7 +812,7 @@ class GreenRetrofitModel:
     def run(self) -> idragon.EnergyPlusResult:
         
         idf  = self.to_idf()
-        result = idf.run(self.weather_filepath)
+        result = idf.run(str(self.weather_filepath))
         
         return GreenRetrofitResult(
             self  ,
