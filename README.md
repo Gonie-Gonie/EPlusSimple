@@ -6,10 +6,10 @@ The project is designed to reduce the amount of manual EnergyPlus modeling work 
 
 EPlusSimple currently provides two main entry points:
 
-- **CLI mode**: run simulation workflows from the command line.
-- **Launcher mode**: use a lightweight desktop launcher for Excel-based simulation and debugging.
+- **Launcher mode**: a lightweight desktop launcher for Excel-based simulation and debugging.
+- **CLI mode**: a command-line executable for scripted workflows.
 
-The project is intended to be portable on Windows. Python, EnergyPlus, and Go are installed under the local `runtime/` directory by the setup script, rather than relying on system-wide installations.
+The project is intended to be portable on Windows. Python, EnergyPlus, Go, and weather data are prepared under the local `runtime/` directory by the setup script, rather than relying on system-wide installations.
 
 ---
 
@@ -17,6 +17,7 @@ The project is intended to be portable on Windows. Python, EnergyPlus, and Go ar
 
 ```text
 EPlusSimple/
+├─ runscript.bat
 ├─ src/
 │  ├─ epsimple/
 │  ├─ idragon/
@@ -28,15 +29,17 @@ EPlusSimple/
 │        └─ eplussimple-launcher/
 ├─ scripts/
 │  ├─ setup/
-│  │  ├─ setup.bat
 │  │  ├─ setup.ps1
 │  │  └─ requirements.txt
 │  └─ dev/
-│     ├─ build-go.bat
-│     └─ build-go.ps1
+│     ├─ build-go.ps1
+│     ├─ release.ps1
+│     └─ regressiontest.py
 └─ runtime/
    ├─ PythonV3-12-7/
    ├─ EnergyPlusV24-2-0/
+   ├─ Weather/
+   │  └─ TMY/
    ├─ GoV1-26-3/
    └─ .go/
 ```
@@ -61,12 +64,42 @@ This allows users to perform EnergyPlus-based analysis without directly managing
 
 ---
 
-## Setup
+## Script entrypoint
 
-Run the setup script first.
+All project scripts are executed through the root-level dispatcher:
 
 ```bat
-.\scripts\setup\setup.bat
+runscript <command> [args...]
+```
+
+Available commands:
+
+```text
+setup
+build-go
+release
+```
+
+The dispatcher only selects the target PowerShell script and forwards the remaining arguments as-is.
+
+Mapped scripts:
+
+```text
+runscript setup     -> scripts\setup\setup.ps1
+runscript build-go  -> scripts\dev\build-go.ps1
+runscript release   -> scripts\dev\release.ps1
+```
+
+Do not run wrapper batch files under `scripts/`. The duplicated batch wrappers have been removed. Use `runscript.bat` from the repository root.
+
+---
+
+## Setup
+
+Run setup first.
+
+```bat
+runscript setup
 ```
 
 The setup process prepares the local runtime environment required by EPlusSimple.
@@ -95,7 +128,15 @@ It installs or configures:
    runtime\EnergyPlusV24-2-0
    ```
 
-3. **Portable Go SDK**
+3. **Korean TMY weather data**
+
+   Installed under:
+
+   ```text
+   runtime\Weather\TMY
+   ```
+
+4. **Portable Go SDK**
 
    Installed under:
 
@@ -103,7 +144,7 @@ It installs or configures:
    runtime\GoV1-26-3
    ```
 
-4. **Repository-local Go cache and module directories**
+5. **Repository-local Go cache and module directories**
 
    Created under:
 
@@ -113,22 +154,26 @@ It installs or configures:
 
 The setup script does not require Python, EnergyPlus, or Go to be installed globally on Windows.
 
+To reset the runtime completely, delete `runtime/` and run setup again.
+
+```bat
+runscript setup
+```
+
 ---
 
 ## Build
 
-The root-level launcher scripts such as `runEngine.bat` and `runExcelLauncher.bat` are not used in the current structure.
-
 After setup, build the executable files using the Go build script.
 
 ```bat
-.\scripts\dev\build-go.bat
+runscript build-go
 ```
 
-If this is the first build after cloning the repository, or if Go dependencies have changed, run:
+For the first build after cloning the repository, or after Go dependency changes, run:
 
 ```bat
-.\scripts\dev\build-go.bat -Tidy
+runscript build-go -Tidy
 ```
 
 The build script creates the following executable files in the repository root:
@@ -138,7 +183,7 @@ EPlusSimpleCLI.exe
 EPlusSimpleLauncher.exe
 ```
 
-These files are generated build artifacts and do not need to be committed.
+These files are generated build artifacts and should not be committed.
 
 ---
 
@@ -149,7 +194,7 @@ These files are generated build artifacts and do not need to be committed.
 Use the desktop launcher for Excel-based workflows.
 
 ```bat
-.\EPlusSimpleLauncher.exe
+EPlusSimpleLauncher.exe
 ```
 
 The launcher starts the local Python/Flask backend internally and displays the interface through a desktop WebView window. A separate browser window is not required.
@@ -163,16 +208,74 @@ Use this mode when you want to upload Excel input files and run the Excel-based 
 Use the CLI executable for command-line workflows.
 
 ```bat
-.\EPlusSimpleCLI.exe
+EPlusSimpleCLI.exe
 ```
 
 To inspect the available commands and options, run:
 
 ```bat
-.\EPlusSimpleCLI.exe --help
+EPlusSimpleCLI.exe --help
 ```
 
 The available command syntax depends on the current CLI implementation.
+
+---
+
+## Release
+
+Release packaging is also handled through `runscript.bat`.
+
+For a KALIS release:
+
+```bat
+runscript release -BuildFor kalis
+```
+
+For a REB release:
+
+```bat
+runscript release -BuildFor reb
+```
+
+To skip documentation and regression tests during packaging checks:
+
+```bat
+runscript release -BuildFor kalis -SkipDocs -SkipRegressionTest
+```
+
+or:
+
+```bat
+runscript release -BuildFor reb -SkipDocs -SkipRegressionTest
+```
+
+The release script creates:
+
+```text
+dist\EPlusSimple_V<version>\
+dist\EPlusSimple_V<version>.zip
+```
+
+For REB builds, the release name uses the `R` suffix:
+
+```text
+EPlusSimple_V<version>R
+```
+
+The release package includes:
+
+```text
+EPlusSimpleCLI.exe
+EPlusSimpleLauncher.exe
+runtime\PythonV3-12-7\
+runtime\EnergyPlusV24-2-0\
+runtime\Weather\TMY\
+src\
+examples\
+docs\       # when documentation build is enabled
+```
+
+The release package does not include setup download caches or temporary extraction directories.
 
 ---
 
@@ -184,16 +287,28 @@ For a fresh clone:
 git clone https://github.com/snu-bslab/EPlusSimple.git
 cd EPlusSimple
 
-.\scripts\setup\setup.bat
-.\scripts\dev\build-go.bat -Tidy
-.\EPlusSimpleLauncher.exe
+runscript setup
+runscript build-go -Tidy
+EPlusSimpleLauncher.exe
 ```
 
 For normal development after setup has already been completed:
 
 ```bat
-.\scripts\dev\build-go.bat
-.\EPlusSimpleLauncher.exe
+runscript build-go
+EPlusSimpleLauncher.exe
+```
+
+For release packaging:
+
+```bat
+runscript release -BuildFor kalis
+```
+
+or:
+
+```bat
+runscript release -BuildFor reb
 ```
 
 ---
@@ -210,7 +325,7 @@ runtime\PythonV3-12-7
 
 Python packages should be installed into this runtime, not into the user-level Python environment.
 
-If package import errors occur, check that the packages are installed in the runtime Python:
+To check that packages are imported from the runtime Python:
 
 ```bat
 runtime\PythonV3-12-7\python.exe -s -c "import flask, pandas, openpyxl; print(flask.__file__); print(pandas.__file__); print(openpyxl.__file__)"
@@ -230,15 +345,38 @@ C:\Users\<user>\AppData\Roaming\Python\Python312\site-packages
 
 ---
 
+### Weather data
+
+Korean TMY weather files are prepared by setup under:
+
+```text
+runtime\Weather\TMY
+```
+
+The release package also includes this directory.
+
+To check the installed weather files:
+
+```bat
+dir runtime\Weather\TMY
+```
+
+---
+
 ### Re-running setup
 
 If dependencies are missing or the runtime environment is corrupted, rerun:
 
 ```bat
-.\scripts\setup\setup.bat
+runscript setup
 ```
 
-If a full reset is needed, delete the `runtime/` directory and run setup again.
+For a full reset:
+
+```bat
+rmdir /s /q runtime
+runscript setup
+```
 
 ---
 
@@ -247,13 +385,53 @@ If a full reset is needed, delete the `runtime/` directory and run setup again.
 If Go source code is changed, rebuild:
 
 ```bat
-.\scripts\dev\build-go.bat
+runscript build-go
 ```
 
 If `go.mod` or `go.sum` is changed, rebuild with tidy:
 
 ```bat
-.\scripts\dev\build-go.bat -Tidy
+runscript build-go -Tidy
 ```
 
 ---
+
+### Running release checks
+
+A full release runs the configured release steps, including regression and documentation unless skipped.
+
+```bat
+runscript release -BuildFor kalis
+```
+
+To test only the packaging flow:
+
+```bat
+runscript release -BuildFor kalis -SkipDocs -SkipRegressionTest
+```
+
+---
+
+## Generated files
+
+The following files and directories are generated locally:
+
+```text
+runtime/
+logs/
+dist/
+EPlusSimpleCLI.exe
+EPlusSimpleLauncher.exe
+```
+
+They should generally be excluded from version control.
+
+Recommended `.gitignore` entries:
+
+```gitignore
+/runtime/
+/logs/
+/dist/
+/EPlusSimpleCLI.exe
+/EPlusSimpleLauncher.exe
+```
