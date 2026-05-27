@@ -1,6 +1,24 @@
 
 \chapter{버전별 변경사항}
 
+\newversionsection{0.6.2}{2025-05-27}{
+    \par -
+}{
+    \begin{itemize}
+        \item \inlinecode{EPlusSimpleCLI.exe}가 기존 \inlinecode{runEngine.bat}의 CLI 명령어 환경을 대체함.
+        \item \inlinecode{EPlusSimpleLauncher.exe}가 기존 \inlinecode{runLauncher.bat}의 런처 실행을 대체함.
+        \item 런처는 별도의 console과 Web GUI를 실행하지 않고, 별도 창으로 실행됨.
+    \end{itemize}
+}{
+    \begin{itemize}
+        \item 벽체 면적이 또는 바닥면적이 아주 작은 경우 실내온도가 발산하던 오류 수정.
+    \end{itemize}
+}{
+    \begin{itemize}
+        \item 더이상 batch 스크립트를 활용하여 CLI 명령어로 엔진 실행 또는 Launcher 실행할 수 없음.
+    \end{itemize}
+}
+
 \newversionsection{0.6.1}{2025-01-27}{
     \begin{itemize}
         \item 침기를 optional 변수로 변경 (\textit{null}로 입력 시 외기와 맞닿은 창문이 있는 경우 $1.5ACH50$, 없는 경우 $0ACH50$로 자동 입력).
