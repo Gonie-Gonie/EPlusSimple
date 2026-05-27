@@ -29,7 +29,7 @@
         <div id="comparison-filenames" style="display: none;"></div>
     </form>
     
-    {% if result and result.debug_reports %}
+    {% if result and (result.err or result.debug_reports) %}
     <div class="debug-reports-area">
         <h2>디버그 리포트</h2>
         {% if result.err %}

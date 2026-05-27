@@ -10,7 +10,7 @@ from multiprocessing import Pool
 
 # third-party modules
 import pandas as pd
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, current_app
 from werkzeug.datastructures import FileStorage
 
 # local modules
@@ -104,9 +104,9 @@ def getpost() -> str:
             file_afterN = request.files.get("file_afterN")
             
             if not file_before or not file_before.filename:
-                return render_template("run.html", result={"err": "'리모델링 전' 파일이 선택되지 않았습니다."})
+                return render_template("index.html", result={"err": "'리모델링 전' 파일이 선택되지 않았습니다."})
             
-            all_files = [file_before, file_after, file_afterN]
+            all_files = [file_obj for file_obj in (file_before, file_after, file_afterN) if file_obj and file_obj.filename]
             
             # 2. 모든 원본 파일 임시 저장
             for file_obj in all_files:
@@ -139,8 +139,8 @@ def getpost() -> str:
                 sim_data = _run_simulation_phase(
                     target_filepaths, # [수정]
                     file_before.filename,
-                    file_after.filename ,
-                    file_afterN.filename,
+                    file_after.filename if file_after and file_after.filename else "",
+                    file_afterN.filename if file_afterN and file_afterN.filename else "",
                 )
                 
                 result = {
@@ -149,7 +149,16 @@ def getpost() -> str:
                     ],
                     "sim_data": sim_data
                 }
+        
+        except Exception as exc:
+            current_app.logger.exception("Launcher POST processing failed.")
 
+            result = {
+                "err": f"실행 중 오류가 발생했습니다: {exc}",
+                "debug_reports": [],
+                "csv_data": None,
+            }
+        
         finally:
             # 7. [수정] 모든 임시 파일(원본 + 전처리된 파일) 정리
             all_files_to_delete = list(saved_filepaths.values()) + preprocessed_filepaths

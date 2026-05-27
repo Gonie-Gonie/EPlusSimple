@@ -32,15 +32,19 @@ const (
 )
 
 type App struct {
-	ctx       context.Context
-	workDir   string
-	serverURL *url.URL
-	cmd       *exec.Cmd
-	logFile   *os.File
+	ctx        context.Context
+	workDir    string
+	serverURL  *url.URL
+	cmd        *exec.Cmd
+	logFile    *os.File
+	ready      chan struct{}
+	startupErr error
 }
 
 func main() {
-	app := &App{}
+	app := &App{
+		ready: make(chan struct{}),
+	}
 
 	err := wails.Run(&options.App{
 		Title:     "EPlusSimple Launcher",
@@ -67,31 +71,37 @@ func main() {
 
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	defer close(a.ready)
 
 	workDir, err := getExecutableDir()
 	if err != nil {
-		log.Fatal(err)
+		a.startupErr = err
+		return
 	}
 	a.workDir = workDir
 
 	port, err := getFreePort()
 	if err != nil {
-		log.Fatal(err)
+		a.startupErr = err
+		return
 	}
 
 	serverURL, err := url.Parse(fmt.Sprintf("http://127.0.0.1:%d", port))
 	if err != nil {
-		log.Fatal(err)
+		a.startupErr = err
+		return
 	}
 	a.serverURL = serverURL
 
 	if err := a.startFlask(port); err != nil {
-		log.Fatal(err)
+		a.startupErr = err
+		return
 	}
 
 	if err := waitForHTTP(serverURL.String()+"/", 20*time.Second); err != nil {
 		a.stopFlask()
-		log.Fatal(err)
+		a.startupErr = err
+		return
 	}
 }
 
@@ -100,8 +110,36 @@ func (a *App) shutdown(ctx context.Context) {
 }
 
 func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	select {
+	case <-a.ready:
+		// continue
+	case <-time.After(30 * time.Second):
+		http.Error(
+			w,
+			"EPlusSimple launcher is still starting. Please close and reopen the launcher if this continues.",
+			http.StatusServiceUnavailable,
+		)
+		return
+	}
+
+	if a.startupErr != nil {
+		http.Error(
+			w,
+			"EPlusSimple launcher failed to start.\n\n"+
+				a.startupErr.Error()+
+				"\n\nCheck logs\\eplussimple-launcher.log for Python-side errors.",
+			http.StatusInternalServerError,
+		)
+		return
+	}
+
 	if a.serverURL == nil {
-		http.Error(w, "Flask server is not ready.", http.StatusServiceUnavailable)
+		http.Error(w, "Flask server URL is not initialized.", http.StatusServiceUnavailable)
+		return
+	}
+
+	if (r.Method == http.MethodGet || r.Method == http.MethodHead) && r.URL.Path == "/" {
+		http.Redirect(w, r, a.serverURL.String()+"/", http.StatusFound)
 		return
 	}
 
@@ -149,7 +187,7 @@ func (a *App) startFlask(port int) error {
 	}
 	a.logFile = logFile
 
-	cmd := exec.Command(pythonExe, "-m", moduleName)
+	cmd := exec.Command(pythonExe, "-s", "-m", moduleName)
 	cmd.Dir = a.workDir
 
 	cmd.Stdout = logFile
@@ -160,6 +198,7 @@ func (a *App) startFlask(port int) error {
 		os.Environ(),
 		"PYTHONUTF8=1",
 		"PYTHONIOENCODING=utf-8",
+		"PYTHONNOUSERSITE=1",
 		envHost+"=127.0.0.1",
 		fmt.Sprintf("%s=%d", envPort, port),
 		envDebug+"=0",
