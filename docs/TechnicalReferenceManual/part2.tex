@@ -7,7 +7,7 @@
 % ---------------------------------------------------------------------------- %
 
 \chapter{디렉토리 구조}
-\simulator 는 핵심 알고리즘을 포함하는 python 모듈(\pymodule)과 함께, 독립 실행형 (portable) Python, 실행 스크립트, 기술문서, 및 예시파일을 포함한다.
+\simulator 는 핵심 알고리즘을 포함하는 python 모듈(\pymodule)과 함께, 독립 실행형 Python 런타임, 실행 스크립트, 기술문서, 및 예시파일을 포함한다.
 디렉토리의 각 구성 요소별 내용은 \textcref{table:release-dirstructure}\과 같다.
 
 \begin{defaulttable}
@@ -19,11 +19,9 @@
     \midrule
     
     \textbf{src/} & 엔진의 핵심 알고리즘이 포함된 소스 코드 & - \\
-    
-    \hspace{0.5em} $\llcorner$ idragon/ & EnergyPlus 친화적 구조 및 idf 변환 & - \\
-    \hspace{1.5em} $\llcorner$ \_energyPlus/ & 내장된 EnergyPlus 엔진 & \ref{section:dirstructure-devenv} \\
     \hspace{0.5em} $\llcorner$ \pymodule/ & \simulator 친화적 구조 및 중간 변환 & \ref{section:howtorun-pythonmodule} \\
-    \hspace{0.5em} $\llcorner$ launcher/ & Excel 기반 입력파일의 실행을 위한 web 기반 GUI & \ref{section:howtorun-excellauncher} \\
+    \hspace{0.5em} $\llcorner$ idragon/ & EnergyPlus 친화적 구조 및 idf 변환 & - \\
+    \hspace{0.5em} $\llcorner$ launcher/ & Excel 기반 입력파일 실행을 위한 GUI 서버 및 클라이언트 & \ref{section:howtorun-excellauncher} \\
     \addlinespace 
     
     \textbf{docs/} & 엔진 관련 명세 & \ref{section:dirstructure-documentation} \\
@@ -37,11 +35,14 @@
     \hspace{0.5em} $\llcorner$ grr/ & 출력파일 예시 & - \\
     \addlinespace
 
-    \textbf{venv/} & 필요한 라이브러리가 포함된 독립 실행형 Python & \ref{section:dirstructure-devenv} \\
+    \textbf{runtime/} & 외부 실행 프로그램 및 데이터 & - \\
     \addlinespace
+    \hspace{0.5em} $\llcorner$ PythonV3-12-7/ & 독립실행형 Python 런타임 & \ref{section:dirstructure-devenv} \\
+    \hspace{0.5em} $\llcorner$ EnergyPlusV24-2-0/ & 독립실행형 EnergyPlus 엔진 & \ref{section:dirstructure-devenv} \\
+    \hspace{0.5em} $\llcorner$ Weather/TMY/ & 시뮬레이션에 필요한 기상 데이터 & \ref{section:weather-data} \\
     
-    \texttt{runEngine} & 엔진 실행 스크립트 & \ref{section:howtorun-cli} \\
-    \texttt{runExcelLauncher} & Excel 기반 입력파일의 실행을 위한 web 기반 GUI 실행 스크립트 & \ref{section:howtorun-excellauncher} \\
+    \texttt{EPlusSimpleCLI.exe} & CLI 기반 엔진 실행 도구 & \ref{section:howtorun-cli} \\
+    \texttt{EPlusSimpleLauncher.exe} & Excel 기반 입력파일의 실행을 위한 GUI & \ref{section:howtorun-excellauncher} \\
     
     \bottomrule
   \end{tabularx}
@@ -70,19 +71,19 @@
 
 \simulator\은 아래 세 가지 방법으로 실행할 수 있다.
 \begin{itemize}
-  \item \textbf{명령줄 인터페이스 (Command Line Interface; CLI)}: runEngine.bat 스크립트 파일을 이용, cmd 콘솔 명령어로 \simulator 의 주요 기능을 실행한다. GUI 프로그램 등, 본 엔진과 연동되는 외부 프로그램에 권장되는 방법이다. 포맷 변환, DB 조회 등 외부 프로그램과의 연동이 필요한 기능들이 지원된다.
-  \item \textbf{Excel 기반 입력파일 실행}: Excel 기반 입력파일(\texttt{.xlsx} 확장자)을 작성하여, 웹 기반 GUI를 통해 \simulator \를 실행한다. 본 엔진을 독립적으로 사용하는 사용자에게 권장되는 방법이며, 시뮬레이션의 실행만 가능하다.
-  \item \textbf{Python 모듈 직접 사용}: 엔진에 포함된 portable Python, 또는 별도의 환경에서 \pymodule\을 직접 import하여 \simulator 의 모든 함수를 활용할 수 있다. 본 엔진을 parametric 시뮬레이션 등 변칙적으로 활용하려는 연구자 및 개발자에게 권장되는 방법이다.
+  \item \textbf{명령줄 인터페이스 (Command Line Interface; CLI)}: EPluSimpleCLI 실행파일을 이용, cmd 콘솔 명령어로 \simulator 의 주요 기능을 실행한다. GUI 프로그램 등, 본 엔진과 연동되는 외부 프로그램에 권장되는 방법이다. 포맷 변환, DB 조회 등 외부 프로그램과의 연동이 필요한 기능들이 지원된다.
+  \item \textbf{Excel 기반 입력파일 실행}: Excel 기반 입력파일(\texttt{.xlsx} 확장자)을 작성하여, 내장 GUI (EPlusSimpleLauncher.exe)를 통해 \simulator \를 실행한다. 본 엔진을 독립적으로 사용하는 사용자에게 권장되는 방법이며, 시뮬레이션의 실행만 가능하다.
+  \item \textbf{Python 모듈 직접 사용}: 엔진에 포함된 portable Python, 또는 별도의 환경에서 \pymodule\을 직접 import하여 \simulator 의 모든 함수를 활용할 수 있다. 본 엔진을 parametric 시뮬레이션 등 변칙적으로 활용하려는 연구자 및 개발자에게 권장되는 방법이다. 단, EnergyPlus 엔진, 기상데이터와의 상대경로가 유지되거나, 별도로 처리해주어야 한다.
 \end{itemize}
 
 
 \section{명령줄 인터페이스 (CLI)}
 \label{section:howtorun-cli}
 
-\simulator\은 명령행 인터페이스(Command-Line Interface, CLI)를 통해 실행할 수 있으며, 배포 패키지에는 이를 위한 배치 스크립트\inlinecode{runEngine.bat}가 포함되어 있다. 스크립트는 내부적으로 \simulator 에 포함된 Python을 이용, epsimple 모듈을 실행한다 즉, 아래 CLI signature는 \inlinecode{venv/python.exe -m epsimple <command> [args]}와 동일하며, 외부 연동 시 안정성을 위해 Python의 직접 호출보다는 배치 스크립트를 이용하는 것이 권장된다.
+\simulator\은 명령행 인터페이스(Command-Line Interface, CLI)를 통해 실행할 수 있으며, 배포 패키지에는 이를 위한 실행파일 \inlinecode{EPlusSimpleCLI.exe}가 포함되어 있다. 스크립트는 내부적으로 \simulator 에 포함된 Python을 이용, epsimple 모듈을 실행한다 즉, 아래 CLI signature는 \inlinecode{runtime/PythonV3-12-7/python.exe -m epsimple <command> [args]}와 동일하며, 외부 연동 시 안정성을 위해 Python의 직접 호출보다는 CLI 실행파일을 이용하는 것이 권장된다.
 
 \begin{codeblock}{CLI command signature}
-runEngine <command> [args]
+EPlusSimpleCLI <command> [args]
 \end{codeblock}
 
 여기서 \inlinecode{<command>}는 시뮬레이션 실행 (\texttt{run}: \ref{subsection:clisubcommands-run}), 포맷 변환(\texttt{convert}: \ref{subsection:clisubcommands-convert}) 두 가지가 지원된다.
@@ -90,10 +91,10 @@ runEngine <command> [args]
 \subsection{시뮬레이션 실행}
 \label{subsection:clisubcommands-run}
 
-\simulator 의 핵심 기능으로, 입력파일을 받아 시뮬레이션을 실행하고, 결과를 출력파일로 저장하는 기능이다. 입력파일은 \texttt{grm}(json 형식, \ref{section:format-explanation-grm}) 또는 \texttt{xlsx}(\simulator 전용 엑셀 입력 형식, \ref{section:format-explanation-xlsx}) 모두 가능하며, 출력파일은 \texttt{grr}(json 형식, \ref{section:format-explanation-grr})이다.
+\simulator 의 핵심 기능으로, 입력파일을 받아 시뮬레이션을 실행하고, 결과를 출력파일로 저장하는 기능이다. 입력파일은 \texttt{grm}(json 형식, \ref{section:format-explanation-grm}) 또는 \texttt{xlsx} (\simulator\ 전용 엑셀 입력 형식, \ref{section:format-explanation-xlsx}) 모두 가능하며, 출력파일은 \texttt{grr}(json 형식, \ref{section:format-explanation-grr})이다.
 
 \begin{codeblock}{CLI subcommand signature: `run'}
-runEngine run --input <input_filepath> [--output <output_filepath>]
+EPlusSimpleCLI run --input <input_filepath> [--output <output_filepath>]
 \end{codeblock}
 
 \paragraph{입력 인자}
@@ -108,7 +109,7 @@ runEngine run --input <input_filepath> [--output <output_filepath>]
 입력파일의 형식을 변환하는 기능이다. \simulator 에서 입력파일은 \texttt{xlsx} $\rightarrow$ \texttt{grm} $\rightarrow$ \texttt{idf} 순으로 변환되어 시뮬레이션되므로, \texttt{xlsx} $\rightarrow$ \texttt{idf}를 포함하여 3가지 변환이 가능하다.
 
 \begin{codeblock}{CLI subcommand signature: `convert'}
-runEngine convert <input_filepath> --source <input_type> --destination <output_type> [--output_filepath <output_filepath>]
+EPlusSimpleCLI convert <input_filepath> --source <input_type> --destination <output_type> [--output_filepath <output_filepath>]
 \end{codeblock}
 
 \paragraph{입력 인자}
@@ -122,7 +123,7 @@ runEngine convert <input_filepath> --source <input_type> --destination <output_t
 \section{Excel 기반 입력파일의 실행 방법}
 \label{section:howtorun-excellauncher}
 
-배치 스크립트 \inlinecode{runExcelLauncher.bat}를 실행하면, 서버 역할을 하는 command window와 함께 웹 기반 GUI가 열리며, Excel 기반 입력파일(\texttt{.xlsx} 확장자)을 업로드하여 \simulator \를 실행할 수 있다. GUI는 입력파일의 형식이 올바른지 검증한 뒤, 시뮬레이션을 실행하고, 결과를 레포트 형식으로 제공한다.
+배치 스크립트 \inlinecode{EPlusSimpleLauncher.exe}를 실행하면, 자체 window가 실행된다 (내부서버 실행에 시간이 소요될 수 있음). Excel 기반 입력파일(\texttt{.xlsx} 확장자)을 업로드하여 \simulator \를 실행할 수 있다. GUI는 입력파일의 형식이 올바른지 검증한 뒤, 시뮬레이션을 실행하고, 결과를 레포트 형식으로 제공한다.
 
 웹 기반 GUI는 최대 10개의 리모델링 이후 모델을 동시에 업로드, 시뮬레이션 및 비교할 수 있으며, 최대 4개 코어를 활용하는 병렬 시뮬레이션을 지원한다.
 
