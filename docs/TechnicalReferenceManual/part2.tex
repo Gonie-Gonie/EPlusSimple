@@ -7,7 +7,7 @@
 % ---------------------------------------------------------------------------- %
 
 \chapter{디렉토리 구조}
-\simulator 는 핵심 알고리즘을 포함하는 python 모듈(\pymodule)과 함께, 독립 실행형 (portable) Python, 실행 스크립트, 기술문서, 및 예시파일을 포함한다.
+\simulator 는 핵심 알고리즘을 포함하는 python 모듈(\pymodule)과 함께, 독립 실행형 Python 런타임, 실행 스크립트, 기술문서, 및 예시파일을 포함한다.
 디렉토리의 각 구성 요소별 내용은 \textcref{table:release-dirstructure}\과 같다.
 
 \begin{defaulttable}
@@ -19,11 +19,9 @@
     \midrule
     
     \textbf{src/} & 엔진의 핵심 알고리즘이 포함된 소스 코드 & - \\
-    
-    \hspace{0.5em} $\llcorner$ idragon/ & EnergyPlus 친화적 구조 및 idf 변환 & - \\
-    \hspace{1.5em} $\llcorner$ \_energyPlus/ & 내장된 EnergyPlus 엔진 & \ref{section:dirstructure-devenv} \\
     \hspace{0.5em} $\llcorner$ \pymodule/ & \simulator 친화적 구조 및 중간 변환 & \ref{section:howtorun-pythonmodule} \\
-    \hspace{0.5em} $\llcorner$ launcher/ & Excel 기반 입력파일의 실행을 위한 web 기반 GUI & \ref{section:howtorun-excellauncher} \\
+    \hspace{0.5em} $\llcorner$ idragon/ & EnergyPlus 친화적 구조 및 idf 변환 & - \\
+    \hspace{0.5em} $\llcorner$ launcher/ & Excel 기반 입력파일 실행을 위한 GUI 서버 및 클라이언트 & \ref{section:howtorun-excellauncher} \\
     \addlinespace 
     
     \textbf{docs/} & 엔진 관련 명세 & \ref{section:dirstructure-documentation} \\
@@ -37,11 +35,14 @@
     \hspace{0.5em} $\llcorner$ grr/ & 출력파일 예시 & - \\
     \addlinespace
 
-    \textbf{venv/} & 필요한 라이브러리가 포함된 독립 실행형 Python & \ref{section:dirstructure-devenv} \\
+    \textbf{runtime/} & 외부 실행 프로그램 및 데이터 & - \\
     \addlinespace
+    \hspace{0.5em} $\llcorner$ PythonV3-12-7/ & 독립실행형 Python 런타임 & \ref{section:dirstructure-devenv} \\
+    \hspace{0.5em} $\llcorner$ EnergyPlusV24-2-0/ & 독립실행형 EnergyPlus 엔진 & \ref{section:dirstructure-devenv} \\
+    \hspace{0.5em} $\llcorner$ Weather/TMY/ & 시뮬레이션에 필요한 기상 데이터 & \ref{section:weather-data} \\
     
-    \texttt{runEngine} & 엔진 실행 스크립트 & \ref{section:howtorun-cli} \\
-    \texttt{runExcelLauncher} & Excel 기반 입력파일의 실행을 위한 web 기반 GUI 실행 스크립트 & \ref{section:howtorun-excellauncher} \\
+    \texttt{EPlusSimpleCLI.exe} & CLI 기반 엔진 실행 도구 & \ref{section:howtorun-cli} \\
+    \texttt{EPlusSimpleLauncher.exe} & Excel 기반 입력파일의 실행을 위한 GUI & \ref{section:howtorun-excellauncher} \\
     
     \bottomrule
   \end{tabularx}
@@ -70,19 +71,19 @@
 
 \simulator\은 아래 세 가지 방법으로 실행할 수 있다.
 \begin{itemize}
-  \item \textbf{명령줄 인터페이스 (Command Line Interface; CLI)}: runEngine.bat 스크립트 파일을 이용, cmd 콘솔 명령어로 \simulator 의 주요 기능을 실행한다. GUI 프로그램 등, 본 엔진과 연동되는 외부 프로그램에 권장되는 방법이다. 포맷 변환, DB 조회 등 외부 프로그램과의 연동이 필요한 기능들이 지원된다.
-  \item \textbf{Excel 기반 입력파일 실행}: Excel 기반 입력파일(\texttt{.xlsx} 확장자)을 작성하여, 웹 기반 GUI를 통해 \simulator \를 실행한다. 본 엔진을 독립적으로 사용하는 사용자에게 권장되는 방법이며, 시뮬레이션의 실행만 가능하다.
-  \item \textbf{Python 모듈 직접 사용}: 엔진에 포함된 portable Python, 또는 별도의 환경에서 \pymodule\을 직접 import하여 \simulator 의 모든 함수를 활용할 수 있다. 본 엔진을 parametric 시뮬레이션 등 변칙적으로 활용하려는 연구자 및 개발자에게 권장되는 방법이다.
+  \item \textbf{명령줄 인터페이스 (Command Line Interface; CLI)}: EPluSimpleCLI 실행파일을 이용, cmd 콘솔 명령어로 \simulator 의 주요 기능을 실행한다. GUI 프로그램 등, 본 엔진과 연동되는 외부 프로그램에 권장되는 방법이다. 포맷 변환, DB 조회 등 외부 프로그램과의 연동이 필요한 기능들이 지원된다.
+  \item \textbf{Excel 기반 입력파일 실행}: Excel 기반 입력파일(\texttt{.xlsx} 확장자)을 작성하여, 내장 GUI (EPlusSimpleLauncher.exe)를 통해 \simulator \를 실행한다. 본 엔진을 독립적으로 사용하는 사용자에게 권장되는 방법이며, 시뮬레이션의 실행만 가능하다.
+  \item \textbf{Python 모듈 직접 사용}: 엔진에 포함된 portable Python, 또는 별도의 환경에서 \pymodule\을 직접 import하여 \simulator 의 모든 함수를 활용할 수 있다. 본 엔진을 parametric 시뮬레이션 등 변칙적으로 활용하려는 연구자 및 개발자에게 권장되는 방법이다. 단, EnergyPlus 엔진, 기상데이터와의 상대경로가 유지되거나, 별도로 처리해주어야 한다.
 \end{itemize}
 
 
 \section{명령줄 인터페이스 (CLI)}
 \label{section:howtorun-cli}
 
-\simulator\은 명령행 인터페이스(Command-Line Interface, CLI)를 통해 실행할 수 있으며, 배포 패키지에는 이를 위한 배치 스크립트\inlinecode{runEngine.bat}가 포함되어 있다. 스크립트는 내부적으로 \simulator 에 포함된 Python을 이용, epsimple 모듈을 실행한다 즉, 아래 CLI signature는 \inlinecode{venv/python.exe -m epsimple <command> [args]}와 동일하며, 외부 연동 시 안정성을 위해 Python의 직접 호출보다는 배치 스크립트를 이용하는 것이 권장된다.
+\simulator\은 명령행 인터페이스(Command-Line Interface, CLI)를 통해 실행할 수 있으며, 배포 패키지에는 이를 위한 실행파일 \inlinecode{EPlusSimpleCLI.exe}가 포함되어 있다. 스크립트는 내부적으로 \simulator 에 포함된 Python을 이용, epsimple 모듈을 실행한다 즉, 아래 CLI signature는 \inlinecode{runtime/PythonV3-12-7/python.exe -m epsimple <command> [args]}와 동일하며, 외부 연동 시 안정성을 위해 Python의 직접 호출보다는 CLI 실행파일을 이용하는 것이 권장된다.
 
 \begin{codeblock}{CLI command signature}
-runEngine <command> [args]
+EPlusSimpleCLI <command> [args]
 \end{codeblock}
 
 여기서 \inlinecode{<command>}는 시뮬레이션 실행 (\texttt{run}: \ref{subsection:clisubcommands-run}), 포맷 변환(\texttt{convert}: \ref{subsection:clisubcommands-convert}) 두 가지가 지원된다.
@@ -90,10 +91,10 @@ runEngine <command> [args]
 \subsection{시뮬레이션 실행}
 \label{subsection:clisubcommands-run}
 
-\simulator 의 핵심 기능으로, 입력파일을 받아 시뮬레이션을 실행하고, 결과를 출력파일로 저장하는 기능이다. 입력파일은 \texttt{grm}(json 형식, \ref{section:format-explanation-grm}) 또는 \texttt{xlsx}(\simulator 전용 엑셀 입력 형식, \ref{section:format-explanation-xlsx}) 모두 가능하며, 출력파일은 \texttt{grr}(json 형식, \ref{section:format-explanation-grr})이다.
+\simulator 의 핵심 기능으로, 입력파일을 받아 시뮬레이션을 실행하고, 결과를 출력파일로 저장하는 기능이다. 입력파일은 \texttt{grm}(json 형식, \ref{section:format-explanation-grm}) 또는 \texttt{xlsx} (\simulator\ 전용 엑셀 입력 형식, \ref{section:format-explanation-xlsx}) 모두 가능하며, 출력파일은 \texttt{grr}(json 형식, \ref{section:format-explanation-grr})이다.
 
 \begin{codeblock}{CLI subcommand signature: `run'}
-runEngine run --input <input_filepath> [--output <output_filepath>]
+EPlusSimpleCLI run --input <input_filepath> [--output <output_filepath>]
 \end{codeblock}
 
 \paragraph{입력 인자}
@@ -108,7 +109,7 @@ runEngine run --input <input_filepath> [--output <output_filepath>]
 입력파일의 형식을 변환하는 기능이다. \simulator 에서 입력파일은 \texttt{xlsx} $\rightarrow$ \texttt{grm} $\rightarrow$ \texttt{idf} 순으로 변환되어 시뮬레이션되므로, \texttt{xlsx} $\rightarrow$ \texttt{idf}를 포함하여 3가지 변환이 가능하다.
 
 \begin{codeblock}{CLI subcommand signature: `convert'}
-runEngine convert <input_filepath> --source <input_type> --destination <output_type> [--output_filepath <output_filepath>]
+EPlusSimpleCLI convert <input_filepath> --source <input_type> --destination <output_type> [--output_filepath <output_filepath>]
 \end{codeblock}
 
 \paragraph{입력 인자}
@@ -122,7 +123,7 @@ runEngine convert <input_filepath> --source <input_type> --destination <output_t
 \section{Excel 기반 입력파일의 실행 방법}
 \label{section:howtorun-excellauncher}
 
-배치 스크립트 \inlinecode{runExcelLauncher.bat}를 실행하면, 서버 역할을 하는 command window와 함께 웹 기반 GUI가 열리며, Excel 기반 입력파일(\texttt{.xlsx} 확장자)을 업로드하여 \simulator \를 실행할 수 있다. GUI는 입력파일의 형식이 올바른지 검증한 뒤, 시뮬레이션을 실행하고, 결과를 레포트 형식으로 제공한다.
+배치 스크립트 \inlinecode{EPlusSimpleLauncher.exe}를 실행하면, 자체 window가 실행된다 (내부서버 실행에 시간이 소요될 수 있음). Excel 기반 입력파일(\texttt{.xlsx} 확장자)을 업로드하여 \simulator \를 실행할 수 있다. GUI는 입력파일의 형식이 올바른지 검증한 뒤, 시뮬레이션을 실행하고, 결과를 레포트 형식으로 제공한다.
 
 웹 기반 GUI는 최대 10개의 리모델링 이후 모델을 동시에 업로드, 시뮬레이션 및 비교할 수 있으며, 최대 4개 코어를 활용하는 병렬 시뮬레이션을 지원한다.
 
@@ -275,7 +276,7 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 
 \subsection{class별 명세}
 
-\subsubsection{building} \label{subsubsection:ioref:building}
+\subsubsection{building (건물정보)} \label{subsubsection:ioref:building}
 실재하는 건물에 대한 최상위 정보 체계이다.
 
 \jsontable{building}{
@@ -292,8 +293,8 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
   \jsontablerow{photovoltaic_systems }{[ \hyperref[subsubsection:ioref:photovoltaicsystem]{\texttt{photovoltaic\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
 }
 
-\paragraph{name} 건물의 이름. 시뮬레이션에 직접 사용되지 않는다.
-\paragraph{north\_axis} 건물의 방위각. 도면상에서 나침반이 가리키는 방향 (반시계방향), 또는 건물의 향 관련 입력을 모두 회전시키는 동작 (시계방향) 을 지칭한다 (\cref{fig:ioref:north_axis}).
+\paragraph{name (건물명)} 건물의 이름. 시뮬레이션에 직접 사용되지 않는다.
+\paragraph{north\_axis (방위각)} 건물의 방위각. 도면상에서 나침반이 가리키는 방향 (반시계방향), 또는 건물의 향 관련 입력을 모두 회전시키는 동작 (시계방향) 을 지칭한다 (\cref{fig:ioref:north_axis}).
 
 \begin{defaultfigure}
   
@@ -314,15 +315,15 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 
 \end{defaultfigure}
 
-\paragraph{address} 건물의 주소. 식별 가능한 법정 기초행정구역명(세종특별자치시와 제주특별자치도 제주시, 서귀포시를 포함)을 포함하여야 한다. 
+\paragraph{address (주소)} 건물의 주소. 식별 가능한 법정 기초행정구역명(세종특별자치시와 제주특별자치도 제주시, 서귀포시를 포함)을 포함하여야 한다. 
 
-\paragraph{vintage} 건물의 허가일자. 연(4자리 정수), 월(2자리 정수), 일(2자리 정수)로 이루어진 array이다.
+\paragraph{vintage (허가일자)} 건물의 허가일자. 연(4자리 정수), 월(2자리 정수), 일(2자리 정수)로 이루어진 array이다.
 
-\paragraph{num\_aboveground\_floor} 건물의 지상 층 수. 시뮬레이션에 직접 사용되지 않는다.
+\paragraph{num\_aboveground\_floor (지상층수)} 건물의 지상 층 수. 시뮬레이션에 직접 사용되지 않는다.
 
-\paragraph{num\_underground\_floor} 건물의 지하 층 수. 시뮬레이션에 직접 사용되지 않는다.
+\paragraph{num\_underground\_floor (지하층수)} 건물의 지하 층 수. 시뮬레이션에 직접 사용되지 않는다.
 
-\subsubsection{floor} \label{subsubsection:ioref:floor}
+\subsubsection{floor (층)} \label{subsubsection:ioref:floor}
 하위 \hyperref[subsubsection:ioref:zone]{\texttt{zone}}들을 층 단위로 구분하기 위한 클래스이다.
 
 \jsontable{floor}{
@@ -330,9 +331,9 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
   \jsontablerow{zones}{[ \hyperref[subsubsection:ioref:zone]{\texttt{zone}} ]}{\ReqTag{R}}{}{}{[1,$Inf$)}{}
 }
 
-\paragraph{floor\_number} 층을 구별하기 위한 식별자. 시뮬레이션에 직접 사용되지 않는다.
+\paragraph{floor\_number (층수)} 층을 구별하기 위한 식별자. 시뮬레이션에 직접 사용되지 않는다.
 
-\subsubsection{zone} \label{subsubsection:ioref:zone}
+\subsubsection{zone (실)} \label{subsubsection:ioref:zone}
 건물에서 하나의 실, 또는 같은 열적 특성(유사한 용도, 공통 설비 등)을 공유하는 서로 연결된 여러 실을 모사하는 최소 단위이다.
 
 \jsontable{zone}{
@@ -348,27 +349,27 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
   \jsontablerow{surface                 }{[ \hyperref[subsubsection:ioref:surface]{\texttt{surface}} ]}{ \ReqTag{R} }{}{}{[0, $Inf$)}{}
 }
 
-\paragraph{id} 존의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
+\paragraph{id (식별자)} 존의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
 
-\paragraph{name} 사용자 편의를 위해 제공되는 존 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
+\paragraph{name (이름)} 사용자 편의를 위해 제공되는 존 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
 
-\paragraph{height} 존의 높이. 실의 부피 계산에 이용된다.
+\paragraph{height (천장고)} 존의 높이. 실의 부피 계산에 이용된다.
 
-\paragraph{profile} 존의 용도프로필. 기본으로 제공되는 항목 중에서 입력 가능하다. 
+\paragraph{profile (용도프로필)} 존의 용도프로필. 기본으로 제공되는 항목 중에서 입력 가능하다. 
 
-\paragraph{profile\_id} 존에 적용된 custom 용도프로필의 ID. 
+\paragraph{profile\_id (용도프로필 식별자)} 존에 적용된 custom 용도프로필의 ID. 
 
-\paragraph{light\_density} 조명 밀도.
+\paragraph{light\_density (조명밀도)} 조명 밀도.
 
-\paragraph{supply\_system\_heating\_id} 난방공급시스템의 ID. 
+\paragraph{supply\_system\_heating\_id (난방 공급 설비)} 난방공급시스템의 ID. 
 
-\paragraph{supply\_system\_cooling\_id} 냉방공급시스템의 ID.
+\paragraph{supply\_system\_cooling\_id (냉방 공급 설비)} 냉방공급시스템의 ID.
 
-\paragraph{ventilation\_system\_id} 환기시스템의 ID.
+\paragraph{ventilation\_system\_id (환기 설비)} 환기시스템의 ID.
 
-\paragraph{surface} 소속면. 해당 \texttt{zone}을 인접존으로 하는 \texttt{surface}를 포함하여, 1개 이상의 천장(\texttt{type} = ``ceiling''), 1개 이상의 바닥(\texttt{type} = ``floor'') 및 1개 이상의 벽체(\texttt{type} = ``wall'')를 필요로 한다. 즉, 인접존이 없을 경우, 3 이상의 길이를 가지는 list가 필요하다.
+\paragraph{surface (소속 면)} 소속면. 해당 \texttt{zone}을 인접존으로 하는 \texttt{surface}를 포함하여, 1개 이상의 천장(\texttt{type} = ``ceiling''), 1개 이상의 바닥(\texttt{type} = ``floor'') 및 1개 이상의 벽체(\texttt{type} = ``wall'')를 필요로 한다. 즉, 인접존이 없을 경우, 3 이상의 길이를 가지는 list가 필요하다.
 
-\subsubsection{surface} \label{subsubsection:ioref:surface}
+\subsubsection{surface (면)} \label{subsubsection:ioref:surface}
 존과 존, 외부 (외기 또는 지면), 또는 단열선 사이의 면(벽체)이다.
 
 \jsontable{surface}{
@@ -384,13 +385,13 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
   \jsontablerow{fenestrations       }{[ \hyperref[subsubsection:ioref:fenestration]{\texttt{fenestration}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
 }
 
-\paragraph{id} 면의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
+\paragraph{id (식별자)} 면의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
 
-\paragraph{name} 사용자 편의를 위해 제공되는 면 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
+\paragraph{name (이름)} 사용자 편의를 위해 제공되는 면 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
 
-\paragraph{type} 면의 유형. 천장(``ceiling''), 바닥(``floor''), 벽체(``wall'')로 구분된다. 유형이 바닥(``floor'')인 면의 면적은 해당 \texttt{zone}의 면적에 포함되며, 유형이 천장(``ceiling'')인 면은 경계조건이 외기(``outdoors'')인 경우 쿨루프 적용이 가능하다.
+\paragraph{type (유형)} 면의 유형. 천장(``ceiling''), 바닥(``floor''), 벽체(``wall'')로 구분된다. 유형이 바닥(``floor'')인 면의 면적은 해당 \texttt{zone}의 면적에 포함되며, 유형이 천장(``ceiling'')인 면은 경계조건이 외기(``outdoors'')인 경우 쿨루프 적용이 가능하다.
 
-\paragraph{boundary\_condition} 면의 경계조건. 일사와 바람의 영향을 받고 외기와 열교환을 하는 외기(``outdoors''), 다른 \texttt{zone}과 열교환을 하는 존(``zone''), 지면과 열교환을 하는 지면(``ground''), 어떠한 열교환도 하지 않고 축열의 역할만 담당하는 단열(``adiabatic'')로 구분된다 (Figure \ref{fig:surface_bo_description}).
+\paragraph{boundary\_condition (경계조건)} 면의 경계조건. 일사와 바람의 영향을 받고 외기와 열교환을 하는 외기(``outdoors''), 다른 \texttt{zone}과 열교환을 하는 존(``zone''), 지면과 열교환을 하는 지면(``ground''), 어떠한 열교환도 하지 않고 축열의 역할만 담당하는 단열(``adiabatic'')로 구분된다 (Figure \ref{fig:surface_bo_description}).
 
 \begin{defaultfigure}
   \includegraphics[width=0.8\textwidth]{면 경계조건 예시.png}
@@ -398,17 +399,17 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
   \label{fig:surface_bo_description}
 \end{defaultfigure}
 
-\paragraph{area} 면적. 해당 면에 개구부(예:창, 문 등)가 존재하는 경우, 이들의 면적을 포함한 전체 면적을 의미한다.
+\paragraph{area (면적)} 면적. 해당 면에 개구부(예:창, 문 등)가 존재하는 경우, 이들의 면적을 포함한 전체 면적을 의미한다.
 
-\paragraph{azimuth} 면의 방위각. 기준은 북향을 0$^\circ$로 하며, 반시계 방향으로 증가한다. 예를들어, 서향은 90$^\circ$, 남향은 180$^\circ$, 동쪽은 270$^\circ$로 정의한다.
+\paragraph{azimuth (향)} 면의 방위각. 기준은 북향을 0$^\circ$로 하며, 반시계 방향으로 증가한다. 예를들어, 서향은 90$^\circ$, 남향은 180$^\circ$, 동쪽은 270$^\circ$로 정의한다.
 
-\paragraph{adjacent\_zone\_id} 인접존 ID. 면의 경계조건을 ``zone''으로 설정한 경우에만 입력한다.
+\paragraph{adjacent\_zone\_id (인접존 식별자)} 인접존 ID. 면의 경계조건을 ``zone''으로 설정한 경우에만 입력한다.
 
-\paragraph{construction\_id} 구조체 ID. 
+\paragraph{construction\_id (구조체 식별자)} 구조체 ID. 
 
-\paragraph{coolroof\_reflectance} 지붕면의 태양 반사율. 쿨루프(Cool Roof)시공이 적용된 경우에만 입력한다.
+\paragraph{coolroof\_reflectance (쿨루프 반사율)} 지붕면의 태양 반사율. 쿨루프(Cool Roof)시공이 적용된 경우에만 입력한다.
 
-\subsubsection{fenestration} \label{subsubsection:ioref:fenestration}
+\subsubsection{fenestration (개구부)} \label{subsubsection:ioref:fenestration}
 개구부. 벽체의 열린 부분을 의미하며, 창, 문(유리문, 방화문 등) 등 외기와의 접촉 또는 채광·환기를 목적으로 설치된 요소를 포함한다.
 
 \jsontable{fenestration}{
@@ -420,19 +421,19 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
   \jsontablerow{blind          }{\TypeTag{E}}{\ReqTag{O}}{\texttt{null}}{}{\shortstack[c]{ venetian \\ shade}}{}
 }
 
-\paragraph{id} 개구부의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
+\paragraph{id (식별자)} 개구부의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
 
-\paragraph{name} 사용자 편의를 위해 제공되는 개구부 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
+\paragraph{name (이름)} 사용자 편의를 위해 제공되는 개구부 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
 
-\paragraph{type} 개구부의 유형. 유리창(``window''), 유리문(``glassdoor''), 또는 유리가 아닌 일반 문(``door'', 예: 방화문, 나무문 등)으로 구분된다.
+\paragraph{type (유형)} 개구부의 유형. 유리창(``window''), 유리문(``glassdoor''), 또는 유리가 아닌 일반 문(``door'', 예: 방화문, 나무문 등)으로 구분된다.
 
-\paragraph{area} 개구부의 면적. 해당 개구부가 속한 면의 면적보다 작아야 한다.
+\paragraph{area (면적)} 개구부의 면적. 해당 개구부가 속한 면의 면적보다 작아야 한다.
 
-\paragraph{construction\_id} 개구부의 구조체. \texttt{type}이 ``window'' 또는 ``glassdoor''인 경우, \texttt{is\_transparent} 속성이 \texttt{True}인 구조체여야 한다. 반대로, \texttt{type}이 ``door''인 경우, \texttt{is\_transparent} 속성이 \texttt{False}인 구조체여야 한다
+\paragraph{construction\_id (구조체 식별자)} 개구부의 구조체. \texttt{type}이 ``window'' 또는 ``glassdoor''인 경우, \texttt{is\_transparent} 속성이 \texttt{True}인 구조체여야 한다. 반대로, \texttt{type}이 ``door''인 경우, \texttt{is\_transparent} 속성이 \texttt{False}인 구조체여야 한다
 
-\paragraph{blind} 블라인드의 종류. 값이 \texttt{null}이면 블라인드가 없는 것을 의미한다.
+\paragraph{blind (블라인드)} 블라인드의 종류. 값이 \texttt{null}이면 블라인드가 없는 것을 의미한다.
 
-\subsubsection{supply\_system} \label{subsubsection:ioref:supplysystem}
+\subsubsection{supply\_system (공급설비)} \label{subsubsection:ioref:supplysystem}
 각 존에 존재하는 말단 공급설비이다. 
 
 \jsontable{supply\_system}{
@@ -445,19 +446,19 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
   \jsontablerow{source_system_id}{\TypeTag{S}}{\ReqTag{CR}}{}{}{\hyperref[subsubsection:ioref:sourcesystem]{\texttt{source\_system}}의 \texttt{id}}{}
 }
 
-\paragraph{id} 공급설비의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
+\paragraph{id (식별자)} 공급설비의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
 
-\paragraph{name} 사용자 편의를 위해 제공되는 공급설비 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
+\paragraph{name (이름)} 사용자 편의를 위해 제공되는 공급설비 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
 
-\paragraph{type} 공급설비의 종류. 선택한 공급설비 유형에 따라 냉·난방 제공 가능 여부가 달라진다. 각 공급설비별 냉·난방 지원 가능 여부는 Figure \ref{fig:supply_and_source_properties_and_connection}에 제시되어 있다.
+\paragraph{type (유형)} 공급설비의 종류. 선택한 공급설비 유형에 따라 냉·난방 제공 가능 여부가 달라진다. 각 공급설비별 냉·난방 지원 가능 여부는 Figure \ref{fig:supply_and_source_properties_and_connection}에 제시되어 있다.
 
-\paragraph{cop\_cooling} 정격 냉방 성능계수(COP). 정격 운전 조건에서의 냉방 출력을 소비 전력으로 나눈 값이다. 공급설비의 유형을 ``packaged\_airconditioner''로 선택한 경우에만 입력한다.
+\paragraph{cop\_cooling (냉방COP)} 정격 냉방 성능계수(COP). 정격 운전 조건에서의 냉방 출력을 소비 전력으로 나눈 값이다. 공급설비의 유형을 ``packaged\_airconditioner''로 선택한 경우에만 입력한다.
 
-\paragraph{capacity\_cooling} 냉방용량. 설비의 최대 냉방 출력을 의미한다. 해당 값을 입력하지 않을 경우 (\texttt{null}), EnergyPlus의 autosizing을 이용한다. 공급설비의 유형을 ``packaged\_airconditioner''로 선택한 경우에만 입력한다.
+\paragraph{capacity\_cooling (냉방용량)} 냉방용량. 설비의 최대 냉방 출력을 의미한다. 해당 값을 입력하지 않을 경우 (\texttt{null}), EnergyPlus의 autosizing을 이용한다. 공급설비의 유형을 ``packaged\_airconditioner''로 선택한 경우에만 입력한다.
 
-\paragraph{capacity\_heating} 난방용량. 설비의 최대 난방 출력을 의미한다. 해당 값을 입력하지 않을 경우 (\texttt{null}), EnergyPlus의 autosizing을 이용한다. 공급설비의 유형을 ``radiator''혹은 ``electric\_radiator''로 선택한 경우에만 입력한다.
+\paragraph{capacity\_heating (난방용량)} 난방용량. 설비의 최대 난방 출력을 의미한다. 해당 값을 입력하지 않을 경우 (\texttt{null}), EnergyPlus의 autosizing을 이용한다. 공급설비의 유형을 ``radiator''혹은 ``electric\_radiator''로 선택한 경우에만 입력한다.
 
-\paragraph{source\_system\_id} 연결된 생산설비의 ID. 연결가능한 생산설비는 Figure \ref{fig:supply_and_source_properties_and_connection}\와 같다.
+\paragraph{source\_system\_id (생산설비 식별자)} 연결된 생산설비의 ID. 연결가능한 생산설비는 Figure \ref{fig:supply_and_source_properties_and_connection}\와 같다.
 
 \begin{defaultfigure}
   \includegraphics[width=\textwidth]{HVAC_properties_and_connectables.png}
@@ -465,7 +466,7 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
   \label{fig:supply_and_source_properties_and_connection}
 \end{defaultfigure}
 
-\subsubsection{source\_system} \label{subsubsection:ioref:sourcesystem}
+\subsubsection{source\_system (생산설비)} \label{subsubsection:ioref:sourcesystem}
 건물에 존재하는 생산설비이다.
 
 \jsontable{source\_system}{
@@ -486,38 +487,38 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
   \jsontablerow{efficiency           }{\TypeTag{F}}{\ReqTag{CO}}{0.85}{\texttt{type} = ``boiler''}{(0,1)}{1}
 }
 
-\paragraph{id} 생산설비의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
+\paragraph{id (식별자)} 생산설비의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
 
-\paragraph{name} 사용자 편의를 위해 제공되는 생산설비 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
+\paragraph{name (이름)} 사용자 편의를 위해 제공되는 생산설비 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
 
-\paragraph{type} 생산설비의 종류. 공급설비에 열을 제공하는 기기의 종류를 선택하며, 선택가능한 유형은 히트펌프(``heatpump''), 지열 히트펌프(``geothermal\_heatpump''), 칠러(``chiller''), 흡수식 칠러(``absorption\_chiller''), 보일러(``boiler''), 지역난방(``district\_heating'')이다.
+\paragraph{type (유형)} 생산설비의 종류. 공급설비에 열을 제공하는 기기의 종류를 선택하며, 선택가능한 유형은 히트펌프(``heatpump''), 지열 히트펌프(``geothermal\_heatpump''), 칠러(``chiller''), 흡수식 칠러(``absorption\_chiller''), 보일러(``boiler''), 지역난방(``district\_heating'')이다.
 
-\paragraph{fuel\_type} 연료의 종류. 생산설비의 사용 연료를 의미하며, 선택 가능한 항목은 전기(``electricity''), 천연가스/가스(``natural\_gas''), 난방유(``oil''), 지역난방(``district\_heating'')이다.
+\paragraph{fuel\_type (연료종류)} 연료의 종류. 생산설비의 사용 연료를 의미하며, 선택 가능한 항목은 전기(``electricity''), 천연가스/가스(``natural\_gas''), 난방유(``oil''), 지역난방(``district\_heating'')이다.
 
 
-\paragraph{compressor\_type} 압축기의 종류. 
+\paragraph{compressor\_type (압축기 종류)} 압축기의 종류. 
 
-\paragraph{coolingtower\_type} 냉각탑의 종류. 
+\paragraph{coolingtower\_type (냉각탑 종류)} 냉각탑의 종류. 
 
-\paragraph{coolingtower\_control} 냉각탑에 적용된 제어. 
+\paragraph{coolingtower\_control (냉각탑 제어방식)} 냉각탑에 적용된 제어. 
 
-\paragraph{hotwater\_supply} 급탕공급 여부. 급탕을 공급하는 모든 생산설비들은 급탕효율 계산에 이용되며, 모든 설비가 동등하게 급탕 부하를 분담하는 것으로 가정한다.
+\paragraph{hotwater\_supply (급탕용)} 급탕공급 여부. 급탕을 공급하는 모든 생산설비들은 급탕효율 계산에 이용되며, 모든 설비가 동등하게 급탕 부하를 분담하는 것으로 가정한다.
 
-\paragraph{coolingtower\_capacity} 냉각탑용량. 해당 값을 입력하지 않을 경우 (\texttt{null}) EnergyPlus의 autosizing을 이용한다.
+\paragraph{coolingtower\_capacity (냉각탑 용량)} 냉각탑용량. 해당 값을 입력하지 않을 경우 (\texttt{null}) EnergyPlus의 autosizing을 이용한다.
 
-\paragraph{boiler\_efficiency} 연동된 보일러의 효율.
+\paragraph{boiler\_efficiency (연동보일러 효율)} 연동된 보일러의 효율.
 
-\paragraph{capacity\_cooling} 냉방용량. 해당 값을 입력하지 않을 경우 (\texttt{null}) EnergyPlus의 autosizing을 이용한다.
+\paragraph{capacity\_cooling (냉방용량)} 냉방용량. 해당 값을 입력하지 않을 경우 (\texttt{null}) EnergyPlus의 autosizing을 이용한다.
 
-\paragraph{capacity\_heating} 난방용량. 해당 값을 입력하지 않을 경우 (\texttt{null}) EnergyPlus의 autosizing을 이용한다.
+\paragraph{capacity\_heating (난방용량)} 난방용량. 해당 값을 입력하지 않을 경우 (\texttt{null}) EnergyPlus의 autosizing을 이용한다.
 
-\paragraph{cop\_cooling} 정격 냉방성능계수(COP). 정격 운전 조건에서의 냉방 출력을 소비 전력으로 나눈 값이다.
+\paragraph{cop\_cooling (냉방COP)} 정격 냉방성능계수(COP). 정격 운전 조건에서의 냉방 출력을 소비 전력으로 나눈 값이다.
 
-\paragraph{cop\_heating} 정격 난방성능계수(COP). 정격 운전 조건에서의 난방 출력을 소비 전력으로 나눈 값이다.
+\paragraph{cop\_heating (난방COP)} 정격 난방성능계수(COP). 정격 운전 조건에서의 난방 출력을 소비 전력으로 나눈 값이다.
 
-\paragraph{efficiency} 보일러의 효율.
+\paragraph{efficiency (효율)} 보일러의 효율.
 
-\subsubsection{ventilation\_system} \label{subsubsection:ioref:ventilationsystem}
+\subsubsection{ventilation\_system (환기설비)} \label{subsubsection:ioref:ventilationsystem}
 
 
 \jsontable{ventilation\_system}{
@@ -527,15 +528,15 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
   \jsontablerow{efficiency_cooling}{\TypeTag{F}}{\ReqTag{O}}{0.45}{}{(0,1)}{1}
 }
 
-\paragraph{id} 환기설비의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
+\paragraph{id (식별자)} 환기설비의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
 
-\paragraph{name} 사용자 편의를 위해 제공되는 생산설비 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
+\paragraph{name (이름)} 사용자 편의를 위해 제공되는 생산설비 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
 
-\paragraph{efficiency\_heating} 유효 냉방 전열교환 효율.
+\paragraph{efficiency\_cooling (냉방효율)} 유효 냉방 전열교환 효율.
 
-\paragraph{efficiency\_heating} 유효 난방 전열교환 효율.
+\paragraph{efficiency\_heating (난방효율)} 유효 난방 전열교환 효율.
 
-\subsubsection{photovoltaic\_system} \label{subsubsection:ioref:photovoltaicsystem}
+\subsubsection{photovoltaic\_system (PV패널)} \label{subsubsection:ioref:photovoltaicsystem}
 태양광 발전 설비.
 
 \jsontable{photovoltaic\_system}{
@@ -547,15 +548,15 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
   \jsontablerow{efficiency}{\TypeTag{F}}{\ReqTag{R}}{}{}{(0,1)}{1}
 }
 
-\paragraph{id} 태양광설비의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
+\paragraph{id (식별자)} 태양광설비의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
  
-\paragraph{name} 사용자 편의를 위해 제공되는 태양광설비 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
+\paragraph{name (이름)} 사용자 편의를 위해 제공되는 태양광설비 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
 
-\paragraph{area} 태양광 패널의 면적.
+\paragraph{area (면적)} 태양광 패널의 면적.
 
-\paragraph{efficiency} 태양광 모듈의 발전 효율.
+\paragraph{efficiency (효율)} 태양광 모듈의 발전 효율.
 
-\paragraph{azimuth} 패널의 방위각. \hyperref[subsubsection:ioref:building]{\texttt{building}}의 \texttt{north\_axis}를 고려하지 않고 독립적으로 계산된다 (Figure \ref{fig:azimuth_of_PVpanel}). 
+\paragraph{azimuth (방위각)} 패널의 방위각. \hyperref[subsubsection:ioref:building]{\texttt{building}}의 \texttt{north\_axis}를 고려하지 않고 독립적으로 계산된다 (Figure \ref{fig:azimuth_of_PVpanel}). 
 
 \begin{defaultfigure}
   \includegraphics{태양광패널의 azimuth 설명.png}
@@ -563,9 +564,9 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
   \label{fig:azimuth_of_PVpanel}
 \end{defaultfigure}
 
-\paragraph{tilt} 패널의 경사각. 0$^\circ$는 수평면, 90$^\circ$는 수직면을 의미한다.
+\paragraph{tilt (경사각)} 패널의 경사각. 0$^\circ$는 수평면, 90$^\circ$는 수직면을 의미한다.
 
-\subsubsection{material} \label{subsubsection:ioref:material}
+\subsubsection{material (재료)} \label{subsubsection:ioref:material}
 
 \jsontable{material}{
   \jsontablerow{id           }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
@@ -575,17 +576,17 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
   \jsontablerow{specific_heat}{\TypeTag{F}}{\ReqTag{R}}{}{}{(100,$Inf$)}{J{\cdot}kg^{-1}{\cdot}K^{-1}}
 }
 
-\paragraph{id} 재료의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
+\paragraph{id (식별자)} 재료의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
 
-\paragraph{name} 사용자 편의를 위해 제공되는 재료 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
+\paragraph{name (이름)} 사용자 편의를 위해 제공되는 재료 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
 
-\paragraph{conductivity} 열전도율. 재료의 단위 두께를 통한 열 전달 능력을 나타낸다.
+\paragraph{conductivity (열전도율)} 열전도율. 재료의 단위 두께를 통한 열 전달 능력을 나타낸다.
 
-\paragraph{density} 밀도. 재료의 단위 부피당 질량을 나타낸다.
+\paragraph{density (밀도)} 밀도. 재료의 단위 부피당 질량을 나타낸다.
 
-\paragraph{specific\_heat} 비열. 재료의 단위 질량이 1K 상승할 때 필요한 열량을 나타낸다.
+\paragraph{specific\_heat (비열)} 비열. 재료의 단위 질량이 1K 상승할 때 필요한 열량을 나타낸다.
 
-\subsubsection{surface\_construction} \label{subsubsection:ioref:construction}
+\subsubsection{surface\_construction (구조체 면)} \label{subsubsection:ioref:construction}
 
 \jsontable{surface\_construction}{
   \jsontablerow{id    }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
@@ -593,22 +594,22 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
   \jsontablerow{layers}{[ \hyperref[subsubsection:ioref:layer]{\texttt{layer}} ]}{\ReqTag{R}}{}{}{[1, 10]}{}
 }
  
-\paragraph{id} 레이어의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
+\paragraph{id (식별자)} 레이어의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
 
-\paragraph{name} 사용자 편의를 위해 제공되는 레이어 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
+\paragraph{name (이름)} 사용자 편의를 위해 제공되는 레이어 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
 
-\subsubsection{layer} \label{subsubsection:ioref:layer}
+\subsubsection{layer (레이어)} \label{subsubsection:ioref:layer}
 
  \jsontable{layer}{
   \jsontablerow{material_id}{\TypeTag{S}}{\ReqTag{R}}{}{}{\hyperref[subsubsection:ioref:material]{\texttt{material}}의 \texttt{id}}{}
   \jsontablerow{thicknes   }{\TypeTag{F}}{\ReqTag{R}}{}{}{(0.003,$Inf$)}{m}
 }
 
-\paragraph{material\_id} 레이어 구성 재료의 ID.
+\paragraph{material\_id (재료 식별자)} 레이어 구성 재료의 ID.
 
-\paragraph{thickness} 레이어 구성 재료의 두께.
+\paragraph{thickness (레이어 두께)} 레이어 구성 재료의 두께.
 
-\subsubsection{fenestration\_construction} \label{subsubsection:ioref:fenestrationconstruction}
+\subsubsection{fenestration\_construction (구조체 개구부)} \label{subsubsection:ioref:fenestrationconstruction}
 
 \jsontable{fenestration\_construction}{
   \jsontablerow{id            }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
@@ -618,15 +619,15 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
   \jsontablerow{g             }{\TypeTag{F}}{\ReqTag{CR}}{}{\texttt{is\_transparent} = \texttt{True}}{(0,1]}{}
 }
 
-\paragraph{id} 창호의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
+\paragraph{id (식별자)} 창호의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
 
-\paragraph{name} 사용자 편의를 위해 제공되는 창호 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
+\paragraph{name (이름)} 사용자 편의를 위해 제공되는 창호 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
 
-\paragraph{is\_transparent} 구조체의 투명여부. 투명한 구조체의 개구부(예: 유리창, 유리문 등)는 ``True''로 입력하며, 불투명한 구조체의 개구부(예: 방화문, 나무문 등)는 ``False''로 입력한다.
+\paragraph{is\_transparent (투명여부)} 구조체의 투명여부. 투명한 구조체의 개구부(예: 유리창, 유리문 등)는 ``True''로 입력하며, 불투명한 구조체의 개구부(예: 방화문, 나무문 등)는 ``False''로 입력한다.
 
-\paragraph{u} 창호의 열관류율(U-value).
+\paragraph{u (열관류율)} 창호의 열관류율(U-value).
 
-\paragraph{g} 창호의 열취득계수(G-value, SHGC).
+\paragraph{g (태양열취득계수)} 창호의 열취득계수(G-value, SHGC).
 
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
