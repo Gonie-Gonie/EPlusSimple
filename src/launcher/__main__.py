@@ -20,7 +20,7 @@ source = importlib.import_module(f".{COREMODULE_NAME}", package=__package__)
 #                       APP DEFINITION AND INITIALIZATION                      #
 # ---------------------------------------------------------------------------- #
 
-def initizalize_app(
+def initialize_app(
     *,
     upload_dirpath   = None,
     static_dirname   = None,
@@ -33,15 +33,15 @@ def initizalize_app(
     if not os.path.exists(upload_dirpath):
         os.mkdir(upload_dirpath)
     
-    # define static directory
+    # define static/template directory
     if static_dirname is None:
         static_dirname = "static"
-    static_dirpath = f"./{static_dirname}"
-    
-    # define template directory
     if template_dirname is None:
         template_dirname = "templates"
-    template_dirpath = f"./{template_dirname}"
+    
+    package_dirpath = Path(__file__).resolve().parent
+    static_dirpath = package_dirpath / static_dirname
+    template_dirpath = package_dirpath / template_dirname
     
     # create a flask app 
     app = Flask(__name__,
@@ -55,13 +55,29 @@ def initizalize_app(
     
     return app
 
+def create_app() -> Flask:
+    app = initialize_app(template_dirname=TEMPLATE_DIRNAME)
+    app.add_url_rule("/", "main", source.getpost, methods=["GET", "POST"])
+    return app
 
-# ---------------------------------------------------------------------------- #
-#                                    SCRIPT                                    #
-# ---------------------------------------------------------------------------- #
+
+def main() -> None:
+    host = os.environ.get("EPLUSSIMPLE_LAUNCHER_HOST", "127.0.0.1")
+    port = int(os.environ.get("EPLUSSIMPLE_LAUNCHER_PORT", "5000"))
+
+    debug_text = os.environ.get("EPLUSSIMPLE_LAUNCHER_DEBUG", "0").strip().lower()
+    debug = debug_text in {"1", "true", "yes", "on"}
+
+    app = create_app()
+
+    app.run(
+        host=host,
+        port=port,
+        debug=debug,
+        use_reloader=False,
+        threaded=True,
+    )
+
 
 if __name__ == "__main__":
-    
-    app = initizalize_app(template_dirname=TEMPLATE_DIRNAME)
-    app.add_url_rule("/", "main", source.getpost , methods=["GET","POST"])
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    main()

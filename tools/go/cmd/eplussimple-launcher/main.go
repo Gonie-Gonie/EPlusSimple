@@ -1,111 +1,251 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net"
+	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"syscall"
 	"time"
+
+	"github.com/wailsapp/wails/v2"
+	"github.com/wailsapp/wails/v2/pkg/options"
+	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 )
 
 const (
 	pythonFolderName = "PythonV3-12-7"
 	moduleName       = "launcher"
-	serverAddr       = "127.0.0.1:5000"
-	serverURL        = "http://127.0.0.1:5000"
+
+	envHost  = "EPLUSSIMPLE_LAUNCHER_HOST"
+	envPort  = "EPLUSSIMPLE_LAUNCHER_PORT"
+	envDebug = "EPLUSSIMPLE_LAUNCHER_DEBUG"
+
+	createNoWindow = 0x08000000
 )
 
-func main() {
-	fmt.Println("==============================")
-	fmt.Println("[1/4] Changing to working directory...")
+type App struct {
+	ctx       context.Context
+	workDir   string
+	serverURL *url.URL
+	cmd       *exec.Cmd
+	logFile   *os.File
+}
 
-	exePath, err := os.Executable()
+func main() {
+	app := &App{}
+
+	err := wails.Run(&options.App{
+		Title:     "EPlusSimple Launcher",
+		Width:     1200,
+		Height:    820,
+		MinWidth:  900,
+		MinHeight: 650,
+
+		AssetServer: &assetserver.Options{
+			Assets:  nil,
+			Handler: app,
+		},
+
+		OnStartup:  app.startup,
+		OnShutdown: app.shutdown,
+
+		EnableDefaultContextMenu: false,
+	})
+
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to locate executable path: %v\n", err)
-		os.Exit(1)
+		log.Fatal(err)
+	}
+}
+
+func (a *App) startup(ctx context.Context) {
+	a.ctx = ctx
+
+	workDir, err := getExecutableDir()
+	if err != nil {
+		log.Fatal(err)
+	}
+	a.workDir = workDir
+
+	port, err := getFreePort()
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	workDir := filepath.Dir(exePath)
-	pythonExe := filepath.Join(workDir, "runtime", pythonFolderName, "python.exe")
+	serverURL, err := url.Parse(fmt.Sprintf("http://127.0.0.1:%d", port))
+	if err != nil {
+		log.Fatal(err)
+	}
+	a.serverURL = serverURL
+
+	if err := a.startFlask(port); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := waitForHTTP(serverURL.String()+"/", 20*time.Second); err != nil {
+		a.stopFlask()
+		log.Fatal(err)
+	}
+}
+
+func (a *App) shutdown(ctx context.Context) {
+	a.stopFlask()
+}
+
+func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if a.serverURL == nil {
+		http.Error(w, "Flask server is not ready.", http.StatusServiceUnavailable)
+		return
+	}
+
+	proxy := httputil.NewSingleHostReverseProxy(a.serverURL)
+
+	originalDirector := proxy.Director
+	proxy.Director = func(req *http.Request) {
+		originalDirector(req)
+
+		req.URL.Scheme = a.serverURL.Scheme
+		req.URL.Host = a.serverURL.Host
+		req.Host = a.serverURL.Host
+
+		req.Header.Set("X-Forwarded-Host", r.Host)
+		req.Header.Set("X-Forwarded-Proto", "http")
+	}
+
+	proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
+		http.Error(
+			w,
+			"EPlusSimple launcher server is not available: "+err.Error(),
+			http.StatusBadGateway,
+		)
+	}
+
+	proxy.ServeHTTP(w, r)
+}
+
+func (a *App) startFlask(port int) error {
+	pythonExe := filepath.Join(a.workDir, "runtime", pythonFolderName, "python.exe")
 
 	if _, err := os.Stat(pythonExe); err != nil {
-		fmt.Fprintf(os.Stderr, "Python executable not found: %s\n", pythonExe)
-		os.Exit(1)
+		return fmt.Errorf("Python executable not found: %s", pythonExe)
 	}
 
-	fmt.Println("[2/4] Starting Flask server...")
+	logDir := filepath.Join(a.workDir, "logs")
+	if err := os.MkdirAll(logDir, 0755); err != nil {
+		return fmt.Errorf("failed to create log directory: %w", err)
+	}
+
+	logPath := filepath.Join(logDir, "eplussimple-launcher.log")
+	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to open launcher log: %w", err)
+	}
+	a.logFile = logFile
 
 	cmd := exec.Command(pythonExe, "-m", moduleName)
-	cmd.Dir = workDir
+	cmd.Dir = a.workDir
 
-	// Keep server process attached to this console.
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd.Stdout = logFile
+	cmd.Stderr = logFile
+	cmd.Stdin = nil
 
-	// Keep Python output encoding stable.
-	cmd.Env = append(os.Environ(),
+	cmd.Env = append(
+		os.Environ(),
 		"PYTHONUTF8=1",
 		"PYTHONIOENCODING=utf-8",
+		envHost+"=127.0.0.1",
+		fmt.Sprintf("%s=%d", envPort, port),
+		envDebug+"=0",
 	)
 
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		HideWindow:    true,
+		CreationFlags: createNoWindow,
+	}
+
 	if err := cmd.Start(); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to start Flask server: %v\n", err)
-		os.Exit(1)
+		_ = logFile.Close()
+		a.logFile = nil
+		return fmt.Errorf("failed to start Flask server: %w", err)
 	}
 
-	fmt.Println("[3/4] Waiting for the server to start...")
-	if waitForTCP(serverAddr, 10*time.Second) {
-		fmt.Printf("[4/4] Launching the web browser: %s\n", serverURL)
-		if err := openBrowser(serverURL); err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to launch browser: %v\n", err)
-		}
-	} else {
-		fmt.Fprintf(os.Stderr, "Server did not become ready within the timeout: %s\n", serverAddr)
-		fmt.Fprintf(os.Stderr, "The server process may still be starting. Open manually: %s\n", serverURL)
+	a.cmd = cmd
+	return nil
+}
+
+func (a *App) stopFlask() {
+	if a.cmd != nil && a.cmd.Process != nil {
+		_ = a.cmd.Process.Kill()
+		_, _ = a.cmd.Process.Wait()
+		a.cmd = nil
 	}
 
-	fmt.Println("The server is now running. To stop it, close this window or press Ctrl+C.")
-	fmt.Println("==============================")
-
-	err = cmd.Wait()
-
-	fmt.Println()
-	fmt.Println("==============================")
-	fmt.Println("The server process has ended.")
-	fmt.Println("If it was unexpected, check for error messages above.")
-
-	if err != nil {
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
-			os.Exit(exitErr.ExitCode())
-		}
-
-		fmt.Fprintf(os.Stderr, "Server process ended with error: %v\n", err)
-		os.Exit(1)
+	if a.logFile != nil {
+		_ = a.logFile.Close()
+		a.logFile = nil
 	}
 }
 
-func waitForTCP(addr string, timeout time.Duration) bool {
+func getExecutableDir() (string, error) {
+	exePath, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Dir(exePath), nil
+}
+
+func getFreePort() (int, error) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return 0, err
+	}
+	defer listener.Close()
+
+	addr, ok := listener.Addr().(*net.TCPAddr)
+	if !ok {
+		return 0, errors.New("failed to resolve TCP address")
+	}
+
+	return addr.Port, nil
+}
+
+func waitForHTTP(targetURL string, timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
 
-	for time.Now().Before(deadline) {
-		conn, err := net.DialTimeout("tcp", addr, 300*time.Millisecond)
-		if err == nil {
-			_ = conn.Close()
-			return true
-		}
-
-		time.Sleep(200 * time.Millisecond)
+	client := &http.Client{
+		Timeout: 800 * time.Millisecond,
 	}
 
-	return false
-}
+	var lastErr error
 
-func openBrowser(url string) error {
-	// Windows equivalent of:
-	// start "" "http://127.0.0.1:5000"
-	return exec.Command("cmd", "/c", "start", "", url).Start()
+	for time.Now().Before(deadline) {
+		resp, err := client.Get(targetURL)
+		if err == nil {
+			_ = resp.Body.Close()
+
+			if resp.StatusCode < 500 {
+				return nil
+			}
+
+			lastErr = fmt.Errorf("server returned status code %d", resp.StatusCode)
+		} else {
+			lastErr = err
+		}
+
+		time.Sleep(300 * time.Millisecond)
+	}
+
+	if lastErr == nil {
+		lastErr = errors.New("timeout")
+	}
+
+	return lastErr
 }

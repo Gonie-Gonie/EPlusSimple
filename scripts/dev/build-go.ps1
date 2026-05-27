@@ -130,14 +130,15 @@ try {
 
     Write-Host ""
     Write-Host "[build] EPlusSimpleLauncher.exe"
-
+    
     if (Test-Path -LiteralPath $LauncherOutput) {
         Remove-Item -LiteralPath $LauncherOutput -Force
     }
 
     & $GoExe build `
         -trimpath `
-        -ldflags "-s -w" `
+        -tags "desktop,production" `
+        -ldflags "-s -w -H=windowsgui" `
         -o $LauncherOutput `
         $LauncherPackage
 
