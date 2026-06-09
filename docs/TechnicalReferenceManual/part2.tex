@@ -782,6 +782,168 @@ run_grjson(
 
 \paragraph{g} 창호의 열취득계수(G-value, SHGC).
 
+\subsection{입력변수 요약}
+
+\begin{footnotesize}
+\begin{longtable}{@{}p{0.12\textwidth}p{0.17\textwidth}p{0.13\textwidth}p{0.20\textwidth}p{0.25\textwidth}@{}}
+\caption{건물 시뮬레이션을 위한 물성치관련 입력 변수, 유형, 및 출처}\label{tab:class-spec-summary}\\
+\toprule
+Class & 변수명 & 입력유형 & 출처 & 비고 \\
+\midrule
+\endfirsthead
+
+\toprule
+Class & 변수명 & 입력유형 & 출처 & 비고 \\
+\midrule
+\endhead
+
+\midrule
+\multicolumn{5}{r}{다음 페이지에 계속}\\
+\endfoot
+
+\bottomrule
+\endlastfoot
+
+\multicolumn{5}{@{}l}{\textbf{시뮬레이션 구동 조건}} \\
+& Timestep & EPlusSimple & EnergyPlus & 6 \\
+& DesignCondition & EPlusSimple & EnergyPlus & {\shortstack[l]{Winter:1/1\\Summer:8/31}} \\
+\midrule
+
+
+\multicolumn{5}{@{}l}{\textbf{건물정보}~(\cref{tbl:building_info})} \\
+& 건물명 & 사용자입력 & 도면 등 & - \\
+& north axis & 사용자입력 & 도면 등 & - \\
+& 주소 & 사용자입력 & 건축물대장 & - \\
+& 허가일자 & 사용자입력 & 건축물대장 & - \\
+& 지상층수 & 사용자입력 & 도면 등 & - \\
+& 지하층수 & 사용자입력 & 도면 등 & - \\
+& Terrain & EPlusSimple & EnergyPlus & Suburbs\\
+& Solar Distribution & EPlusSimple & EnergyPlus & MinimalShadowing\\
+\midrule
+
+
+\multicolumn{5}{@{}l}{\textbf{실}~(\cref{tbl:zone_info})} \\
+& 층 & 사용자입력 & 도면 & - \\
+& 천정고 & 사용자입력 & 도면 & - \\
+& 이름 & 사용자입력 & - & - \\
+& 용도프로필 & 사용자입력 & 도면 & - \\
+& 현장조사프로필 & 사용자입력 & 현장조사 & - \\
+& 조명밀도 & 사용자입력 & 도면 & - \\
+& 침기율 & 사용자입력 & DB값참고(\cref{tbl:airtightness_standard}) & \\
+& 난방 공급 설비 & 사용자입력 & 도면 & - \\
+& 냉방 공급 설비 & 사용자입력 & 도면 & - \\
+& 환기 설비 & 사용자입력 & 도면 & - \\
+\midrule
+
+
+\multicolumn{5}{@{}l}{\textbf{면}~(\cref{tbl:surface_info})} \\
+& 이름 & 사용자입력 & - & - \\
+& 소속 실 & 사용자입력 & 도면 & - \\
+& 유형 & 사용자입력 & 도면 & - \\
+& 경계조건 & 사용자입력 & 도면 & - \\
+& 면적 & 사용자입력 & 도면 & - \\
+& 향 & 사용자입력 & 도면 & - \\
+& 인접존 이름 & 사용자입력 & 도면 & - \\
+& 구조체 이름 & 사용자입력 & 도면 & - \\
+& 쿨루프 반사율 & 사용자입력 & 도면 & - \\
+& {\shortstack[l] {View Factor \\ to Ground}} & EPlusSimple & EnergyPlus & autocalculate\\
+& {\shortstack[l] {Number of \\ Vertices}} & EPlusSimple & EnergyPlus & autocalculate\\
+\midrule
+
+
+\multicolumn{5}{@{}l}{\textbf{개구부}~(\cref{tbl:fenestration_info})} \\
+& 이름 & 사용자입력 & - & - \\
+& 소속 면 & 사용자입력 & 도면 & - \\
+& 유형 & 사용자입력 & 도면 & - \\
+& 면적 & 사용자입력 & 도면 & - \\
+& 구조체 이름 & 사용자입력 & 도면 & - \\
+& 블라인드 & 사용자입력 & 도면 & - \\
+\midrule
+
+\multicolumn{5}{@{}l}{\textbf{공급설비}~(\cref{tbl:supplysystem_info})} \\
+& 이름 & 사용자입력 & - & - \\
+& 유형 & 사용자입력 & 도면 & - \\
+& 냉방COP &  사용자입력 & 도면 & - \\
+& 냉방용량 & 사용자입력 & 도면 & - \\
+& 난방용량 & 사용자입력 & 도면 & - \\
+& 생산설비명 & 사용자입력 & 도면 & - \\
+& {\shortstack[l] {Cooling Supply\\ Air Flow Rate}} & EPlusSimple & EnergyPlus & autosize\\
+& {\shortstack[l] {No Cooling Supply\\ Air Flow Rate}} & EPlusSimple & EnergyPlus & autosize\\
+& {\shortstack[l] {Heating Supply\\ Air Flow Rate}} & EPlusSimple & EnergyPlus & autosize\\
+& {\shortstack[l] {No Heating Supply\\ Air Flow Rate}} & EPlusSimple & EnergyPlus & autosize\\
+\midrule
+
+\multicolumn{5}{@{}l}{\textbf{순환계통}} \\
+& Pump & EPlusSimple & EnergyPlus & Adiabatic \\
+& {\shortstack[l] {Pump Maximum \\ Flow Rate}} & EPlusSimple & EnergyPlus & autosize\\
+& {\shortstack[l] {Design \\ Power Consumption}} & EPlusSimple & EnergyPlus & autosize\\
+& {\shortstack[l] {Design Minimum\\ Flow Rate}} & EPlusSimple & EnergyPlus & autosize\\
+& {\shortstack[l] {Pump\\ Control Type}} & EPlusSimple & EnergyPlus & Continuous\\
+\midrule
+
+\multicolumn{5}{@{}l}{\textbf{생산설비}~(\cref{tbl:sourcesystem_info})} \\
+& 이름 & 사용자입력 & - & - \\
+& 유형 & 사용자입력 & 도면 & - \\
+& 냉방용량 & 사용자입력 & 도면 및 장비일람표 & - \\
+& 난방용량 & 사용자입력 & 도면 및 장비일람표  & - \\
+& 냉방COP & 사용자입력 & 도면 및 장비일람표 & - \\
+& 난방COP & 사용자입력 & 도면 및 장비일람표  & - \\
+& 효율 & 사용자입력 & 도면 및 장비일람표 & - \\
+& 급탕용 & 사용자입력 & 도면 및 장비일람표 & - \\
+& 연료종류 & 사용자입력 & 도면 및 장비일람표 & - \\
+& 압축기 종류 & 사용자입력 & 도면 및 장비일람표 & - \\
+& 냉각탑 종류 & 사용자입력 & 도면 및 장비일람표 & - \\
+& 냉각탑 용량 & 사용자입력 & 도면 및 장비일람표 & - \\
+& 냉각탑 제어방식 & 사용자입력 & 도면 및 장비일람표 & - \\
+& 연동보일러 효율 & 사용자입력 & 도면 및 장비일람표 & - \\
+& Curve & EPlusSimple & {\shortstack[l] {EnergyPlus\\DesignBuilder}} & {\shortstack[l] {Linear\\Cubic\\Quadratic\\Biquadratic}}\\
+\midrule
+
+\multicolumn{5}{@{}l}{\textbf{환기설비}~(\cref{tbl:ventilationsystem_info})} \\
+& 이름 & 사용자입력 & - & - \\
+& 난방효율 & 사용자입력 & 도면 & - \\
+& 냉방효율 & 사용자입력 & 도면 & - \\
+& Ventilation Type & EPlusSimple & EnergyPlus & Natural \\
+& {\shortstack[l] {Fan Pressure\\ Rise}} & EPlusSimple & EnergyPlus & 0\\
+\midrule
+
+\multicolumn{5}{@{}l}{\textbf{PV패널}~(\cref{tbl:photovoltaicsystem_info})} \\
+& 이름 & 사용자입력 & - & - \\
+& 면적 & 사용자입력 & 도면 & - \\
+& 효율 & 사용자입력 & 시험성적서 & - \\
+& 방위각 & 사용자입력 & 도면 및 시험성적서 & - \\
+& 경사각 & 사용자입력 & 도면 및 시험성적서 & - \\
+& {\shortstack[l] {Fraction of\\Surface Area\\with\\Active Solar Cells}} & EPlusSimple & EnergyPlus & 0.7 \\
+& {\shortstack[l] {Conversion Efficiency\\Input Mode}} & EPlusSimple & EnergyPlus & Fixed \\
+\midrule
+
+\multicolumn{5}{@{}l}{\textbf{재료}~(\cref{tbl:material_info})} \\
+& 이름 & 사용자입력 & - & - \\
+& 열전도율 & 사용자입력 & 도면 및 시험성적서 & - \\
+& 밀도 & 사용자입력 & 도면 및 시험성적서 & - \\
+& 비열 & 사용자입력 & 도면 및 시험성적서 & - \\
+& {\shortstack[l] {Thermal\\Absorptance}} & EPlusSimple & EnergyPlus & 0.9 \\
+& {\shortstack[l] {Solar\\Absorptance}} & EPlusSimple & EnergyPlus & 0.7 \\
+& {\shortstack[l] {Visible\\Absorptance}} & EPlusSimple & EnergyPlus & 0.7 \\
+\midrule
+
+\multicolumn{5}{@{}l}{\textbf{면구조체}~(\cref{tbl:surface_construction_info})} \\
+& 이름 & 사용자입력 & - & -\\
+& 레이어 재료 & 사용자입력 & 도면 & - \\
+& 레이어 두께 & 사용자입력 & 도면 & - \\
+\midrule
+
+\multicolumn{5}{@{}l}{\textbf{개구부구조체}~(\cref{tbl:fenestration_construction_info})} \\
+& 이름 & 사용자입력 & - & - \\
+& 투명여부 & 사용자입력 & 도면 & - \\
+& 열관류율 & 사용자입력 & {\shortstack[l] {도면 및 시험성적서,\\에너지절약설계기준}}  & - \\
+& 태양열취득계수 & 사용자입력 & {\shortstack[l] {도면 및 시험성적서,\\에너지절약설계기준}}& - \\
+
+\end{longtable}
+\end{footnotesize}
+
+
+
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
 % ---------------------------------------------------------------------------- %
