@@ -1,42 +1,28 @@
 # ============================================================================
 # EPlusSimple release script
-# Release script revision: streamwriter-no-addcontent-20260527
+# Release script revision: standard-single-target-20260612
 # ============================================================================
 #
 # Expected location:
-# scripts/dev/release.ps1
+#   scripts\release.ps1
+# or:
+#   scripts\dev\release.ps1
 #
 # Intended caller:
-# runscript.bat release ...
+#   runscript.bat release ...
 #
-# This script creates a portable release package under:
-# dist/EPlusSimple_V[R]/
-# dist/EPlusSimple_V[R].zip
+# This script creates:
+#   dist\EPlusSimple_V<Version>\
+#   dist\EPlusSimple_V<Version>.zip
 #
-# Logging policy:
-# - Detailed release log is written to:
-#   logs/release.log
-# - logs/release.log is overwritten on every release run.
-# - The log file is kept open with FileShare.ReadWrite during the release run.
-#   This avoids repeated file-open/write calls and prevents intermittent file-lock
-#   errors while the log is being viewed or indexed.
-# - Console output is intentionally concise.
-#
-# Runtime layout assumed by scripts/setup/setup.ps1:
-# runtime/PythonV3-12-7/
-# runtime/EnergyPlusV24-2-0/
-# runtime/Weather/TMY/
+# Notes:
+# - There is no target option.
+# - The standard package is the only release package.
+# - Detailed release log is written to logs\release.log.
 # ============================================================================
 
 [CmdletBinding()]
 param(
-    # Target distribution.
-    # The KALIS package uses launcher/core.py and templates/.
-    # The REB package additionally includes src/reb and uses core_reb.py.
-    [Alias('For')]
-    [ValidateSet('kalis', 'reb')]
-    [string]$BuildFor = 'kalis',
-
     # Release version without leading V.
     [string]$Version = '0.6.2',
 
@@ -57,24 +43,56 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
 # ----------------------------------------------------------------------------
+# Repository root
+# ----------------------------------------------------------------------------
+
+function Resolve-RepoRoot {
+    $scriptDir = Split-Path -Parent $MyInvocation.ScriptName
+
+    if ([string]::IsNullOrWhiteSpace($scriptDir)) {
+        $scriptDir = Split-Path -Parent $PSCommandPath
+    }
+
+    if ([string]::IsNullOrWhiteSpace($scriptDir)) {
+        throw 'Cannot resolve script directory. Run this script from a saved .ps1 file.'
+    }
+
+    $candidates = @(
+        $scriptDir,
+        (Join-Path $scriptDir '..'),
+        (Join-Path $scriptDir '..\..')
+    )
+
+    foreach ($candidate in $candidates) {
+        $resolved = $null
+
+        try {
+            $resolved = (Resolve-Path -LiteralPath $candidate -ErrorAction Stop).Path
+        } catch {
+            continue
+        }
+
+        if (
+            (Test-Path -LiteralPath (Join-Path $resolved 'src') -PathType Container) -and
+            (Test-Path -LiteralPath (Join-Path $resolved 'runtime') -PathType Container) -and
+            (Test-Path -LiteralPath (Join-Path $resolved 'scripts') -PathType Container)
+        ) {
+            return $resolved
+        }
+    }
+
+    throw "Cannot resolve repository root from script directory: $scriptDir"
+}
+
+$RepoRoot = Resolve-RepoRoot
+Set-Location $RepoRoot
+
+# ----------------------------------------------------------------------------
 # Path configuration
 # ----------------------------------------------------------------------------
 
-$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$RepoRoot = (Resolve-Path (Join-Path $ScriptDir '..\..')).Path
-
-Set-Location $RepoRoot
-
 $ProjectName = 'EPlusSimple'
-
-$BuildFor = $BuildFor.ToLowerInvariant()
-
-$VersionSuffix = ''
-if ($BuildFor -eq 'reb') {
-    $VersionSuffix = 'R'
-}
-
-$VersionString = "V$Version$VersionSuffix"
+$VersionString = "V$Version"
 $ReleaseName = "$ProjectName`_$VersionString"
 
 $DistDir = Join-Path $RepoRoot 'dist'
@@ -106,6 +124,13 @@ $BuildGoScript = Join-Path $RepoRoot 'scripts\dev\build-go.ps1'
 $EPlusSimpleCLIExe = Join-Path $RepoRoot 'EPlusSimpleCLI.exe'
 $EPlusSimpleLauncherExe = Join-Path $RepoRoot 'EPlusSimpleLauncher.exe'
 
+$ExamplesDir = Join-Path $RepoRoot 'examples'
+$DocsDir = Join-Path $RepoRoot 'docs'
+$SrcDir = Join-Path $RepoRoot 'src'
+
+$RegressionTestScript = Join-Path $RepoRoot 'scripts\dev\regressiontest.py'
+$RegressionLogLegacy = Join-Path $RepoRoot 'regtest.log'
+
 $EnergyPlusPruneDirs = @(
     'DataSets',
     'Documentation',
@@ -114,26 +139,19 @@ $EnergyPlusPruneDirs = @(
     'MacroDataSets'
 )
 
-$ExamplesDir = Join-Path $RepoRoot 'examples'
-$DocsDir = Join-Path $RepoRoot 'docs'
-$SrcDir = Join-Path $RepoRoot 'src'
-
-$RegressionTestScript = Join-Path $RepoRoot 'scripts\dev\regressiontest.py'
-$RegressionLogLegacy = Join-Path $RepoRoot 'regtest.log'
-
 $script:CurrentStep = 'initializing release script'
 $script:LogStream = $null
 $script:LogWriter = $null
 
 # ----------------------------------------------------------------------------
-# Logging functions
+# Logging
 # ----------------------------------------------------------------------------
 
 function Ensure-Directory {
-    param([string]$Path)
+    param([Parameter(Mandatory)][string]$Path)
 
-    if (-not (Test-Path -LiteralPath $Path)) {
-        New-Item -ItemType Directory -Path $Path -Force | Out-Null
+    if (-not (Test-Path -LiteralPath $Path -PathType Container)) {
+        New-Item -ItemType Directory -Force -Path $Path | Out-Null
     }
 }
 
@@ -160,7 +178,6 @@ function Open-ReleaseLog {
     Write-LogRaw '============================================================================'
     Write-LogRaw "Started      : $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
     Write-LogRaw "Repository   : $RepoRoot"
-    Write-LogRaw "Target       : $BuildFor"
     Write-LogRaw "Version      : $VersionString"
     Write-LogRaw "Release dir  : $ReleaseDir"
     Write-LogRaw "Release zip  : $OutputZip"
@@ -199,7 +216,6 @@ function Write-LogRaw {
     }
 
     $script:LogWriter.WriteLine($Message)
-    $script:LogWriter.Flush()
 }
 
 function Write-Log {
@@ -243,13 +259,13 @@ function Write-ProgressLine {
 }
 
 # ----------------------------------------------------------------------------
-# Generic helper functions
+# Generic helpers
 # ----------------------------------------------------------------------------
 
 function Remove-DirectoryIfExists {
     param([string]$Path)
 
-    if (Test-Path -LiteralPath $Path) {
+    if (Test-Path -LiteralPath $Path -PathType Container) {
         Write-Log "Removing directory: $Path"
         Remove-Item -LiteralPath $Path -Recurse -Force
     }
@@ -258,7 +274,7 @@ function Remove-DirectoryIfExists {
 function Remove-FileIfExists {
     param([string]$Path)
 
-    if (Test-Path -LiteralPath $Path) {
+    if (Test-Path -LiteralPath $Path -PathType Leaf) {
         Write-Log "Removing file: $Path"
         Remove-Item -LiteralPath $Path -Force
     }
@@ -290,25 +306,6 @@ function Assert-DirectoryExists {
     Write-Log "Validated directory: $Path"
 }
 
-function ConvertTo-CommandLineArgument {
-    param([string]$Value)
-
-    if ($null -eq $Value) {
-        return '""'
-    }
-
-    if ($Value -eq '') {
-        return '""'
-    }
-
-    if ($Value -notmatch '[\s"]') {
-        return $Value
-    }
-
-    $escaped = $Value.Replace('"', '\"')
-    return '"' + $escaped + '"'
-}
-
 function Invoke-LoggedCommand {
     param(
         [string]$FilePath,
@@ -317,65 +314,43 @@ function Invoke-LoggedCommand {
         [string]$Description = 'external command'
     )
 
-    Ensure-Directory $TempLogDir
-
-    $stamp = Get-Date -Format 'yyyyMMdd_HHmmss_fff'
-    $safeName = ($Description -replace '[^a-zA-Z0-9_-]', '_')
-    $stdoutLog = Join-Path $TempLogDir "$stamp`_$safeName.stdout.tmp"
-    $stderrLog = Join-Path $TempLogDir "$stamp`_$safeName.stderr.tmp"
-
-    Remove-FileIfExists $stdoutLog
-    Remove-FileIfExists $stderrLog
-
-    $argumentText = ($Arguments | ForEach-Object { ConvertTo-CommandLineArgument $_ }) -join ' '
-    $cmdText = "$FilePath $argumentText".Trim()
-
     Write-ProgressLine $Description
 
+    $commandLine = "$FilePath " + (($Arguments | ForEach-Object {
+        if ($_ -match '[\s"]') {
+            '"' + ($_.Replace('"', '\"')) + '"'
+        } else {
+            $_
+        }
+    }) -join ' ')
+
     Write-LogBlock -Title "COMMAND: $Description" -Lines @(
-        "Working directory: $WorkingDirectory"
-        "Command          : $cmdText"
+        "Working directory: $WorkingDirectory",
+        "Command          : $commandLine"
     )
 
-    $process = Start-Process `
-        -FilePath $FilePath `
-        -ArgumentList $argumentText `
-        -WorkingDirectory $WorkingDirectory `
-        -NoNewWindow `
-        -Wait `
-        -PassThru `
-        -RedirectStandardOutput $stdoutLog `
-        -RedirectStandardError $stderrLog
+    Push-Location $WorkingDirectory
 
-    $exitCode = $process.ExitCode
-    if ($null -eq $exitCode) {
-        $exitCode = 0
+    try {
+        $output = & $FilePath @Arguments 2>&1
+        $exitCode = $LASTEXITCODE
+
+        foreach ($line in @($output)) {
+            Write-Log ([string]$line)
+        }
+
+        if ($null -eq $exitCode) {
+            $exitCode = 0
+        }
+
+        Write-Log "Exit code: $exitCode"
+
+        if ($exitCode -ne 0) {
+            throw "$Description failed. Exit code: $exitCode. See log: $ReleaseLog"
+        }
+    } finally {
+        Pop-Location
     }
-
-    Write-LogBlock -Title "EXIT CODE: $Description" -Lines @([string]$exitCode)
-
-    if (Test-Path -LiteralPath $stdoutLog) {
-        $stdoutLines = Get-Content -LiteralPath $stdoutLog -ErrorAction SilentlyContinue
-        Write-LogBlock -Title "STDOUT: $Description" -Lines @($stdoutLines)
-    } else {
-        Write-LogBlock -Title "STDOUT: $Description" -Lines @('(no stdout file)')
-    }
-
-    if (Test-Path -LiteralPath $stderrLog) {
-        $stderrLines = Get-Content -LiteralPath $stderrLog -ErrorAction SilentlyContinue
-        Write-LogBlock -Title "STDERR: $Description" -Lines @($stderrLines)
-    } else {
-        Write-LogBlock -Title "STDERR: $Description" -Lines @('(no stderr file)')
-    }
-
-    Remove-FileIfExists $stdoutLog
-    Remove-FileIfExists $stderrLog
-
-    if ($exitCode -ne 0) {
-        throw "$Description failed. Exit code: $exitCode. See log: $ReleaseLog"
-    }
-
-    return $exitCode
 }
 
 function Copy-Directory {
@@ -385,7 +360,6 @@ function Copy-Directory {
     )
 
     Assert-DirectoryExists -Path $Source -Message 'Cannot copy directory because the source directory was not found.'
-
     Remove-DirectoryIfExists $Destination
 
     $parent = Split-Path -Parent $Destination
@@ -410,25 +384,6 @@ function Copy-File {
     Copy-Item -LiteralPath $Source -Destination $Destination -Force
 }
 
-function Remove-EnergyPlusReleaseExtras {
-    param([string]$ReleaseEnergyPlusDir)
-
-    Assert-DirectoryExists -Path $ReleaseEnergyPlusDir -Message 'Release EnergyPlus runtime was not found.'
-
-    Write-Log "Pruning EnergyPlus release directory: $ReleaseEnergyPlusDir"
-
-    foreach ($dirname in $EnergyPlusPruneDirs) {
-        $target = Join-Path $ReleaseEnergyPlusDir $dirname
-
-        if (Test-Path -LiteralPath $target -PathType Container) {
-            Remove-DirectoryIfExists $target
-            Write-Log "Pruned EnergyPlus folder: $dirname"
-        } else {
-            Write-Log "EnergyPlus folder not found, skipped: $dirname"
-        }
-    }
-}
-
 function Add-UniqueLine {
     param(
         [string]$Path,
@@ -442,7 +397,11 @@ function Add-UniqueLine {
     if ($lines -contains $Line) {
         Write-Log "Already present in file: $Path :: $Line"
     } else {
-        [System.IO.File]::AppendAllText($Path, "`r`n$Line", [System.Text.UTF8Encoding]::new($false))
+        [System.IO.File]::AppendAllText(
+            $Path,
+            "`r`n$Line",
+            [System.Text.UTF8Encoding]::new($false)
+        )
         Write-Log "Added to file: $Path :: $Line"
     }
 }
@@ -458,6 +417,14 @@ function Validate-Inputs {
     Assert-DirectoryExists -Path $ExamplesDir -Message 'examples directory was not found.'
     Assert-DirectoryExists -Path $DocsDir -Message 'docs directory was not found.'
 
+    Assert-DirectoryExists -Path (Join-Path $SrcDir 'epsimple') -Message 'src\epsimple was not found.'
+    Assert-DirectoryExists -Path (Join-Path $SrcDir 'idragon') -Message 'src\idragon was not found.'
+    Assert-DirectoryExists -Path (Join-Path $SrcDir 'launcher') -Message 'src\launcher was not found.'
+
+    Assert-FileExists -Path (Join-Path $SrcDir 'launcher\core.py') -Message 'launcher core.py was not found.'
+    Assert-DirectoryExists -Path (Join-Path $SrcDir 'launcher\templates') -Message 'launcher templates directory was not found.'
+    Assert-DirectoryExists -Path (Join-Path $SrcDir 'launcher\static') -Message 'launcher static directory was not found.'
+
     Assert-FileExists -Path $PythonExe -Message 'Python runtime was not found. Run "runscript setup" before release.'
     Assert-FileExists -Path $PythonPthFile -Message 'Python ._pth file was not found. Run "runscript setup" before release.'
     Assert-FileExists -Path $EnergyPlusExe -Message 'EnergyPlus runtime was not found. Run "runscript setup" before release.'
@@ -472,15 +439,14 @@ function Validate-Inputs {
     }
 
     Write-LogBlock -Title 'RELEASE INPUTS' -Lines @(
-        "Repository   : $RepoRoot"
-        "Target       : $BuildFor"
-        "Version      : $VersionString"
-        "Python       : $PythonExe"
-        "EnergyPlus   : $EnergyPlusExe"
-        "Weather TMY  : $WeatherTmyDir"
-        "Go build     : $BuildGoScript"
-        "Skip docs    : $SkipDocs"
-        "Skip regtest : $SkipRegressionTest"
+        "Repository   : $RepoRoot",
+        "Version      : $VersionString",
+        "Python       : $PythonExe",
+        "EnergyPlus   : $EnergyPlusExe",
+        "Weather TMY  : $WeatherTmyDir",
+        "Go build     : $BuildGoScript",
+        "Skip docs    : $SkipDocs",
+        "Skip regtest : $SkipRegressionTest",
         "No clean     : $NoClean"
     )
 }
@@ -493,12 +459,11 @@ function Prepare-Dist {
     }
 
     Ensure-Directory $ReleaseDir
-
     Write-Log "Release directory prepared: $ReleaseDir"
 }
 
 function Build-GoLaunchers {
-    Write-Log 'Building Go launchers.'
+    Write-Log 'Building Go executables.'
 
     Invoke-LoggedCommand `
         -FilePath 'powershell.exe' `
@@ -512,12 +477,29 @@ function Build-GoLaunchers {
             $RepoRoot
         ) `
         -WorkingDirectory $RepoRoot `
-        -Description 'Go launcher build' | Out-Null
+        -Description 'Go executable build'
 
     Assert-FileExists -Path $EPlusSimpleCLIExe -Message 'EPlusSimpleCLI.exe was not generated by build-go.ps1.'
     Assert-FileExists -Path $EPlusSimpleLauncherExe -Message 'EPlusSimpleLauncher.exe was not generated by build-go.ps1.'
 
-    Write-Log 'Go launchers built.'
+    Write-Log 'Go executables built.'
+}
+
+function Remove-EnergyPlusReleaseExtras {
+    param([string]$ReleaseEnergyPlusDir)
+
+    Assert-DirectoryExists -Path $ReleaseEnergyPlusDir -Message 'Release EnergyPlus runtime was not found.'
+
+    foreach ($dirname in $EnergyPlusPruneDirs) {
+        $target = Join-Path $ReleaseEnergyPlusDir $dirname
+
+        if (Test-Path -LiteralPath $target -PathType Container) {
+            Remove-DirectoryIfExists $target
+            Write-Log "Pruned EnergyPlus folder: $dirname"
+        } else {
+            Write-Log "EnergyPlus folder not found, skipped: $dirname"
+        }
+    }
 }
 
 function Copy-RuntimeAndRootFiles {
@@ -543,7 +525,7 @@ function Copy-RuntimeAndRootFiles {
     Copy-File -Source $EPlusSimpleCLIExe -Destination (Join-Path $ReleaseDir 'EPlusSimpleCLI.exe')
     Copy-File -Source $EPlusSimpleLauncherExe -Destination (Join-Path $ReleaseDir 'EPlusSimpleLauncher.exe')
 
-    Write-Log 'Runtime, weather data, examples, and root launchers copied.'
+    Write-Log 'Runtime, weather data, examples, and root executables copied.'
 }
 
 function Configure-ReleaseRuntime {
@@ -572,14 +554,14 @@ function Set-ReleaseEnvironment {
     $env:PATH = "$EnergyPlusDir;$env:PATH"
 
     Write-LogBlock -Title 'RELEASE ENVIRONMENT' -Lines @(
-        "EPSIMPLE_RUNTIME_DIR    = $env:EPSIMPLE_RUNTIME_DIR"
-        "IDRAGON_RUNTIME_DIR     = $env:IDRAGON_RUNTIME_DIR"
-        "IDRAGON_ENERGYPLUS_DIR  = $env:IDRAGON_ENERGYPLUS_DIR"
-        "ENERGYPLUS_DIR          = $env:ENERGYPLUS_DIR"
-        "ENERGYPLUS_EXE          = $env:ENERGYPLUS_EXE"
-        "EPSIMPLE_WEATHER_DIR    = $env:EPSIMPLE_WEATHER_DIR"
-        "EPSIMPLE_TMY_DIR        = $env:EPSIMPLE_TMY_DIR"
-        "PYTHONNOUSERSITE        = $env:PYTHONNOUSERSITE"
+        "EPSIMPLE_RUNTIME_DIR    = $env:EPSIMPLE_RUNTIME_DIR",
+        "IDRAGON_RUNTIME_DIR     = $env:IDRAGON_RUNTIME_DIR",
+        "IDRAGON_ENERGYPLUS_DIR  = $env:IDRAGON_ENERGYPLUS_DIR",
+        "ENERGYPLUS_DIR          = $env:ENERGYPLUS_DIR",
+        "ENERGYPLUS_EXE          = $env:ENERGYPLUS_EXE",
+        "EPSIMPLE_WEATHER_DIR    = $env:EPSIMPLE_WEATHER_DIR",
+        "EPSIMPLE_TMY_DIR        = $env:EPSIMPLE_TMY_DIR",
+        "PYTHONNOUSERSITE        = $env:PYTHONNOUSERSITE",
         "PATH head               = $($env:PATH.Split(';')[0])"
     )
 }
@@ -593,26 +575,25 @@ function Run-RegressionTest {
     Write-Step '[4/7] Running regression test...'
 
     Set-ReleaseEnvironment
-
     Remove-FileIfExists $RegressionLogLegacy
 
     Invoke-LoggedCommand `
         -FilePath $PythonExe `
         -Arguments @('--version') `
         -WorkingDirectory $RepoRoot `
-        -Description 'Python version check' | Out-Null
+        -Description 'Python version check'
 
     Invoke-LoggedCommand `
         -FilePath $EnergyPlusExe `
         -Arguments @('--version') `
         -WorkingDirectory $RepoRoot `
-        -Description 'EnergyPlus version check' | Out-Null
+        -Description 'EnergyPlus version check'
 
     Invoke-LoggedCommand `
         -FilePath $PythonExe `
         -Arguments @($RegressionTestScript) `
         -WorkingDirectory $RepoRoot `
-        -Description 'Regression test' | Out-Null
+        -Description 'Regression test'
 
     if (Test-Path -LiteralPath $RegressionLogLegacy -PathType Leaf) {
         $regLines = Get-Content -LiteralPath $RegressionLogLegacy -ErrorAction SilentlyContinue
@@ -660,10 +641,9 @@ function Build-AndCopyDoc {
             $texFile
         ) `
         -WorkingDirectory $DocsDir `
-        -Description "LaTeX build: $DisplayName" | Out-Null
+        -Description "LaTeX build: $DisplayName"
 
     Assert-FileExists -Path $pdfFile -Message "Expected PDF was not generated for $DisplayName."
-
     Copy-File -Source $pdfFile -Destination $releasePdfFile
 }
 
@@ -684,7 +664,7 @@ function Build-Documentation {
     Write-Log 'Documentation build completed.'
 }
 
-function Copy-SourceForTarget {
+function Copy-SourceFiles {
     Write-Step '[6/7] Copying source files and launcher configuration...'
 
     $ReleaseSrcDir = Join-Path $ReleaseDir 'src'
@@ -699,37 +679,20 @@ function Copy-SourceForTarget {
     Ensure-Directory $LauncherReleaseDir
 
     Copy-Directory -Source (Join-Path $LauncherSrcDir 'static') -Destination (Join-Path $LauncherReleaseDir 'static')
+    Copy-Directory -Source (Join-Path $LauncherSrcDir 'templates') -Destination (Join-Path $LauncherReleaseDir 'templates')
+
     Copy-File -Source (Join-Path $LauncherSrcDir '__init__.py') -Destination (Join-Path $LauncherReleaseDir '__init__.py')
     Copy-File -Source (Join-Path $LauncherSrcDir '__main__.py') -Destination (Join-Path $LauncherReleaseDir '__main__.py')
+    Copy-File -Source (Join-Path $LauncherSrcDir 'core.py') -Destination (Join-Path $LauncherReleaseDir 'core.py')
 
     $configPath = Join-Path $LauncherReleaseDir 'config.py'
 
-    if ($BuildFor -eq 'kalis') {
-        Write-Log 'Configuring launcher for KALIS.'
-
-        Copy-Directory -Source (Join-Path $LauncherSrcDir 'templates') -Destination (Join-Path $LauncherReleaseDir 'templates')
-        Copy-File -Source (Join-Path $LauncherSrcDir 'core.py') -Destination (Join-Path $LauncherReleaseDir 'core.py')
-
-        @"
+    @"
 TEMPLATE_DIRNAME = "templates"
 COREMODULE_NAME = "core"
 "@ | Set-Content -LiteralPath $configPath -Encoding UTF8
-    } elseif ($BuildFor -eq 'reb') {
-        Write-Log 'Configuring launcher for REB.'
 
-        Copy-Directory -Source (Join-Path $SrcDir 'reb') -Destination (Join-Path $ReleaseSrcDir 'reb')
-        Copy-Directory -Source (Join-Path $LauncherSrcDir 'templates_reb') -Destination (Join-Path $LauncherReleaseDir 'templates_reb')
-        Copy-File -Source (Join-Path $LauncherSrcDir 'core_reb.py') -Destination (Join-Path $LauncherReleaseDir 'core_reb.py')
-
-        @"
-TEMPLATE_DIRNAME = "templates_reb"
-COREMODULE_NAME = "core_reb"
-"@ | Set-Content -LiteralPath $configPath -Encoding UTF8
-    } else {
-        throw "Invalid build target: $BuildFor"
-    }
-
-    Write-Log "Source copied for target: $BuildFor"
+    Write-Log 'Source files and launcher configuration copied.'
 }
 
 function Create-Archive {
@@ -747,10 +710,9 @@ function Create-Archive {
             '.'
         ) `
         -WorkingDirectory $ReleaseDir `
-        -Description 'Archive creation' | Out-Null
+        -Description 'Archive creation'
 
     Assert-FileExists -Path $OutputZip -Message 'Release zip was not created.'
-
     Write-Log "Archive created: $OutputZip"
 }
 
@@ -758,15 +720,15 @@ function Write-FailureReport {
     param([System.Management.Automation.ErrorRecord]$ErrorRecord)
 
     Write-LogBlock -Title 'RELEASE FAILED' -Lines @(
-        "Current step: $script:CurrentStep"
-        "Exception type: $($ErrorRecord.Exception.GetType().FullName)"
-        "Message: $($ErrorRecord.Exception.Message)"
+        "Current step   : $script:CurrentStep",
+        "Exception type : $($ErrorRecord.Exception.GetType().FullName)",
+        "Message        : $($ErrorRecord.Exception.Message)"
     )
 
     if ($null -ne $ErrorRecord.InvocationInfo) {
         Write-LogBlock -Title 'FAILURE LOCATION' -Lines @(
-            "Script : $($ErrorRecord.InvocationInfo.ScriptName)"
-            "Line   : $($ErrorRecord.InvocationInfo.ScriptLineNumber)"
+            "Script : $($ErrorRecord.InvocationInfo.ScriptName)",
+            "Line   : $($ErrorRecord.InvocationInfo.ScriptLineNumber)",
             "Command: $($ErrorRecord.InvocationInfo.Line.Trim())"
         )
     }
@@ -795,7 +757,7 @@ try {
     Open-ReleaseLog
 
     Write-Host ''
-    Write-Host "Building $ProjectName $VersionString for [$BuildFor]"
+    Write-Host "Building $ProjectName $VersionString"
     Write-Host "Log: $ReleaseLog"
     Write-Host ''
 
@@ -805,13 +767,13 @@ try {
     Configure-ReleaseRuntime
     Run-RegressionTest
     Build-Documentation
-    Copy-SourceForTarget
+    Copy-SourceFiles
     Create-Archive
 
     Write-LogBlock -Title 'RELEASE COMPLETED' -Lines @(
-        "Release directory: $ReleaseDir"
-        "Release archive  : $OutputZip"
-        "Log              : $ReleaseLog"
+        "Release directory: $ReleaseDir",
+        "Release archive  : $OutputZip",
+        "Log              : $ReleaseLog",
         "Completed        : $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
     )
 
@@ -822,7 +784,7 @@ try {
     Write-Host "Log              : $ReleaseLog"
     Write-Host ''
 
-    if (Test-Path -LiteralPath $TempLogDir) {
+    if (Test-Path -LiteralPath $TempLogDir -PathType Container) {
         Remove-DirectoryIfExists $TempLogDir
     }
 } catch {
