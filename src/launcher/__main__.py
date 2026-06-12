@@ -5,7 +5,6 @@
 
 # built-in modules
 import os
-import importlib
 from pathlib import Path
 
 # third-party modules
@@ -13,8 +12,7 @@ from flask import Flask
 
 # local modules
 # DO NOT IMPORT RELATIVELY
-from .config import TEMPLATE_DIRNAME, COREMODULE_NAME
-source = importlib.import_module(f".{COREMODULE_NAME}", package=__package__)
+from .core import getpost
 
 # ---------------------------------------------------------------------------- #
 #                       APP DEFINITION AND INITIALIZATION                      #
@@ -24,7 +22,6 @@ def initialize_app(
     *,
     upload_dirpath   = None,
     static_dirname   = None,
-    template_dirname = None,
     ) -> Flask:
     
     # define and create upload direcotry
@@ -36,12 +33,10 @@ def initialize_app(
     # define static/template directory
     if static_dirname is None:
         static_dirname = "static"
-    if template_dirname is None:
-        template_dirname = "templates"
     
     package_dirpath = Path(__file__).resolve().parent
     static_dirpath = package_dirpath / static_dirname
-    template_dirpath = package_dirpath / template_dirname
+    template_dirpath = package_dirpath / "templates"
     
     # create a flask app 
     app = Flask(__name__,
@@ -56,8 +51,8 @@ def initialize_app(
     return app
 
 def create_app() -> Flask:
-    app = initialize_app(template_dirname=TEMPLATE_DIRNAME)
-    app.add_url_rule("/", "main", source.getpost, methods=["GET", "POST"])
+    app = initialize_app()
+    app.add_url_rule("/", "main", getpost, methods=["GET", "POST"])
     return app
 
 
