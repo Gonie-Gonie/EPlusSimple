@@ -665,7 +665,7 @@ function Build-Documentation {
 }
 
 function Copy-SourceFiles {
-    Write-Step '[6/7] Copying source files and launcher configuration...'
+    Write-Step '[6/7] Copying source files...'
 
     $ReleaseSrcDir = Join-Path $ReleaseDir 'src'
     Ensure-Directory $ReleaseSrcDir
@@ -673,26 +673,7 @@ function Copy-SourceFiles {
     Copy-Directory -Source (Join-Path $SrcDir 'epsimple') -Destination (Join-Path $ReleaseSrcDir 'epsimple')
     Copy-Directory -Source (Join-Path $SrcDir 'idragon') -Destination (Join-Path $ReleaseSrcDir 'idragon')
 
-    $LauncherSrcDir = Join-Path $SrcDir 'launcher'
-    $LauncherReleaseDir = Join-Path $ReleaseSrcDir 'launcher'
-
-    Ensure-Directory $LauncherReleaseDir
-
-    Copy-Directory -Source (Join-Path $LauncherSrcDir 'static') -Destination (Join-Path $LauncherReleaseDir 'static')
-    Copy-Directory -Source (Join-Path $LauncherSrcDir 'templates') -Destination (Join-Path $LauncherReleaseDir 'templates')
-
-    Copy-File -Source (Join-Path $LauncherSrcDir '__init__.py') -Destination (Join-Path $LauncherReleaseDir '__init__.py')
-    Copy-File -Source (Join-Path $LauncherSrcDir '__main__.py') -Destination (Join-Path $LauncherReleaseDir '__main__.py')
-    Copy-File -Source (Join-Path $LauncherSrcDir 'core.py') -Destination (Join-Path $LauncherReleaseDir 'core.py')
-
-    $configPath = Join-Path $LauncherReleaseDir 'config.py'
-
-    @"
-TEMPLATE_DIRNAME = "templates"
-COREMODULE_NAME = "core"
-"@ | Set-Content -LiteralPath $configPath -Encoding UTF8
-
-    Write-Log 'Source files and launcher configuration copied.'
+    Write-Log 'Source files copied.'
 }
 
 function Create-Archive {

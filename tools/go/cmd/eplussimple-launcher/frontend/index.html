@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>EPlusSimple Launcher</title>
+  <link rel="stylesheet" href="./assets/style.css">
+  <script src="./assets/vendor/chart.umd.min.js"></script>
+  <script defer src="./assets/app.js"></script>
+</head>
+<body>
+  <h1>리모델링 전/후 비교 시뮬레이션</h1>
+
+  <form id="uploadForm" enctype="multipart/form-data" autocomplete="off">
+    <div class="form-row">
+      <label for="fileInputBefore" class="file-label">리모델링 전 파일 선택</label>
+      <div class="filename-box" id="filenameBoxBefore">파일이 선택되지 않았습니다.</div>
+    </div>
+
+    <div class="form-row">
+      <label for="fileInputAfter" class="file-label file-label-secondary">리모델링 후 파일 선택</label>
+      <div class="filename-box" id="filenameBoxAfter">
+        파일이 선택되지 않았습니다. (선택하지 않으면 리모델링 전만 실행, 여러 개 선택 시 한 번에 비교 가능)
+      </div>
+    </div>
+
+    <input id="fileInputBefore" type="file" name="file_before" accept=".xlsx,.xlsm,.xls">
+    <input id="fileInputAfter" type="file" name="file_after" accept=".xlsx,.xlsm,.xls" multiple>
+
+    <div class="form-row form-actions">
+      <button id="submitButton" class="btn" type="submit">시뮬레이션</button>
+    </div>
+  </form>
+
+  <div id="statusArea" class="status-area" hidden></div>
+  <div id="comparison-filenames" hidden></div>
+  <div id="debugReportsArea" class="debug-reports-area" hidden></div>
+
+  <div id="resultControls" class="form-row result-controls" hidden>
+    <label for="dataTypeSelector" class="selector-label">월별 그래프 데이터 선택:</label>
+    <select id="dataTypeSelector">
+      <option value="site_uses" selected>에너지소요량</option>
+      <option value="source_uses">1차에너지소요량</option>
+      <option value="co2">CO2 배출량</option>
+      <option value="cost">에너지 요금</option>
+    </select>
+  </div>
+
+  <div id="graphsArea" class="graphs-area" hidden>
+    <div class="graph-container"><div id="legend-heating" class="custom-legend"></div><canvas id="bar-heating"></canvas><div id="title-heating" class="graph-title"></div></div>
+    <div class="graph-container"><div id="legend-cooling" class="custom-legend"></div><canvas id="bar-cooling"></canvas><div id="title-cooling" class="graph-title"></div></div>
+    <div class="graph-container"><div id="legend-lighting" class="custom-legend"></div><canvas id="bar-lighting"></canvas><div id="title-lighting" class="graph-title"></div></div>
+    <div class="graph-container"><div id="legend-circulation" class="custom-legend"></div><canvas id="bar-circulation"></canvas><div id="title-circulation" class="graph-title"></div></div>
+    <div class="graph-container"><div id="legend-hotwater" class="custom-legend"></div><canvas id="bar-hotwater"></canvas><div id="title-hotwater" class="graph-title"></div></div>
+    <div class="graph-container"><div id="legend-generators" class="custom-legend"></div><canvas id="bar-generators"></canvas><div id="title-generators" class="graph-title"></div></div>
+
+    <div class="graph-container split-container">
+      <div class="inner-chart">
+        <canvas id="bar-annual-by-purpose"></canvas>
+        <div id="title-annual-by-purpose" class="graph-title"></div>
+      </div>
+      <div class="inner-chart">
+        <canvas id="line-total"></canvas>
+        <div id="title-total" class="graph-title"></div>
+      </div>
+    </div>
+
+    <div class="graph-container summary-comparison-graph">
+      <div class="graph-title">연간 주요 성능 지표 비교</div>
+      <div id="annualSummaryContainer"></div>
+    </div>
+  </div>
+</body>
+</html>

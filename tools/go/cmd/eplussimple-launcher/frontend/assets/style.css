@@ -1,0 +1,278 @@
+body {
+  font-family: sans-serif;
+  margin: 2em;
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1em;
+  gap: 0.5em;
+}
+
+.file-label,
+.btn,
+#dataTypeSelector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 42px;
+  padding: 0 1.5em;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: bold;
+  color: #fff;
+  background: #36c46d;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+  border: 1px solid #2da15a;
+}
+
+.file-label:hover,
+.btn:hover,
+#dataTypeSelector:hover {
+  background: #24994d;
+}
+
+.file-label-secondary {
+  background-color: #5b8cde;
+  border-color: #4a74b9;
+}
+
+.btn:disabled {
+  background: #7b8794;
+  border-color: #68727d;
+  cursor: wait;
+}
+
+input[type="file"] {
+  display: none;
+}
+
+.filename-box {
+  flex-grow: 1;
+  min-height: 2em;
+  padding: 0.5em 1em;
+  background: #fff;
+  color: #222;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+  word-break: break-all;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.status-area {
+  margin-top: 1em;
+  padding: 0.9em 1.2em;
+  background: #eef5ff;
+  border: 1px solid #c6ddff;
+  color: #18437a;
+  border-radius: 6px;
+  font-weight: bold;
+}
+
+.status-area.error {
+  background: #f8d7da;
+  color: #721c24;
+  border-color: #f5c6cb;
+}
+
+#comparison-filenames {
+  margin-top: 1em;
+  padding: 0.8em 1.2em;
+  background-color: #f0f8ff;
+  border: 1px solid #cce5ff;
+  border-radius: 6px;
+  font-size: 0.9em;
+  color: #004085;
+}
+
+#comparison-filenames ol {
+  padding-left: 1.5em;
+  margin: 0.5em 0 0;
+}
+
+.debug-reports-area {
+  margin-top: 2.5em;
+  padding: 1.5em;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+}
+
+.debug-reports-area h2 {
+  margin-top: 0;
+  color: #333;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 0.5em;
+}
+
+.report-box {
+  padding: 0.5em 1.5em 1.5em 1.5em;
+  border-radius: 6px;
+  border: 1px solid;
+  margin-top: 0.8em;
+}
+
+.report-severe {
+  background-color: #f8d7da;
+  border-color: #f5c6cb;
+  color: #721c24;
+}
+
+.report-warning {
+  background-color: #fff3cd;
+  border-color: #ffeeba;
+  color: #856404;
+}
+
+.debug-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #fff;
+  font-size: 0.9em;
+}
+
+.debug-table th,
+.debug-table td {
+  border: 1px solid #ddd;
+  padding: 0.5em;
+  text-align: left;
+}
+
+.debug-table th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+}
+
+.result-controls {
+  margin-top: 2em;
+}
+
+.selector-label {
+  font-weight: bold;
+  color: #333;
+}
+
+.graphs-area {
+  margin-top: 2.5em;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2em;
+}
+
+.graph-container {
+  background: #e6faef;
+  border-radius: 12px;
+  padding: 1.1em 1em 0.6em 1em;
+  border: 2px dashed #24994d;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+canvas {
+  width: 100% !important;
+  max-height: 230px;
+}
+
+.graph-title {
+  text-align: center;
+  margin-top: 0.5em;
+  font-size: 1.05em;
+  color: #219a55;
+  font-weight: bold;
+}
+
+.summary-comparison-graph {
+  grid-column: 1 / -1;
+}
+
+.summary-table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-top: 1em;
+  font-size: 0.9em;
+}
+
+.summary-table th,
+.summary-table td {
+  border: 1px solid #d0e0d8;
+  padding: 0.6em;
+  text-align: right;
+}
+
+.summary-table th {
+  background-color: #f8fdfa;
+  color: #1a6e3d;
+  font-weight: bold;
+  text-align: center;
+}
+
+.summary-table .metric-title {
+  background-color: #e6faef;
+  font-weight: bold;
+  text-align: left;
+}
+
+.summary-table .case-label {
+  text-align: center;
+  font-weight: bold;
+}
+
+.summary-down {
+  color: #007bff;
+}
+
+.summary-up {
+  color: #dc3545;
+}
+
+.custom-legend {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(2, auto);
+  gap: 4px 8px;
+  padding: 0.5em 0;
+  justify-content: center;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 0.85em;
+}
+
+.legend-item-hidden {
+  text-decoration: line-through;
+  color: #888;
+}
+
+.legend-color-box {
+  width: 12px;
+  height: 12px;
+  margin-right: 6px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.split-container {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2em;
+  flex-direction: row;
+}
+
+.split-container .inner-chart {
+  display: flex;
+  flex-direction: column;
+  max-height: 300px;
+}
+
+.split-container canvas {
+  max-height: 250px;
+}

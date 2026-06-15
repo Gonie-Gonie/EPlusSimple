@@ -767,7 +767,6 @@ JSON_INSPECTORS = [
 ]
 
 def debug_excel(filepath:str) -> list[ExcelException]:
-    
     exceldata = pd.read_excel(filepath, sheet_name=None)
 
     exceptions = []
