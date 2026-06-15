@@ -136,9 +136,11 @@ func (a *App) runSimulation(ctx context.Context, run *simulationRun, jobDir stri
 		go a.forgetSimulationRunLater(jobID)
 	}()
 
-	applog.WriteLine(a.logFile, fmt.Sprintf("Job %s: starting debug for %d file(s).", jobID, len(allFiles)))
+	debugWorkers := maxParallelWorkers(len(allFiles))
+	run.setStep("debug", stepStateRunning, fmt.Sprintf("실행 중 (최대 %d개 병렬)", debugWorkers))
+	applog.WriteLine(a.logFile, fmt.Sprintf("Job %s: starting debug for %d file(s) with %d worker(s).", jobID, len(allFiles), debugWorkers))
 
-	debugResult, err := a.python.Debug(ctx, jobDir, allFiles)
+	debugResult, err := a.python.Debug(ctx, jobDir, allFiles, debugWorkers)
 	if err != nil {
 		run.failStep("debug", "debug CLI failed: "+err.Error(), nil)
 		return
@@ -169,7 +171,7 @@ func (a *App) runSimulation(ctx context.Context, run *simulationRun, jobDir stri
 		})
 	}
 
-	run.setSimulationProgress(0, 0, len(jobs), minInt(maxParallelSimulations(), len(jobs)))
+	run.setSimulationProgress(0, 0, len(jobs), maxParallelWorkers(len(jobs)))
 
 	results, err := a.runSimulationJobs(ctx, jobDir, outputDir, jobs, run.setSimulationProgress)
 	if err != nil {
@@ -211,7 +213,7 @@ func (a *App) runSimulationJobs(ctx context.Context, jobDir string, outputDir st
 
 	results := make([]json.RawMessage, len(jobs))
 	errCh := make(chan error, len(jobs))
-	parallel := minInt(maxParallelSimulations(), len(jobs))
+	parallel := maxParallelWorkers(len(jobs))
 	sem := make(chan struct{}, parallel)
 
 	var wg sync.WaitGroup
@@ -296,6 +298,13 @@ func minInt(a int, b int) int {
 		return a
 	}
 	return b
+}
+
+func maxParallelWorkers(total int) int {
+	if total < 1 {
+		return 1
+	}
+	return minInt(maxParallelSimulations(), total)
 }
 
 func maxParallelSimulations() int {

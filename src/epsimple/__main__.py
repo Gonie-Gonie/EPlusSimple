@@ -99,6 +99,13 @@ debugger.add_argument(
     type=str,
     help="Excel input file path(s)",
 )
+debugger.add_argument(
+    "-w", "--workers",
+    dest="workers",
+    type=int,
+    default=1,
+    help="number of parallel workers for debugging",
+)
 
 # ---------------------------------------------------------------------------- #
 #                                     MAIN                                     #
@@ -142,7 +149,7 @@ if __name__ == "__main__":
         
         # debug input file
         case "debug":
-            result = debug(args.input_filepaths)
+            result = debug(args.input_filepaths, workers=args.workers)
             print(json.dumps(result, ensure_ascii=False))
         
         # else

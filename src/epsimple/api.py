@@ -9,6 +9,7 @@ import os
 import re
 from enum import Enum
 from typing import Literal
+from concurrent.futures import ProcessPoolExecutor
 
 # third-party modules
 
@@ -294,8 +295,30 @@ def convert_inputformat(
             idf.write(output_filepath)
             return
 
+
+def _debug_one_excel(filepath: str) -> tuple[dict, ReportCode]:
+    """
+    multiprocessing에서 호출하기 위한 단일 파일 debug 함수.
+    Windows에서는 top-level 함수여야 합니다.
+    """
+    exceptions, warnings = debug_excel(filepath)
+    code, report = report_result(exceptions, warnings)
+
+    records = report_to_records(report)
+
+    file_report = {
+        "filename": os.path.basename(filepath),
+        "filepath": filepath,
+        "code": code.name,
+        "report": records,
+    }
+
+    return file_report, code
+
 def debug(
     input_filepath: str | list[str] | tuple[str, ...],
+    *,
+    workers: int = 1,
 ) -> dict:
     """
     Excel input file을 디버그하고 결과를 dict로 반환합니다.
@@ -304,6 +327,9 @@ def debug(
     ----
     input_filepath
         단일 Excel 파일 경로 또는 Excel 파일 경로 list.
+    workers
+        병렬 실행 worker 수.
+        1 이하이면 순차 실행.
 
     Returns
     -------
@@ -321,23 +347,25 @@ def debug(
     else:
         input_filepaths = list(input_filepath)
 
+    if len(input_filepaths) == 0:
+        raise ValueError("input_filepath is empty.")
+
     # debug each file
+    if workers is None or workers <= 1 or len(input_filepaths) == 1:
+        results = [
+            _debug_one_excel(filepath)
+            for filepath in input_filepaths
+        ]
+    else:
+        num_workers = min(workers, len(input_filepaths))
+
+        with ProcessPoolExecutor(max_workers=num_workers) as executor:
+            results = list(executor.map(_debug_one_excel, input_filepaths))
+
     file_reports = []
     codes = []
 
-    for filepath in input_filepaths:
-        exceptions, warnings = debug_excel(filepath)
-        code, report = report_result(exceptions, warnings)
-
-        records = report_to_records(report)
-
-        file_report = {
-            "filename": os.path.basename(filepath),
-            "filepath": filepath,
-            "code": code.name,
-            "report": records,
-        }
-
+    for file_report, code in results:
         file_reports.append(file_report)
         codes.append(code)
 

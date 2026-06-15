@@ -21,8 +21,12 @@ type PythonRunner struct {
 	LogFile *os.File
 }
 
-func (p PythonRunner) Debug(ctx context.Context, jobDir string, files []UploadedFile) (*DebugResult, error) {
-	args := []string{"-s", "-m", "epsimple", "debug", "-i"}
+func (p PythonRunner) Debug(ctx context.Context, jobDir string, files []UploadedFile, workers int) (*DebugResult, error) {
+	if workers < 1 {
+		workers = 1
+	}
+
+	args := []string{"-s", "-m", "epsimple", "debug", "-w", fmt.Sprint(workers), "-i"}
 
 	for _, file := range files {
 		args = append(args, file.Path)

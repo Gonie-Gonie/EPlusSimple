@@ -303,3 +303,72 @@ canvas {
 .split-container canvas {
   max-height: 250px;
 }
+
+.raw-data-area {
+  margin-top: 2.5em;
+  border-top: 2px solid #d8e6de;
+  padding-top: 1.2em;
+}
+
+.raw-data-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1em;
+  margin-bottom: 1em;
+}
+
+.raw-data-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #1a6e3d;
+}
+
+.raw-case-section {
+  margin-top: 1.5em;
+}
+
+.raw-case-section h3 {
+  margin: 0 0 0.8em;
+  font-size: 1rem;
+  color: #333;
+}
+
+.raw-table-block {
+  margin-bottom: 1.2em;
+  overflow-x: auto;
+}
+
+.raw-table-block h4 {
+  margin: 0 0 0.4em;
+  font-size: 0.95rem;
+  color: #1a6e3d;
+}
+
+.raw-data-table {
+  min-width: 920px;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85em;
+  background: #fff;
+}
+
+.raw-data-table th,
+.raw-data-table td {
+  border: 1px solid #d6ded9;
+  padding: 0.45em 0.55em;
+  text-align: right;
+}
+
+.raw-data-table th {
+  background: #f2f8f5;
+  color: #1a6e3d;
+  font-weight: bold;
+  text-align: center;
+}
+
+.raw-data-table .raw-energy-label {
+  text-align: left;
+  font-weight: bold;
+  color: #333;
+}

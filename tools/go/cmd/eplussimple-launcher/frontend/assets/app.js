@@ -32,6 +32,7 @@ window.addEventListener("DOMContentLoaded", () => {
   const beforeInput = document.getElementById("fileInputBefore");
   const afterInput = document.getElementById("fileInputAfter");
   const form = document.getElementById("uploadForm");
+  const rawDataDownloadButton = document.getElementById("rawDataDownloadButton");
 
   beforeInput.addEventListener("change", () => {
     document.getElementById("filenameBoxBefore").textContent =
@@ -51,8 +52,10 @@ window.addEventListener("DOMContentLoaded", () => {
   form.addEventListener("submit", submitSimulation);
 
   document.getElementById("dataTypeSelector").addEventListener("change", event => {
-    if (currentSimData) updateCharts(currentSimData, event.target.value);
+    if (currentSimData) updateSelectedDataView(currentSimData, event.target.value);
   });
+
+  rawDataDownloadButton.addEventListener("click", downloadRawDataCSV);
 });
 
 async function submitSimulation(event) {
@@ -257,7 +260,9 @@ function clearResult() {
 
   document.getElementById("resultControls").hidden = true;
   document.getElementById("graphsArea").hidden = true;
+  document.getElementById("rawDataArea").hidden = true;
   document.getElementById("annualSummaryContainer").innerHTML = "";
+  document.getElementById("rawDataTables").innerHTML = "";
 
   Object.values(chartInstances).forEach(chart => chart.destroy());
   Object.keys(chartInstances).forEach(key => delete chartInstances[key]);
@@ -344,10 +349,16 @@ function renderSimulation(simData) {
 
   document.getElementById("resultControls").hidden = false;
   document.getElementById("graphsArea").hidden = false;
+  document.getElementById("rawDataArea").hidden = false;
 
   const selector = document.getElementById("dataTypeSelector");
-  updateCharts(simData, selector.value);
+  updateSelectedDataView(simData, selector.value);
   drawAnnualSummary(simData.before, simData.afters);
+}
+
+function updateSelectedDataView(simData, dataType) {
+  updateCharts(simData, dataType);
+  renderRawDataTables(simData, dataType);
 }
 
 function renderComparisonFilenames(simData) {
@@ -697,6 +708,175 @@ function drawAnnualSummary(dataBefore, dataAfters) {
 
   html += "</table>";
   container.innerHTML = html;
+}
+
+function renderRawDataTables(simData, dataType) {
+  const container = document.getElementById("rawDataTables");
+  const title = document.getElementById("rawDataTitle");
+  const labels = dataTypeLabels[dataType];
+
+  container.innerHTML = "";
+  title.textContent = labels ? `상세값 - ${labels.name} ${labels.unit}` : "상세값";
+
+  getSimulationCases(simData).forEach(simCase => {
+    const caseSection = document.createElement("section");
+    caseSection.className = "raw-case-section";
+
+    const caseTitle = document.createElement("h3");
+    caseTitle.textContent = `${simCase.label}: ${simCase.fileName}`;
+    caseSection.appendChild(caseTitle);
+
+    graphOrder.forEach(purpose => {
+      const purposeData = simCase.data?.[dataType]?.[purpose.key];
+      if (!purposeData) return;
+
+      const tableBlock = document.createElement("div");
+      tableBlock.className = "raw-table-block";
+
+      const purposeTitle = document.createElement("h4");
+      purposeTitle.textContent = purpose.name;
+      tableBlock.appendChild(purposeTitle);
+      tableBlock.appendChild(makeRawDataTable(purposeData));
+      caseSection.appendChild(tableBlock);
+    });
+
+    container.appendChild(caseSection);
+  });
+}
+
+function makeRawDataTable(purposeData) {
+  const table = document.createElement("table");
+  table.className = "raw-data-table";
+
+  const thead = document.createElement("thead");
+  const headerRow = document.createElement("tr");
+  ["열원", ...monthLabels, "합계"].forEach(label => {
+    const th = document.createElement("th");
+    th.textContent = label;
+    headerRow.appendChild(th);
+  });
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+
+  const tbody = document.createElement("tbody");
+  energyTypes.forEach(energyType => {
+    const values = normalizeMonthlyValues(purposeData[energyType.key]);
+    const row = document.createElement("tr");
+
+    const labelCell = document.createElement("td");
+    labelCell.className = "raw-energy-label";
+    labelCell.textContent = energyType.label;
+    row.appendChild(labelCell);
+
+    values.forEach(value => {
+      const cell = document.createElement("td");
+      cell.textContent = formatRawNumber(value);
+      row.appendChild(cell);
+    });
+
+    const totalCell = document.createElement("td");
+    totalCell.textContent = formatRawNumber(sumValues(values));
+    row.appendChild(totalCell);
+    tbody.appendChild(row);
+  });
+
+  table.appendChild(tbody);
+  return table;
+}
+
+function downloadRawDataCSV() {
+  if (!currentSimData) return;
+
+  const selector = document.getElementById("dataTypeSelector");
+  const dataType = selector.value;
+  const csv = buildRawDataCSV(currentSimData, dataType);
+  const blob = new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = `eplussimple-grr-${dataType}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+function buildRawDataCSV(simData, dataType) {
+  const labels = dataTypeLabels[dataType];
+  const rows = [];
+
+  rows.push(["지표", labels?.name || dataType, labels?.unit || ""]);
+
+  getSimulationCases(simData).forEach(simCase => {
+    rows.push([]);
+    rows.push(["파일", simCase.label, simCase.fileName]);
+
+    graphOrder.forEach(purpose => {
+      const purposeData = simCase.data?.[dataType]?.[purpose.key];
+      if (!purposeData) return;
+
+      rows.push([]);
+      rows.push(["용도", purpose.name]);
+      rows.push(["열원", ...monthLabels, "합계"]);
+
+      energyTypes.forEach(energyType => {
+        const values = normalizeMonthlyValues(purposeData[energyType.key]);
+        rows.push([
+          energyType.label,
+          ...values.map(value => rawNumberForCSV(value)),
+          rawNumberForCSV(sumValues(values)),
+        ]);
+      });
+    });
+  });
+
+  return rows.map(row => row.map(csvCell).join(",")).join("\r\n");
+}
+
+function getSimulationCases(simData) {
+  const cases = [{
+    label: "Before",
+    fileName: simData.filename_before || "",
+    data: simData.before,
+  }];
+
+  (simData.afters || []).forEach((dataAfter, index) => {
+    cases.push({
+      label: `After ${index + 1}`,
+      fileName: simData.filenames_after?.[index] || `After ${index + 1}`,
+      data: dataAfter,
+    });
+  });
+
+  return cases;
+}
+
+function normalizeMonthlyValues(values) {
+  const result = Array.isArray(values) ? values.slice(0, 12) : [];
+  while (result.length < 12) result.push(0);
+  return result.map(value => Number(value || 0));
+}
+
+function sumValues(values) {
+  return values.reduce((sum, value) => sum + Number(value || 0), 0);
+}
+
+function formatRawNumber(value) {
+  return Number(value || 0).toLocaleString(undefined, {
+    maximumFractionDigits: 3,
+    minimumFractionDigits: 0,
+  });
+}
+
+function rawNumberForCSV(value) {
+  const rounded = Math.round(Number(value || 0) * 1000000) / 1000000;
+  return Number.isInteger(rounded) ? String(rounded) : String(rounded);
+}
+
+function csvCell(value) {
+  const text = value == null ? "" : String(value);
+  return `"${text.replaceAll('"', '""')}"`;
 }
 
 function formatNumber(value) {
