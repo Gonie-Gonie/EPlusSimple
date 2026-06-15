@@ -1,6 +1,6 @@
 # ============================================================================
 # EPlusSimple release script
-# Release script revision: standard-single-target-20260612
+# Release script revision: standard-single-target-approved-verbs-20260612
 # ============================================================================
 #
 # Expected location:
@@ -147,7 +147,7 @@ $script:LogWriter = $null
 # Logging
 # ----------------------------------------------------------------------------
 
-function Ensure-Directory {
+function New-DirectoryIfMissing {
     param([Parameter(Mandatory)][string]$Path)
 
     if (-not (Test-Path -LiteralPath $Path -PathType Container)) {
@@ -156,7 +156,7 @@ function Ensure-Directory {
 }
 
 function Open-ReleaseLog {
-    Ensure-Directory $LogsDir
+    New-DirectoryIfMissing $LogsDir
 
     if ($null -ne $script:LogWriter) {
         Close-ReleaseLog
@@ -280,7 +280,7 @@ function Remove-FileIfExists {
     }
 }
 
-function Assert-FileExists {
+function Test-FileExists {
     param(
         [string]$Path,
         [string]$Message
@@ -293,7 +293,7 @@ function Assert-FileExists {
     Write-Log "Validated file: $Path"
 }
 
-function Assert-DirectoryExists {
+function Test-DirectoryExists {
     param(
         [string]$Path,
         [string]$Message
@@ -359,11 +359,11 @@ function Copy-Directory {
         [string]$Destination
     )
 
-    Assert-DirectoryExists -Path $Source -Message 'Cannot copy directory because the source directory was not found.'
+    Test-DirectoryExists -Path $Source -Message 'Cannot copy directory because the source directory was not found.'
     Remove-DirectoryIfExists $Destination
 
     $parent = Split-Path -Parent $Destination
-    Ensure-Directory $parent
+    New-DirectoryIfMissing $parent
 
     Write-Log "Copy directory: $Source -> $Destination"
     Copy-Item -LiteralPath $Source -Destination $Destination -Recurse -Force
@@ -375,10 +375,10 @@ function Copy-File {
         [string]$Destination
     )
 
-    Assert-FileExists -Path $Source -Message 'Cannot copy file because the source file was not found.'
+    Test-FileExists -Path $Source -Message 'Cannot copy file because the source file was not found.'
 
     $parent = Split-Path -Parent $Destination
-    Ensure-Directory $parent
+    New-DirectoryIfMissing $parent
 
     Write-Log "Copy file: $Source -> $Destination"
     Copy-Item -LiteralPath $Source -Destination $Destination -Force
@@ -390,7 +390,7 @@ function Add-UniqueLine {
         [string]$Line
     )
 
-    Assert-FileExists -Path $Path -Message 'Cannot update file because it was not found.'
+    Test-FileExists -Path $Path -Message 'Cannot update file because it was not found.'
 
     $lines = Get-Content -LiteralPath $Path -ErrorAction Stop
 
@@ -410,32 +410,32 @@ function Add-UniqueLine {
 # Release steps
 # ----------------------------------------------------------------------------
 
-function Validate-Inputs {
+function Test-ReleaseInputs {
     Write-Step '[0/7] Validating release inputs...'
 
-    Assert-DirectoryExists -Path $SrcDir -Message 'src directory was not found.'
-    Assert-DirectoryExists -Path $ExamplesDir -Message 'examples directory was not found.'
-    Assert-DirectoryExists -Path $DocsDir -Message 'docs directory was not found.'
+    Test-DirectoryExists -Path $SrcDir -Message 'src directory was not found.'
+    Test-DirectoryExists -Path $ExamplesDir -Message 'examples directory was not found.'
+    Test-DirectoryExists -Path $DocsDir -Message 'docs directory was not found.'
 
-    Assert-DirectoryExists -Path (Join-Path $SrcDir 'epsimple') -Message 'src\epsimple was not found.'
-    Assert-DirectoryExists -Path (Join-Path $SrcDir 'idragon') -Message 'src\idragon was not found.'
-    Assert-DirectoryExists -Path (Join-Path $SrcDir 'launcher') -Message 'src\launcher was not found.'
+    Test-DirectoryExists -Path (Join-Path $SrcDir 'epsimple') -Message 'src\epsimple was not found.'
+    Test-DirectoryExists -Path (Join-Path $SrcDir 'idragon') -Message 'src\idragon was not found.'
+    Test-DirectoryExists -Path (Join-Path $SrcDir 'launcher') -Message 'src\launcher was not found.'
 
-    Assert-FileExists -Path (Join-Path $SrcDir 'launcher\core.py') -Message 'launcher core.py was not found.'
-    Assert-DirectoryExists -Path (Join-Path $SrcDir 'launcher\templates') -Message 'launcher templates directory was not found.'
-    Assert-DirectoryExists -Path (Join-Path $SrcDir 'launcher\static') -Message 'launcher static directory was not found.'
+    Test-FileExists -Path (Join-Path $SrcDir 'launcher\core.py') -Message 'launcher core.py was not found.'
+    Test-DirectoryExists -Path (Join-Path $SrcDir 'launcher\templates') -Message 'launcher templates directory was not found.'
+    Test-DirectoryExists -Path (Join-Path $SrcDir 'launcher\static') -Message 'launcher static directory was not found.'
 
-    Assert-FileExists -Path $PythonExe -Message 'Python runtime was not found. Run "runscript setup" before release.'
-    Assert-FileExists -Path $PythonPthFile -Message 'Python ._pth file was not found. Run "runscript setup" before release.'
-    Assert-FileExists -Path $EnergyPlusExe -Message 'EnergyPlus runtime was not found. Run "runscript setup" before release.'
-    Assert-DirectoryExists -Path $WeatherTmyDir -Message 'Korean TMY weather data was not found. Run "runscript setup" before release.'
+    Test-FileExists -Path $PythonExe -Message 'Python runtime was not found. Run "runscript setup" before release.'
+    Test-FileExists -Path $PythonPthFile -Message 'Python ._pth file was not found. Run "runscript setup" before release.'
+    Test-FileExists -Path $EnergyPlusExe -Message 'EnergyPlus runtime was not found. Run "runscript setup" before release.'
+    Test-DirectoryExists -Path $WeatherTmyDir -Message 'Korean TMY weather data was not found. Run "runscript setup" before release.'
 
-    Assert-FileExists -Path $BuildGoScript -Message 'Go build script was not found.'
-    Assert-DirectoryExists -Path (Join-Path $RepoRoot 'tools\go') -Message 'Go source directory was not found.'
-    Assert-FileExists -Path (Join-Path $RepoRoot 'tools\go\go.mod') -Message 'Go module file was not found.'
+    Test-FileExists -Path $BuildGoScript -Message 'Go build script was not found.'
+    Test-DirectoryExists -Path (Join-Path $RepoRoot 'tools\go') -Message 'Go source directory was not found.'
+    Test-FileExists -Path (Join-Path $RepoRoot 'tools\go\go.mod') -Message 'Go module file was not found.'
 
     if (-not $SkipRegressionTest) {
-        Assert-FileExists -Path $RegressionTestScript -Message 'Regression test script was not found.'
+        Test-FileExists -Path $RegressionTestScript -Message 'Regression test script was not found.'
     }
 
     Write-LogBlock -Title 'RELEASE INPUTS' -Lines @(
@@ -451,18 +451,18 @@ function Validate-Inputs {
     )
 }
 
-function Prepare-Dist {
+function Initialize-Dist {
     Write-Step '[1/7] Preparing dist directory...'
 
     if (-not $NoClean) {
         Remove-DirectoryIfExists $DistDir
     }
 
-    Ensure-Directory $ReleaseDir
+    New-DirectoryIfMissing $ReleaseDir
     Write-Log "Release directory prepared: $ReleaseDir"
 }
 
-function Build-GoLaunchers {
+function Invoke-GoLauncherBuild {
     Write-Log 'Building Go executables.'
 
     Invoke-LoggedCommand `
@@ -479,8 +479,8 @@ function Build-GoLaunchers {
         -WorkingDirectory $RepoRoot `
         -Description 'Go executable build'
 
-    Assert-FileExists -Path $EPlusSimpleCLIExe -Message 'EPlusSimpleCLI.exe was not generated by build-go.ps1.'
-    Assert-FileExists -Path $EPlusSimpleLauncherExe -Message 'EPlusSimpleLauncher.exe was not generated by build-go.ps1.'
+    Test-FileExists -Path $EPlusSimpleCLIExe -Message 'EPlusSimpleCLI.exe was not generated by build-go.ps1.'
+    Test-FileExists -Path $EPlusSimpleLauncherExe -Message 'EPlusSimpleLauncher.exe was not generated by build-go.ps1.'
 
     Write-Log 'Go executables built.'
 }
@@ -488,7 +488,7 @@ function Build-GoLaunchers {
 function Remove-EnergyPlusReleaseExtras {
     param([string]$ReleaseEnergyPlusDir)
 
-    Assert-DirectoryExists -Path $ReleaseEnergyPlusDir -Message 'Release EnergyPlus runtime was not found.'
+    Test-DirectoryExists -Path $ReleaseEnergyPlusDir -Message 'Release EnergyPlus runtime was not found.'
 
     foreach ($dirname in $EnergyPlusPruneDirs) {
         $target = Join-Path $ReleaseEnergyPlusDir $dirname
@@ -506,7 +506,7 @@ function Copy-RuntimeAndRootFiles {
     Write-Step '[2/7] Copying runtime and root files...'
 
     $ReleaseRuntimeDir = Join-Path $ReleaseDir 'runtime'
-    Ensure-Directory $ReleaseRuntimeDir
+    New-DirectoryIfMissing $ReleaseRuntimeDir
 
     Copy-Directory -Source $PythonDir -Destination (Join-Path $ReleaseRuntimeDir $PythonRuntimeName)
 
@@ -515,12 +515,12 @@ function Copy-RuntimeAndRootFiles {
     Remove-EnergyPlusReleaseExtras -ReleaseEnergyPlusDir $ReleaseEnergyPlusDir
 
     $ReleaseWeatherRootDir = Join-Path $ReleaseRuntimeDir $WeatherRuntimeName
-    Ensure-Directory $ReleaseWeatherRootDir
+    New-DirectoryIfMissing $ReleaseWeatherRootDir
     Copy-Directory -Source $WeatherTmyDir -Destination (Join-Path $ReleaseWeatherRootDir 'TMY')
 
     Copy-Directory -Source $ExamplesDir -Destination (Join-Path $ReleaseDir 'examples')
 
-    Build-GoLaunchers
+    Invoke-GoLauncherBuild
 
     Copy-File -Source $EPlusSimpleCLIExe -Destination (Join-Path $ReleaseDir 'EPlusSimpleCLI.exe')
     Copy-File -Source $EPlusSimpleLauncherExe -Destination (Join-Path $ReleaseDir 'EPlusSimpleLauncher.exe')
@@ -528,7 +528,7 @@ function Copy-RuntimeAndRootFiles {
     Write-Log 'Runtime, weather data, examples, and root executables copied.'
 }
 
-function Configure-ReleaseRuntime {
+function Set-ReleaseRuntime {
     Write-Step '[3/7] Configuring release runtime paths...'
 
     $ReleasePthFile = Join-Path $ReleaseDir "runtime\$PythonRuntimeName\$PythonPthFileName"
@@ -566,7 +566,7 @@ function Set-ReleaseEnvironment {
     )
 }
 
-function Run-RegressionTest {
+function Invoke-RegressionTest {
     if ($SkipRegressionTest) {
         Write-Step '[4/7] Skipping regression test.'
         return
@@ -616,7 +616,7 @@ function Write-ReleaseInfo {
     Write-Log "Updated release info: $releaseInfoPath"
 }
 
-function Build-AndCopyDoc {
+function Invoke-DocBuild {
     param(
         [string]$SourceName,
         [string]$DisplayName
@@ -625,8 +625,8 @@ function Build-AndCopyDoc {
     $DocsBuildDir = Join-Path $DistDir 'docs'
     $ReleaseDocsDir = Join-Path $ReleaseDir 'docs'
 
-    Ensure-Directory $DocsBuildDir
-    Ensure-Directory $ReleaseDocsDir
+    New-DirectoryIfMissing $DocsBuildDir
+    New-DirectoryIfMissing $ReleaseDocsDir
 
     $texFile = "$SourceName.tex"
     $pdfFile = Join-Path $DocsBuildDir "$SourceName.pdf"
@@ -643,11 +643,11 @@ function Build-AndCopyDoc {
         -WorkingDirectory $DocsDir `
         -Description "LaTeX build: $DisplayName"
 
-    Assert-FileExists -Path $pdfFile -Message "Expected PDF was not generated for $DisplayName."
+    Test-FileExists -Path $pdfFile -Message "Expected PDF was not generated for $DisplayName."
     Copy-File -Source $pdfFile -Destination $releasePdfFile
 }
 
-function Build-Documentation {
+function Invoke-DocumentationBuild {
     if ($SkipDocs) {
         Write-Step '[5/7] Skipping documentation build.'
         return
@@ -657,9 +657,9 @@ function Build-Documentation {
 
     Write-ReleaseInfo
 
-    Build-AndCopyDoc -SourceName 'mainTRM' -DisplayName 'Technical Reference Manual'
-    Build-AndCopyDoc -SourceName 'mainRTR' -DisplayName 'Regression Test Report'
-    Build-AndCopyDoc -SourceName 'mainRN' -DisplayName 'Release Note'
+    Invoke-DocBuild -SourceName 'mainTRM' -DisplayName 'Technical Reference Manual'
+    Invoke-DocBuild -SourceName 'mainRTR' -DisplayName 'Regression Test Report'
+    Invoke-DocBuild -SourceName 'mainRN' -DisplayName 'Release Note'
 
     Write-Log 'Documentation build completed.'
 }
@@ -668,7 +668,7 @@ function Copy-SourceFiles {
     Write-Step '[6/7] Copying source files...'
 
     $ReleaseSrcDir = Join-Path $ReleaseDir 'src'
-    Ensure-Directory $ReleaseSrcDir
+    New-DirectoryIfMissing $ReleaseSrcDir
 
     Copy-Directory -Source (Join-Path $SrcDir 'epsimple') -Destination (Join-Path $ReleaseSrcDir 'epsimple')
     Copy-Directory -Source (Join-Path $SrcDir 'idragon') -Destination (Join-Path $ReleaseSrcDir 'idragon')
@@ -676,7 +676,7 @@ function Copy-SourceFiles {
     Write-Log 'Source files copied.'
 }
 
-function Create-Archive {
+function New-ReleaseArchive {
     Write-Step '[7/7] Creating release zip...'
 
     Remove-FileIfExists $OutputZip
@@ -693,7 +693,7 @@ function Create-Archive {
         -WorkingDirectory $ReleaseDir `
         -Description 'Archive creation'
 
-    Assert-FileExists -Path $OutputZip -Message 'Release zip was not created.'
+    Test-FileExists -Path $OutputZip -Message 'Release zip was not created.'
     Write-Log "Archive created: $OutputZip"
 }
 
@@ -742,14 +742,14 @@ try {
     Write-Host "Log: $ReleaseLog"
     Write-Host ''
 
-    Validate-Inputs
-    Prepare-Dist
+    Test-ReleaseInputs
+    Initialize-Dist
     Copy-RuntimeAndRootFiles
-    Configure-ReleaseRuntime
-    Run-RegressionTest
-    Build-Documentation
+    Set-ReleaseRuntime
+    Invoke-RegressionTest
+    Invoke-DocumentationBuild
     Copy-SourceFiles
-    Create-Archive
+    New-ReleaseArchive
 
     Write-LogBlock -Title 'RELEASE COMPLETED' -Lines @(
         "Release directory: $ReleaseDir",
