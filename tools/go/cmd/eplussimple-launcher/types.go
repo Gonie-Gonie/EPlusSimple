@@ -23,10 +23,27 @@ type SimData struct {
 	Afters         []json.RawMessage `json:"afters"`
 }
 
+type ProgressStep struct {
+	Key    string `json:"key"`
+	Label  string `json:"label"`
+	State  string `json:"state"`
+	Detail string `json:"detail,omitempty"`
+}
+
+type SimulationProgress struct {
+	Steps               []ProgressStep `json:"steps"`
+	SimulationCompleted int            `json:"simulation_completed"`
+	SimulationRunning   int            `json:"simulation_running"`
+	SimulationTotal     int            `json:"simulation_total"`
+	SimulationParallel  int            `json:"simulation_parallel"`
+}
+
 type SimulateResponse struct {
-	JobID   string       `json:"job_id"`
-	Code    string       `json:"code"`
-	Err     string       `json:"err,omitempty"`
-	Debug   *DebugResult `json:"debug,omitempty"`
-	SimData *SimData     `json:"sim_data,omitempty"`
+	JobID    string              `json:"job_id"`
+	Code     string              `json:"code"`
+	State    string              `json:"state,omitempty"`
+	Err      string              `json:"err,omitempty"`
+	Debug    *DebugResult        `json:"debug,omitempty"`
+	SimData  *SimData            `json:"sim_data,omitempty"`
+	Progress *SimulationProgress `json:"progress,omitempty"`
 }

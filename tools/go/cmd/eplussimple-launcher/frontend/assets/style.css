@@ -3,6 +3,10 @@ body {
   margin: 2em;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 .form-row {
   display: flex;
   align-items: center;
@@ -77,6 +81,29 @@ input[type="file"] {
   background: #f8d7da;
   color: #721c24;
   border-color: #f5c6cb;
+}
+
+.progress-line {
+  line-height: 1.6;
+  font-family: Consolas, "Courier New", monospace;
+  white-space: pre-wrap;
+}
+
+.progress-done {
+  color: #116b38;
+}
+
+.progress-running {
+  color: #18437a;
+}
+
+.progress-failed {
+  color: #721c24;
+}
+
+.progress-skipped,
+.progress-pending {
+  color: #55606b;
 }
 
 #comparison-filenames {

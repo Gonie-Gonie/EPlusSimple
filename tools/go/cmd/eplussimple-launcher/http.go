@@ -39,6 +39,10 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 
+	case r.Method == http.MethodGet && r.URL.Path == "/api/simulate/status":
+		a.handleSimulationStatus(w, r)
+		return
+
 	case r.Method == http.MethodPost && r.URL.Path == "/api/simulate":
 		a.handleSimulate(w, r)
 		return

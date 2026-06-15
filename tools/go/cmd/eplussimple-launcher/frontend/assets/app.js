@@ -26,6 +26,7 @@ const dataTypeLabels = {
 const monthLabels = ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"];
 
 let currentSimData = null;
+const progressPollIntervalMs = 1000;
 
 window.addEventListener("DOMContentLoaded", () => {
   const beforeInput = document.getElementById("fileInputBefore");
@@ -59,10 +60,11 @@ async function submitSimulation(event) {
 
   clearResult();
   setBusy(true);
-  setStatus("시뮬레이션 실행 중입니다.");
+  setStatus("파일을 준비하는 중입니다.");
 
   try {
     const formData = await buildSimulationFormData();
+    setStatus("파일을 업로드하는 중입니다.");
 
     const response = await fetch("./api/simulate", {
       method: "POST",
@@ -75,20 +77,117 @@ async function submitSimulation(event) {
       throw new Error(payload.err || "요청 처리 중 오류가 발생했습니다.");
     }
 
-    renderDebug(payload.debug);
+    renderProgress(payload.progress);
+    const finalPayload = await waitForSimulation(payload.job_id, payload);
 
-    if (payload.err && !payload.sim_data) {
-      setStatus(payload.err, true);
+    renderDebug(finalPayload.debug);
+
+    if (finalPayload.err && !finalPayload.sim_data) {
+      renderProgress(finalPayload.progress, true);
+      return;
     }
 
-    if (payload.sim_data) {
-      setStatus("시뮬레이션이 완료되었습니다.");
-      renderSimulation(payload.sim_data);
+    if (finalPayload.sim_data) {
+      renderProgress(withResultStep(finalPayload.progress, "running", "렌더링 중"));
+      await nextFrame();
+      renderSimulation(finalPayload.sim_data);
+      renderProgress(withResultStep(finalPayload.progress, "done", "렌더링 완료"));
     }
   } catch (error) {
     setStatus(error.message, true);
   } finally {
     setBusy(false);
+  }
+}
+
+async function waitForSimulation(jobID, initialPayload) {
+  let payload = initialPayload;
+
+  while (!isTerminalState(payload)) {
+    await delay(progressPollIntervalMs);
+
+    const response = await fetch(`./api/simulate/status?job_id=${encodeURIComponent(jobID)}`, {
+      cache: "no-store",
+    });
+
+    payload = await response.json();
+
+    if (!response.ok) {
+      throw new Error(payload.err || "진행 상태를 확인하는 중 오류가 발생했습니다.");
+    }
+
+    renderProgress(payload.progress, payload.state === "failed");
+  }
+
+  return payload;
+}
+
+function isTerminalState(payload) {
+  return payload && ["completed", "failed", "severe"].includes(payload.state);
+}
+
+function delay(ms) {
+  return new Promise(resolve => window.setTimeout(resolve, ms));
+}
+
+function nextFrame() {
+  return new Promise(resolve => window.requestAnimationFrame(resolve));
+}
+
+function withResultStep(progress, state, detail) {
+  if (!progress || !progress.steps) return progress;
+
+  return {
+    ...progress,
+    steps: progress.steps.map(step => (
+      step.key === "result" ? { ...step, state, detail } : { ...step }
+    )),
+  };
+}
+
+function renderProgress(progress, isError = false) {
+  const area = document.getElementById("statusArea");
+  area.hidden = !progress;
+  area.classList.toggle("error", Boolean(isError));
+  area.innerHTML = "";
+
+  if (!progress || !progress.steps) return;
+
+  progress.steps.forEach(step => {
+    const line = document.createElement("div");
+    line.className = `progress-line progress-${step.state}`;
+    line.textContent = `[${progressMarker(step.state)}] ${step.label}: ${step.detail || progressFallback(step.state)}`;
+    area.appendChild(line);
+  });
+}
+
+function progressMarker(state) {
+  switch (state) {
+    case "done":
+      return "V";
+    case "running":
+      return "~";
+    case "failed":
+      return "X";
+    case "skipped":
+      return "-";
+    default:
+      return " ";
+  }
+}
+
+function progressFallback(state) {
+  switch (state) {
+    case "done":
+      return "완료";
+    case "running":
+      return "진행 중";
+    case "failed":
+      return "실패";
+    case "skipped":
+      return "건너뜀";
+    default:
+      return "대기 중";
   }
 }
 

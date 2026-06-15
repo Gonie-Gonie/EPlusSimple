@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -50,14 +51,14 @@ func (a *App) handleSimulate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	jobDir := filepath.Join(a.workDir, "logs", "launcher-jobs", jobID)
-	defer func() {
-		if err := os.RemoveAll(jobDir); err != nil {
-			applog.WriteLine(a.logFile, fmt.Sprintf("Job %s: failed to remove job directory %s: %s", jobID, jobDir, err.Error()))
-		}
-	}()
-
 	inputDir := filepath.Join(jobDir, "input")
 	outputDir := filepath.Join(jobDir, "output")
+	started := false
+	defer func() {
+		if !started {
+			a.cleanupJobDir(jobID, jobDir)
+		}
+	}()
 
 	if err := os.MkdirAll(inputDir, 0755); err != nil {
 		writeJSON(w, http.StatusInternalServerError, SimulateResponse{
@@ -88,28 +89,66 @@ func (a *App) handleSimulate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	allFiles := append([]UploadedFile{beforeFile}, afterFiles...)
+	run := newSimulationRun(jobID)
+	a.addSimulationRun(run)
 
-	applog.WriteLine(a.logFile, fmt.Sprintf("Job %s: starting debug for %d file(s).", jobID, len(allFiles)))
+	ctx := a.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
 
-	debugResult, err := a.python.Debug(r.Context(), jobDir, allFiles)
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, SimulateResponse{
-			JobID: jobID,
+	go a.runSimulation(ctx, run, jobDir, outputDir, beforeFile, afterFiles, allFiles)
+	started = true
+
+	writeJSON(w, http.StatusAccepted, run.snapshot())
+}
+
+func (a *App) handleSimulationStatus(w http.ResponseWriter, r *http.Request) {
+	jobID := strings.TrimSpace(r.URL.Query().Get("job_id"))
+	if jobID == "" {
+		writeJSON(w, http.StatusBadRequest, SimulateResponse{
 			Code:  "FAILED",
-			Err:   "debug CLI failed: " + err.Error(),
+			State: runStateFailed,
+			Err:   "job_id is required",
 		})
 		return
 	}
 
+	run := a.getSimulationRun(jobID)
+	if run == nil {
+		writeJSON(w, http.StatusNotFound, SimulateResponse{
+			JobID: jobID,
+			Code:  "FAILED",
+			State: runStateFailed,
+			Err:   "simulation job was not found",
+		})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, run.snapshot())
+}
+
+func (a *App) runSimulation(ctx context.Context, run *simulationRun, jobDir string, outputDir string, beforeFile UploadedFile, afterFiles []UploadedFile, allFiles []UploadedFile) {
+	jobID := run.response.JobID
+
+	defer func() {
+		a.cleanupJobDir(jobID, jobDir)
+		go a.forgetSimulationRunLater(jobID)
+	}()
+
+	applog.WriteLine(a.logFile, fmt.Sprintf("Job %s: starting debug for %d file(s).", jobID, len(allFiles)))
+
+	debugResult, err := a.python.Debug(ctx, jobDir, allFiles)
+	if err != nil {
+		run.failStep("debug", "debug CLI failed: "+err.Error(), nil)
+		return
+	}
+
+	run.setDebugResult(debugResult)
+
 	if debugResult.Code == "SEVERE" {
 		applog.WriteLine(a.logFile, fmt.Sprintf("Job %s: severe debug issues found. Simulation skipped.", jobID))
-
-		writeJSON(w, http.StatusOK, SimulateResponse{
-			JobID: jobID,
-			Code:  debugResult.Code,
-			Debug: debugResult,
-			Err:   "심각한 오류가 발견되어 시뮬레이션을 실행하지 않았습니다.",
-		})
+		run.finishSevere(debugResult, "심각한 오류가 발견되어 시뮬레이션을 실행하지 않았습니다.")
 		return
 	}
 
@@ -130,16 +169,15 @@ func (a *App) handleSimulate(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	results, err := a.runSimulationJobs(r.Context(), jobDir, outputDir, jobs)
+	run.setSimulationProgress(0, 0, len(jobs), minInt(maxParallelSimulations(), len(jobs)))
+
+	results, err := a.runSimulationJobs(ctx, jobDir, outputDir, jobs, run.setSimulationProgress)
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, SimulateResponse{
-			JobID: jobID,
-			Code:  "FAILED",
-			Debug: debugResult,
-			Err:   err.Error(),
-		})
+		run.failStep("simulation", err.Error(), debugResult)
 		return
 	}
+
+	run.setStep("result", stepStateRunning, "결과 정리 중")
 
 	beforeResult := results[0]
 	afterNames := make([]string, 0)
@@ -155,20 +193,15 @@ func (a *App) handleSimulate(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	writeJSON(w, http.StatusOK, SimulateResponse{
-		JobID: jobID,
-		Code:  debugResult.Code,
-		Debug: debugResult,
-		SimData: &SimData{
-			FilenameBefore: beforeFile.OriginalName,
-			FilenamesAfter: afterNames,
-			Before:         beforeResult,
-			Afters:         afterResults,
-		},
+	run.finishCompleted(debugResult.Code, debugResult, &SimData{
+		FilenameBefore: beforeFile.OriginalName,
+		FilenamesAfter: afterNames,
+		Before:         beforeResult,
+		Afters:         afterResults,
 	})
 }
 
-func (a *App) runSimulationJobs(ctx context.Context, jobDir string, outputDir string, jobs []simulationJob) ([]json.RawMessage, error) {
+func (a *App) runSimulationJobs(ctx context.Context, jobDir string, outputDir string, jobs []simulationJob, updateProgress func(completed int, running int, total int, parallel int)) ([]json.RawMessage, error) {
 	if len(jobs) == 0 {
 		return nil, fmt.Errorf("no simulation jobs were requested")
 	}
@@ -178,9 +211,19 @@ func (a *App) runSimulationJobs(ctx context.Context, jobDir string, outputDir st
 
 	results := make([]json.RawMessage, len(jobs))
 	errCh := make(chan error, len(jobs))
-	sem := make(chan struct{}, maxParallelSimulations())
+	parallel := minInt(maxParallelSimulations(), len(jobs))
+	sem := make(chan struct{}, parallel)
 
 	var wg sync.WaitGroup
+	var progressMu sync.Mutex
+	completed := 0
+	running := 0
+
+	emitProgress := func() {
+		if updateProgress != nil {
+			updateProgress(completed, running, len(jobs), parallel)
+		}
+	}
 
 	for _, job := range jobs {
 		job := job
@@ -199,6 +242,22 @@ func (a *App) runSimulationJobs(ctx context.Context, jobDir string, outputDir st
 
 			applog.WriteLine(a.logFile, fmt.Sprintf("Job simulation started: %s (%s)", job.Label, job.File.OriginalName))
 
+			progressMu.Lock()
+			running++
+			emitProgress()
+			progressMu.Unlock()
+
+			success := false
+			defer func() {
+				progressMu.Lock()
+				running--
+				if success {
+					completed++
+				}
+				emitProgress()
+				progressMu.Unlock()
+			}()
+
 			result, err := a.python.RunExcel(ctx, jobDir, outputDir, job.File, job.Label)
 			if err != nil {
 				cancel()
@@ -207,6 +266,7 @@ func (a *App) runSimulationJobs(ctx context.Context, jobDir string, outputDir st
 			}
 
 			results[job.Index] = result
+			success = true
 			applog.WriteLine(a.logFile, fmt.Sprintf("Job simulation finished: %s (%s)", job.Label, job.File.OriginalName))
 		}()
 	}
@@ -214,13 +274,28 @@ func (a *App) runSimulationJobs(ctx context.Context, jobDir string, outputDir st
 	wg.Wait()
 	close(errCh)
 
+	var firstErr error
 	for err := range errCh {
-		if err != nil {
-			return nil, err
+		if err == nil {
+			continue
+		}
+		if firstErr == nil || errors.Is(firstErr, context.Canceled) {
+			firstErr = err
 		}
 	}
 
+	if firstErr != nil {
+		return nil, firstErr
+	}
+
 	return results, nil
+}
+
+func minInt(a int, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 func maxParallelSimulations() int {

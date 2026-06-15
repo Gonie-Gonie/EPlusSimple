@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"os"
+	"sync"
 
 	"eplussimple-go/internal/applog"
 )
@@ -18,11 +19,15 @@ type App struct {
 
 	frontend http.Handler
 	python   PythonRunner
+
+	jobsMu sync.Mutex
+	jobs   map[string]*simulationRun
 }
 
 func NewApp() *App {
 	return &App{
 		ready: make(chan struct{}),
+		jobs:  make(map[string]*simulationRun),
 	}
 }
 
@@ -60,6 +65,8 @@ func (a *App) startup(ctx context.Context) {
 	applog.WriteLine(a.logFile, "Go launcher started.")
 	applog.WriteLine(a.logFile, "Working directory: "+a.workDir)
 	applog.WriteLine(a.logFile, "Log path: "+a.logPath)
+
+	a.cleanupLauncherJobsDir()
 }
 
 func (a *App) shutdown(ctx context.Context) {
