@@ -29,6 +29,13 @@ from .core import (
 from .utils import (
     excel2grjson,
 )
+from .debug import (
+    debug_excel,
+    report_result,
+    ReportCode,
+    report_to_records,
+    merge_report_codes,
+)
 
 # ---------------------------------------------------------------------------- #
 #                                   MAIN FUNC                                  #
@@ -286,4 +293,68 @@ def convert_inputformat(
             idf = grm.to_idf()
             idf.write(output_filepath)
             return
-    
+
+def debug(
+    input_filepath: str | list[str] | tuple[str, ...],
+) -> dict:
+    """
+    Excel input file을 디버그하고 결과를 dict로 반환합니다.
+
+    Args
+    ----
+    input_filepath
+        단일 Excel 파일 경로 또는 Excel 파일 경로 list.
+
+    Returns
+    -------
+    dict
+        {
+            "code": "CLEAR" | "WARNING" | "SEVERE",
+            "report": list[dict],
+            "files": list[dict],
+        }
+    """
+
+    # normalize input
+    if isinstance(input_filepath, str):
+        input_filepaths = [input_filepath]
+    else:
+        input_filepaths = list(input_filepath)
+
+    # debug each file
+    file_reports = []
+    codes = []
+
+    for filepath in input_filepaths:
+        exceptions, warnings = debug_excel(filepath)
+        code, report = report_result(exceptions, warnings)
+
+        records = report_to_records(report)
+
+        file_report = {
+            "filename": os.path.basename(filepath),
+            "filepath": filepath,
+            "code": code.name,
+            "report": records,
+        }
+
+        file_reports.append(file_report)
+        codes.append(code)
+
+    # merge file-level codes
+    final_code = merge_report_codes(codes)
+
+    # make a flat report for launcher table
+    merged_report = []
+
+    for file_report in file_reports:
+        for row in file_report["report"]:
+            merged_row = {"file": file_report["filename"]}
+            merged_row.update(row)
+            merged_report.append(merged_row)
+
+    return {
+        "code": final_code.name,
+        "report": merged_report,
+        "files": file_reports,
+    }
