@@ -318,7 +318,7 @@ func saveUploadedPart(part *multipart.Part, inputDir string, prefix string) (Upl
 	}
 
 	buffer := make([]byte, 1024*1024)
-	size, copyErr := io.CopyBuffer(dst, part, buffer)
+	_, copyErr := io.CopyBuffer(dst, part, buffer)
 	syncErr := dst.Sync()
 	closeErr := dst.Close()
 
@@ -337,11 +337,6 @@ func saveUploadedPart(part *multipart.Part, inputDir string, prefix string) (Upl
 		return UploadedFile{}, fmt.Errorf("failed to close uploaded file %s: %w", originalName, closeErr)
 	}
 
-	if size <= 0 {
-		_ = os.Remove(tmpPath)
-		return UploadedFile{}, fmt.Errorf("uploaded file %s was saved as an empty file", originalName)
-	}
-
 	if err := os.Rename(tmpPath, targetPath); err != nil {
 		_ = os.Remove(tmpPath)
 		return UploadedFile{}, fmt.Errorf("failed to finalize uploaded file %s: %w", originalName, err)
@@ -350,11 +345,6 @@ func saveUploadedPart(part *multipart.Part, inputDir string, prefix string) (Upl
 	stat, err := os.Stat(targetPath)
 	if err != nil {
 		return UploadedFile{}, fmt.Errorf("failed to stat uploaded file %s: %w", originalName, err)
-	}
-
-	if stat.Size() <= 0 {
-		_ = os.Remove(targetPath)
-		return UploadedFile{}, fmt.Errorf("uploaded file %s was finalized as an empty file", originalName)
 	}
 
 	return UploadedFile{

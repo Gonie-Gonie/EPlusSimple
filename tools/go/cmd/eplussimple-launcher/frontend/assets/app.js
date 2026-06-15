@@ -62,7 +62,7 @@ async function submitSimulation(event) {
   setStatus("시뮬레이션 실행 중입니다.");
 
   try {
-    const formData = buildSimulationFormData();
+    const formData = await buildSimulationFormData();
 
     const response = await fetch("./api/simulate", {
       method: "POST",
@@ -92,7 +92,7 @@ async function submitSimulation(event) {
   }
 }
 
-function buildSimulationFormData() {
+async function buildSimulationFormData() {
   const beforeInput = document.getElementById("fileInputBefore");
   const afterInput = document.getElementById("fileInputAfter");
 
@@ -104,25 +104,28 @@ function buildSimulationFormData() {
   validateUploadFile(beforeFile, "리모델링 전");
 
   const formData = new FormData();
-  formData.append("file_before", beforeFile, beforeFile.name);
+  formData.append("file_before", await makeUploadBlob(beforeFile), beforeFile.name);
 
   if (afterInput.files && afterInput.files.length > 0) {
-    Array.from(afterInput.files).forEach((file, index) => {
+    for (const [index, file] of Array.from(afterInput.files).entries()) {
       validateUploadFile(file, `리모델링 후 ${index + 1}`);
-      formData.append("file_after", file, file.name);
-    });
+      formData.append("file_after", await makeUploadBlob(file), file.name);
+    }
   }
 
   return formData;
 }
 
+async function makeUploadBlob(file) {
+  const buffer = await file.arrayBuffer();
+  return new Blob([buffer], {
+    type: file.type || "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+}
+
 function validateUploadFile(file, label) {
   if (!file) {
     throw new Error(`${label} 파일이 선택되지 않았습니다.`);
-  }
-
-  if (file.size <= 0) {
-    throw new Error(`${label} 파일이 비어 있습니다: ${file.name}`);
   }
 
   const lowerName = file.name.toLowerCase();
