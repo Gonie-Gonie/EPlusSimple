@@ -49,17 +49,21 @@ func (p PythonRunner) Debug(ctx context.Context, jobDir string, files []Uploaded
 	return &result, nil
 }
 
-func (p PythonRunner) RunExcel(ctx context.Context, jobDir string, outputDir string, file UploadedFile, label string) (json.RawMessage, error) {
+func (p PythonRunner) RunInput(ctx context.Context, jobDir string, outputDir string, file UploadedFile, label string) (json.RawMessage, error) {
 	outputPath := filepath.Join(outputDir, label+".grr")
+
+	runnerName, err := simulationRunnerName(file.OriginalName)
+	if err != nil {
+		return nil, err
+	}
+
+	code := fmt.Sprintf("import sys\nfrom epsimple import %s as run_input\nrun_input(sys.argv[1], sys.argv[2])\n", runnerName)
 
 	args := []string{
 		"-s",
-		"-m",
-		"epsimple",
-		"run",
-		"-i",
+		"-c",
+		code,
 		file.Path,
-		"-o",
 		outputPath,
 	}
 
@@ -80,6 +84,17 @@ func (p PythonRunner) RunExcel(ctx context.Context, jobDir string, outputDir str
 	}
 
 	return raw, nil
+}
+
+func simulationRunnerName(name string) (string, error) {
+	switch inputKindForFilename(name) {
+	case inputKindExcel:
+		return "run_grexcel", nil
+	case inputKindGRJSON:
+		return "run_grjson", nil
+	default:
+		return "", fmt.Errorf("unsupported file extension: %s", name)
+	}
 }
 
 func (p PythonRunner) run(ctx context.Context, jobDir string, args ...string) ([]byte, []byte, error) {

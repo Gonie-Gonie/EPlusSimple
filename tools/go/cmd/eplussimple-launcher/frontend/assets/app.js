@@ -27,6 +27,7 @@ const monthLabels = ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8�
 
 let currentSimData = null;
 const progressPollIntervalMs = 1000;
+const supportedInputExtensions = [".xlsx", ".xlsm", ".xls", ".grm"];
 
 window.addEventListener("DOMContentLoaded", () => {
   const beforeInput = document.getElementById("fileInputBefore");
@@ -220,8 +221,10 @@ async function buildSimulationFormData() {
 
 async function makeUploadBlob(file) {
   const buffer = await file.arrayBuffer();
+  const lowerName = file.name.toLowerCase();
+
   return new Blob([buffer], {
-    type: file.type || "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    type: file.type || (lowerName.endsWith(".grm") ? "application/json" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
   });
 }
 
@@ -231,7 +234,7 @@ function validateUploadFile(file, label) {
   }
 
   const lowerName = file.name.toLowerCase();
-  if (!(lowerName.endsWith(".xlsx") || lowerName.endsWith(".xlsm") || lowerName.endsWith(".xls"))) {
+  if (!supportedInputExtensions.some(extension => lowerName.endsWith(extension))) {
     throw new Error(`${label} 파일 형식이 지원되지 않습니다: ${file.name}`);
   }
 }

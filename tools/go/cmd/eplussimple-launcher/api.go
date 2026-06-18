@@ -136,17 +136,30 @@ func (a *App) runSimulation(ctx context.Context, run *simulationRun, jobDir stri
 		go a.forgetSimulationRunLater(jobID)
 	}()
 
-	debugWorkers := maxParallelWorkers(len(allFiles))
-	run.setStep("debug", stepStateRunning, fmt.Sprintf("실행 중 (최대 %d개 병렬)", debugWorkers))
-	applog.WriteLine(a.logFile, fmt.Sprintf("Job %s: starting debug for %d file(s) with %d worker(s).", jobID, len(allFiles), debugWorkers))
-
-	debugResult, err := a.python.Debug(ctx, jobDir, allFiles, debugWorkers)
-	if err != nil {
-		run.failStep("debug", "debug CLI failed: "+err.Error(), nil)
-		return
+	debugFiles := filterDebugInputFiles(allFiles)
+	debugResult := &DebugResult{
+		Code:   "CLEAR",
+		Report: []map[string]any{},
+		Files:  []map[string]any{},
 	}
 
-	run.setDebugResult(debugResult)
+	if len(debugFiles) == 0 {
+		run.setStep("debug", stepStateSkipped, "GRM 입력은 debug 생략")
+		applog.WriteLine(a.logFile, fmt.Sprintf("Job %s: debug skipped because no Excel input files were uploaded.", jobID))
+	} else {
+		debugWorkers := maxParallelWorkers(len(debugFiles))
+		run.setStep("debug", stepStateRunning, fmt.Sprintf("실행 중 (Excel %d개, 최대 %d개 병렬)", len(debugFiles), debugWorkers))
+		applog.WriteLine(a.logFile, fmt.Sprintf("Job %s: starting debug for %d Excel file(s) with %d worker(s).", jobID, len(debugFiles), debugWorkers))
+
+		var err error
+		debugResult, err = a.python.Debug(ctx, jobDir, debugFiles, debugWorkers)
+		if err != nil {
+			run.failStep("debug", "debug CLI failed: "+err.Error(), nil)
+			return
+		}
+
+		run.setDebugResult(debugResult)
+	}
 
 	if debugResult.Code == "SEVERE" {
 		applog.WriteLine(a.logFile, fmt.Sprintf("Job %s: severe debug issues found. Simulation skipped.", jobID))
@@ -260,7 +273,7 @@ func (a *App) runSimulationJobs(ctx context.Context, jobDir string, outputDir st
 				progressMu.Unlock()
 			}()
 
-			result, err := a.python.RunExcel(ctx, jobDir, outputDir, job.File, job.Label)
+			result, err := a.python.RunInput(ctx, jobDir, outputDir, job.File, job.Label)
 			if err != nil {
 				cancel()
 				errCh <- fmt.Errorf("simulation failed for %s: %w", job.File.OriginalName, err)
@@ -383,12 +396,7 @@ func saveUploadedPart(part *multipart.Part, inputDir string, prefix string) (Upl
 		return UploadedFile{}, fmt.Errorf("empty upload file")
 	}
 
-	extension := strings.ToLower(filepath.Ext(originalName))
-
-	switch extension {
-	case ".xlsx", ".xlsm", ".xls":
-		// ok
-	default:
+	if !isSupportedInputFile(originalName) {
 		return UploadedFile{}, fmt.Errorf("unsupported file extension: %s", originalName)
 	}
 
@@ -452,6 +460,18 @@ func sanitizeFilename(name string) string {
 	}
 
 	return name
+}
+
+func filterDebugInputFiles(files []UploadedFile) []UploadedFile {
+	debugFiles := make([]UploadedFile, 0, len(files))
+
+	for _, file := range files {
+		if isExcelInputFile(file.OriginalName) {
+			debugFiles = append(debugFiles, file)
+		}
+	}
+
+	return debugFiles
 }
 
 func newJobID() (string, error) {
