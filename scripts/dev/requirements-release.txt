@@ -1,0 +1,15 @@
+# EPlusSimple release Python requirements.
+#
+# Keep this file limited to modules required by the released runtime.
+# Release-time tooling dependencies are provided by scripts\setup\requirements-dev.txt.
+
+colorama==0.4.6
+et_xmlfile==2.0.0
+numpy==2.3.1
+openpyxl==3.1.5
+pandas==2.3.0
+python-dateutil==2.9.0.post0
+pytz==2024.2
+six==1.16.0
+tqdm==4.67.1
+tzdata==2024.2

@@ -14,17 +14,11 @@ from copy import deepcopy
 
 # local modules
 from ..imugi import (
-    # variables
-    SMALLEST_VALUE,
     # classes
     IdfObject,
-    IdfObjectList,
-    IDF      ,
 )
 from ..utils import (
     validate_type ,
-    validate_range,
-    validate_enum ,
 )
 from .construction import (
     Construction      ,
@@ -34,7 +28,6 @@ from .construction import (
 from .profile import Schedule
 from .hvac import (
     SupplySystem,
-    EnergyRecoveryVentilator,
 )
 
 # ---------------------------------------------------------------------------- #

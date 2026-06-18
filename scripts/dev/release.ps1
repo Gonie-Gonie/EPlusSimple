@@ -1,11 +1,9 @@
 # ============================================================================
 # EPlusSimple release script
-# Release script revision: standard-single-target-approved-verbs-20260612
+# Release script revision: separate-release-python-runtime-20260618
 # ============================================================================
 #
 # Expected location:
-#   scripts\release.ps1
-# or:
 #   scripts\dev\release.ps1
 #
 # Intended caller:
@@ -18,6 +16,10 @@
 # Notes:
 # - There is no target option.
 # - The standard package is the only release package.
+# - Release Python is created fresh under the release directory.
+# - Release runtime packages are installed from scripts\dev\requirements-release.txt.
+# - Regression doc updates run with the repository runtime prepared by setup.
+# - src is not installed as a Python package. It is copied as source files.
 # - Detailed release log is written to logs\release.log.
 # ============================================================================
 
@@ -41,6 +43,13 @@ param(
 Set-StrictMode -Version 1.0
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
+
+# Force TLS 1.2 for older Windows PowerShell environments.
+try {
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+} catch {
+    # Ignore if unavailable.
+}
 
 # ----------------------------------------------------------------------------
 # Repository root
@@ -104,21 +113,41 @@ $ReleaseLog = Join-Path $LogsDir 'release.log'
 $TempLogDir = Join-Path $LogsDir '_tmp_release'
 
 $RuntimeDir = Join-Path $RepoRoot 'runtime'
+$DownloadDir = Join-Path $RuntimeDir 'downloads'
 
 $PythonRuntimeName = 'PythonV3-12-7'
 $EnergyPlusRuntimeName = 'EnergyPlusV24-2-0'
 $WeatherRuntimeName = 'Weather'
 
-$PythonDir = Join-Path $RuntimeDir $PythonRuntimeName
-$PythonExe = Join-Path $PythonDir 'python.exe'
-$PythonPthFileName = 'python312._pth'
-$PythonPthFile = Join-Path $PythonDir $PythonPthFileName
+$PythonVersionShort = '312'
+$PythonVersionFull = '3.12.7'
+$PythonPthFileName = "python$PythonVersionShort._pth"
+$PythonZipFileName = "python-$PythonVersionFull-embed-amd64.zip"
+$PythonZipPath = Join-Path $DownloadDir $PythonZipFileName
+$PythonDownloadUrl = "https://www.python.org/ftp/python/$PythonVersionFull/$PythonZipFileName"
+
+$GetPipUrl = 'https://bootstrap.pypa.io/get-pip.py'
+$GetPipPath = Join-Path $DownloadDir 'get-pip.py'
+
+$RepoPythonDir = Join-Path $RuntimeDir $PythonRuntimeName
+$RepoPythonExe = Join-Path $RepoPythonDir 'python.exe'
+
+$ReleaseRuntimeDir = Join-Path $ReleaseDir 'runtime'
+$ReleasePythonDir = Join-Path $ReleaseRuntimeDir $PythonRuntimeName
+$ReleasePythonExe = Join-Path $ReleasePythonDir 'python.exe'
+$ReleasePythonPthFile = Join-Path $ReleasePythonDir $PythonPthFileName
 
 $EnergyPlusDir = Join-Path $RuntimeDir $EnergyPlusRuntimeName
 $EnergyPlusExe = Join-Path $EnergyPlusDir 'energyplus.exe'
+$ReleaseEnergyPlusDir = Join-Path $ReleaseRuntimeDir $EnergyPlusRuntimeName
+$ReleaseEnergyPlusExe = Join-Path $ReleaseEnergyPlusDir 'energyplus.exe'
 
 $WeatherRootDir = Join-Path $RuntimeDir $WeatherRuntimeName
 $WeatherTmyDir = Join-Path $WeatherRootDir 'TMY'
+$ReleaseWeatherRootDir = Join-Path $ReleaseRuntimeDir $WeatherRuntimeName
+$ReleaseWeatherTmyDir = Join-Path $ReleaseWeatherRootDir 'TMY'
+
+$ReleaseRequirementsPath = Join-Path $RepoRoot 'scripts\dev\requirements-release.txt'
 
 $BuildGoScript = Join-Path $RepoRoot 'scripts\dev\build-go.ps1'
 $EPlusSimpleCLIExe = Join-Path $RepoRoot 'EPlusSimpleCLI.exe'
@@ -127,6 +156,7 @@ $EPlusSimpleLauncherExe = Join-Path $RepoRoot 'EPlusSimpleLauncher.exe'
 $ExamplesDir = Join-Path $RepoRoot 'examples'
 $DocsDir = Join-Path $RepoRoot 'docs'
 $SrcDir = Join-Path $RepoRoot 'src'
+$ReleaseSrcDir = Join-Path $ReleaseDir 'src'
 
 $RegressionTestScript = Join-Path $RepoRoot 'scripts\dev\regressiontest.py'
 $RegressionLogLegacy = Join-Path $RepoRoot 'regtest.log'
@@ -406,6 +436,39 @@ function Add-UniqueLine {
     }
 }
 
+function Download-FileIfMissing {
+    param(
+        [string]$Url,
+        [string]$Destination
+    )
+
+    if (Test-Path -LiteralPath $Destination -PathType Leaf) {
+        Write-ProgressLine "Using cached file: $Destination"
+        return
+    }
+
+    $parent = Split-Path -Parent $Destination
+    New-DirectoryIfMissing $parent
+
+    Write-ProgressLine "Downloading: $Url"
+    Write-Log "Download target: $Destination"
+
+    try {
+        Invoke-WebRequest -Uri $Url -OutFile $Destination -UseBasicParsing
+    } catch {
+        throw "Download failed. URL: $Url. Error: $($_.Exception.Message)"
+    }
+
+    Test-FileExists -Path $Destination -Message 'Downloaded file was not created.'
+}
+
+function Set-ReleasePythonInstallEnvironment {
+    $env:PYTHONNOUSERSITE = '1'
+    $env:PYTHONUTF8 = '1'
+    $env:PYTHONIOENCODING = 'utf-8'
+    $env:PIP_DISABLE_PIP_VERSION_CHECK = '1'
+}
+
 # ----------------------------------------------------------------------------
 # Release steps
 # ----------------------------------------------------------------------------
@@ -419,14 +482,9 @@ function Test-ReleaseInputs {
 
     Test-DirectoryExists -Path (Join-Path $SrcDir 'epsimple') -Message 'src\epsimple was not found.'
     Test-DirectoryExists -Path (Join-Path $SrcDir 'idragon') -Message 'src\idragon was not found.'
-    Test-DirectoryExists -Path (Join-Path $SrcDir 'launcher') -Message 'src\launcher was not found.'
 
-    Test-FileExists -Path (Join-Path $SrcDir 'launcher\core.py') -Message 'launcher core.py was not found.'
-    Test-DirectoryExists -Path (Join-Path $SrcDir 'launcher\templates') -Message 'launcher templates directory was not found.'
-    Test-DirectoryExists -Path (Join-Path $SrcDir 'launcher\static') -Message 'launcher static directory was not found.'
-
-    Test-FileExists -Path $PythonExe -Message 'Python runtime was not found. Run "runscript setup" before release.'
-    Test-FileExists -Path $PythonPthFile -Message 'Python ._pth file was not found. Run "runscript setup" before release.'
+    Test-FileExists -Path $ReleaseRequirementsPath -Message 'Release requirements file was not found.'
+    Test-FileExists -Path $RepoPythonExe -Message 'Repository Python runtime was not found. Run "runscript setup" before release.'
     Test-FileExists -Path $EnergyPlusExe -Message 'EnergyPlus runtime was not found. Run "runscript setup" before release.'
     Test-DirectoryExists -Path $WeatherTmyDir -Message 'Korean TMY weather data was not found. Run "runscript setup" before release.'
 
@@ -439,15 +497,17 @@ function Test-ReleaseInputs {
     }
 
     Write-LogBlock -Title 'RELEASE INPUTS' -Lines @(
-        "Repository   : $RepoRoot",
-        "Version      : $VersionString",
-        "Python       : $PythonExe",
-        "EnergyPlus   : $EnergyPlusExe",
-        "Weather TMY  : $WeatherTmyDir",
-        "Go build     : $BuildGoScript",
-        "Skip docs    : $SkipDocs",
-        "Skip regtest : $SkipRegressionTest",
-        "No clean     : $NoClean"
+        "Repository           : $RepoRoot",
+        "Version              : $VersionString",
+        "Release requirements : $ReleaseRequirementsPath",
+        "Repository Python    : $RepoPythonExe",
+        "Release Python       : $ReleasePythonExe",
+        "EnergyPlus source    : $EnergyPlusExe",
+        "Weather TMY source   : $WeatherTmyDir",
+        "Go build             : $BuildGoScript",
+        "Skip docs            : $SkipDocs",
+        "Skip regtest         : $SkipRegressionTest",
+        "No clean             : $NoClean"
     )
 }
 
@@ -459,7 +519,70 @@ function Initialize-Dist {
     }
 
     New-DirectoryIfMissing $ReleaseDir
+    New-DirectoryIfMissing $ReleaseRuntimeDir
     Write-Log "Release directory prepared: $ReleaseDir"
+}
+
+function Install-ReleasePythonRuntime {
+    Write-Step '[2/7] Creating release Python runtime...'
+
+    Set-ReleasePythonInstallEnvironment
+
+    Remove-DirectoryIfExists $ReleasePythonDir
+    New-DirectoryIfMissing $ReleasePythonDir
+
+    Download-FileIfMissing -Url $PythonDownloadUrl -Destination $PythonZipPath
+
+    Write-ProgressLine "Extracting Python embeddable runtime to: $ReleasePythonDir"
+    Expand-Archive -LiteralPath $PythonZipPath -DestinationPath $ReleasePythonDir -Force
+
+    Test-FileExists -Path $ReleasePythonExe -Message 'Release python.exe was not found after extraction.'
+    Test-FileExists -Path $ReleasePythonPthFile -Message 'Release Python ._pth file was not found after extraction.'
+
+    Add-UniqueLine -Path $ReleasePythonPthFile -Line 'Lib\site-packages'
+    Add-UniqueLine -Path $ReleasePythonPthFile -Line '..\..\src'
+    Add-UniqueLine -Path $ReleasePythonPthFile -Line 'import site'
+
+    Download-FileIfMissing -Url $GetPipUrl -Destination $GetPipPath
+
+    Invoke-LoggedCommand `
+        -FilePath $ReleasePythonExe `
+        -Arguments @($GetPipPath) `
+        -WorkingDirectory $RepoRoot `
+        -Description 'pip bootstrap for release Python'
+
+    Invoke-LoggedCommand `
+        -FilePath $ReleasePythonExe `
+        -Arguments @(
+            '-m',
+            'pip',
+            'install',
+            '--upgrade',
+            'setuptools',
+            'wheel'
+        ) `
+        -WorkingDirectory $RepoRoot `
+        -Description 'release Python packaging bootstrap'
+
+    Invoke-LoggedCommand `
+        -FilePath $ReleasePythonExe `
+        -Arguments @(
+            '-m',
+            'pip',
+            'install',
+            '-r',
+            $ReleaseRequirementsPath
+        ) `
+        -WorkingDirectory $RepoRoot `
+        -Description 'release Python requirements installation'
+
+    Invoke-LoggedCommand `
+        -FilePath $ReleasePythonExe `
+        -Arguments @('--version') `
+        -WorkingDirectory $RepoRoot `
+        -Description 'release Python version check'
+
+    Write-Log 'Release Python runtime created.'
 }
 
 function Invoke-GoLauncherBuild {
@@ -486,12 +609,12 @@ function Invoke-GoLauncherBuild {
 }
 
 function Remove-EnergyPlusReleaseExtras {
-    param([string]$ReleaseEnergyPlusDir)
+    param([string]$TargetEnergyPlusDir)
 
-    Test-DirectoryExists -Path $ReleaseEnergyPlusDir -Message 'Release EnergyPlus runtime was not found.'
+    Test-DirectoryExists -Path $TargetEnergyPlusDir -Message 'Release EnergyPlus runtime was not found.'
 
     foreach ($dirname in $EnergyPlusPruneDirs) {
-        $target = Join-Path $ReleaseEnergyPlusDir $dirname
+        $target = Join-Path $TargetEnergyPlusDir $dirname
 
         if (Test-Path -LiteralPath $target -PathType Container) {
             Remove-DirectoryIfExists $target
@@ -503,20 +626,15 @@ function Remove-EnergyPlusReleaseExtras {
 }
 
 function Copy-RuntimeAndRootFiles {
-    Write-Step '[2/7] Copying runtime and root files...'
+    Write-Step '[3/7] Copying non-Python runtime and root files...'
 
-    $ReleaseRuntimeDir = Join-Path $ReleaseDir 'runtime'
     New-DirectoryIfMissing $ReleaseRuntimeDir
 
-    Copy-Directory -Source $PythonDir -Destination (Join-Path $ReleaseRuntimeDir $PythonRuntimeName)
-
-    $ReleaseEnergyPlusDir = Join-Path $ReleaseRuntimeDir $EnergyPlusRuntimeName
     Copy-Directory -Source $EnergyPlusDir -Destination $ReleaseEnergyPlusDir
-    Remove-EnergyPlusReleaseExtras -ReleaseEnergyPlusDir $ReleaseEnergyPlusDir
+    Remove-EnergyPlusReleaseExtras -TargetEnergyPlusDir $ReleaseEnergyPlusDir
 
-    $ReleaseWeatherRootDir = Join-Path $ReleaseRuntimeDir $WeatherRuntimeName
     New-DirectoryIfMissing $ReleaseWeatherRootDir
-    Copy-Directory -Source $WeatherTmyDir -Destination (Join-Path $ReleaseWeatherRootDir 'TMY')
+    Copy-Directory -Source $WeatherTmyDir -Destination $ReleaseWeatherTmyDir
 
     Copy-Directory -Source $ExamplesDir -Destination (Join-Path $ReleaseDir 'examples')
 
@@ -525,33 +643,33 @@ function Copy-RuntimeAndRootFiles {
     Copy-File -Source $EPlusSimpleCLIExe -Destination (Join-Path $ReleaseDir 'EPlusSimpleCLI.exe')
     Copy-File -Source $EPlusSimpleLauncherExe -Destination (Join-Path $ReleaseDir 'EPlusSimpleLauncher.exe')
 
-    Write-Log 'Runtime, weather data, examples, and root executables copied.'
+    Write-Log 'Non-Python runtime, weather data, examples, and root executables copied.'
 }
 
-function Set-ReleaseRuntime {
-    Write-Step '[3/7] Configuring release runtime paths...'
+function Copy-SourceFiles {
+    Write-Step '[4/7] Copying source files...'
 
-    $ReleasePthFile = Join-Path $ReleaseDir "runtime\$PythonRuntimeName\$PythonPthFileName"
+    New-DirectoryIfMissing $ReleaseSrcDir
 
-    Add-UniqueLine -Path $ReleasePthFile -Line 'Lib\site-packages'
-    Add-UniqueLine -Path $ReleasePthFile -Line '..\..\src'
-    Add-UniqueLine -Path $ReleasePthFile -Line 'import site'
+    Copy-Directory -Source (Join-Path $SrcDir 'epsimple') -Destination (Join-Path $ReleaseSrcDir 'epsimple')
+    Copy-Directory -Source (Join-Path $SrcDir 'idragon') -Destination (Join-Path $ReleaseSrcDir 'idragon')
 
-    Write-Log 'Release runtime paths configured.'
+    Write-Log 'Source files copied.'
 }
 
 function Set-ReleaseEnvironment {
-    $env:EPSIMPLE_RUNTIME_DIR = $RuntimeDir
-    $env:IDRAGON_RUNTIME_DIR = $RuntimeDir
-    $env:IDRAGON_ENERGYPLUS_DIR = $EnergyPlusDir
-    $env:ENERGYPLUS_DIR = $EnergyPlusDir
-    $env:ENERGYPLUS_EXE = $EnergyPlusExe
-    $env:EPSIMPLE_WEATHER_DIR = $WeatherRootDir
-    $env:EPSIMPLE_TMY_DIR = $WeatherTmyDir
+    $env:EPSIMPLE_RUNTIME_DIR = $ReleaseRuntimeDir
+    $env:IDRAGON_RUNTIME_DIR = $ReleaseRuntimeDir
+    $env:IDRAGON_ENERGYPLUS_DIR = $ReleaseEnergyPlusDir
+    $env:ENERGYPLUS_DIR = $ReleaseEnergyPlusDir
+    $env:ENERGYPLUS_EXE = $ReleaseEnergyPlusExe
+    $env:EPSIMPLE_WEATHER_DIR = $ReleaseWeatherRootDir
+    $env:EPSIMPLE_TMY_DIR = $ReleaseWeatherTmyDir
     $env:PYTHONNOUSERSITE = '1'
     $env:PYTHONUTF8 = '1'
     $env:PYTHONIOENCODING = 'utf-8'
-    $env:PATH = "$EnergyPlusDir;$env:PATH"
+    $env:PIP_DISABLE_PIP_VERSION_CHECK = '1'
+    $env:PATH = "$ReleaseEnergyPlusDir;$env:PATH"
 
     Write-LogBlock -Title 'RELEASE ENVIRONMENT' -Lines @(
         "EPSIMPLE_RUNTIME_DIR    = $env:EPSIMPLE_RUNTIME_DIR",
@@ -566,34 +684,77 @@ function Set-ReleaseEnvironment {
     )
 }
 
+function Set-RepositoryRuntimeEnvironment {
+    $env:EPSIMPLE_RUNTIME_DIR = $RuntimeDir
+    $env:IDRAGON_RUNTIME_DIR = $RuntimeDir
+    $env:IDRAGON_ENERGYPLUS_DIR = $EnergyPlusDir
+    $env:ENERGYPLUS_DIR = $EnergyPlusDir
+    $env:ENERGYPLUS_EXE = $EnergyPlusExe
+    $env:EPSIMPLE_WEATHER_DIR = $WeatherRootDir
+    $env:EPSIMPLE_TMY_DIR = $WeatherTmyDir
+    $env:PYTHONNOUSERSITE = '1'
+    $env:PYTHONUTF8 = '1'
+    $env:PYTHONIOENCODING = 'utf-8'
+    $env:PIP_DISABLE_PIP_VERSION_CHECK = '1'
+    $env:PATH = "$EnergyPlusDir;$env:PATH"
+
+    Write-LogBlock -Title 'REPOSITORY RUNTIME ENVIRONMENT' -Lines @(
+        "EPSIMPLE_RUNTIME_DIR    = $env:EPSIMPLE_RUNTIME_DIR",
+        "IDRAGON_RUNTIME_DIR     = $env:IDRAGON_RUNTIME_DIR",
+        "IDRAGON_ENERGYPLUS_DIR  = $env:IDRAGON_ENERGYPLUS_DIR",
+        "ENERGYPLUS_DIR          = $env:ENERGYPLUS_DIR",
+        "ENERGYPLUS_EXE          = $env:ENERGYPLUS_EXE",
+        "EPSIMPLE_WEATHER_DIR    = $env:EPSIMPLE_WEATHER_DIR",
+        "EPSIMPLE_TMY_DIR        = $env:EPSIMPLE_TMY_DIR",
+        "PYTHONNOUSERSITE        = $env:PYTHONNOUSERSITE",
+        "PATH head               = $($env:PATH.Split(';')[0])"
+    )
+}
+
+function Invoke-ReleaseRuntimeSmokeTest {
+    Write-ProgressLine 'Checking release Python runtime imports'
+
+    Set-ReleaseEnvironment
+
+    Invoke-LoggedCommand `
+        -FilePath $ReleasePythonExe `
+        -Arguments @(
+            '-s',
+            '-c',
+            'import epsimple, idragon, pandas, numpy, tqdm, openpyxl; print(epsimple.__version__); print(idragon.__version__)'
+        ) `
+        -WorkingDirectory $ReleaseDir `
+        -Description 'release runtime import check'
+}
+
 function Invoke-RegressionTest {
     if ($SkipRegressionTest) {
-        Write-Step '[4/7] Skipping regression test.'
+        Write-Step '[5/7] Skipping regression test.'
         return
     }
 
-    Write-Step '[4/7] Running regression test...'
+    Write-Step '[5/7] Running regression test with repository Python...'
 
-    Set-ReleaseEnvironment
+    Set-RepositoryRuntimeEnvironment
     Remove-FileIfExists $RegressionLogLegacy
 
     Invoke-LoggedCommand `
-        -FilePath $PythonExe `
+        -FilePath $RepoPythonExe `
         -Arguments @('--version') `
         -WorkingDirectory $RepoRoot `
-        -Description 'Python version check'
+        -Description 'repository Python version check before regression'
 
     Invoke-LoggedCommand `
         -FilePath $EnergyPlusExe `
         -Arguments @('--version') `
         -WorkingDirectory $RepoRoot `
-        -Description 'EnergyPlus version check'
+        -Description 'repository EnergyPlus version check'
 
     Invoke-LoggedCommand `
-        -FilePath $PythonExe `
+        -FilePath $RepoPythonExe `
         -Arguments @($RegressionTestScript) `
         -WorkingDirectory $RepoRoot `
-        -Description 'Regression test'
+        -Description 'Regression test using repository runtime'
 
     if (Test-Path -LiteralPath $RegressionLogLegacy -PathType Leaf) {
         $regLines = Get-Content -LiteralPath $RegressionLogLegacy -ErrorAction SilentlyContinue
@@ -649,11 +810,11 @@ function Invoke-DocBuild {
 
 function Invoke-DocumentationBuild {
     if ($SkipDocs) {
-        Write-Step '[5/7] Skipping documentation build.'
+        Write-Step '[6/7] Skipping documentation build.'
         return
     }
 
-    Write-Step '[5/7] Building documentation...'
+    Write-Step '[6/7] Building documentation...'
 
     Write-ReleaseInfo
 
@@ -662,18 +823,6 @@ function Invoke-DocumentationBuild {
     Invoke-DocBuild -SourceName 'mainRN' -DisplayName 'Release Note'
 
     Write-Log 'Documentation build completed.'
-}
-
-function Copy-SourceFiles {
-    Write-Step '[6/7] Copying source files...'
-
-    $ReleaseSrcDir = Join-Path $ReleaseDir 'src'
-    New-DirectoryIfMissing $ReleaseSrcDir
-
-    Copy-Directory -Source (Join-Path $SrcDir 'epsimple') -Destination (Join-Path $ReleaseSrcDir 'epsimple')
-    Copy-Directory -Source (Join-Path $SrcDir 'idragon') -Destination (Join-Path $ReleaseSrcDir 'idragon')
-
-    Write-Log 'Source files copied.'
 }
 
 function New-ReleaseArchive {
@@ -744,11 +893,12 @@ try {
 
     Test-ReleaseInputs
     Initialize-Dist
+    Install-ReleasePythonRuntime
     Copy-RuntimeAndRootFiles
-    Set-ReleaseRuntime
+    Copy-SourceFiles
+    Invoke-ReleaseRuntimeSmokeTest
     Invoke-RegressionTest
     Invoke-DocumentationBuild
-    Copy-SourceFiles
     New-ReleaseArchive
 
     Write-LogBlock -Title 'RELEASE COMPLETED' -Lines @(

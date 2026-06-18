@@ -30,10 +30,11 @@ EPlusSimple/
 ├─ scripts/
 │  ├─ setup/
 │  │  ├─ setup.ps1
-│  │  └─ requirements.txt
+│  │  └─ requirements-dev.txt
 │  └─ dev/
 │     ├─ build-go.ps1
 │     ├─ release.ps1
+│     ├─ requirements-release.txt
 │     └─ regressiontest.py
 └─ runtime/
    ├─ PythonV3-12-7/
@@ -117,8 +118,11 @@ It installs or configures:
    Python packages are installed from:
 
    ```text
-   scripts\setup\requirements.txt
+   scripts\setup\requirements-dev.txt
    ```
+
+   This includes packages needed by the repository runtime and by release-time
+   tooling such as the regression document update.
 
 2. **EnergyPlus**
 
@@ -197,7 +201,7 @@ Use the desktop launcher for Excel-based workflows.
 EPlusSimpleLauncher.exe
 ```
 
-The launcher starts the local Python/Flask backend internally and displays the interface through a desktop WebView window. A separate browser window is not required.
+The launcher starts the local Python workflow internally and displays the interface through a desktop WebView window. A separate browser window is not required.
 
 Use this mode when you want to upload Excel input files and run the Excel-based simulation or debugging workflow through the graphical interface.
 
@@ -225,28 +229,16 @@ The available command syntax depends on the current CLI implementation.
 
 Release packaging is also handled through `runscript.bat`.
 
-For a KALIS release:
+For a release:
 
 ```bat
-runscript release -BuildFor kalis
-```
-
-For a REB release:
-
-```bat
-runscript release -BuildFor reb
+runscript release
 ```
 
 To skip documentation and regression tests during packaging checks:
 
 ```bat
-runscript release -BuildFor kalis -SkipDocs -SkipRegressionTest
-```
-
-or:
-
-```bat
-runscript release -BuildFor reb -SkipDocs -SkipRegressionTest
+runscript release -SkipDocs -SkipRegressionTest
 ```
 
 The release script creates:
@@ -256,11 +248,15 @@ dist\EPlusSimple_V<version>\
 dist\EPlusSimple_V<version>.zip
 ```
 
-For REB builds, the release name uses the `R` suffix:
+The release Python runtime is created fresh under the release directory and
+installs only:
 
 ```text
-EPlusSimple_V<version>R
+scripts\dev\requirements-release.txt
 ```
+
+Regression document updates run with the repository runtime prepared by setup,
+not with the released Python runtime.
 
 The release package includes:
 
@@ -302,13 +298,7 @@ EPlusSimpleLauncher.exe
 For release packaging:
 
 ```bat
-runscript release -BuildFor kalis
-```
-
-or:
-
-```bat
-runscript release -BuildFor reb
+runscript release
 ```
 
 ---
@@ -328,7 +318,7 @@ Python packages should be installed into this runtime, not into the user-level P
 To check that packages are imported from the runtime Python:
 
 ```bat
-runtime\PythonV3-12-7\python.exe -s -c "import flask, pandas, openpyxl; print(flask.__file__); print(pandas.__file__); print(openpyxl.__file__)"
+runtime\PythonV3-12-7\python.exe -s -c "import importlib; mods=['pandas','numpy','tqdm','openpyxl','jinja2']; [print(m, importlib.import_module(m).__file__) for m in mods]"
 ```
 
 The printed paths should point to:
@@ -401,13 +391,13 @@ runscript build-go -Tidy
 A full release runs the configured release steps, including regression and documentation unless skipped.
 
 ```bat
-runscript release -BuildFor kalis
+runscript release
 ```
 
 To test only the packaging flow:
 
 ```bat
-runscript release -BuildFor kalis -SkipDocs -SkipRegressionTest
+runscript release -SkipDocs -SkipRegressionTest
 ```
 
 ---

@@ -15,7 +15,6 @@ from abc import (
     ABC,
     abstractmethod
 )
-from typing import Any
 
 # third-party modules
 import pandas as pd

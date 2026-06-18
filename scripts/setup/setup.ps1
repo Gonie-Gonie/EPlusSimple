@@ -10,9 +10,8 @@
 # /
 # |-- scripts/
 # |   |-- setup/
-# |   |   |-- setup.bat
 # |   |   |-- setup.ps1
-# |   |   `-- requirements.txt
+# |   |   `-- requirements-dev.txt
 # |   `-- dev/
 # |       |-- build-go.bat
 # |       `-- build-go.ps1
@@ -64,7 +63,7 @@ param(
     # Force reinstallation of Python, EnergyPlus, Weather, and Go runtime directories.
     [switch]$Force,
 
-    # Skip Python package installation from scripts/setup/requirements.txt.
+    # Skip Python package installation from scripts/setup/requirements-dev.txt.
     [switch]$SkipRequirements,
 
     # Skip Korean TMY weather data setup.
@@ -110,7 +109,7 @@ $SetupDir = $PSScriptRoot
 $RepoRoot = (Resolve-Path (Join-Path $SetupDir '..\..')).Path
 $RuntimeDir = Join-Path $RepoRoot 'runtime'
 $DownloadDir = Join-Path $RuntimeDir 'downloads'
-$RequirementsPath = Join-Path $SetupDir 'requirements.txt'
+$RequirementsPath = Join-Path $SetupDir 'requirements-dev.txt'
 
 # ============================================================================
 # [1] Python runtime configuration
@@ -530,7 +529,7 @@ function Setup-PipAndPackages {
     )
 
     if ($SkipRequirements) {
-        Write-Host ' ...SkipRequirements enabled. Skipping requirements.txt installation.'
+        Write-Host ' ...SkipRequirements enabled. Skipping development requirements installation.'
     } elseif (Test-Path -LiteralPath $RequirementsPath) {
         Invoke-ExternalCommand -FilePath $PythonExe -Arguments @(
             '-m',
@@ -540,7 +539,7 @@ function Setup-PipAndPackages {
             $RequirementsPath
         )
     } else {
-        Write-Warning "requirements.txt was not found. Skipping package installation: $RequirementsPath"
+        Write-Warning "Development requirements file was not found. Skipping package installation: $RequirementsPath"
     }
 }
 
@@ -848,7 +847,7 @@ try {
     Write-Host "Runtime      : $RuntimeDir"
     Write-Host ''
     Write-Host 'To check Python packages:'
-    Write-Host "  & `"$PythonExe`" -s -c `"import flask, pandas, openpyxl; print(flask.__file__); print(pandas.__file__); print(openpyxl.__file__)`""
+    Write-Host "  & `"$PythonExe`" -s -c `"import importlib; mods=['pandas','numpy','tqdm','openpyxl','jinja2']; [print(m, importlib.import_module(m).__file__) for m in mods]`""
     Write-Host ''
     Write-Host 'To check Go from PowerShell:'
     Write-Host "  & `"$GoExe`" version"

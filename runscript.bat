@@ -15,8 +15,8 @@ REM   runscript setup
 REM   runscript setup -Force
 REM   runscript build-go
 REM   runscript build-go -Tidy
-REM   runscript release -BuildFor reb
-REM   runscript release -BuildFor kalis -SkipRegressionTest -SkipDocs
+REM   runscript release
+REM   runscript release -SkipRegressionTest -SkipDocs
 REM
 REM Rule:
 REM   First argument  = command name
