@@ -45,7 +45,7 @@ REM ============================================================================
 
 set "SCRIPT_SETUP=%ROOT_DIR%\scripts\setup\setup.ps1"
 set "SCRIPT_BUILD_GO=%ROOT_DIR%\scripts\dev\build-go.ps1"
-set "SCRIPT_RELEASE=%ROOT_DIR%\scripts\dev\release.ps1"
+set "SCRIPT_RELEASE=%ROOT_DIR%\scripts\release\release.ps1"
 
 
 REM ============================================================================

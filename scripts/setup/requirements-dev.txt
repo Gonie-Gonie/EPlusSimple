@@ -2,7 +2,7 @@
 #
 # This file is for the local development runtime prepared by scripts\setup,
 # including release-time tooling used during local release checks.
-# The released artifact uses scripts\dev\requirements-release.txt instead.
+# The released artifact uses scripts\release\requirements-release.txt instead.
 
 colorama==0.4.6
 et_xmlfile==2.0.0

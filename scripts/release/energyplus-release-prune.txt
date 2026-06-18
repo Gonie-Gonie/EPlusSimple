@@ -1,0 +1,97 @@
+# EPlusSimple EnergyPlus release pruning specification.
+#
+# Base path:
+#   runtime\EnergyPlusV24-2-0 inside the release package.
+#
+# Syntax:
+#   require <relative-file-path>
+#   prune   <relative-path-or-glob>
+#
+# Notes:
+#   - Blank lines and lines starting with # are ignored.
+#   - Forward slashes and backslashes are both accepted.
+#   - Lines without a command are treated as prune entries.
+#   - Root DLLs are intentionally kept unless each one is tested.
+#   - PostProcess\ReadVarsESO.exe is required while src\idragon\launcher.py
+#     passes the EnergyPlus -r flag.
+
+require energyplus.exe
+require energyplusapi.dll
+require Energy+.idd
+require ExpandObjects.exe
+require PostProcess/ReadVarsESO.exe
+
+# Large bundled data/docs/examples not needed by EPlusSimple runtime.
+prune DataSets/
+prune Documentation/
+prune ExampleFiles/
+prune MacroDataSets/
+prune WeatherData/
+
+# EPlusSimple calls the root ExpandObjects.exe directly.
+prune PreProcess/
+
+# Optional API/developer integration files.
+prune api-examples/
+prune cmake/
+prune include/
+prune lib/
+prune python/
+prune pyenergyplus/
+prune python_lib/
+prune workflows/
+prune temp/
+prune EnergyPlusAPI.h
+prune EnergyPlusData.hh
+prune energyplusapi.py
+prune energyplusapi.lib
+prune setup.py
+
+# Root GUI/editor/updater/launcher utilities.
+prune ConvertInputFormat.exe
+prune EP-Launch.exe
+prune EP-Launch-Lite.exe
+prune EPLaunchPython.lnk
+prune EPMacro.exe
+prune EP-Macro.exe
+prune Epl-run.bat
+prune EPL-RUN.BAT
+prune EPL-Run.bat
+prune IDFEditor.exe
+prune IDFVersionUpdater.exe
+prune IDFVersionUpdater*.exe
+prune Transition*.exe
+prune RunDirMulti.bat
+prune RunEP.ico
+prune Runep.pif
+prune RunEPlus.bat
+prune RunEPlusParallel.bat
+prune RunReadESO.bat
+
+# Root reference/schema/helper files not used by the release runtime.
+prune Bugreprt.txt
+prune Deprecation.html
+prune Energy+.schema.epJSON
+prune favicon.png
+prune readme.html
+prune SetupOutputVariables.csv
+
+# PostProcess pruning while keeping ReadVarsESO.exe for the EnergyPlus -r flag.
+prune PostProcess/AppGPostProcess.exe
+prune PostProcess/CSVproc.exe
+prune PostProcess/CSVProc.exe
+prune PostProcess/HVAC-Diagram.exe
+prune PostProcess/convertESOMTRpgm/
+prune PostProcess/EP-Compare/
+prune PostProcess/*.bat
+prune PostProcess/*.cmd
+prune PostProcess/*.txt
+prune PostProcess/*.md
+prune PostProcess/*.pdf
+prune PostProcess/*.idf
+prune PostProcess/*.imf
+prune PostProcess/*.epw
+prune PostProcess/*.csv
+prune PostProcess/*.xls
+prune PostProcess/*.xlsx
+prune PostProcess/*.xlsm

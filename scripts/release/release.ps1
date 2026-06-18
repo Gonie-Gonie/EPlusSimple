@@ -4,7 +4,7 @@
 # ============================================================================
 #
 # Expected location:
-#   scripts\dev\release.ps1
+#   scripts\release\release.ps1
 #
 # Intended caller:
 #   runscript.bat release ...
@@ -17,7 +17,8 @@
 # - There is no target option.
 # - The standard package is the only release package.
 # - Release Python is created fresh under the release directory.
-# - Release runtime packages are installed from scripts\dev\requirements-release.txt.
+# - Release runtime packages are installed from scripts\release\requirements-release.txt.
+# - EnergyPlus release pruning is driven by scripts\release\energyplus-release-prune.txt.
 # - Regression doc updates run with the repository runtime prepared by setup.
 # - src is not installed as a Python package. It is copied as source files.
 # - Detailed release log is written to logs\release.log.
@@ -147,7 +148,9 @@ $WeatherTmyDir = Join-Path $WeatherRootDir 'TMY'
 $ReleaseWeatherRootDir = Join-Path $ReleaseRuntimeDir $WeatherRuntimeName
 $ReleaseWeatherTmyDir = Join-Path $ReleaseWeatherRootDir 'TMY'
 
-$ReleaseRequirementsPath = Join-Path $RepoRoot 'scripts\dev\requirements-release.txt'
+$ReleaseConfigDir = Join-Path $RepoRoot 'scripts\release'
+$ReleaseRequirementsPath = Join-Path $ReleaseConfigDir 'requirements-release.txt'
+$EnergyPlusPruneSpecPath = Join-Path $ReleaseConfigDir 'energyplus-release-prune.txt'
 
 $BuildGoScript = Join-Path $RepoRoot 'scripts\dev\build-go.ps1'
 $EPlusSimpleCLIExe = Join-Path $RepoRoot 'EPlusSimpleCLI.exe'
@@ -160,14 +163,6 @@ $ReleaseSrcDir = Join-Path $ReleaseDir 'src'
 
 $RegressionTestScript = Join-Path $RepoRoot 'scripts\dev\regressiontest.py'
 $RegressionLogLegacy = Join-Path $RepoRoot 'regtest.log'
-
-$EnergyPlusPruneDirs = @(
-    'DataSets',
-    'Documentation',
-    'ExampleFiles',
-    'WeatherData',
-    'MacroDataSets'
-)
 
 $script:CurrentStep = 'initializing release script'
 $script:LogStream = $null
@@ -457,7 +452,7 @@ function Add-UniqueLine {
     }
 }
 
-function Download-FileIfMissing {
+function Save-RemoteFileIfMissing {
     param(
         [string]$Url,
         [string]$Destination
@@ -505,6 +500,7 @@ function Test-ReleaseInputs {
     Test-DirectoryExists -Path (Join-Path $SrcDir 'idragon') -Message 'src\idragon was not found.'
 
     Test-FileExists -Path $ReleaseRequirementsPath -Message 'Release requirements file was not found.'
+    Test-FileExists -Path $EnergyPlusPruneSpecPath -Message 'EnergyPlus release prune specification was not found.'
     Test-FileExists -Path $RepoPythonExe -Message 'Repository Python runtime was not found. Run "runscript setup" before release.'
     Test-FileExists -Path $EnergyPlusExe -Message 'EnergyPlus runtime was not found. Run "runscript setup" before release.'
     Test-DirectoryExists -Path $WeatherTmyDir -Message 'Korean TMY weather data was not found. Run "runscript setup" before release.'
@@ -521,6 +517,7 @@ function Test-ReleaseInputs {
         "Repository           : $RepoRoot",
         "Version              : $VersionString",
         "Release requirements : $ReleaseRequirementsPath",
+        "EnergyPlus prune spec: $EnergyPlusPruneSpecPath",
         "Repository Python    : $RepoPythonExe",
         "Release Python       : $ReleasePythonExe",
         "EnergyPlus source    : $EnergyPlusExe",
@@ -552,7 +549,7 @@ function Install-ReleasePythonRuntime {
     Remove-DirectoryIfExists $ReleasePythonDir
     New-DirectoryIfMissing $ReleasePythonDir
 
-    Download-FileIfMissing -Url $PythonDownloadUrl -Destination $PythonZipPath
+    Save-RemoteFileIfMissing -Url $PythonDownloadUrl -Destination $PythonZipPath
 
     Write-ProgressLine "Extracting Python embeddable runtime to: $ReleasePythonDir"
     Expand-Archive -LiteralPath $PythonZipPath -DestinationPath $ReleasePythonDir -Force
@@ -564,7 +561,7 @@ function Install-ReleasePythonRuntime {
     Add-UniqueLine -Path $ReleasePythonPthFile -Line '..\..\src'
     Add-UniqueLine -Path $ReleasePythonPthFile -Line 'import site'
 
-    Download-FileIfMissing -Url $GetPipUrl -Destination $GetPipPath
+    Save-RemoteFileIfMissing -Url $GetPipUrl -Destination $GetPipPath
 
     Invoke-LoggedCommand `
         -FilePath $ReleasePythonExe `
@@ -629,21 +626,182 @@ function Invoke-GoLauncherBuild {
     Write-Log 'Go executables built.'
 }
 
+function Convert-EnergyPlusSpecPath {
+    param([string]$Path)
+
+    $normalized = $Path.Trim()
+    $normalized = $normalized -replace '/', '\'
+    $normalized = $normalized.TrimStart('.', '\', '/')
+    $normalized = $normalized.TrimEnd('\', '/')
+
+    return $normalized
+}
+
+function Read-EnergyPlusPruneSpec {
+    param([string]$Path)
+
+    Test-FileExists -Path $Path -Message 'EnergyPlus release prune specification was not found.'
+
+    $required = New-Object System.Collections.Generic.List[string]
+    $prune = New-Object System.Collections.Generic.List[string]
+
+    foreach ($rawLine in @(Get-Content -LiteralPath $Path -ErrorAction Stop)) {
+        $line = ([string]$rawLine).Trim()
+
+        if ([string]::IsNullOrWhiteSpace($line) -or $line.StartsWith('#')) {
+            continue
+        }
+
+        $commentIndex = $line.IndexOf('#')
+
+        if ($commentIndex -ge 0) {
+            $line = $line.Substring(0, $commentIndex).Trim()
+        }
+
+        if ([string]::IsNullOrWhiteSpace($line)) {
+            continue
+        }
+
+        $parts = $line -split '\s+', 2
+        $command = $parts[0].ToLowerInvariant()
+        $value = $null
+
+        if ($parts.Count -eq 2) {
+            $value = $parts[1].Trim()
+        }
+
+        switch ($command) {
+            'require' {
+                if ([string]::IsNullOrWhiteSpace($value)) {
+                    throw "Invalid EnergyPlus prune spec line. Missing require path: $rawLine"
+                }
+
+                $required.Add((Convert-EnergyPlusSpecPath $value))
+            }
+            'prune' {
+                if ([string]::IsNullOrWhiteSpace($value)) {
+                    throw "Invalid EnergyPlus prune spec line. Missing prune path: $rawLine"
+                }
+
+                $prune.Add((Convert-EnergyPlusSpecPath $value))
+            }
+            default {
+                $prune.Add((Convert-EnergyPlusSpecPath $line))
+            }
+        }
+    }
+
+    return [pscustomobject]@{
+        Required = @($required)
+        Prune    = @($prune)
+    }
+}
+
+function Test-PathUnderDirectory {
+    param(
+        [string]$Parent,
+        [string]$Child
+    )
+
+    $resolvedParent = (Resolve-Path -LiteralPath $Parent -ErrorAction Stop).Path.TrimEnd('\')
+    $resolvedChild = (Resolve-Path -LiteralPath $Child -ErrorAction Stop).Path
+
+    return $resolvedChild.StartsWith($resolvedParent + '\', [System.StringComparison]::OrdinalIgnoreCase)
+}
+
+function Remove-EnergyPlusPruneEntry {
+    param(
+        [string]$TargetEnergyPlusDir,
+        [string]$Pattern
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Pattern)) {
+        return
+    }
+
+    $hasWildcard = ($Pattern.IndexOfAny([char[]]'*?[]') -ge 0)
+
+    if ($hasWildcard) {
+        $globPath = Join-Path $TargetEnergyPlusDir $Pattern
+        $matches = @(Get-ChildItem -Path $globPath -Force -ErrorAction SilentlyContinue)
+
+        if ($matches.Count -eq 0) {
+            Write-Log "EnergyPlus prune pattern not found, skipped: $Pattern"
+            return
+        }
+
+        foreach ($match in $matches) {
+            if (-not (Test-PathUnderDirectory -Parent $TargetEnergyPlusDir -Child $match.FullName)) {
+                throw "Refusing to prune outside EnergyPlus directory: $($match.FullName)"
+            }
+
+            if ($match.PSIsContainer) {
+                Remove-DirectoryIfExists $match.FullName
+            } else {
+                Remove-FileIfExists $match.FullName
+            }
+
+            Write-Log "Pruned EnergyPlus path from pattern '$Pattern': $($match.FullName)"
+        }
+
+        return
+    }
+
+    $target = Join-Path $TargetEnergyPlusDir $Pattern
+
+    if (-not (Test-Path -LiteralPath $target)) {
+        Write-Log "EnergyPlus prune path not found, skipped: $Pattern"
+        return
+    }
+
+    if (-not (Test-PathUnderDirectory -Parent $TargetEnergyPlusDir -Child $target)) {
+        throw "Refusing to prune outside EnergyPlus directory: $target"
+    }
+
+    if (Test-Path -LiteralPath $target -PathType Container) {
+        Remove-DirectoryIfExists $target
+    } elseif (Test-Path -LiteralPath $target -PathType Leaf) {
+        Remove-FileIfExists $target
+    }
+
+    Write-Log "Pruned EnergyPlus path: $Pattern"
+}
+
+function Test-EnergyPlusRequiredEntries {
+    param(
+        [string]$TargetEnergyPlusDir,
+        [string[]]$RequiredEntries
+    )
+
+    foreach ($entry in @($RequiredEntries)) {
+        $target = Join-Path $TargetEnergyPlusDir $entry
+
+        if (-not (Test-Path -LiteralPath $target -PathType Leaf)) {
+            throw "Required EnergyPlus release file is missing after pruning: $entry"
+        }
+
+        Write-Log "Validated required EnergyPlus release file: $entry"
+    }
+}
+
 function Remove-EnergyPlusReleaseExtras {
     param([string]$TargetEnergyPlusDir)
 
     Test-DirectoryExists -Path $TargetEnergyPlusDir -Message 'Release EnergyPlus runtime was not found.'
 
-    foreach ($dirname in $EnergyPlusPruneDirs) {
-        $target = Join-Path $TargetEnergyPlusDir $dirname
+    $spec = Read-EnergyPlusPruneSpec -Path $EnergyPlusPruneSpecPath
 
-        if (Test-Path -LiteralPath $target -PathType Container) {
-            Remove-DirectoryIfExists $target
-            Write-Log "Pruned EnergyPlus folder: $dirname"
-        } else {
-            Write-Log "EnergyPlus folder not found, skipped: $dirname"
-        }
+    Write-LogBlock -Title 'ENERGYPLUS RELEASE PRUNE SPEC' -Lines @(
+        "Spec file       : $EnergyPlusPruneSpecPath",
+        "Required entries: $($spec.Required.Count)",
+        "Prune entries   : $($spec.Prune.Count)"
+    )
+
+    foreach ($pattern in @($spec.Prune)) {
+        Remove-EnergyPlusPruneEntry -TargetEnergyPlusDir $TargetEnergyPlusDir -Pattern $pattern
     }
+
+    Test-EnergyPlusRequiredEntries -TargetEnergyPlusDir $TargetEnergyPlusDir -RequiredEntries $spec.Required
 }
 
 function Copy-RuntimeAndRootFiles {

@@ -230,7 +230,7 @@ function Write-Step {
     Write-Host $Message
 }
 
-function Ensure-Directory {
+function New-DirectoryIfMissing {
     param([string]$Path)
 
     if (-not (Test-Path -LiteralPath $Path)) {
@@ -260,7 +260,7 @@ function Test-DirectoryHasFiles {
     return ($null -ne $firstFile)
 }
 
-function Download-FileIfMissing {
+function Save-RemoteFileIfMissing {
     param(
         [string]$Url,
         [string]$Destination
@@ -296,7 +296,7 @@ function Expand-ZipClean {
     }
 
     Remove-DirectoryIfExists $Destination
-    Ensure-Directory $Destination
+    New-DirectoryIfMissing $Destination
 
     Write-Host " ...Extracting zip: $ZipPath"
     Write-Host "    To          : $Destination"
@@ -318,7 +318,7 @@ function Copy-DirectoryContents {
         throw "Source directory does not exist: $Source"
     }
 
-    Ensure-Directory $Destination
+    New-DirectoryIfMissing $Destination
 
     Get-ChildItem -LiteralPath $Source -Force | ForEach-Object {
         Copy-Item -LiteralPath $_.FullName -Destination $Destination -Recurse -Force
@@ -388,7 +388,7 @@ function Assert-FileSha256 {
     Write-Host " ...SHA256 verified."
 }
 
-function Configure-GoEnvironmentForCurrentProcess {
+function Set-GoEnvironmentForCurrentProcess {
     # These variables affect this PowerShell process only.
     # They do not modify the user's global Windows environment.
 
@@ -399,7 +399,7 @@ function Configure-GoEnvironmentForCurrentProcess {
     $env:PATH = "$(Join-Path $GoDir 'bin');$env:PATH"
 }
 
-function Configure-PythonEnvironmentForCurrentProcess {
+function Set-PythonEnvironmentForCurrentProcess {
     # Avoid accidentally using user-level site-packages such as:
     # C:\Users\<user>\AppData\Roaming\Python\Python312\site-packages
 
@@ -467,7 +467,7 @@ function Get-GitHubReleaseAsset {
 # Setup steps
 # ============================================================================
 
-function Setup-PythonRuntime {
+function Initialize-PythonRuntime {
     Write-Step '[1/6] Checking Python runtime...'
 
     if ($Force -and (Test-Path -LiteralPath $PythonDir)) {
@@ -480,10 +480,10 @@ function Setup-PythonRuntime {
         return
     }
 
-    Download-FileIfMissing -Url $PythonDownloadUrl -Destination $PythonZipPath
+    Save-RemoteFileIfMissing -Url $PythonDownloadUrl -Destination $PythonZipPath
 
     Remove-DirectoryIfExists $PythonDir
-    Ensure-Directory $PythonDir
+    New-DirectoryIfMissing $PythonDir
 
     Write-Host ' ...Extracting Python package.'
     Expand-Archive -LiteralPath $PythonZipPath -DestinationPath $PythonDir -Force
@@ -493,7 +493,7 @@ function Setup-PythonRuntime {
     }
 }
 
-function Configure-PythonPaths {
+function Set-PythonPaths {
     Write-Step '[2/6] Configuring Python runtime paths...'
 
     if (-not (Test-Path -LiteralPath $PythonPthFile)) {
@@ -507,13 +507,13 @@ function Configure-PythonPaths {
     Write-Host " ...Configured: $PythonPthFile"
 }
 
-function Setup-PipAndPackages {
+function Initialize-PipAndPackages {
     Write-Step '[3/6] Installing pip and Python packages...'
 
-    Configure-PythonEnvironmentForCurrentProcess
+    Set-PythonEnvironmentForCurrentProcess
 
     if (-not (Test-Path -LiteralPath $PipExe)) {
-        Download-FileIfMissing -Url $GetPipUrl -Destination $GetPipPath
+        Save-RemoteFileIfMissing -Url $GetPipUrl -Destination $GetPipPath
         Invoke-ExternalCommand -FilePath $PythonExe -Arguments @($GetPipPath)
     } else {
         Write-Host " ...Found pip: $PipExe"
@@ -543,7 +543,7 @@ function Setup-PipAndPackages {
     }
 }
 
-function Setup-EnergyPlusRuntime {
+function Initialize-EnergyPlusRuntime {
     Write-Step '[4/6] Checking EnergyPlus runtime...'
 
     if ($Force -and (Test-Path -LiteralPath $EnergyPlusDir)) {
@@ -563,7 +563,7 @@ function Setup-EnergyPlusRuntime {
         Remove-DirectoryIfExists $EnergyPlusLegacyDir
     }
 
-    Download-FileIfMissing -Url $EnergyPlusDownloadUrl -Destination $EnergyPlusZipPath
+    Save-RemoteFileIfMissing -Url $EnergyPlusDownloadUrl -Destination $EnergyPlusZipPath
 
     Expand-ZipClean -ZipPath $EnergyPlusZipPath -Destination $EnergyPlusExtractDir
 
@@ -588,7 +588,7 @@ function Setup-EnergyPlusRuntime {
     Write-Host "    $sourceDir"
 
     Remove-DirectoryIfExists $EnergyPlusDir
-    Ensure-Directory $EnergyPlusDir
+    New-DirectoryIfMissing $EnergyPlusDir
 
     Write-Host ' ...Copying EnergyPlus files to:'
     Write-Host "    $EnergyPlusDir"
@@ -612,7 +612,7 @@ function Setup-EnergyPlusRuntime {
     & $EnergyPlusExe --version
 }
 
-function Setup-WeatherRuntime {
+function Initialize-WeatherRuntime {
     Write-Step '[5/6] Checking Korean TMY weather data...'
 
     if ($SkipWeather) {
@@ -630,8 +630,8 @@ function Setup-WeatherRuntime {
         return
     }
 
-    Ensure-Directory $WeatherRootDir
-    Ensure-Directory $WeatherTmyDir
+    New-DirectoryIfMissing $WeatherRootDir
+    New-DirectoryIfMissing $WeatherTmyDir
 
     $asset = Get-GitHubReleaseAsset `
         -ReleaseApiUrl $WeatherReleaseApiUrl `
@@ -642,13 +642,13 @@ function Setup-WeatherRuntime {
     if (Test-Path -LiteralPath $WeatherZipPath) {
         Write-Host " ...Using cached weather archive: $WeatherZipPath"
     } else {
-        Download-FileIfMissing -Url $asset.browser_download_url -Destination $WeatherZipPath
+        Save-RemoteFileIfMissing -Url $asset.browser_download_url -Destination $WeatherZipPath
     }
 
     Expand-ZipClean -ZipPath $WeatherZipPath -Destination $WeatherExtractDir
 
     Remove-DirectoryIfExists $WeatherTmyDir
-    Ensure-Directory $WeatherTmyDir
+    New-DirectoryIfMissing $WeatherTmyDir
 
     # If the archive contains one top-level directory, copy its contents.
     # Otherwise, copy the extracted contents as-is.
@@ -683,7 +683,7 @@ function Setup-WeatherRuntime {
     Write-Host " ...Korean TMY weather data setup complete. File count: $weatherFileCount"
 }
 
-function Setup-GoRuntime {
+function Initialize-GoRuntime {
     Write-Step '[6/6] Checking Go portable SDK...'
 
     if ($SkipGo) {
@@ -704,12 +704,12 @@ function Setup-GoRuntime {
     if (Test-Path -LiteralPath $GoExe) {
         Write-Host " ...Found Go SDK: $GoExe"
 
-        Ensure-Directory $GoDataDir
-        Ensure-Directory $GoPathDir
-        Ensure-Directory $GoBuildCacheDir
-        Ensure-Directory $GoModCacheDir
+        New-DirectoryIfMissing $GoDataDir
+        New-DirectoryIfMissing $GoPathDir
+        New-DirectoryIfMissing $GoBuildCacheDir
+        New-DirectoryIfMissing $GoModCacheDir
 
-        Configure-GoEnvironmentForCurrentProcess
+        Set-GoEnvironmentForCurrentProcess
 
         & $GoExe version
         return
@@ -721,7 +721,7 @@ function Setup-GoRuntime {
         Remove-DirectoryIfExists $GoLegacyDir
     }
 
-    Download-FileIfMissing -Url $GoDownloadUrl -Destination $GoZipPath
+    Save-RemoteFileIfMissing -Url $GoDownloadUrl -Destination $GoZipPath
 
     Assert-FileSha256 -Path $GoZipPath -ExpectedSha256 $GoExpectedSha256
 
@@ -747,7 +747,7 @@ function Setup-GoRuntime {
     Write-Host "    $sourceDir"
 
     Remove-DirectoryIfExists $GoDir
-    Ensure-Directory $GoDir
+    New-DirectoryIfMissing $GoDir
 
     Write-Host ' ...Copying Go SDK files to:'
     Write-Host "    $GoDir"
@@ -772,18 +772,18 @@ function Setup-GoRuntime {
         throw "Go executable was not found after setup. Expected: $GoExe"
     }
 
-    Ensure-Directory $GoDataDir
-    Ensure-Directory $GoPathDir
-    Ensure-Directory $GoBuildCacheDir
-    Ensure-Directory $GoModCacheDir
+    New-DirectoryIfMissing $GoDataDir
+    New-DirectoryIfMissing $GoPathDir
+    New-DirectoryIfMissing $GoBuildCacheDir
+    New-DirectoryIfMissing $GoModCacheDir
 
-    Configure-GoEnvironmentForCurrentProcess
+    Set-GoEnvironmentForCurrentProcess
 
     Write-Host ' ...Go setup complete.'
     & $GoExe version
 }
 
-function Cleanup-DownloadsAfterSuccess {
+function Clear-DownloadsAfterSuccess {
     Write-Step '[cleanup] Checking downloaded setup files...'
 
     if ($KeepDownloads) {
@@ -816,16 +816,16 @@ try {
     Write-Host "Weather TMY  : $WeatherTmyDir"
     Write-Host ''
 
-    Ensure-Directory $RuntimeDir
-    Ensure-Directory $DownloadDir
+    New-DirectoryIfMissing $RuntimeDir
+    New-DirectoryIfMissing $DownloadDir
 
-    Setup-PythonRuntime
-    Configure-PythonPaths
-    Setup-PipAndPackages
-    Setup-EnergyPlusRuntime
-    Setup-WeatherRuntime
-    Setup-GoRuntime
-    Cleanup-DownloadsAfterSuccess
+    Initialize-PythonRuntime
+    Set-PythonPaths
+    Initialize-PipAndPackages
+    Initialize-EnergyPlusRuntime
+    Initialize-WeatherRuntime
+    Initialize-GoRuntime
+    Clear-DownloadsAfterSuccess
 
     Write-Host ''
     Write-Host '============================================================================'
@@ -870,7 +870,7 @@ try {
     Write-Host ' 2. Delete runtime/_energyplus_extract if a previous extraction was interrupted.'
     Write-Host ' 3. Delete runtime/_weather_extract if a previous weather extraction was interrupted.'
     Write-Host ' 4. Delete runtime/_go_extract if a previous Go extraction was interrupted.'
-    Write-Host ' 5. Re-run scripts\setup\setup.bat from the repository root.'
+    Write-Host ' 5. Re-run runscript setup from the repository root.'
     Write-Host ''
     Write-Host 'Note:'
     Write-Host ' runtime/downloads is intentionally kept when setup fails so that you can'
