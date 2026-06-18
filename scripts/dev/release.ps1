@@ -359,14 +359,33 @@ function Invoke-LoggedCommand {
         "Command          : $commandLine"
     )
 
+    $stdoutPath = [System.IO.Path]::GetTempFileName()
+    $stderrPath = [System.IO.Path]::GetTempFileName()
+
     Push-Location $WorkingDirectory
 
     try {
-        $output = & $FilePath @Arguments 2>&1
+        $previousErrorActionPreference = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+
+        try {
+            & $FilePath @Arguments > $stdoutPath 2> $stderrPath
+        } finally {
+            $ErrorActionPreference = $previousErrorActionPreference
+        }
+
         $exitCode = $LASTEXITCODE
 
-        foreach ($line in @($output)) {
-            Write-Log ([string]$line)
+        if (Test-Path -LiteralPath $stdoutPath -PathType Leaf) {
+            foreach ($line in @(Get-Content -LiteralPath $stdoutPath -ErrorAction SilentlyContinue)) {
+                Write-Log ([string]$line)
+            }
+        }
+
+        if (Test-Path -LiteralPath $stderrPath -PathType Leaf) {
+            foreach ($line in @(Get-Content -LiteralPath $stderrPath -ErrorAction SilentlyContinue)) {
+                Write-Log "[stderr] $line"
+            }
         }
 
         if ($null -eq $exitCode) {
@@ -380,6 +399,8 @@ function Invoke-LoggedCommand {
         }
     } finally {
         Pop-Location
+        Remove-FileIfExists $stdoutPath
+        Remove-FileIfExists $stderrPath
     }
 }
 
