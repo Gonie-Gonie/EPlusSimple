@@ -1,0 +1,18 @@
+# EPlusSimple development/setup Python requirements.
+#
+# This file is for the local development runtime prepared by scripts\setup,
+# including release-time tooling used during local release checks.
+# The released artifact uses scripts\release\requirements-release.txt instead.
+
+colorama==0.4.6
+et_xmlfile==2.0.0
+Jinja2==3.1.6
+MarkupSafe==3.0.2
+numpy==2.3.1
+openpyxl==3.1.5
+pandas==2.3.0
+python-dateutil==2.9.0.post0
+pytz==2024.2
+six==1.16.0
+tqdm==4.67.1
+tzdata==2024.2

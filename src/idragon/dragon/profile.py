@@ -6,7 +6,6 @@
 # built-in modules
 from __future__ import annotations
 import re
-import os
 import math
 import datetime
 from typing import (
@@ -21,17 +20,11 @@ from collections import UserList
 
 # local modules
 from ..imugi import (
-    # variables
-    SMALLEST_VALUE,
     # classes
     IdfObject,
-    IdfObjectList,
-    IDF      ,
 )
 from ..utils import (
     validate_type ,
-    validate_range,
-    validate_enum ,
 )
 from ..common import (
     Setting,

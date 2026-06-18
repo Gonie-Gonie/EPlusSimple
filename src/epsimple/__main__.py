@@ -4,6 +4,7 @@
 # ------------------------------------------------------------------------ #
 
 # built-in modules
+import json
 import argparse
 import traceback
 
@@ -13,8 +14,9 @@ import traceback
 from .api import (
     run_grjson  ,
     run_grexcel ,
-    get_database,
-    convert_inputformat     ,
+    get_database,   
+    convert_inputformat,
+    debug              ,
 )
 from .constants import (
     PackageInfo
@@ -44,6 +46,10 @@ converter = subparsers.add_parser(
 DB_interface = subparsers.add_parser(
     "DB",
     help="Get or set values about embedded database"
+)
+debugger = subparsers.add_parser(
+    "debug",
+    help="Debug Excel input file(s)"
 )
 
 # arguments for: launcher
@@ -82,6 +88,23 @@ DB_interface.add_argument(
 DB_interface.add_argument(
     "-g", "--get", dest="item_id",
     type=str, help="id(name) of the target item"
+)
+
+# arguments for: debugger
+debugger.add_argument(
+    "-i", "--input",
+    dest="input_filepaths",
+    nargs="+",
+    required=True,
+    type=str,
+    help="Excel input file path(s)",
+)
+debugger.add_argument(
+    "-w", "--workers",
+    dest="workers",
+    type=int,
+    default=1,
+    help="number of parallel workers for debugging",
 )
 
 # ---------------------------------------------------------------------------- #
@@ -123,6 +146,11 @@ if __name__ == "__main__":
         # convert format of an input file
         case "convert":
             convert_inputformat(args.input_filepath, args.src, args.dst, output_filepath = args.output_filepath)
+        
+        # debug input file
+        case "debug":
+            result = debug(args.input_filepaths, workers=args.workers)
+            print(json.dumps(result, ensure_ascii=False))
         
         # else
         case _:

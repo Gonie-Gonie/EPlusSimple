@@ -15,8 +15,8 @@ REM   runscript setup
 REM   runscript setup -Force
 REM   runscript build-go
 REM   runscript build-go -Tidy
-REM   runscript release -BuildFor reb
-REM   runscript release -BuildFor kalis -SkipRegressionTest -SkipDocs
+REM   runscript release
+REM   runscript release -SkipRegressionTest -SkipDocs
 REM
 REM Rule:
 REM   First argument  = command name
@@ -45,7 +45,7 @@ REM ============================================================================
 
 set "SCRIPT_SETUP=%ROOT_DIR%\scripts\setup\setup.ps1"
 set "SCRIPT_BUILD_GO=%ROOT_DIR%\scripts\dev\build-go.ps1"
-set "SCRIPT_RELEASE=%ROOT_DIR%\scripts\dev\release.ps1"
+set "SCRIPT_RELEASE=%ROOT_DIR%\scripts\release\release.ps1"
 
 
 REM ============================================================================

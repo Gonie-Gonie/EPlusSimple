@@ -24,7 +24,6 @@ from ..imugi import (
     SMALLEST_VALUE,
     # classes
     IdfObject,
-    IdfObjectList,
     IDF      ,
 )
 from ..utils import (
