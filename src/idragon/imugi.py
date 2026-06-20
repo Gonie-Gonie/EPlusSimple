@@ -205,7 +205,7 @@ class StaticIndexedDict(UserDict):
     """ indexing
     """
     
-    def _check_int_indexor(self, key:int|str) -> str:
+    def _check_int_indexer(self, key:int|str) -> str:
         """ ensure the key as a str instance
 
         Args
@@ -236,7 +236,7 @@ class StaticIndexedDict(UserDict):
         return key
     
     
-    def _check_capitalized_indexor(self, key:str) -> str:
+    def _check_capitalized_indexer(self, key:str) -> str:
         """ check if the key is in the allowed keys but as a form of capital-free
         
         Args
@@ -277,8 +277,8 @@ class StaticIndexedDict(UserDict):
                 )
             
             # preprocessings
-            key = self._check_int_indexor(key)
-            key = self._check_capitalized_indexor(key)
+            key = self._check_int_indexer(key)
+            key = self._check_capitalized_indexer(key)
             
             return func(self, key, *args, **kwargs)
         
@@ -404,7 +404,7 @@ class IddField():
         self.__reference_cls = reference_cls
         
         # additional attributes
-        self.__referencible = []
+        self.__referenceable = []
         
         # post-processes of the fundamental attributes
         # 1) formatting memo
@@ -573,8 +573,8 @@ class IddField():
     """
     
     @property
-    def referencible(self) -> list[dict[str,str]]:
-        return self.__referencible
+    def referenceable(self) -> list[dict[str,str]]:
+        return self.__referenceable
     
     def __eq__(self, other:"IddField") -> bool:
         """ a magic method compares an idd_field instance with another idd_field instance
@@ -896,7 +896,7 @@ class IDD(StaticIndexedDict):
             for field_name, field in obj.items():
                 for ref_obj in field.object_list:
                     for ref_field in self.__reference_map_obj[ref_obj]:
-                        self[ref_field["object"]][ref_field["field"]].referencible.append({"object":obj_name, "field": field_name})
+                        self[ref_field["object"]][ref_field["field"]].referenceable.append({"object":obj_name, "field": field_name})
                 
         # summary names of reference class
         # - save the names of the objects
@@ -1513,28 +1513,28 @@ class IdfObject(StaticIndexedDict):
     
     def rename(self, new_name:str) -> None:
         
-        # check if the object has two or more 'referencible' fields
+        # check if the object has two or more 'referenceable' fields
         # it is non-considered case
-        referencibles = [key for key in self.keys() if self.idd[key].referencible]
-        if len(referencibles) > 1:
+        referenceables = [key for key in self.keys() if self.idd[key].referenceable]
+        if len(referenceables) > 1:
             raise RuntimeError(
                 f"Reference 될 수 있는 field가 2개인 instance는 생각해 본 적 없습니다..."
                 f"개발자에게 연락하도록 합시다..."
             )
             
-        elif len(referencibles) == 0:
+        elif len(referenceables) == 0:
             return
         
         # get fieldname and current name
         else:
-            name_field = referencibles[0]
+            name_field = referenceables[0]
             old_name   =  self[name_field]
             
         # change the name of self
         self[name_field] = new_name   
         
         # check if any other object reference the 'self' by 'old_name'
-        for possible_reference in self.idd[name_field].referencible:
+        for possible_reference in self.idd[name_field].referenceable:
             for idf_object in self.grandparent[possible_reference["object"]]:
                 if idf_object[possible_reference["field"]] == old_name:
                     # change the name
@@ -2500,26 +2500,26 @@ class IDF(StaticIndexedDict):
         
         for obj_name in target_objects:
             
-            # check if the object has two or more 'referencible' fields
+            # check if the object has two or more 'referenceable' fields
             # it is non-considered case
-            referencibles = [key for key in self[obj_name].idd.keys() if self[obj_name].idd[key].referencible]
-            if len(referencibles) > 1:
+            referenceables = [key for key in self[obj_name].idd.keys() if self[obj_name].idd[key].referenceable]
+            if len(referenceables) > 1:
                 raise RuntimeError(
                     f"Reference 될 수 있는 field가 2개인 instance는 생각해 본 적 없습니다..."
                     f"개발자에게 연락하도록 합시다..."
                 )
             
-            elif len(referencibles) == 0:
+            elif len(referenceables) == 0:
                 continue
             
             # get fieldname and current name
             else:
-                name_field = referencibles[0]
+                name_field = referenceables[0]
                 
             for idx, obj in enumerate(self[obj_name]):
                 
                 is_referenced = False
-                for possible_reference in self[obj_name].idd[name_field].referencible:
+                for possible_reference in self[obj_name].idd[name_field].referenceable:
                     for idf_object in self[possible_reference["object"]]:
                         if idf_object[possible_reference["field"]] == obj[name_field]:
                             is_referenced = True
@@ -2547,12 +2547,12 @@ class IDF(StaticIndexedDict):
         mother_idf.ensure_validity = False
         
         for data_idx, sample_item in enumerate(args):
-            object_name, indexor, field_name, _ = sample_item
+            object_name, indexer, field_name, _ = sample_item
 
-            if not isinstance(indexor, int|str):
-                mother_idf[object_name][indexor].set_fields(field_name, f"##{PackageInfo.NAME}{data_idx:04d}##")
+            if not isinstance(indexer, int|str):
+                mother_idf[object_name][indexer].set_fields(field_name, f"##{PackageInfo.NAME}{data_idx:04d}##")
             else:
-                mother_idf[object_name][indexor][field_name] = f"##{PackageInfo.NAME}{data_idx:04d}##"
+                mother_idf[object_name][indexer][field_name] = f"##{PackageInfo.NAME}{data_idx:04d}##"
                 
         original_str = str(mother_idf)
         

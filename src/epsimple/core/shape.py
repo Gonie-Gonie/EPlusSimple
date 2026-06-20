@@ -27,7 +27,7 @@ from .construction import (
     SurfaceConstruction,
     FenestrationConstruction,
     UnknownConstruction,
-    OpenConsruction    ,
+    OpenConstruction    ,
 )
 from .profile      import Profile
 from .hvac         import (
@@ -163,19 +163,19 @@ class Surface:
             self.__boundary = SurfaceBoundaryCondition.ZONE
     
     @property
-    def constrcution(self) -> SurfaceConstruction:
+    def construction(self) -> SurfaceConstruction:
         return self.__construction
     
-    @constrcution.setter
-    @validate_type(SurfaceConstruction, UnknownConstruction, OpenConsruction)
+    @construction.setter
+    @validate_type(SurfaceConstruction, UnknownConstruction, OpenConstruction)
     def construction(self, value:SurfaceConstruction) -> None:
         self.__construction = value
     
     @property
-    def refelectance(self) -> int|float|None:
+    def reflectance(self) -> int|float|None:
         return self.__reflectance
     
-    @refelectance.setter
+    @reflectance.setter
     @validate_range(min=SMALLEST_VALUE, max=1)
     @validate_type(int, float, allow_none=True)
     def reflectance(self, value:int|float) -> None:
@@ -192,7 +192,7 @@ class Surface:
     def num_doors(self) -> int:
         return len([fen for fen in self.fenestrations if isinstance(fen, Door)])
     
-    def get_unique_fenestraion_constructions(self) -> dict[str, FenestrationConstruction]:
+    def get_unique_fenestration_constructions(self) -> dict[str, FenestrationConstruction]:
         
         return {
             fenestration.construction.ID: fenestration.construction
@@ -307,7 +307,7 @@ class Surface:
         
         match input.construction_id:
             case "open": 
-                construction = OpenConsruction()
+                construction = OpenConstruction()
             case None:
                 construction = UnknownConstruction()
             case _:
@@ -334,7 +334,7 @@ class Surface:
         fenestration_construction_dict:dict[str,FenestrationConstruction],
         ) -> dragon.Surface:
         
-        if self.refelectance is not None:
+        if self.reflectance is not None:
             construction = surface_construction_dict[f"{SpecialTag.COOLROOF}{self.construction.ID}"]
         else:
             construction = surface_construction_dict[self.construction.ID]
@@ -686,7 +686,7 @@ class Zone:
         return {
             k: v
             for surface in self.surface
-            for k, v in surface.get_unique_fenestraion_constructions().items()
+            for k, v in surface.get_unique_fenestration_constructions().items()
         }
     
     def get_unique_surface_constructions(self) -> dict[str, SurfaceConstruction]:

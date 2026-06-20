@@ -321,7 +321,7 @@ class SurfaceConstruction:
         }
     
     @classmethod
-    def create_simplely(cls,
+    def create_simply(cls,
         name:str      ,
         U   :int|float,
         *,
@@ -577,7 +577,7 @@ class SpecialConstruction:
     def reversed(self) -> SurfaceConstruction:
         return self
 
-class OpenConsruction(SpecialConstruction):
+class OpenConstruction(SpecialConstruction):
     
     # ID for singleton instance
     ID = f"{SpecialTag.SPECIAL}{AUTOID_PREFIX.SURFACE_CONSTRUCTION}OPEN"
@@ -779,7 +779,7 @@ Material._DB = {
 }
 
 SurfaceConstruction._DB = {
-    (row.name): SurfaceConstruction.create_simplely(
+    (row.name): SurfaceConstruction.create_simply(
         "&".join(row.name),
         float(row["열관류율"]),
         ID = f"{SpecialTag.DB}{'&'.join(row.name)}"

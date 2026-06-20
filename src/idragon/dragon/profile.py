@@ -191,7 +191,7 @@ class DaySchedule(UserList):
         
         if self.type != other.type:
             raise TypeError(
-                f"Cannot substract {self.type}-type DaySchedule to {other.type}-type DaySchedule."
+                f"Cannot subtract {self.type}-type DaySchedule to {other.type}-type DaySchedule."
             )
             
         return self.__add__(other.__mul__(-1))
@@ -818,7 +818,7 @@ class RuleSet:
         
         if self.type != other.type:
             raise TypeError(
-                f"Cannot substract {self.type}-type RuleSet to {other.type}-type RuleSet."
+                f"Cannot subtract {self.type}-type RuleSet to {other.type}-type RuleSet."
             )
             
         return self.__add__(other.__mul__(-1))

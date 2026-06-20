@@ -47,7 +47,7 @@ from .profile import (
 class Terrain(str, Enum):
     
     COUNTRY ="Country"
-    SUBURBS ="Subrubs"
+    SUBURBS ="Suburbs"
     CITY    ="City"
     OCEAN   ="Ocean"
     URBAN   ="Urban"

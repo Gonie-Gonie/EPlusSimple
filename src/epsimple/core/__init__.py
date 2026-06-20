@@ -6,7 +6,7 @@
 from .construction import (
     Material                ,
     SurfaceConstruction     ,
-    OpenConsruction         ,
+    OpenConstruction         ,
     UnknownConstruction     ,
     FenestrationConstruction,
 )

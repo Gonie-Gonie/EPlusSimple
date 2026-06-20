@@ -36,7 +36,7 @@ from . import (
     # construction
     Material                ,
     SurfaceConstruction     ,
-    OpenConsruction         ,
+    OpenConstruction         ,
     UnknownConstruction     ,
     FenestrationConstruction,
     # profile
@@ -506,7 +506,7 @@ class GreenRetrofitModel:
         }
         
         # special constructions
-        surface_construction_dict["open"]    = OpenConsruction()
+        surface_construction_dict["open"]    = OpenConstruction()
         surface_construction_dict["unknown"] = UnknownConstruction()
         
         # system
@@ -629,7 +629,7 @@ class GreenRetrofitModel:
                 copied_surface_dict[adjacent_surface.ID] = adjacent_surface
                 adjacent_pair[surface.ID] = adjacent_surface.ID
                 
-                reversed_construction = surface.constrcution.reversed()
+                reversed_construction = surface.construction.reversed()
                 adjacent_surface.construction = reversed_construction
                 
                 dragonized_construction = reversed_construction.to_dragon()
@@ -652,8 +652,8 @@ class GreenRetrofitModel:
                         original_construction.layers[0].material.conductivity,
                         original_construction.layers[0].material.density,
                         original_construction.layers[0].material.specific_heat,
-                        solar_absorptance  =1 - surface.refelectance,
-                        thermal_absorptance=1 - surface.refelectance,
+                        solar_absorptance  =1 - surface.reflectance,
+                        thermal_absorptance=1 - surface.reflectance,
                     ),
                     original_construction.layers[0].thickness
                 )
@@ -903,7 +903,7 @@ class GreenRetrofitResult:
             Fuel.ELECTRICITY    : "Electricity",
             Fuel.NATURALGAS     : "NaturalGas" ,
             Fuel.OIL            : "Diesel"    ,
-            Fuel.DISTRICTHEATING: "OhterFuels" ,
+            Fuel.DISTRICTHEATING: "OtherFuels" ,
         }
         
         df_site = pd.DataFrame(index=[v.name for v in Fuel], columns=list(usecol_map.keys())).map(lambda _: [float(0)]*12)
@@ -956,16 +956,6 @@ class GreenRetrofitResult:
             df_cost.loc[idx] = df_cost.loc[idx].map(lambda l: [round(v*coeff,GreenRetrofitResult.VALID_DIGITS) for v in l])
         
         return df_cost
-    
-    def dictionarize(self, df:pd.DataFrame) -> dict:
-        
-        return {
-            col: {
-                idx: df.loc[idx, col]
-                for idx in df.index
-            }
-            for col in df.columns
-        }
     
     def summarize(self, df:pd.DataFrame, *, gross:bool) -> dict:
         
@@ -1032,19 +1022,19 @@ class GreenRetrofitResult:
 
         # site uses
         df_site = self.to_site_uses()
-        result_dict["site_uses"] = self.dictionarize(df_site)
+        result_dict["site_uses"] = df_site.to_dict()
         
         # source uses
         df_source = self.to_source_uses()
-        result_dict["source_uses"] = self.dictionarize(df_source)
+        result_dict["source_uses"] = df_source.to_dict()
         
         # co2
         df_co2 = self.to_co2()
-        result_dict["co2"] = self.dictionarize(df_co2)
+        result_dict["co2"] = df_co2.to_dict()
                 
         # cost
         df_cost = self.to_cost()
-        result_dict["cost"] = self.dictionarize(df_cost)
+        result_dict["cost"] = df_cost.to_dict()
         
         # summary
         result_dict["summary_per_area"] = {
@@ -1062,7 +1052,7 @@ class GreenRetrofitResult:
         filepath:str
         ) -> None:
         
-        # dictionarize the result
+        # convert the result to a dictionary tree
         result_dict = self.to_dict()
 
         # write the dictionary tree as json format

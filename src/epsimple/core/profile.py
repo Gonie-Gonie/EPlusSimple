@@ -71,7 +71,7 @@ class DaySchedule:
         
         # set default ID if not specified
         if ID is None:
-            ID = f"{AUTOID_PREFIX.DAY_SHCEDULE}AUTOID{hex(id(self))}"
+            ID = f"{AUTOID_PREFIX.DAY_SCHEDULE}AUTOID{hex(id(self))}"
         self.__ID = ID
         
     """ fundamental properties
@@ -1136,7 +1136,7 @@ class Profile:
             "cooling_setpoint" : getattr(self.cooling_setpoint, "name", None) ,
             "hvac_availability": getattr(self.hvac_availability, "name", None), 
             "occupant" : getattr(self.occupant , "name", None),
-            "lighitng" : getattr(self.lighting , "name", None),
+            "lighting" : getattr(self.lighting , "name", None),
             "equipment": getattr(self.equipment, "name", None),
             "schedules": [
                 schedule.to_dict()

@@ -166,7 +166,7 @@ class AUTOID_PREFIX(str, Enum):
     ZONE         = "ZONE"
     
     # profile
-    DAY_SHCEDULE = "DYSC"
+    DAY_SCHEDULE = "DYSC"
     RULESET     = "RLST"
     SCHEDULE    = "SCHE"
     PROFILE     = "PRFL"
