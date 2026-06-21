@@ -29,35 +29,135 @@ from ..utils import (
 from ..common import (
     Setting,
 )
-
+from ..constants import (
+    PackageInfo,
+)
 
 # ---------------------------------------------------------------------------- #
 #                                    CLASSES                                   #
 # ---------------------------------------------------------------------------- #
 
-
 class ScheduleType(str, Enum):
+    TEMPERATURE = "temperature"
+    ONOFF       = "onoff"
+    FRACTION    = "fraction"
+    REAL        = "real"
+
+    """ fundamental properties
+    """
+
+    @property
+    def idf_objname(self) -> str:
+        match self:
+            case ScheduleType.TEMPERATURE: return f"{PackageInfo.NAME} Temperature"
+            case ScheduleType.ONOFF      : return f"{PackageInfo.NAME} OnOff"
+            case ScheduleType.FRACTION   : return f"{PackageInfo.NAME} Fraction"
+            case ScheduleType.REAL       : return f"{PackageInfo.NAME} AnyNumber"
+
+    @property
+    def lower_limit(self) -> int|float|None:
+        match self:
+            case ScheduleType.TEMPERATURE: return -50
+            case ScheduleType.ONOFF      : return 0
+            case ScheduleType.FRACTION   : return 0
+            case ScheduleType.REAL       : return None
+
+    @property
+    def upper_limit(self) -> int|float|None:
+        match self:
+            case ScheduleType.TEMPERATURE: return 200
+            case ScheduleType.ONOFF      : return 1
+            case ScheduleType.FRACTION   : return 1
+            case ScheduleType.REAL       : return None
+
+    @property
+    def numeric_type(self) -> str:
+        match self:
+            case ScheduleType.ONOFF: return "Discrete"
+            case _                 : return "Continuous"
+
+    @property
+    def unit_type(self) -> str:
+        match self:
+            case ScheduleType.TEMPERATURE: return "Temperature"
+            case _                       : return "Dimensionless"
+
+    """ useful methods
+    """
     
-    TEMPERATURE ="temperature"
-    ONOFF       ="onoff"
-    REAL        ="real" 
+    def coerce_value(self, value: int|float|bool) -> int|float:
+        
+        # check type and coerce bool to int
+        if isinstance(value, bool):
+            value = int(value)
+
+        elif not isinstance(value, int|float):
+            raise TypeError(
+                f"{self.value} schedule value must be numeric or boolean, got {type(value)}"
+            )
+
+        # check value range
+        match self:
+            case ScheduleType.TEMPERATURE:
+                if not (self.lower_limit <= value <= self.upper_limit):
+                    raise ValueError(
+                        f"Temperature schedule value must be in "
+                        f"[{self.lower_limit}, {self.upper_limit}], got {value}"
+                    )
+                return float(value)
+
+            case ScheduleType.ONOFF:
+                if value not in (0, 1):
+                    raise ValueError(
+                        f"ONOFF schedule value must be 0 or 1, got {value}"
+                    )
+                return int(value)
+
+            case ScheduleType.FRACTION:
+                if not (0 <= value <= 1):
+                    raise ValueError(
+                        f"Fraction schedule value must be in [0, 1], got {value}"
+                    )
+                return float(value)
+
+            case ScheduleType.REAL:
+                return float(value)
+
+    def validate(self, value: int|float|bool) -> None:
+        self.coerce_value(value)
+    
+    """ idf-related
+    """
+    
+    def to_idf_object(self) -> IdfObject:
+        return IdfObject(
+            "ScheduleTypeLimits",
+            [
+                self.idf_objname,
+                self.lower_limit,
+                self.upper_limit,
+                self.numeric_type,
+                self.unit_type,
+            ],
+        )
+    
+    """ representation
+    """
     
     def __str__(self) -> str:
-        return self.value   
+        return self.value
+
 
 class DaySchedule(UserList):
     
     DATA_INTERVAL = 6 # per hour
     
-    MAX_TEMPERATURE = 200
-    MIN_TEMPERATURE = -50
-    
     def __init__(self,
-        name         :str            ,
+        name         :str|None            =None,
         value        :list[int|float]|None=None,
         *,
         type:ScheduleType=ScheduleType.REAL,
-        unit:str=None
+        unit:str|None    =None             ,
         ) -> None:
         
         if name is None:
@@ -72,7 +172,7 @@ class DaySchedule(UserList):
         
         if len(value) != self.fixed_length:
             raise ValueError(
-                f""
+                f"Value list must have {self.fixed_length} elements, got {len(value)}"
             )
         
         self.data = [0] * self.fixed_length
@@ -95,20 +195,7 @@ class DaySchedule(UserList):
     
     def __setitem__(self, index:int, item:int|float) -> None:
         
-        match self.type:
-            case ScheduleType.TEMPERATURE:
-                if not (DaySchedule.MIN_TEMPERATURE <= item <= DaySchedule.MAX_TEMPERATURE):
-                    raise ValueError(
-                        f"Temperature-type schedule values must be in [{DaySchedule.MIN_TEMPERATURE}, {DaySchedule.MAX_TEMPERATURE}]"
-                    )
-            case ScheduleType.ONOFF:
-                if item not in [0, 1]:
-                    raise ValueError(
-                        f"ONOFF-type schedule values must be 0 or 1."
-                    )
-            case ScheduleType.REAL:
-                pass
-        
+        item = self.type.coerce_value(item)
         super().__setitem__(index, item)
         
     """ algebraric methods
@@ -1499,7 +1586,7 @@ class Schedule(UserList):
         
         return IdfObject("Schedule:Compact",[
             f"{self.name}",
-            "",
+            self.type.idf_objname,
             *sum([
                 [
                     f"Through: {end_date.month}/{end_date.day}",
