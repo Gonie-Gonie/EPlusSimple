@@ -54,7 +54,7 @@ class ScheduleType(str, Enum):
 
     @property
     def idf_objname(self) -> str:
-        return f"ScheduleTypeLimites:{self.value.capitalize()}"
+        return f"ScheduleTypeLimits:{self.value.capitalize()}"
 
     @property
     def lower_limit(self) -> int|float|None:
@@ -87,7 +87,7 @@ class ScheduleType(str, Enum):
     """ core methods
     """
 
-    def validate(self, value: int|float|bool) -> None:
+    def validate(self, value: int|float|bool) -> int|float:
         
         # check type and coerce bool to int
         if isinstance(value, bool):
@@ -276,9 +276,8 @@ class DaySchedule(UserList):
         return self.__schedule_type
     
     @type.setter
-    @validate_type(ScheduleType)
-    def type(self, value: ScheduleType) -> None:
-        self.__schedule_type = value
+    def type(self, value: ScheduleType|str) -> None:
+        self.__schedule_type = ScheduleType(value)
     
     @property
     def fixed_length(self) -> int:
@@ -286,7 +285,7 @@ class DaySchedule(UserList):
     
     def __setitem__(self, index:int, item:int|float) -> None:
         
-        item = self.type.coerce_value(item)
+        item = self.type.validate(item)
         super().__setitem__(index, item)
         
     """ algebraric operations
@@ -321,7 +320,9 @@ class DaySchedule(UserList):
         elif isinstance(other, int|float):
             
             # type validation and calculation
-            output_type = self.type
+            match self.type:
+                case ScheduleType.ONOFF: output_type = ScheduleType.REAL
+                case _                 : output_type = self.type
             
             # element calculation
             return DaySchedule(
@@ -333,7 +334,7 @@ class DaySchedule(UserList):
         # unsupported type
         else:
             raise ScheduleOperationError(
-                f"Cannot operate dayschedules with {other.type} object."
+                f"Cannot operate dayschedules with {type(other).__name__} object."
             )
         
     def __rmul__(self, other:int|float) -> DaySchedule:
@@ -355,6 +356,11 @@ class DaySchedule(UserList):
             output_type = self.type
             
             # element calculation
+            if any(v == 0 for v in other.data):
+                raise ZeroDivisionError(
+                    f"Cannot divide {self.name} by {other.name}: divider contains zero."
+                )
+            
             return DaySchedule(
                 f"{self.name}:DIV:{other.name}",
                 [a / b for a,b in zip(self.data, other.data)],
@@ -369,6 +375,10 @@ class DaySchedule(UserList):
                 case _                 : output_type = self.type
             
             # element calculation
+            if other == 0:
+                raise ZeroDivisionError(
+                    f"Cannot divide {self.name} by scalar zero."
+                )
             return DaySchedule(
                 self.name,
                 [item / other for item in self.data],
@@ -378,7 +388,7 @@ class DaySchedule(UserList):
         # unsupported type
         else:
             raise ScheduleOperationError(
-                f"Cannot operate dayschedules with {other.type} object."
+                f"Cannot operate dayschedules with {type(other).__name__} object."
             )
             
     def __rtruediv__(self, other:int|float) -> DaySchedule:
@@ -394,6 +404,11 @@ class DaySchedule(UserList):
             )
         
         # element calculation
+        if any(v == 0 for v in self.data):
+            raise ZeroDivisionError(
+                f"Cannot divide {other} by {self.name}: divider contains zero."
+            )
+                
         return DaySchedule(
             self.name,
             [other / item for item in self.data],
@@ -438,7 +453,7 @@ class DaySchedule(UserList):
             return DaySchedule(
                 f"{self.name}:ADD:{other.name}",
                 [self_item+other_item for self_item, other_item in zip(self.data, other.data)],
-                type=self.type
+                type=output_type
             )
         
         elif isinstance(other, int|float):
@@ -460,7 +475,7 @@ class DaySchedule(UserList):
         # unsupported type
         else:
             raise ScheduleOperationError(
-                f"Cannot operate dayschedule with {other.type} object."
+                f"Cannot operate dayschedule with {type(other).__name__} object."
             )
         
     def __radd__(self, other:int|float) -> DaySchedule:
@@ -504,7 +519,7 @@ class DaySchedule(UserList):
             return DaySchedule(
                 f"{self.name}:SUB:{other.name}",
                 [self_item-other_item for self_item, other_item in zip(self.data, other.data)],
-                type=self.type
+                type=output_type
             )
         
         elif isinstance(other, int|float):
@@ -526,7 +541,7 @@ class DaySchedule(UserList):
         # unsupported type
         else:
             raise ScheduleOperationError(
-                f"Cannot operate dayschedule with {other.type} object."
+                f"Cannot operate dayschedule with {type(other).__name__} object."
             )
     
     def __rsub__(self, other:int|float) -> DaySchedule:
@@ -548,7 +563,7 @@ class DaySchedule(UserList):
     def __and__(self, other:DaySchedule) -> DaySchedule:
         
         if (self.type is not ScheduleType.ONOFF) or (other.type is not ScheduleType.ONOFF):
-            raise TypeError(
+            raise ScheduleOperationError(
                 f"Cannot 'AND' operate for non-ONOFF typed DaySchedules (get: {self.type} and {other.type})."
             )
             
@@ -561,7 +576,7 @@ class DaySchedule(UserList):
     def __or__(self, other:DaySchedule) -> DaySchedule:
         
         if (self.type is not ScheduleType.ONOFF) or (other.type is not ScheduleType.ONOFF):
-            raise TypeError(
+            raise ScheduleOperationError(
                 f"Cannot 'OR' operate for non-ONOFF typed DaySchedules (get: {self.type} and {other.type})."
             )
             
@@ -574,13 +589,14 @@ class DaySchedule(UserList):
     def __invert__(self) -> DaySchedule:
         
         if self.type is not ScheduleType.ONOFF:
-            raise TypeError(
+            raise ScheduleOperationError(
                 f"Cannot 'invert' operate for non-ONOFF typed DaySchedule (get: {self.type})."
             )
             
         return DaySchedule(
             f"{self.name}:INVERTED",
-            [int(not bool(value)) for value in self.data]
+            [int(not bool(value)) for value in self.data],
+            type = ScheduleType.ONOFF
         )
         
     def element_eq(self, other:int|float|DaySchedule) -> DaySchedule:
@@ -596,7 +612,7 @@ class DaySchedule(UserList):
         elif isinstance(other, int|float):
             
             return DaySchedule(
-                f"{self.name}:LT:{other}",
+                f"{self.name}:EQ:{other}",
                 [int(v == other) for v in self.data],
                 type=ScheduleType.ONOFF
             )
@@ -730,7 +746,7 @@ class DaySchedule(UserList):
                 raise ScheduleOperationError(
                     f""
                 )
-            if self.type is ScheduleOperationError.ONOFF:
+            if self.type is ScheduleType.ONOFF:
                 raise ScheduleOperationError(
                     f""
                 )
@@ -740,13 +756,13 @@ class DaySchedule(UserList):
             return DaySchedule(
                 f"{self.name}:MIN:{other.name}",
                 [min(a,b) for a,b in zip(self.data, other.data)],
-                output_type
+                type=output_type
             )
             
         elif isinstance(other, int|float):
             
             # type validation and calculation
-            if self.type is ScheduleOperationError.ONOFF:
+            if self.type is ScheduleType.ONOFF:
                 raise ScheduleOperationError(
                     f""
                 )
@@ -754,15 +770,15 @@ class DaySchedule(UserList):
                 
             # element calculation
             return DaySchedule(
-                f"{self.name}:MIN:{other.name}",
+                f"{self.name}:MIN:{other}",
                 [min(a,other) for a in self.data],
-                output_type
+                type=output_type
             )
         
         # unsupported type
         else:
             raise ScheduleOperationError(
-                f"Cannot operate dayschedule with {other.type} object."
+                f"Cannot operate dayschedule with {type(other).__name__} object."
             )
         
     def element_max(self, other:DaySchedule) -> DaySchedule:
@@ -784,7 +800,7 @@ class DaySchedule(UserList):
             return DaySchedule(
                 f"{self.name}:MAX:{other.name}",
                 [max(a,b) for a,b in zip(self.data, other.data)],
-                output_type
+                type=output_type
             )
             
         elif isinstance(other, int|float):
@@ -798,15 +814,15 @@ class DaySchedule(UserList):
                 
             # element calculation
             return DaySchedule(
-                f"{self.name}:MAX:{other.name}",
+                f"{self.name}:MAX:{other}",
                 [max(a,other) for a in self.data],
-                output_type
+                type=output_type
             )
         
         # unsupported type
         else:
             raise ScheduleOperationError(
-                f"Cannot operate dayschedule with {other.type} object."
+                f"Cannot operate dayschedule with {type(other).__name__} object."
             )
     
     @property
@@ -901,13 +917,16 @@ class DaySchedule(UserList):
     @classmethod
     def from_compact(cls,
         name  :str        ,
-        values:list[tuple],
+        values:list[tuple[int,int, int|float]],
         type:ScheduleType=ScheduleType.REAL
         ) -> DaySchedule:
         
+        # prevent mutation
+        values = list(values)
+        
         if values[-1][:2] != (24,0):
             raise ValueError(
-                f""
+                f"Compact DaySchedule must end at 24:00, got {values[-1][:2]}"
             )
             
         schedule_values = []
@@ -921,6 +940,38 @@ class DaySchedule(UserList):
                 values.pop(0)
                 schedule_values.append(values[0][2])
          
+        return cls(name, schedule_values, type=type)
+    
+    @classmethod
+    def from_windows(
+        cls,
+        name: str,
+        default: int | float,
+        windows: list[tuple[tuple[int, int], tuple[int, int], int | float]],
+        type: ScheduleType = ScheduleType.REAL,
+        ) -> DaySchedule:
+
+        step_minutes = int(60 / cls.DATA_INTERVAL)
+
+        def to_minutes(time_tuple: tuple[int, int]) -> int:
+            hh, mm = time_tuple
+            return hh * 60 + mm
+
+        schedule_values = []
+
+        for hh, mm in cls.time_tuple():
+            interval_end = hh * 60 + mm
+            interval_start = interval_end - step_minutes
+
+            value = default
+
+            for start, end, window_value in windows:
+                if to_minutes(start) <= interval_start < to_minutes(end):
+                    value = window_value
+                    break
+
+            schedule_values.append(value)
+
         return cls(name, schedule_values, type=type)
     
     @classmethod
@@ -1222,11 +1273,6 @@ class RuleSet:
         )
         
     def __add__(self, other:RuleSet) -> RuleSet:
-        
-        if self.type != other.type:
-            raise TypeError(
-                f"Cannot add {self.type}-type RuleSet to {other.type}-type RuleSet."
-            )
             
         return RuleSet.__operate_with_default(
             f"{self.name}:ADD:{other.name}",
@@ -1238,21 +1284,13 @@ class RuleSet:
         return self.__add__(other)
     
     def __sub__(self, other:RuleSet) -> RuleSet:
-        
-        if self.type != other.type:
-            raise TypeError(
-                f"Cannot subtract {self.type}-type RuleSet to {other.type}-type RuleSet."
-            )
-            
-        return self.__add__(other.__mul__(-1))
+        return RuleSet.__operate_with_default(
+            f"{self.name}:SUB:{other.name if isinstance(other, RuleSet) else str(other)}",
+            lambda a, b: a - b,
+            self, other,
+        )
     
     def __and__(self, other:RuleSet) -> RuleSet:
-        
-        if (self.type is not ScheduleType.ONOFF) or (other.type is not ScheduleType.ONOFF):
-            raise TypeError(
-                f"Cannot 'AND' operate for non-ONOFF typed RuleSets (get: {self.type} and {other.type})."
-            )
-            
         return RuleSet.__operate_with_default(
             f"{self.name}:AND:{other.name}",
             lambda a, b: a.__and__(b),
@@ -1260,25 +1298,13 @@ class RuleSet:
         )
         
     def __or__(self, other:RuleSet) -> RuleSet:
-        
-        if (self.type is not ScheduleType.ONOFF) or (other.type is not ScheduleType.ONOFF):
-            raise TypeError(
-                f"Cannot 'AND' operate for non-ONOFF typed RuleSets (get: {self.type} and {other.type})."
-            )
-            
         return RuleSet.__operate_with_default(
             f"{self.name}:OR:{other.name}",
             lambda a, b: a.__or__(b),
             self, other
         )
         
-    def __invert__(self) -> RuleSet:
-        
-        if self.type is not ScheduleType.ONOFF:
-            raise TypeError(
-                f"Cannot 'invert' operate for non-ONOFF typed RuleSet (get: {self.type})."
-            )
-            
+    def __invert__(self) -> RuleSet:            
         return RuleSet(
             self.name,
             **{
