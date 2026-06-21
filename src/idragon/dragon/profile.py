@@ -921,6 +921,99 @@ class DaySchedule(UserList):
         type:ScheduleType=ScheduleType.REAL
         ) -> DaySchedule:
         
+        """
+        Create a day schedule from EnergyPlus-like compact "Until" tuples.
+
+        Each tuple has the form:
+
+            (until_hour, until_minute, value)
+
+        The time in each tuple represents the end time of the interval to
+        which the value is applied. Therefore, this method follows the same
+        interpretation as EnergyPlus Schedule:Compact "Until" fields.
+
+        For example:
+
+            [
+                (9, 0, 0),
+                (18, 0, 1),
+                (24, 0, 0),
+            ]
+
+        means:
+
+            00:00 < time <= 09:00  -> 0
+            09:00 < time <= 18:00  -> 1
+            18:00 < time <= 24:00  -> 0
+
+        Since DaySchedule uses 10-minute intervals by default, the internal
+        time points are interpreted as interval end times:
+
+            00:10, 00:20, ..., 23:50, 24:00
+
+        Thus, the example above produces:
+
+            00:10 ~ 09:00  -> 0
+            09:10 ~ 18:00  -> 1
+            18:10 ~ 24:00  -> 0
+
+        The final tuple must end at 24:00.
+
+        Parameters
+        ----------
+        name:
+            Name of the day schedule.
+        values:
+            Compact schedule definition as a list of
+            (until_hour, until_minute, value) tuples.
+        type:
+            Schedule type used for value validation.
+
+        Returns
+        -------
+        DaySchedule
+            A fixed-length day schedule with 24 * DATA_INTERVAL values.
+
+        Examples
+        --------
+        Constant OFF schedule:
+
+            DaySchedule.from_compact(
+                "always_off",
+                [(24, 0, 0)],
+                type=ScheduleType.ONOFF,
+            )
+
+        Office-hour ON/OFF schedule:
+
+            DaySchedule.from_compact(
+                "office_hours",
+                [
+                    (9, 0, 0),
+                    (18, 0, 1),
+                    (24, 0, 0),
+                ],
+                type=ScheduleType.ONOFF,
+            )
+
+        Temperature setpoint schedule:
+
+            DaySchedule.from_compact(
+                "heating_setpoint",
+                [
+                    (7, 0, 16),
+                    (18, 0, 20),
+                    (24, 0, 16),
+                ],
+                type=ScheduleType.TEMPERATURE,
+            )
+
+        Notes
+        -----
+        This method mutates a local copy of `values`, not the user-provided
+        list.
+        """
+        
         # prevent mutation
         values = list(values)
         
@@ -950,6 +1043,98 @@ class DaySchedule(UserList):
         windows: list[tuple[tuple[int, int], tuple[int, int], int | float]],
         type: ScheduleType = ScheduleType.REAL,
         ) -> DaySchedule:
+        
+        """
+        Create a day schedule from explicit time windows.
+
+        Each window has the form:
+
+            ((start_hour, start_minute), (end_hour, end_minute), value)
+
+        Unlike `from_compact()`, this method uses start-inclusive and
+        end-exclusive intervals:
+
+            start <= interval_start < end
+
+        Values outside all windows are filled with `default`.
+
+        If multiple windows overlap, the first matching window is used.
+
+        Parameters
+        ----------
+        name:
+            Name of the day schedule.
+        default:
+            Value applied outside all windows.
+        windows:
+            List of time windows. Each item is
+            ((start_hour, start_minute), (end_hour, end_minute), value).
+        type:
+            Schedule type used for value validation.
+
+        Returns
+        -------
+        DaySchedule
+            A fixed-length day schedule with 24 * DATA_INTERVAL values.
+
+        Examples
+        --------
+        Office-hour ON/OFF schedule:
+
+            DaySchedule.from_windows(
+                "office_hours",
+                default=0,
+                windows=[
+                    ((9, 0), (18, 0), 1),
+                ],
+                type=ScheduleType.ONOFF,
+            )
+
+        This means:
+
+            09:00 <= interval_start < 18:00  -> 1
+            otherwise                        -> 0
+
+        Lunch-break lighting schedule:
+
+            DaySchedule.from_windows(
+                "lighting",
+                default=0,
+                windows=[
+                    ((10, 0), (12, 0), 1),
+                    ((13, 0), (18, 0), 1),
+                ],
+                type=ScheduleType.ONOFF,
+            )
+
+        Fraction schedule:
+
+            DaySchedule.from_windows(
+                "partial_availability",
+                default=0.0,
+                windows=[
+                    ((8, 0), (12, 0), 0.5),
+                    ((13, 0), (17, 0), 0.8),
+                ],
+                type=ScheduleType.FRACTION,
+            )
+
+        Temperature schedule with night setback:
+
+            DaySchedule.from_windows(
+                "heating_setpoint",
+                default=16,
+                windows=[
+                    ((7, 0), (18, 0), 20),
+                ],
+                type=ScheduleType.TEMPERATURE,
+            )
+
+        Notes
+        -----
+        This method is usually more intuitive than `from_compact()` when the
+        user wants to express that something is active "from A to B".
+        """
 
         step_minutes = int(60 / cls.DATA_INTERVAL)
 
@@ -980,6 +1165,61 @@ class DaySchedule(UserList):
         value:int|float,
         type :ScheduleType=ScheduleType.REAL
         ) -> DaySchedule:
+        
+        """
+        Create a constant day schedule.
+
+        This is a convenience wrapper around `from_compact()` using a single
+        24:00 tuple.
+
+        Parameters
+        ----------
+        name:
+            Name of the day schedule.
+        value:
+            Constant value applied to the whole day.
+        type:
+            Schedule type used for value validation.
+
+        Returns
+        -------
+        DaySchedule
+            A fixed-length day schedule whose values are all equal to `value`.
+
+        Examples
+        --------
+        Always OFF:
+
+            DaySchedule.from_constant(
+                "always_off",
+                0,
+                type=ScheduleType.ONOFF,
+            )
+
+        Always ON:
+
+            DaySchedule.from_constant(
+                "always_on",
+                1,
+                type=ScheduleType.ONOFF,
+            )
+
+        Constant heating setpoint:
+
+            DaySchedule.from_constant(
+                "heating_setpoint",
+                20,
+                type=ScheduleType.TEMPERATURE,
+            )
+
+        Constant real-valued schedule:
+
+            DaySchedule.from_constant(
+                "equipment_density",
+                4.7,
+                type=ScheduleType.REAL,
+            )
+        """
         
         return cls.from_compact(
             name,
