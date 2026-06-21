@@ -10,6 +10,7 @@ import re
 from copy      import deepcopy
 from types     import SimpleNamespace
 from typing    import Callable
+from pathlib   import Path
 from functools import wraps
 
 # third-party modules
@@ -28,23 +29,6 @@ from idragon.utils  import (
     validate_enum ,
     validate_range,
 )
-
-
-# ---------------------------------------------------------------------------- #
-#                                   VARIABLES                                  #
-# ---------------------------------------------------------------------------- #
-
-# read datasheets
-df_dayschedule = pd.read_csv(os.path.join(Directory.PROFILE_DIR,"day_schedule.csv")).set_index("name")
-df_ruleset     = pd.read_csv(os.path.join(Directory.PROFILE_DIR,"ruleset.csv"     )).set_index("name")
-df_schedule    = pd.read_csv(os.path.join(Directory.PROFILE_DIR,"schedule.csv"    )).set_index("name")
-df_profile     = pd.read_csv(os.path.join(Directory.PROFILE_DIR,"profile.csv"     )).set_index("name")
-
-# convert nan to None
-df_dayschedule = df_dayschedule.astype("object").where(pd.notna(df_dayschedule), None)
-df_ruleset     = df_ruleset.astype("object").where(pd.notna(df_ruleset), None)
-df_schedule    = df_schedule.astype("object").where(pd.notna(df_schedule), None)
-df_profile     = df_profile.astype("object").where(pd.notna(df_profile), None)
 
 # ---------------------------------------------------------------------------- #
 #                              PROFILE COMPONENTS                              #
@@ -1167,78 +1151,208 @@ class Profile:
         return f"<Profile {self.name} (ID={self.ID}) at {hex(id(self))}>"
 
 
-
 # ---------------------------------------------------------------------------- #
-#                           INITIATION: LOAD PROFILES                          #
+#                            NEW PROFILE STRUCTURES                            #
 # ---------------------------------------------------------------------------- #
 
-DaySchedule._DB = {
-    row.name: DaySchedule(
-        row.name,
-        row["type"]         ,
-        tuple(row.values[2:]),
-        ID=f"{SpecialTag.DB}{row.name}"
-    )
-    for _, row in df_dayschedule.iterrows()
-}
+class KoreanUsageProfile:
+    
+    _DB = {}
+    datapath = Directory.PROFILE_DIR / "KoreanUsageProfile.csv"
+    
+    def __init__(self,
+        name:str,         
+        occupant_start:int, # hh
+        occupant_end  :int, # hh
+        hvac_start    :int, # hh
+        hvac_end      :int, # hh
+        ventilation      :int|float, # m3/m2h
+        domestic_hotwater:int|float, # Wh/m2d
+        lighting_hours   :int,       # h
+        occupancy        :int|float, # Wh/m2d
+        equipment        :int|float, # Wh/m2d
+        heating_setpoint :int|float, # °C
+        cooling_setpoint :int|float, # °C
+        operate_in_monday   :bool,
+        operate_in_tuesday  :bool,
+        operate_in_wednesday:bool,
+        operate_in_thursday :bool,
+        operate_in_friday   :bool,
+        operate_in_saturday :bool,
+        operate_in_sunday   :bool,
+        operate_in_holiday  :bool,
+        vacations:list[tuple[tuple[int, int], tuple[int, int]]], # list of (start_date, end_date) where date is (month, day)
+        ID:str|None=None,
+        ) -> None:
+        
+        # user properties
+        self.name = name
+        
+        # fundamental properties
+        self.occupant_start = occupant_start
+        self.occupant_end   = occupant_end
+        self.hvac_start     = hvac_start
+        self.hvac_end       = hvac_end
+        self.ventilation       = ventilation
+        self.domestic_hotwater = domestic_hotwater
+        self.lighting_hours    = lighting_hours
+        self.occupancy         = occupancy
+        self.equipment         = equipment
+        self.heating_setpoint  = heating_setpoint
+        self.cooling_setpoint  = cooling_setpoint
+        self.operate_in_monday    = operate_in_monday
+        self.operate_in_tuesday   = operate_in_tuesday
+        self.operate_in_wednesday = operate_in_wednesday
+        self.operate_in_thursday  = operate_in_thursday
+        self.operate_in_friday    = operate_in_friday
+        self.operate_in_saturday  = operate_in_saturday
+        self.operate_in_sunday    = operate_in_sunday
+        self.operate_in_holiday   = operate_in_holiday
+        self.vacations = vacations
+        
+        # set default ID if not specified
+        if ID is None:
+            ID = f"{AUTOID_PREFIX.PROFILE}AUTOID{hex(id(self))}"
+        self.__ID = ID
 
-RuleSet._DB = {
-    row.name: RuleSet(
-        row.name,
-        DaySchedule.get_DB(row["weekdays"]),
-        DaySchedule.get_DB(row["weekends"]),
-        monday   = DaySchedule.get_DB(row["monday"   ]),
-        tuesday  = DaySchedule.get_DB(row["tuesday"  ]),
-        wednesday= DaySchedule.get_DB(row["wednesday"]),
-        thursday = DaySchedule.get_DB(row["thursday" ]),
-        friday   = DaySchedule.get_DB(row["friday"   ]),
-        saturday = DaySchedule.get_DB(row["saturday" ]),
-        sunday   = DaySchedule.get_DB(row["sunday"   ]),
-        holiday  = DaySchedule.get_DB(row["holiday"  ]),
-        ID=f"{SpecialTag.DB}{row.name}"
-    )
-    for _, row in df_ruleset.iterrows()
-}
 
-Schedule._DB = {
-    row.name: Schedule(
-        row.name,
-        *[
-            Period(
-                *[int(v) for v in re.findall(r"\d{1,2}", row[f"start{day}"])],
-                *[int(v) for v in re.findall(r"\d{1,2}", row[f"end{day}"  ])],
-                RuleSet.get_DB(row[f"ruleset{day}"]), 
+    """ fundamental properties
+    """
+    
+    
+    """ identity and equality
+    """
+
+    @property
+    def ID(self) -> str:
+        return self.__ID
+    
+    def __hash__(self) -> str:
+        return hash(self.ID)
+    
+    """ in-out
+    """
+    
+    @staticmethod
+    def get_DB(
+        key:str,
+        *,
+        as_dict:bool=False
+        ) -> KoreanUsageProfile|list[KoreanUsageProfile]|str|dict:
+        
+        # special keys
+        if key == "__path__":
+            return KoreanUsageProfile.datapath
+        
+        elif key == "__all__":
+            return [
+                KoreanUsageProfile.get_DB(_key, as_dict=as_dict)
+                for _key in KoreanUsageProfile._DB.keys()
+            ]
+        
+        # database keys
+        elif key in KoreanUsageProfile._DB:
+            profile = KoreanUsageProfile._DB[key]
+            if as_dict:
+                return profile.to_dict()
+            return profile
+        
+        else:
+            raise KeyError(f"Profile with key '{key}' not found")
+
+    def to_dragon(self) -> dragon.Profile:
+        
+        # TODO!
+        return
+    
+    """ representation
+    """
+    
+    def to_dict(self) -> dict:
+        
+        return {
+            "name": self.name,
+            "occupant_start": self.occupant_start,
+            "occupant_end"  : self.occupant_end  ,
+            "hvac_start"    : self.hvac_start    ,
+            "hvac_end"      : self.hvac_end      ,
+            "ventilation"       : self.ventilation       ,
+            "domestic_hotwater" : self.domestic_hotwater ,
+            "lighting_hours"    : self.lighting_hours    ,
+            "occupancy"         : self.occupancy         ,
+            "equipment"         : self.equipment         ,
+            "heating_setpoint"  : self.heating_setpoint  ,
+            "cooling_setpoint"  : self.cooling_setpoint  ,
+            "operate_weekdays": [
+                day for day in ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday", "holiday"]
+                if getattr(self, f"operate_in_{day}")
+            ],
+            "vacations": [
+                {
+                    "start": f"{start_month:02d}/{start_day:02d}",
+                    "end"  : f"{end_month:02d}/{end_day:02d}"
+                }
+                for (start_month, start_day), (end_month, end_day) in self.vacations
+            ]
+        }    
+
+    def __str__(self) -> str:
+        return "\n".join([
+            f"KoreanUsageProfile {self.name}",
+            f"\t-occupant: {self.occupant_start}h - {self.occupant_end}h",
+            f"\t-hvac    : {self.hvac_start}h - {self.hvac_end}h",
+            f"\t-lighting hours: {self.lighting_hours} h",  
+            f"\t-ventilation      : {self.ventilation} m3/m2h",
+            f"\t-domestic hotwater: {self.domestic_hotwater} Wh/m2d",
+            f"\t-occupancy        : {self.occupancy} Wh/m2d",
+            f"\t-equipment        : {self.equipment} Wh/m2d",
+            f"\t-setpoints: [{self.heating_setpoint} °C, {self.cooling_setpoint} °C]",
+            f"\t-operate in: {', '.join([day for day in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday', 'holiday'] if getattr(self, f'operate_in_{day}')])}",
+            f"\t-vacations: {', '.join([f'{start_month:02d}/{start_day:02d} ~ {end_month:02d}/{end_day:02d}' for (start_month, start_day), (end_month, end_day) in self.vacations])}"
+        ])
+    
+    def __repr__(self) -> str:
+        return f"<KoreanUsageProfile {self.name} (ID={self.ID}) at {hex(id(self))}>"
+
+
+def read_csv_without_units(filepath:str, encoding:str="utf-8") -> pd.DataFrame:
+    df = pd.read_csv(filepath, encoding=encoding)
+    df.columns = [re.sub(r"\s*\[.+\]", "", str(col)) for col in df.columns]
+    return df
+
+KoreanUsageProfile._DB = {
+    row["Name"]: KoreanUsageProfile(
+        row["Name"],
+        row["Occupant-Start"],
+        row["Occupant-End"],
+        row["HVAC-Start"],
+        row["HVAC-End"],
+        row["Ventilation"],
+        row["DomesticHotWater"],
+        row["LightingHours"],
+        row["Occupancy"],
+        row["Equipment"],
+        row["Heating-Setpoint"],
+        row["Cooling-Setpoint"],
+        operate_in_monday    = bool(row["Monday"]   ),
+        operate_in_tuesday   = bool(row["Tuesday"]  ),
+        operate_in_wednesday = bool(row["Wednesday"]),
+        operate_in_thursday  = bool(row["Thursday"] ),
+        operate_in_friday    = bool(row["Friday"]   ),
+        operate_in_saturday  = bool(row["Saturday"] ),
+        operate_in_sunday    = bool(row["Sunday"]   ),
+        operate_in_holiday   = bool(row["Holiday"]  ),
+        vacations= [] if pd.isna(row["Vacations"]) else [
+            (
+                (int(start_month), int(start_day)),
+                (int(end_month), int(end_day))
             )
-            for day in range(1,366)
-            if not pd.isna(row[f"start{day}"])
-        ]
+            for start_month, start_day, end_month, end_day in re.findall(r"(\d{1,2})/(\d{1,2})~(\d{1,2})/(\d{1,2})", row["Vacations"])
+        ],
+        ID=f"{SpecialTag.DB}{row["Name"]}"
     )
-    for _, row in df_schedule.iterrows()
-}
-
-Profile._DB = {
-    row.name: Profile(
-        row.name,
-        Schedule.get_DB(row["heating"]),
-        Schedule.get_DB(row["cooling"]),
-        Schedule.get_DB(row["hvac_availability"]),
-        Schedule.get_DB(row["occupant"]),
-        Schedule.get_DB(row["lighting"]),
-        Schedule.get_DB(row["equipment"]),
-        row[[f"hotwater{mth}" for mth in range(1,13)]],
-        ID = f"{SpecialTag.DB}{row.name}"
-    )
-    for _, row in df_profile.iterrows()
-}
+    for _, row in read_csv_without_units(KoreanUsageProfile.datapath,).iterrows()
+}   
 
 
-
-
-
-
-
-
-
-
-
-
+pass
