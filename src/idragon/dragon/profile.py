@@ -20,7 +20,6 @@ from collections import UserList
 
 # local modules
 from ..imugi import (
-    # classes
     IdfObject,
 )
 from ..utils import (
@@ -32,6 +31,13 @@ from ..common import (
 from ..constants import (
     PackageInfo,
 )
+
+# ---------------------------------------------------------------------------- #
+#                                  EXCEPTIONS                                  #
+# ---------------------------------------------------------------------------- #
+
+class ScheduleOperationError(Exception):
+    pass
 
 # ---------------------------------------------------------------------------- #
 #                                    CLASSES                                   #
@@ -48,11 +54,7 @@ class ScheduleType(str, Enum):
 
     @property
     def idf_objname(self) -> str:
-        match self:
-            case ScheduleType.TEMPERATURE: return f"{PackageInfo.NAME} Temperature"
-            case ScheduleType.ONOFF      : return f"{PackageInfo.NAME} OnOff"
-            case ScheduleType.FRACTION   : return f"{PackageInfo.NAME} Fraction"
-            case ScheduleType.REAL       : return f"{PackageInfo.NAME} AnyNumber"
+        return f"ScheduleTypeLimites:{self.value.capitalize()}"
 
     @property
     def lower_limit(self) -> int|float|None:
@@ -82,10 +84,10 @@ class ScheduleType(str, Enum):
             case ScheduleType.TEMPERATURE: return "Temperature"
             case _                       : return "Dimensionless"
 
-    """ useful methods
+    """ core methods
     """
-    
-    def coerce_value(self, value: int|float|bool) -> int|float:
+
+    def validate(self, value: int|float|bool) -> None:
         
         # check type and coerce bool to int
         if isinstance(value, bool):
@@ -122,22 +124,19 @@ class ScheduleType(str, Enum):
 
             case ScheduleType.REAL:
                 return float(value)
-
-    def validate(self, value: int|float|bool) -> None:
-        self.coerce_value(value)
     
-    """ idf-related
+    """ conversion and IO methods
     """
     
     def to_idf_object(self) -> IdfObject:
         return IdfObject(
             "ScheduleTypeLimits",
             [
-                self.idf_objname,
-                self.lower_limit,
-                self.upper_limit,
+                self.idf_objname ,
+                self.lower_limit ,
+                self.upper_limit ,
                 self.numeric_type,
-                self.unit_type,
+                self.unit_type   ,
             ],
         )
     
@@ -146,6 +145,92 @@ class ScheduleType(str, Enum):
     
     def __str__(self) -> str:
         return self.value
+
+"""
+NOTE: Schedule operation result type rules
+
+- Rows are left operands and columns are right operands.
+- "-" means the operation is not allowed and should raise an error.
+- "value" means a scalar numeric value: int | float.
+- If the result type is "fraction", calculated values are automatically
+  clipped to [0, 1].
+- If the result type is "onoff", calculated values must be exactly 0 or 1.
+- If the result type is "temp", calculated values must satisfy the
+  temperature schedule range.
+- RuleSet and Schedule operations should simply propagate DaySchedule
+  operations. Type validation is handled at the DaySchedule level.
+
+MUL
+          | onoff    | fraction | real     | temp     | value
+----------+----------+----------+----------+----------+----------
+onoff     | onoff    | fraction | real     | temp     | real
+fraction  | fraction | fraction | real     | temp     | fraction
+real      | real     | real     | real     | temp     | real
+temp      | temp     | temp     | temp     | temp     | temp
+value     | real     | fraction | real     | temp     | -
+
+TRUEDIV
+          | onoff    | fraction | real     | temp     | value
+----------+----------+----------+----------+----------+----------
+onoff     | -        | -        | -        | -        | real
+fraction  | -        | -        | fraction | -        | fraction
+real      | -        | -        | real     | -        | real
+temp      | -        | -        | temp     | -        | temp
+value     | -        | -        | real     | -        | -
+
+ADD
+          | onoff    | fraction | real     | temp     | value
+----------+----------+----------+----------+----------+----------
+onoff     | -        | -        | -        | -        | -
+fraction  | -        | fraction | -        | -        | fraction
+real      | -        | -        | real     | temp     | real
+temp      | -        | -        | temp     | temp     | temp
+value     | -        | -        | real     | temp     | -
+
+SUB
+          | onoff    | fraction | real     | temp     | value
+----------+----------+----------+----------+----------+----------
+onoff     | -        | -        | -        | -        | -
+fraction  | -        | fraction | -        | -        | fraction
+real      | -        | -        | real     | temp     | real
+temp      | -        | -        | temp     | temp     | temp
+value     | -        | fraction | real     | temp     | -
+
+AND, OR
+          | onoff    | fraction | real     | temp     | value
+----------+----------+----------+----------+----------+----------
+onoff     | onoff    | -        | -        | -        | -
+fraction  | -        | -        | -        | -        | -
+real      | -        | -        | -        | -        | -
+temp      | -        | -        | -        | -        | -
+value     | -        | -        | -        | -        | -
+
+INVERT
+          | result
+----------+----------
+onoff     | onoff
+fraction  | -
+real      | -
+temp      | -
+
+ELEMENT_EQ, ELEMENT_NE, LT, LE, GT, GE
+          | onoff    | fraction | real     | temp     | value
+----------+----------+----------+----------+----------+----------
+onoff     | onoff    | onoff    | onoff    | onoff    | onoff
+fraction  | onoff    | onoff    | onoff    | onoff    | onoff
+real      | onoff    | onoff    | onoff    | onoff    | onoff
+temp      | onoff    | onoff    | onoff    | onoff    | onoff
+value     | onoff    | onoff    | onoff    | onoff    | onoff
+
+ELEMENT_MIN, ELEMENT_MAX
+          | onoff    | fraction | real     | temp     | value
+----------+----------+----------+----------+----------+----------
+onoff     | -        | -        | -        | -        | -
+fraction  | -        | fraction | -        | -        | fraction
+real      | -        | -        | real     | -        | real
+temp      | -        | -        | -        | temp     | temp
+value     | -        | fraction | real     | temp     | -
+"""
 
 
 class DaySchedule(UserList):
@@ -160,33 +245,39 @@ class DaySchedule(UserList):
         unit:str|None    =None             ,
         ) -> None:
         
+        # fundamental properties
         if name is None:
             name = hex(id(self))
         self.name = name
         
-        self.type = ScheduleType(type)
+        self.type = type
         self.unit = unit
         
+        # default value is 0
         if value is None:
             value = [0]*self.fixed_length
         
+        # value length check
         if len(value) != self.fixed_length:
             raise ValueError(
                 f"Value list must have {self.fixed_length} elements, got {len(value)}"
             )
         
+        # allocate data list and validate values
         self.data = [0] * self.fixed_length
         for idx, item in enumerate(value):
             self[idx] = item
         
-        
+    """ fundamental properties
+    """
+    
     @property
-    def type(self) -> ScheduleType|str:
+    def type(self) -> ScheduleType:
         return self.__schedule_type
     
     @type.setter
     @validate_type(ScheduleType)
-    def type(self, value: ScheduleType|str) -> None:
+    def type(self, value: ScheduleType) -> None:
         self.__schedule_type = value
     
     @property
@@ -198,91 +289,262 @@ class DaySchedule(UserList):
         item = self.type.coerce_value(item)
         super().__setitem__(index, item)
         
-    """ algebraric methods
+    """ algebraric operations
     """
         
-    def __mul__(self, value:int|float|DaySchedule) -> DaySchedule:
+    def __mul__(self, other:int|float|DaySchedule) -> DaySchedule:
     
-        if isinstance(value, DaySchedule):
+        if isinstance(other, DaySchedule):
             
+            # type validation and calculation
+            match self.type:
+                case ScheduleType.ONOFF:
+                                                       output_type = other.type
+                case ScheduleType.FRACTION:
+                    match other.type:
+                        case ScheduleType.ONOFF      : output_type = self.type
+                        case _                       : output_type = other.type
+                case ScheduleType.REAL:
+                    match other.type:
+                        case ScheduleType.TEMPERATURE: output_type = other.type
+                        case _                       : output_type = self.type
+                case ScheduleType.TEMPERATURE:
+                                                       output_type = self.type
+            
+            # element calculation
             return DaySchedule(
-                f"{self.name}:ADD:{value.name}",
-                [a * b for a,b in zip(self.data, value.data)],
-                type=self.type
+                f"{self.name}:MUL:{other.name}",
+                [a * b for a,b in zip(self.data, other.data)],
+                type=output_type
                 )
         
-        elif isinstance(value, int|float):
-        
+        elif isinstance(other, int|float):
+            
+            # type validation and calculation
+            output_type = self.type
+            
+            # element calculation
             return DaySchedule(
                 self.name,
-                [item * value for item in self.data],
-                type=self.type
+                [item * other for item in self.data],
+                type=output_type
                 )
         
-    def __rmul__(self, value:int|float) -> DaySchedule:
-        return self.__mul__(value)
+        # unsupported type
+        else:
+            raise ScheduleOperationError(
+                f"Cannot operate dayschedules with {other.type} object."
+            )
+        
+    def __rmul__(self, other:int|float) -> DaySchedule:
+        return self.__mul__(other)
     
-    def __truediv__(self, value:int|float|DaySchedule) -> DaySchedule:
+    def __truediv__(self, other:int|float|DaySchedule) -> DaySchedule:
         
-        if isinstance(value, DaySchedule):
+        if isinstance(other, DaySchedule):
             
+            # type validation and calculation
+            if self.type is ScheduleType.ONOFF:
+                raise ScheduleOperationError(
+                    f"Cannot divide {self.type} object {self.name}."
+                )
+            if other.type is not ScheduleType.REAL:
+                raise ScheduleOperationError(
+                    f"Cannot divide with {other.type} object {other.name}. Only REAL-type object is allowed as a divider."
+                )
+            output_type = self.type
+            
+            # element calculation
             return DaySchedule(
-                f"{self.name}:DIV:{value.name}",
-                [a / b for a,b in zip(self.data, value.data)],
-                type=self.type
+                f"{self.name}:DIV:{other.name}",
+                [a / b for a,b in zip(self.data, other.data)],
+                type=output_type
                 )
         
-        elif isinstance(value, int|float): 
+        elif isinstance(other, int|float):
             
+            # type calculation
+            match self.type:
+                case ScheduleType.ONOFF: output_type = ScheduleType.REAL
+                case _                 : output_type = self.type
+            
+            # element calculation
             return DaySchedule(
                 self.name,
-                [item / value for item in self.data],
-                type=self.type
+                [item / other for item in self.data],
+                type=output_type
                 )
-    
-    def __rtruediv__(self, value:int|float|DaySchedule) -> DaySchedule:
-        
-        if isinstance(value, DaySchedule):
+
+        # unsupported type
+        else:
+            raise ScheduleOperationError(
+                f"Cannot operate dayschedules with {other.type} object."
+            )
             
-            return DaySchedule(
-                f"{value.name}:DIV:{self.name}",
-                [b / a for a,b in zip(self.data, value.data)],
-                type=self.type
-                )
+    def __rtruediv__(self, other:int|float) -> DaySchedule:
         
-        elif isinstance(value, int|float): 
-            
-            return DaySchedule(
-                self.name,
-                [value / item for item in self.data],
-                type=self.type
-                )
+        # type validation and calculation
+        if self.type is not ScheduleType.REAL:
+            raise ScheduleOperationError(
+                f"Cannot divide scalar by {self.type}-type object {self.name}."
+            )
+        if not isinstance(other, int|float):
+            raise ScheduleOperationError(
+                f"Cannot operate dayschedules with {other.type} object."
+            )
+        
+        # element calculation
+        return DaySchedule(
+            self.name,
+            [other / item for item in self.data],
+            type=self.type
+            )
     
     def __add__(self, other:DaySchedule) -> DaySchedule:
         
-        if self.type != other.type:
-            raise TypeError(
-                f"Cannot add {self.type}-type DaySchedule to {other.type}-type DaySchedule."
+        if isinstance(other, DaySchedule):
+            
+            # type validation and calculation
+            match self.type:
+                case ScheduleType.ONOFF:
+                    raise ScheduleOperationError(
+                        f"Cannot add ONOFF-type dayschedule {self.name} into {other.type} dayschedule."
+                    )
+                case ScheduleType.FRACTION:
+                    match other.type:
+                        case ScheduleType.FRACTION   : output_type = self.type
+                        case _                       : 
+                            raise ScheduleOperationError(
+                                f"Cannot add {other.type}-type dayschedule {other.name} into FRACTION-type dayschedule {self.name}."
+                            )
+                case ScheduleType.REAL:
+                    match other.type:
+                        case ScheduleType.REAL       : output_type = other.type
+                        case ScheduleType.TEMPERATURE: output_type = other.type
+                        case _                       :
+                            raise ScheduleOperationError(
+                                f"Cannot add {other.type}-type into REAL-type dayschedule."
+                            )
+                case ScheduleType.TEMPERATURE:
+                    match other.type:
+                        case ScheduleType.REAL       : output_type = self.type
+                        case ScheduleType.TEMPERATURE: output_type = self.type
+                        case _                       :
+                            raise ScheduleOperationError(
+                                f""
+                            )
+            
+            # element calculation
+            return DaySchedule(
+                f"{self.name}:ADD:{other.name}",
+                [self_item+other_item for self_item, other_item in zip(self.data, other.data)],
+                type=self.type
             )
         
-        return DaySchedule(
-            f"{self.name}:ADD:{other.name}",
-            [self_item+other_item for self_item, other_item in zip(self.data, other.data)],
-            type=self.type
-        )
-        
-    def __radd__(self, other:DaySchedule) -> DaySchedule:
-        return self.__add__(other)
-    
-    def __sub__(self, other:DaySchedule) -> DaySchedule:
-        
-        if self.type != other.type:
-            raise TypeError(
-                f"Cannot subtract {self.type}-type DaySchedule to {other.type}-type DaySchedule."
+        elif isinstance(other, int|float):
+            
+            # type validation and calculation
+            if self.type is ScheduleType.ONOFF:
+                raise ScheduleOperationError(
+                    f"Cannot add something into ONOFF-type dayschedule."
+                )
+            output_type = self.type
+            
+            # element calculation
+            return DaySchedule(
+                f"{self.name}:ADD:{other}",
+                [self_item+other for self_item in self.data],
+                type=output_type
             )
             
-        return self.__add__(other.__mul__(-1))
+        # unsupported type
+        else:
+            raise ScheduleOperationError(
+                f"Cannot operate dayschedule with {other.type} object."
+            )
+        
+    def __radd__(self, other:int|float) -> DaySchedule:
+        return self.__add__(other)
     
+    def __sub__(self, other:int|float|DaySchedule) -> DaySchedule:
+        
+        if isinstance(other, DaySchedule):
+            
+            # type validation and calculation
+            match self.type:
+                case ScheduleType.ONOFF:
+                    raise ScheduleOperationError(
+                        f"Cannot subtract ONOFF-type dayschedule {self.name} into {other.type} dayschedule."
+                    )
+                case ScheduleType.FRACTION:
+                    match other.type:
+                        case ScheduleType.FRACTION   : output_type = self.type
+                        case _                       : 
+                            raise ScheduleOperationError(
+                                f"Cannot subtract {other.type}-type dayschedule {other.name} into FRACTION-type dayschedule {self.name}."
+                            )
+                case ScheduleType.REAL:
+                    match other.type:
+                        case ScheduleType.REAL       : output_type = other.type
+                        case ScheduleType.TEMPERATURE: output_type = other.type
+                        case _                       :
+                            raise ScheduleOperationError(
+                                f"Cannot subtract {other.type}-type into REAL-type dayschedule."
+                            )
+                case ScheduleType.TEMPERATURE:
+                    match other.type:
+                        case ScheduleType.REAL       : output_type = self.type
+                        case ScheduleType.TEMPERATURE: output_type = self.type
+                        case _                       :
+                            raise ScheduleOperationError(
+                                f""
+                            )
+            
+            # element calculation
+            return DaySchedule(
+                f"{self.name}:SUB:{other.name}",
+                [self_item-other_item for self_item, other_item in zip(self.data, other.data)],
+                type=self.type
+            )
+        
+        elif isinstance(other, int|float):
+            
+            # type validation and calculation
+            if self.type is ScheduleType.ONOFF:
+                raise ScheduleOperationError(
+                    f"Cannot subtract something into ONOFF-type dayschedule."
+                )
+            output_type = self.type
+            
+            # element calculation
+            return DaySchedule(
+                f"{self.name}:SUB:{other}",
+                [self_item-other for self_item in self.data],
+                type=output_type
+            )
+            
+        # unsupported type
+        else:
+            raise ScheduleOperationError(
+                f"Cannot operate dayschedule with {other.type} object."
+            )
+    
+    def __rsub__(self, other:int|float) -> DaySchedule:
+        
+        # type validation and calculation
+        if self.type is ScheduleType.ONOFF:
+            raise ScheduleOperationError(
+                f"Cannot subtract something into ONOFF-type dayschedule."
+            )
+        output_type = self.type
+        
+        # element calculation
+        return DaySchedule(
+            f"{self.name}:SUB:{other}",
+            [other-self_item for self_item in self.data],
+            type=output_type
+        )
+        
     def __and__(self, other:DaySchedule) -> DaySchedule:
         
         if (self.type is not ScheduleType.ONOFF) or (other.type is not ScheduleType.ONOFF):
@@ -459,19 +721,93 @@ class DaySchedule(UserList):
                 f"Cannot '>=' operate for {type(other).__name__} object."
             )
     
-    def element_min(self, other:DaySchedule) -> DaySchedule:
+    def element_min(self, other:int|float|DaySchedule) -> DaySchedule:
         
-        return DaySchedule(
-            f"{self.name}:MIN:{other.name}",
-            [min(a,b) for a,b in zip(self.data, other.data)]
-        )
+        if isinstance(other, DaySchedule):
+            
+            # type validation and calculation
+            if self.type is not other.type:
+                raise ScheduleOperationError(
+                    f""
+                )
+            if self.type is ScheduleOperationError.ONOFF:
+                raise ScheduleOperationError(
+                    f""
+                )
+            output_type = self.type    
+            
+            # element calculation
+            return DaySchedule(
+                f"{self.name}:MIN:{other.name}",
+                [min(a,b) for a,b in zip(self.data, other.data)],
+                output_type
+            )
+            
+        elif isinstance(other, int|float):
+            
+            # type validation and calculation
+            if self.type is ScheduleOperationError.ONOFF:
+                raise ScheduleOperationError(
+                    f""
+                )
+            output_type = self.type
+                
+            # element calculation
+            return DaySchedule(
+                f"{self.name}:MIN:{other.name}",
+                [min(a,other) for a in self.data],
+                output_type
+            )
+        
+        # unsupported type
+        else:
+            raise ScheduleOperationError(
+                f"Cannot operate dayschedule with {other.type} object."
+            )
         
     def element_max(self, other:DaySchedule) -> DaySchedule:
         
-        return DaySchedule(
-            f"{self.name}:MAX:{other.name}",
-            [max(a,b) for a,b in zip(self.data, other.data)]
-        )
+        if isinstance(other, DaySchedule):
+            
+            # type validation and calculation
+            if self.type is not other.type:
+                raise ScheduleOperationError(
+                    f""
+                )
+            if self.type is ScheduleOperationError.ONOFF:
+                raise ScheduleOperationError(
+                    f""
+                )
+            output_type = self.type    
+            
+            # element calculation
+            return DaySchedule(
+                f"{self.name}:MAX:{other.name}",
+                [max(a,b) for a,b in zip(self.data, other.data)],
+                output_type
+            )
+            
+        elif isinstance(other, int|float):
+            
+            # type validation and calculation
+            if self.type is ScheduleOperationError.ONOFF:
+                raise ScheduleOperationError(
+                    f""
+                )
+            output_type = self.type
+                
+            # element calculation
+            return DaySchedule(
+                f"{self.name}:MAX:{other.name}",
+                [max(a,other) for a in self.data],
+                output_type
+            )
+        
+        # unsupported type
+        else:
+            raise ScheduleOperationError(
+                f"Cannot operate dayschedule with {other.type} object."
+            )
     
     @property
     def min(self) -> int|float:
@@ -1070,7 +1406,7 @@ class RuleSet:
     def to_dict(self) -> dict[str, DaySchedule]:
         return {
             "weekdays" : self.weekdays ,
-            "weekends": self.weekends ,
+            "weekends" : self.weekends ,
             "monday"   : self.monday   ,
             "tuesday"  : self.tuesday  ,
             "wednesday": self.wednesday,
