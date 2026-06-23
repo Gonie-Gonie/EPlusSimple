@@ -55,7 +55,7 @@ class Unit(float, Enum):
 
 class THERMAL(float, Enum):
     
-    PROPLE_ACTIVITY_LEVEL = 107 # W/m2K
+    PEOPLE_ACTIVITY_LEVEL = 107 # W/m2K
     
 # ---------------------------------------------------------------------------- #
 #                                  CONVENTIONS                                 #

@@ -182,15 +182,15 @@ class KoreanUsageProfile(Profile):
         name: str|None=None,
         type: ScheduleType=ScheduleType.ONOFF,
         ) -> Schedule:
-        day = DaySchedule.from_windows(
-            None,
-            0,
-            [
-                ((start_hour, start_min), (end_hour, end_min), 1)
-            ],
-            type=type,
-        )
-
+        
+        if end_hour + end_min/60 > start_hour + start_min/60:
+            windows = [((start_hour, start_min), (end_hour, end_min), 1)]
+        else:
+            windows = [
+                ((0, 0), (end_hour, end_min), 1),
+                ((start_hour, start_min), (24, 0), 1),
+            ]
+        day = DaySchedule.from_windows(None, 0,windows, type=type)
         off = DaySchedule.from_constant(None, 0, type=type)
 
         ruleset = RuleSet.from_days(
@@ -258,7 +258,7 @@ class KoreanUsageProfile(Profile):
         hvac_availability_schedule = is_hvac_operatng
         
         # internal load related
-        occupanct_schedule = is_occupied * self.occupancy / self.occupied_hours / THERMAL.PROPLE_ACTIVITY_LEVEL
+        occupanct_schedule = is_occupied * self.occupancy / self.occupied_hours / THERMAL.PEOPLE_ACTIVITY_LEVEL
         equipment_schedule = is_occupied * self.equipment / self.occupied_hours
         lighting_schedule  = self._get_lighting_mask().astype(ScheduleType.FRACTION)
         
