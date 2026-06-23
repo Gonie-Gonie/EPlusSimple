@@ -33,7 +33,7 @@ from ..common import (
 #                                  EXCEPTIONS                                  #
 # ---------------------------------------------------------------------------- #
 
-class ScheduleOperationError(Exception):
+class ScheduleOperationError(TypeError):
     pass
 
 # ---------------------------------------------------------------------------- #
@@ -279,7 +279,10 @@ class DaySchedule(UserList):
         ) -> DaySchedule|None:
         
         if inplace:
-            self.type = ScheduleType(newtype)
+            newtype = ScheduleType(newtype)
+            new_values = [newtype.validate(value) for value in self.data]
+            self.__schedule_type = newtype
+            self.data = new_values
             return None
         else:
             return DaySchedule(self.name, self.data, type=newtype, unit=self.unit)
@@ -789,7 +792,7 @@ class DaySchedule(UserList):
                 f"Unsupported DaySchedule element_min: {self.type} with {type(other).__name__}. Right operand must be int, float, or DaySchedule."
             )
         
-    def element_max(self, other:DaySchedule) -> DaySchedule:
+    def element_max(self, other:int|float|DaySchedule) -> DaySchedule:
         
         if isinstance(other, DaySchedule):
             
@@ -1385,10 +1388,42 @@ class DaySchedule(UserList):
             unit = self.unit,
         )
     
+    def _format_value(self, value: int | float) -> str:
+        if isinstance(value, float):
+            return f"{value:.4g}"
+        return str(value)
+
+
+    def summary(self, *, max_segments: int = 6) -> str:
+        compact = self.compactize()
+        is_constant = len(compact) == 1
+
+        unit_text = f", unit={self.unit}" if self.unit is not None else ""
+        header = (
+            f"DaySchedule {self.name!r} "
+            f"[type={self.type}{unit_text}, steps={self.fixed_length}, "
+            f"interval={int(60 / self.DATA_INTERVAL)} min]"
+        )
+
+        stats = (
+            f"  range: min={self._format_value(self.min)}, "
+            f"max={self._format_value(self.max)}, "
+            f"constant={is_constant}, segments={len(compact)}"
+        )
+
+        preview_items = compact[:max_segments]
+        preview = [
+            f"  Until {hh:02d}:{mm:02d} -> {self._format_value(value)}"
+            for hh, mm, value in preview_items
+        ]
+
+        if len(compact) > max_segments:
+            preview.append(f"  ... ({len(compact) - max_segments} more segments)")
+
+        return "\n".join([header, stats, *preview])
+
     def __str__(self) -> str:
-        return f"DaySchedule {self.name}:\n" + "\n".join([
-            f"\tUntil {hh:02d}:{mm:02d} -> {value}" for hh,mm,value in self.compactize()
-        ])
+        return self.summary()
     
     def __repr__(self) -> str:
         return f"<DaySchedule {self.name} at {hex(id(self))}>"
@@ -1400,6 +1435,10 @@ class DaySchedule(UserList):
         ], start=[])
     
 class RuleSet:
+    
+    _WEEKDAY_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday"]
+    _WEEKEND_KEYS = ["saturday", "sunday"]
+    _DAY_KEYS     = _WEEKDAY_KEYS + _WEEKEND_KEYS + ["holiday"]
     
     def __init__(
         self,
@@ -1597,8 +1636,8 @@ class RuleSet:
     @staticmethod
     def __default_day_for_key(
         ruleset: RuleSet,
-        key: str,
-    ) -> DaySchedule:
+        key    : str    ,
+        ) -> DaySchedule:
         if key in ["weekdays", "monday", "tuesday", "wednesday", "thursday", "friday"]:
             return ruleset.weekdays
 
@@ -1609,11 +1648,11 @@ class RuleSet:
         
     @staticmethod
     def __operate_with_default(
-        newname: str,
+        newname             : str,
         dayschedule_operator: Callable,
-        self_ruleset: RuleSet,
-        other: RuleSet|int|float,
-    ) -> RuleSet:
+        self_ruleset        : RuleSet,
+        other               : RuleSet|int|float,
+        ) -> RuleSet:
 
         self_dict = self_ruleset.to_dict()
 
@@ -1885,37 +1924,37 @@ class RuleSet:
         min_value: int|float|None = None,
         max_value: int|float|None = None,
         *,
-        name: str|None = None,
-        inplace: bool = False,
+        name   : str|None = None ,
+        inplace: bool     = False,
     ) -> RuleSet|None:
         
         if inplace:
             self.weekdays.clip(min_value, max_value, inplace=True)
             self.weekends.clip(min_value, max_value, inplace=True)
 
-            if self.monday    is not None: self.monday.clip(min_value, max_value, inplace=True)
-            if self.tuesday   is not None: self.tuesday.clip(min_value, max_value, inplace=True)
+            if self.monday    is not None: self.monday   .clip(min_value, max_value, inplace=True)
+            if self.tuesday   is not None: self.tuesday  .clip(min_value, max_value, inplace=True)
             if self.wednesday is not None: self.wednesday.clip(min_value, max_value, inplace=True)
-            if self.thursday  is not None: self.thursday.clip(min_value, max_value, inplace=True)
-            if self.friday    is not None: self.friday.clip(min_value, max_value, inplace=True)
-            if self.saturday  is not None: self.saturday.clip(min_value, max_value, inplace=True)
-            if self.sunday    is not None: self.sunday.clip(min_value, max_value, inplace=True)
-            if self.holiday   is not None: self.holiday.clip(min_value, max_value, inplace=True)
+            if self.thursday  is not None: self.thursday .clip(min_value, max_value, inplace=True)
+            if self.friday    is not None: self.friday   .clip(min_value, max_value, inplace=True)
+            if self.saturday  is not None: self.saturday .clip(min_value, max_value, inplace=True)
+            if self.sunday    is not None: self.sunday   .clip(min_value, max_value, inplace=True)
+            if self.holiday   is not None: self.holiday  .clip(min_value, max_value, inplace=True)
 
             return None
 
         return RuleSet(
             name or f"{self.name}:CLIP",
-            weekdays=self.weekdays.clip(min_value, max_value),
-            weekends=self.weekends.clip(min_value, max_value),
-            monday=self.monday.clip(min_value, max_value) if self.monday is not None else None,
-            tuesday=self.tuesday.clip(min_value, max_value) if self.tuesday is not None else None,
+            weekdays =self.weekdays .clip(min_value, max_value),
+            weekends =self.weekends .clip(min_value, max_value),
+            monday   =self.monday   .clip(min_value, max_value) if self.monday    is not None else None,
+            tuesday  =self.tuesday  .clip(min_value, max_value) if self.tuesday   is not None else None,
             wednesday=self.wednesday.clip(min_value, max_value) if self.wednesday is not None else None,
-            thursday=self.thursday.clip(min_value, max_value) if self.thursday is not None else None,
-            friday=self.friday.clip(min_value, max_value) if self.friday is not None else None,
-            saturday=self.saturday.clip(min_value, max_value) if self.saturday is not None else None,
-            sunday=self.sunday.clip(min_value, max_value) if self.sunday is not None else None,
-            holiday=self.holiday.clip(min_value, max_value) if self.holiday is not None else None,
+            thursday =self.thursday .clip(min_value, max_value) if self.thursday  is not None else None,
+            friday   =self.friday   .clip(min_value, max_value) if self.friday    is not None else None,
+            saturday =self.saturday .clip(min_value, max_value) if self.saturday  is not None else None,
+            sunday   =self.sunday   .clip(min_value, max_value) if self.sunday    is not None else None,
+            holiday  =self.holiday  .clip(min_value, max_value) if self.holiday   is not None else None,
         )
     
     @staticmethod
@@ -1945,7 +1984,7 @@ class RuleSet:
         if_true  : int|float|DaySchedule|RuleSet,
         if_false : int|float|DaySchedule|RuleSet,
         *,
-        name: str|None = None,
+        name: str|None          = None,
         type: ScheduleType|None = None,
     ) -> RuleSet:
         
@@ -1963,6 +2002,13 @@ class RuleSet:
         true_ruleset = to_ruleset(if_true)
         false_ruleset = to_ruleset(if_false)
 
+        def needs_day_override(key: str) -> bool:
+            return (
+                getattr(condition, key) is not None
+                or getattr(true_ruleset, key) is not None
+                or getattr(false_ruleset, key) is not None
+            )
+        
         return cls(
             name or "WHERE",
             weekdays=DaySchedule.where(
@@ -1978,53 +2024,53 @@ class RuleSet:
                 type=type,
             ),
             monday=DaySchedule.where(
-                condition.monday or condition.weekdays,
-                true_ruleset.monday or true_ruleset.weekdays,
+                condition.monday     or condition.weekdays,
+                true_ruleset.monday  or true_ruleset.weekdays,
                 false_ruleset.monday or false_ruleset.weekdays,
                 type=type,
-            ) if condition.monday is not None else None,
+            ) if needs_day_override("monday") else None,
             tuesday=DaySchedule.where(
-                condition.tuesday or condition.weekdays,
-                true_ruleset.tuesday or true_ruleset.weekdays,
+                condition.tuesday     or condition.weekdays,
+                true_ruleset.tuesday  or true_ruleset.weekdays,
                 false_ruleset.tuesday or false_ruleset.weekdays,
                 type=type,
-            ) if condition.tuesday is not None else None,
+            ) if needs_day_override("tuesday") else None,
             wednesday=DaySchedule.where(
-                condition.wednesday or condition.weekdays,
-                true_ruleset.wednesday or true_ruleset.weekdays,
+                condition.wednesday     or condition.weekdays,
+                true_ruleset.wednesday  or true_ruleset.weekdays,
                 false_ruleset.wednesday or false_ruleset.weekdays,
                 type=type,
-            ) if condition.wednesday is not None else None,
+            ) if needs_day_override("wednesday") else None,
             thursday=DaySchedule.where(
-                condition.thursday or condition.weekdays,
-                true_ruleset.thursday or true_ruleset.weekdays,
+                condition.thursday     or condition.weekdays,
+                true_ruleset.thursday  or true_ruleset.weekdays,
                 false_ruleset.thursday or false_ruleset.weekdays,
                 type=type,
-            ) if condition.thursday is not None else None,
+            ) if needs_day_override("thursday") else None,
             friday=DaySchedule.where(
-                condition.friday or condition.weekdays,
-                true_ruleset.friday or true_ruleset.weekdays,
+                condition.friday     or condition.weekdays,
+                true_ruleset.friday  or true_ruleset.weekdays,
                 false_ruleset.friday or false_ruleset.weekdays,
                 type=type,
-            ) if condition.friday is not None else None,
+            ) if needs_day_override("friday") else None,
             saturday=DaySchedule.where(
-                condition.saturday or condition.weekends,
-                true_ruleset.saturday or true_ruleset.weekends,
+                condition.saturday     or condition.weekends,
+                true_ruleset.saturday  or true_ruleset.weekends,
                 false_ruleset.saturday or false_ruleset.weekends,
                 type=type,
-            ) if condition.saturday is not None else None,
+            ) if needs_day_override("saturday") else None,
             sunday=DaySchedule.where(
-                condition.sunday or condition.weekends,
-                true_ruleset.sunday or true_ruleset.weekends,
+                condition.sunday     or condition.weekends,
+                true_ruleset.sunday  or true_ruleset.weekends,
                 false_ruleset.sunday or false_ruleset.weekends,
                 type=type,
-            ) if condition.sunday is not None else None,
+            ) if needs_day_override("sunday") else None,
             holiday=DaySchedule.where(
-                condition.holiday or condition.weekends,
-                true_ruleset.holiday or true_ruleset.weekends,
+                condition.holiday     or condition.weekends,
+                true_ruleset.holiday  or true_ruleset.weekends,
                 false_ruleset.holiday or false_ruleset.weekends,
                 type=type,
-            ) if condition.holiday is not None else None,
+            ) if needs_day_override("holiday") else None,
         )
     
     @classmethod
@@ -2033,14 +2079,14 @@ class RuleSet:
         name: str|None,
         default: int|float|DaySchedule,
         *,
-        monday: int|float|DaySchedule|None = None,
-        tuesday: int|float|DaySchedule|None = None,
+        monday   : int|float|DaySchedule|None = None,
+        tuesday  : int|float|DaySchedule|None = None,
         wednesday: int|float|DaySchedule|None = None,
-        thursday: int|float|DaySchedule|None = None,
-        friday: int|float|DaySchedule|None = None,
-        saturday: int|float|DaySchedule|None = None,
-        sunday: int|float|DaySchedule|None = None,
-        holiday: int|float|DaySchedule|None = None,
+        thursday : int|float|DaySchedule|None = None,
+        friday   : int|float|DaySchedule|None = None,
+        saturday : int|float|DaySchedule|None = None,
+        sunday   : int|float|DaySchedule|None = None,
+        holiday  : int|float|DaySchedule|None = None,
         type: ScheduleType|None = None,
         ) -> RuleSet:
         
@@ -2142,14 +2188,14 @@ class RuleSet:
             name,
             weekdays=default_day,
             weekends=default_day,
-            monday=day_or_default(monday),
-            tuesday=day_or_default(tuesday),
+            monday   =day_or_default(monday),
+            tuesday  =day_or_default(tuesday),
             wednesday=day_or_default(wednesday),
-            thursday=day_or_default(thursday),
-            friday=day_or_default(friday),
-            saturday=day_or_default(saturday),
-            sunday=day_or_default(sunday),
-            holiday=day_or_default(holiday),
+            thursday =day_or_default(thursday),
+            friday   =day_or_default(friday),
+            saturday =day_or_default(saturday),
+            sunday   =day_or_default(sunday),
+            holiday  =day_or_default(holiday),
         )
     
     @classmethod
@@ -2261,8 +2307,66 @@ class RuleSet:
             **{k: deepcopy(dayschedule) for k, dayschedule in self.to_dict().items()}
         )
     
-    def __str__(self) -> str:        
-        return f"RuleSet {self.name}:"
+    def _fallback_day_for_key(self, key: str) -> DaySchedule:
+        if key in self._WEEKDAY_KEYS:
+            return self.weekdays
+
+        if key in self._WEEKEND_KEYS or key == "holiday":
+            return self.weekends
+
+        raise KeyError(f"Unknown RuleSet day key: {key!r}")
+
+
+    def day_schedule(
+        self,
+        key: str,
+        *,
+        fallback: bool = True,
+    ) -> DaySchedule | None:
+        day = getattr(self, key)
+
+        if day is not None:
+            return day
+
+        if fallback:
+            return self._fallback_day_for_key(key)
+
+        return None
+    
+    def summary(self, *, include_days: bool = True) -> str:
+        override_keys = [
+            key for key in self._DAY_KEYS
+            if getattr(self, key) is not None
+        ]
+
+        header = f"RuleSet {self.name!r} [type={self.type}]"
+        stats = f"  range: min={self.min:.4g}, max={self.max:.4g}"
+        defaults = (
+            f"  defaults: weekdays={self.weekdays.name!r}, "
+            f"weekends={self.weekends.name!r}"
+        )
+        overrides = (
+            "  overrides: "
+            + (", ".join(override_keys) if override_keys else "none")
+        )
+
+        lines = [header, stats, defaults, overrides]
+
+        if include_days:
+            for key in self._DAY_KEYS:
+                explicit = getattr(self, key)
+                effective = self.day_schedule(key, fallback=True)
+
+                source = "override" if explicit is not None else "fallback"
+                lines.append(
+                    f"  {key:9s}: {effective.name!r} "
+                    f"({source}, min={effective.min:.4g}, max={effective.max:.4g})"
+                )
+
+        return "\n".join(lines)
+
+    def __str__(self) -> str:
+        return self.summary(include_days=True)
     
     def __repr__(self) -> str:
         return f"<RuleSet {self.name} at {hex(id(self))}>"
@@ -2403,7 +2507,7 @@ class Schedule(UserList):
     def __operate_with_unified_schedule(
         newname: str,
         ruleset_operator: Callable,
-        self_schedule: Schedule,
+        self_schedule   : Schedule,
         other: Schedule|int|float,
     ) -> Schedule:
 
@@ -2455,6 +2559,36 @@ class Schedule(UserList):
             f"Right operand must be int, float, or Schedule."
         )
     
+    @staticmethod
+    def unify_compactized_schedules_many(
+        *compactized_schedules: list[tuple[datetime.date, datetime.date, RuleSet]]
+        ) -> list[list[tuple[datetime.date, datetime.date, RuleSet]]]:
+        boundaries = set()
+
+        for compactized in compactized_schedules:
+            for start_date, end_date, _ in compactized:
+                boundaries.add(start_date)
+                boundaries.add(end_date + datetime.timedelta(days=1))
+
+        boundaries = sorted(boundaries)
+
+        def find_ruleset(compactized, date):
+            for start, end, ruleset in compactized:
+                if start <= date <= end:
+                    return ruleset
+            raise ValueError(f"Cannot find RuleSet for date {date}.")
+
+        unified = [[] for _ in compactized_schedules]
+
+        for idx in range(len(boundaries) - 1):
+            start = boundaries[idx]
+            end = boundaries[idx + 1] - datetime.timedelta(days=1)
+
+            for out, compactized in zip(unified, compactized_schedules):
+                out.append((start, end, find_ruleset(compactized, start)))
+
+        return unified
+    
     def __mul__(self, value:int|float|Schedule) -> Schedule:
             
         return Schedule.__operate_with_unified_schedule(
@@ -2477,12 +2611,12 @@ class Schedule(UserList):
     def __rtruediv__(self, value:int|float) -> Schedule:
         
         return Schedule.__operate_with_unified_schedule(
-            f"{value.name if isinstance(value, Schedule) else str(value)}:DIV:{self.name}",
+            f"{value}:DIV:{self.name}",
             lambda a,b: a.__rtruediv__(b),
             self, value
         )
     
-    def __add__(self, other:int|float|Schedule) -> RuleSet:
+    def __add__(self, other:int|float|Schedule) -> Schedule:
         return Schedule.__operate_with_unified_schedule(
             f"{self.name}:ADD:{other.name if isinstance(other, Schedule) else str(other)}",
             lambda a, b: a+b,
@@ -2797,8 +2931,8 @@ class Schedule(UserList):
     def where(
         cls,
         condition: Schedule,
-        if_true: int|float|DaySchedule|RuleSet|Schedule,
-        if_false: int|float|DaySchedule|RuleSet|Schedule,
+        if_true  : int|float|DaySchedule|RuleSet|Schedule,
+        if_false : int|float|DaySchedule|RuleSet|Schedule,
         *,
         name: str|None = None,
         type: ScheduleType|None = None,
@@ -2818,12 +2952,9 @@ class Schedule(UserList):
         true_schedule = to_schedule(if_true)
         false_schedule = to_schedule(if_false)
 
-        condition_compact, true_compact = Schedule.unify_compactized_schedules(
+        condition_compact, true_compact, false_compact = Schedule.unify_compactized_schedules_many(
             condition.compactize(),
             true_schedule.compactize(),
-        )
-        condition_compact, false_compact = Schedule.unify_compactized_schedules(
-            condition_compact,
             false_schedule.compactize(),
         )
 
@@ -2940,8 +3071,7 @@ class Schedule(UserList):
 
         Notes
         -----
-        Prefer covering the full year from 01/01 to 12/31. If some dates are not
-        covered, they remain as the default RuleSet created by Schedule.__init__().
+        If some dates are not covered, they are filled with a zero-valued RuleSet of the inferred ScheduleType.
         """
         
         if not rulesets:
@@ -3247,11 +3377,40 @@ class Schedule(UserList):
             ]
         )
     
-    def __str__(self) -> str:        
-        return f"Schedule {self.name}:\n" + "\n".join([
-            f"\t{start.month:02d}/{start.day:02d} ~ {end.month:02d}/{end.day:02d}:{ruleset.name}"
-            for start, end, ruleset in self.compactize()
-        ])
+    def summary(self, *, max_periods: int = 8) -> str:
+        compact = self.compactize()
+
+        unique_rulesets = {}
+        for ruleset in self.data:
+            unique_rulesets[ruleset.name] = ruleset
+
+        header = (
+            f"Schedule {self.name!r} "
+            f"[type={self.type}, days={self.FIXED_LENGTH}]"
+        )
+        stats = (
+            f"  range: min={self.min:.4g}, max={self.max:.4g}, "
+            f"periods={len(compact)}, unique_rulesets={len(unique_rulesets)}"
+        )
+
+        lines = [header, stats]
+
+        for start, end, ruleset in compact[:max_periods]:
+            lines.append(
+                f"  {start.month:02d}/{start.day:02d} ~ "
+                f"{end.month:02d}/{end.day:02d}: "
+                f"{ruleset.name!r} "
+                f"(min={ruleset.min:.4g}, max={ruleset.max:.4g})"
+            )
+
+        if len(compact) > max_periods:
+            lines.append(f"  ... ({len(compact) - max_periods} more periods)")
+
+        return "\n".join(lines)
+
+
+    def __str__(self) -> str:
+        return self.summary()
     
     def __repr__(self) -> str:
         return f"<Schedule {self.name} at {hex(id(self))}>"

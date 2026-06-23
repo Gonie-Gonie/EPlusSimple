@@ -24,7 +24,7 @@ from typing import (
 class Setting:
     
     DEFAULT_EP_VERSION = (24,2,0)
-    DEFAULT_YEAR       = 2025
+    DEFAULT_YEAR       = 2026
 
 # ---------------------------------------------------------------------------- #
 #                                  ENERGYPLUS                                  #
