@@ -739,7 +739,7 @@ class GreenRetrofitModel:
                     zone.ID,
                     dragonized_surfaces[zone.ID],
                     profile_dict[zone.profile.ID],
-                    (zone.infiltration if zone.infiltration is not None else GreenRetrofitModel.get_default_infiltration(zone))*Unit.ACH502ACH,
+                    (zone.infiltration if zone.infiltration is not None else GreenRetrofitModel.get_default_infiltration(zone))*Unit.ACH50_TO_ACH,
                     zone.light_density,
                     supply_dict.get(getattr(zone.cooling_supply,"ID",None), None),
                     supply_dict.get(getattr(zone.heating_supply,"ID",None), None),

@@ -37,6 +37,9 @@ from .profile import (
     ScheduleType,
     Profile     ,
 )
+from ..constants import (
+    THERMAL
+)
 
 
 
@@ -120,7 +123,7 @@ class EnergyModel:
         idf["Schedule:Compact"].append(["ALLOFF", "", "Through: 12/31", "For: AllDays", "Until: 24:00", 0])
         
         # assumptions
-        idf["Schedule:Constant"].append(["$DEFAULT$PEOPLEACTIVITY", None, 107])
+        idf["Schedule:Constant"].append(["$DEFAULT$PEOPLEACTIVITY", ScheduleType.REAL, THERMAL.PROPLE_ACTIVITY_LEVEL.value])
         
         # main output
         idf["OutputControl:Table:Style"].append(["COMMA", "JtoKWH"])

@@ -22,13 +22,10 @@ from idragon.dragon import (
     DaySchedule ,
     RuleSet     ,
     Schedule    ,
-    Profile     ,
     ScheduleType,
 )
-from idragon.utils  import (
-    validate_type ,
-    validate_enum ,
-    validate_range,
+from idragon.constants import (
+    THERMAL
 )
 
 # ---------------------------------------------------------------------------- #
@@ -71,7 +68,6 @@ class Profile:
 
 class KoreanUsageProfile(Profile):
     
-    _DB = {}
     datapath = Directory.PROFILE_DIR / "KoreanUsageProfile.csv"
     
     def __init__(self,
@@ -133,6 +129,26 @@ class KoreanUsageProfile(Profile):
     """ fundamental properties
     """
     
+    """ derived properties
+    """
+    
+    @property
+    def occupied_hours(self) -> int:
+        if self.occupant_end > self.occupant_end:
+            return self.occupant_end - self.occupant_start
+        else:
+            return 24 - (self.occupant_start - self.occupant_end)
+    
+    @property
+    def operating_days(self) -> list[str]:
+        return [
+            day
+            for day in [
+                "monday", "tuesday", "wednesday", "thursday",
+                "friday", "saturday", "sunday", "holiday",
+            ]
+            if getattr(self, f"operate_in_{day}")
+        ]
     
     """ identity and equality
     """
@@ -141,7 +157,7 @@ class KoreanUsageProfile(Profile):
     def ID(self) -> str:
         return self.__ID
     
-    def __hash__(self) -> str:
+    def __hash__(self) -> int:
         return hash(self.ID)
     
     """ in-out
@@ -158,46 +174,67 @@ class KoreanUsageProfile(Profile):
             type = ScheduleType.ONOFF
         )
     
-    @staticmethod
-    def _get_schedule_based_start_end(
+    def _get_schedule_based_start_end(self,
         start_hour: int,
-        start_min  :int,
+        start_min : int,
         end_hour  : int,
         end_min   : int,
-        name:str|None=None,
-        type:ScheduleType=ScheduleType.REAL,
-        ) -> DaySchedule:
-        
-        if end_hour + end_min/60 > start_hour + start_min/60:
-            dayschedule =  DaySchedule.from_windows(None, 0,[
-                ((start_hour,start_min),(end_hour, end_min), 1)
-            ])
-            
-        else:
-            dayschedule = DaySchedule.from_windows(None, 0,[
-                ((0         ,0        ),(end_hour,end_min), 1),
-                ((start_hour,start_min),(24     ,0       ), 1),
-            ])
-        
-        return Schedule.from_constant(
-            name, dayschedule, type
+        name: str|None=None,
+        type: ScheduleType=ScheduleType.ONOFF,
+        ) -> Schedule:
+        day = DaySchedule.from_windows(
+            None,
+            0,
+            [
+                ((start_hour, start_min), (end_hour, end_min), 1)
+            ],
+            type=type,
         )
+
+        off = DaySchedule.from_constant(None, 0, type=type)
+
+        ruleset = RuleSet.from_days(
+            None,
+            default=off,
+            type=type,
+            **{
+                day_name: day
+                for day_name in self.operating_days
+            },
+        )
+
+        return Schedule.from_constant(name, ruleset)
         
     def _get_occupied_mask(self) -> Schedule:
         
-        return KoreanUsageProfile._get_schedule_based_start_end(
+        return self._get_schedule_based_start_end(
             self.occupant_start, 0,
             self.occupant_end  , 0,
             f"{self.ID}-Occupied",
             ScheduleType.ONOFF,
-        ) and (~self._get_vacation_mask())
+        ) & (~self._get_vacation_mask())
 
     def _get_hvac_mask(self) -> Schedule:
         
-        return KoreanUsageProfile._get_schedule_based_start_end(
+        return self._get_schedule_based_start_end(
             self.hvac_start, 0,
             self.hvac_end  , 0,
             f"{self.ID}-HVACOperating",
+            ScheduleType.ONOFF,
+        ) & (~self._get_vacation_mask())
+        
+    def _get_lighting_mask(self) -> Schedule:
+        
+        lighting_end = self.occupant_end
+        lighting_start = self.occupant_end - self.lighting_hours
+        
+        if self.lighting_hours < 0:
+            lighting_start += 24
+            
+        return self._get_schedule_based_start_end(
+            lighting_start, 0,
+            lighting_end  , 0,
+            f"{self.ID}-Lighted",
             ScheduleType.ONOFF,
         ) and (~self._get_vacation_mask())
     
@@ -214,16 +251,16 @@ class KoreanUsageProfile(Profile):
             ScheduleType.TEMPERATURE    ,
         )
         cooling_setpoint_schedule = Schedule.from_constant(
-            f"{self.ID}-HeatingSetpoint",
-            self.heating_setpoint       ,
+            f"{self.ID}-CoolingSetpoint",
+            self.cooling_setpoint       ,
             ScheduleType.TEMPERATURE    ,
         )
         hvac_availability_schedule = is_hvac_operatng
         
         # internal load related
-        occupanct_schedule = is_occupied * self.occupancy
-        lighting_schedule  = is_occupied
-        equipment_schedule = is_occupied * self.equipment
+        occupanct_schedule = is_occupied * self.occupancy / self.occupied_hours / THERMAL.PROPLE_ACTIVITY_LEVEL
+        equipment_schedule = is_occupied * self.equipment / self.occupied_hours
+        lighting_schedule  = self._get_lighting_mask().astype(ScheduleType.FRACTION)
         
         return dragon.Profile(
             self.ID,
@@ -277,8 +314,8 @@ class KoreanUsageProfile(Profile):
             f"\t-occupancy        : {self.occupancy} Wh/m2d",
             f"\t-equipment        : {self.equipment} Wh/m2d",
             f"\t-setpoints: [{self.heating_setpoint} °C, {self.cooling_setpoint} °C]",
-            f"\t-operate in: {', '.join([day for day in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday', 'holiday'] if getattr(self, f'operate_in_{day}')])}",
-            f"\t-vacations: {', '.join([f'{start_month:02d}/{start_day:02d} ~ {end_month:02d}/{end_day:02d}' for (start_month, start_day), (end_month, end_day) in self.vacations])}"
+            f"\t-operate in: {self.operating_days}",
+            f"\t-vacations: {', '.join([f'{start_month:02d}/{start_day:02d} ~ {end_month:02d}/{end_day:02d}' for (start_month, start_day), (end_month, end_day) in self.vacations]) or "none"}"
         ])
     
     def __repr__(self) -> str:

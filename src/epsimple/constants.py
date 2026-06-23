@@ -59,18 +59,12 @@ class Unit(float, Enum):
     W_TO_KW = 1/1000
     
     # infiltration
-    ACH50_TO_ACH = 0.07
-    
-    # heat gain
-    WH_PER_SQM_DAY_TO_W_PER_SQM = 1/24
-    
+    ACH50_TO_ACH = 0.07    
     
 class ConvectionHeatTransfer(float, Enum):
     
     IN  = 1/0.110 # 거실의 실내표면열전달저항 (건축물의 에너지절약설계기준 [별표 5])
     OUT = 1/0.043 # 거실의 실외(직접외기)표면열전달저항 (건축물의 에너지절약설계기준 [별표 5])
-
-    
     
 # ---------------------------------------------------------------------------- #
 #           COEFFICIENT: REGULATIONS, STANDARDS, DOMESTIC STATISTICS           #
