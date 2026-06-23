@@ -134,7 +134,7 @@ class KoreanUsageProfile(Profile):
     
     @property
     def occupied_hours(self) -> int:
-        if self.occupant_end > self.occupant_end:
+        if self.occupant_end > self.occupant_start:
             return self.occupant_end - self.occupant_start
         else:
             return 24 - (self.occupant_start - self.occupant_end)
@@ -236,7 +236,7 @@ class KoreanUsageProfile(Profile):
             lighting_end  , 0,
             f"{self.ID}-Lighted",
             ScheduleType.ONOFF,
-        ) and (~self._get_vacation_mask())
+        ) & (~self._get_vacation_mask())
     
     def to_dragon(self) -> dragon.Profile:
         
