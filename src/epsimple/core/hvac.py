@@ -206,8 +206,8 @@ class HeatPump(SourceSystem):
     def __str__(self) -> str:
         
         # formatting capacity
-        heating_cap_str = f"{self.heating_capacity*Unit.W2KW:4,.1f}kW" if self.heating_capacity is not None else "autosize"
-        cooling_cap_str = f"{self.cooling_capacity*Unit.W2KW:4,.1f}kW" if self.cooling_capacity is not None else "autosize"
+        heating_cap_str = f"{self.heating_capacity*Unit.W_TO_KW:4,.1f}kW" if self.heating_capacity is not None else "autosize"
+        cooling_cap_str = f"{self.cooling_capacity*Unit.W_TO_KW:4,.1f}kW" if self.cooling_capacity is not None else "autosize"
         
         return (
             f"{self.fuel} HeatPump {self.name} (ID={self.ID})\n"
@@ -256,8 +256,8 @@ class GeothermalHeatPump(HeatPump):
     def __str__(self) -> str:
         
         # formatting capacity
-        heating_cap_str = f"{self.heating_capacity*Unit.W2KW:4,.1f}kW" if self.heating_capacity is not None else "autosize"
-        cooling_cap_str = f"{self.cooling_capacity*Unit.W2KW:4,.1f}kW" if self.cooling_capacity is not None else "autosize"
+        heating_cap_str = f"{self.heating_capacity*Unit.W_TO_KW:4,.1f}kW" if self.heating_capacity is not None else "autosize"
+        cooling_cap_str = f"{self.cooling_capacity*Unit.W_TO_KW:4,.1f}kW" if self.cooling_capacity is not None else "autosize"
         
         return (
             f"{self.fuel} GeothermalHeatPump {self.name} (ID={self.ID})\n"
@@ -481,8 +481,8 @@ class Chiller(SourceSystem):
     def __str__(self) -> str:
         
         # formatting capacity
-        chiller_cap_str = f"{self.capacity*Unit.W2KW:4,.1f}kW" if self.capacity is not None else "autosize"
-        coolingtower_cap_str = f"{self.coolingtower_capacity*Unit.W2KW:4,.1f}kW" if self.cooling_capacity is not None else "autosize"
+        chiller_cap_str = f"{self.capacity*Unit.W_TO_KW:4,.1f}kW" if self.capacity is not None else "autosize"
+        coolingtower_cap_str = f"{self.coolingtower_capacity*Unit.W_TO_KW:4,.1f}kW" if self.cooling_capacity is not None else "autosize"
         
         return (
             f"{self.fuel} Chiller {self.name} (ID={self.ID})\n"
@@ -620,7 +620,7 @@ class AbsorptionChiller(SourceSystem):
     def __str__(self) -> str:
         
         # formatting capacity
-        cap_str = f"{self.capacity*Unit.W2KW:4,.1f}kW" if self.capacity is not None else "autosize"
+        cap_str = f"{self.capacity*Unit.W_TO_KW:4,.1f}kW" if self.capacity is not None else "autosize"
         
         return (
             f"{self.fuel}-based AbsorptionChiller {self.name} (ID={self.ID})\n"
@@ -849,12 +849,12 @@ class Boiler(SourceSystem):
         
         
         # formatting capacity and hotwater supply
-        cap_str = f"{self.capacity*Unit.W2KW:4,.1f}kW" if self.capacity is not None else "autosize"
+        cap_str = f"{self.capacity*Unit.W_TO_KW:4,.1f}kW" if self.capacity is not None else "autosize"
         hotwater_supply_string = "" if not self.hotwater_supply else "(for hot-water supply) "
         
         return (
             f"{self.fuel} Boiler {hotwater_supply_string}{self.name} (ID={self.ID})\n"
-            f"\t- capacity={cap_str}, eff.={self.efficiency*Unit.NONE2PRC:.1f}%"
+            f"\t- capacity={cap_str}, eff.={self.efficiency*Unit.FRACTION_TO_PERCENT:.1f}%"
         )
     
     def __repr__(self) -> str:
@@ -1027,7 +1027,7 @@ class PackagedAirConditioner(SupplySystem):
     def __str__(self) -> str:
         
         # formatting capacity and hotwater supply
-        cap_str = f"{self.capacity*Unit.W2KW:4,.1f}kW" if self.capacity is not None else "autosize"
+        cap_str = f"{self.capacity*Unit.W_TO_KW:4,.1f}kW" if self.capacity is not None else "autosize"
         
         return (
             f"PackagedAirConditioner {self.name} (ID={self.ID})"
@@ -1409,7 +1409,7 @@ class ElectricRadiator(SupplySystem):
     def __str__(self) -> str:
         
         # formatting capacity and hotwater supply
-        cap_str = f"{self.capacity*Unit.W2KW:4,.1f}kW" if self.capacity is not None else "autosize"
+        cap_str = f"{self.capacity*Unit.W_TO_KW:4,.1f}kW" if self.capacity is not None else "autosize"
         
         return f"Electric radiator {self.name} with capa={cap_str} (ID={self.ID})"
     
@@ -1692,7 +1692,7 @@ class VentilationSystem:
     """
     
     def __str__(self) -> str:
-        return f"Ventilator (HEX) {self.name} (ID={self.ID}) with eff_h={self.heating_efficiency*Unit.NONE2PRC:.1f}%, eff_c={self.cooling_efficiency*Unit.NONE2PRC:.1f}%"
+        return f"Ventilator (HEX) {self.name} (ID={self.ID}) with eff_h={self.heating_efficiency*Unit.FRACTION_TO_PERCENT:.1f}%, eff_c={self.cooling_efficiency*Unit.FRACTION_TO_PERCENT:.1f}%"
     
     def __repr__(self) -> str:
         return f"<VentilationSystem {self.name} (ID={self.ID}) at {hex(id(self))}>"
@@ -1822,7 +1822,7 @@ class PhotoVoltaicSystem:
     """
     
     def __str__(self) -> str:
-        return f"{self.area:.1f}m2 PV panel {self.name}: eff={self.efficiency*Unit.NONE2PRC:.1f}%, azim={self.azimuth:.1f}°, tilt={self.tilt:.1f}°"
+        return f"{self.area:.1f}m2 PV panel {self.name}: eff={self.efficiency*Unit.FRACTION_TO_PERCENT:.1f}%, azim={self.azimuth:.1f}°, tilt={self.tilt:.1f}°"
     
     def __repr__(self) -> str:
         return f"<PhotoVoltaicSystem {self.name} (ID={self.ID}) at {hex(id(self))}>"

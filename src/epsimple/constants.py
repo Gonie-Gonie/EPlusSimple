@@ -48,18 +48,21 @@ class PackageInfo:
 class Unit(float, Enum):
     
     # length
-    MM2M = 1/1000
-    M2MM = 1000
+    MM_TO_M = 1/1000
+    M_TO_MM = 1000
     
     # ratio
-    NONE2PRC = 100
-    PRC2NONE = 1/100
+    FRACTION_TO_PERCENT = 100
+    PERCENT_TO_FRACTION = 1/100
     
     # power
-    W2KW = 1/1000
+    W_TO_KW = 1/1000
     
     # infiltration
-    ACH502ACH = 0.07
+    ACH50_TO_ACH = 0.07
+    
+    # heat gain
+    WH_PER_SQM_DAY_TO_W_PER_SQM = 1/24
     
     
 class ConvectionHeatTransfer(float, Enum):

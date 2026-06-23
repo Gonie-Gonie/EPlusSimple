@@ -13,7 +13,8 @@ import pandas as pd
 # local modules
 from ..constants      import (
     Directory ,
-    SpecialTag,
+    Unit      ,
+    SpecialTag    ,
     AUTOID_PREFIX ,
 )
 from idragon        import dragon
@@ -145,17 +146,93 @@ class KoreanUsageProfile(Profile):
     
     """ in-out
     """
+    
+    def _get_vacation_mask(self) -> Schedule:
+        
+        return Schedule.from_windows(
+            None, 0,
+            [
+                (f"{startmonth:02d}{startday:02d}", f"{endmonth:02d}{endday:02d}", 1)
+                for (startmonth, startday), (endmonth, endday) in self.vacations
+            ],
+            type = ScheduleType.ONOFF
+        )
+    
+    @staticmethod
+    def _get_schedule_based_start_end(
+        start_hour: int,
+        start_min  :int,
+        end_hour  : int,
+        end_min   : int,
+        name:str|None=None,
+        type:ScheduleType=ScheduleType.REAL,
+        ) -> DaySchedule:
+        
+        if end_hour + end_min/60 > start_hour + start_min/60:
+            dayschedule =  DaySchedule.from_windows(None, 0,[
+                ((start_hour,start_min),(end_hour, end_min), 1)
+            ])
+            
+        else:
+            dayschedule = DaySchedule.from_windows(None, 0,[
+                ((0         ,0        ),(end_hour,end_min), 1),
+                ((start_hour,start_min),(24     ,0       ), 1),
+            ])
+        
+        return Schedule.from_constant(
+            name, dayschedule, type
+        )
+        
+    def _get_occupied_mask(self) -> Schedule:
+        
+        return KoreanUsageProfile._get_schedule_based_start_end(
+            self.occupant_start, 0,
+            self.occupant_end  , 0,
+            f"{self.ID}-Occupied",
+            ScheduleType.ONOFF,
+        ) and (~self._get_vacation_mask())
 
+    def _get_hvac_mask(self) -> Schedule:
+        
+        return KoreanUsageProfile._get_schedule_based_start_end(
+            self.hvac_start, 0,
+            self.hvac_end  , 0,
+            f"{self.ID}-HVACOperating",
+            ScheduleType.ONOFF,
+        ) and (~self._get_vacation_mask())
+    
     def to_dragon(self) -> dragon.Profile:
+        
+        # bsae
+        is_occupied      = self._get_occupied_mask()
+        is_hvac_operatng = self._get_hvac_mask()
+        
+        # hvac related
+        heating_setpoint_schedule = Schedule.from_constant(
+            f"{self.ID}-HeatingSetpoint",
+            self.heating_setpoint       ,
+            ScheduleType.TEMPERATURE    ,
+        )
+        cooling_setpoint_schedule = Schedule.from_constant(
+            f"{self.ID}-HeatingSetpoint",
+            self.heating_setpoint       ,
+            ScheduleType.TEMPERATURE    ,
+        )
+        hvac_availability_schedule = is_hvac_operatng
+        
+        # internal load related
+        occupanct_schedule = is_occupied * self.occupancy
+        lighting_schedule  = is_occupied
+        equipment_schedule = is_occupied * self.equipment
         
         return dragon.Profile(
             self.ID,
-            heating_setpoint=Schedule.from_constant(None, 20, ScheduleType.TEMPERATURE),
-            cooling_setpoint=Schedule.from_constant(None, 26, ScheduleType.TEMPERATURE),
-            hvac_availability=Schedule.from_constant(None, True, ScheduleType.ONOFF),
-            occupant =Schedule.from_constant(None, 10, ScheduleType.REAL),
-            lighting =Schedule.from_constant(None, 15, ScheduleType.REAL),
-            equipment=Schedule.from_constant(None, 20, ScheduleType.REAL),
+            heating_setpoint =heating_setpoint_schedule ,
+            cooling_setpoint =cooling_setpoint_schedule ,
+            hvac_availability=hvac_availability_schedule,
+            occupant =occupanct_schedule,
+            lighting =lighting_schedule ,
+            equipment=equipment_schedule,
         )
     
     """ representation
@@ -240,7 +317,7 @@ Profile._DB = {
                 (int(start_month), int(start_day)),
                 (int(end_month), int(end_day))
             )
-            for start_month, start_day, end_month, end_day in re.findall(r"(\d{1,2})/(\d{1,2})~(\d{1,2})/(\d{1,2})", row["Vacations"])
+            for start_month, start_day, end_month, end_day in re.findall(r"(\d{1,2})/(\d{1,2})-(\d{1,2})/(\d{1,2})", row["Vacations"])
         ],
         ID=f"{SpecialTag.DB}{row["Name"]}"
     )

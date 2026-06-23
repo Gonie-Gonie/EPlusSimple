@@ -412,8 +412,8 @@ def _convert_source_systems(
             source_dict["hotwater_supply"] = bool(source_dict["hotwater_supply"])
          
         # convert unit
-        source_dict["efficiency"]        *= Unit.PRC2NONE
-        source_dict["boiler_efficiency"] *= Unit.PRC2NONE
+        source_dict["efficiency"]        *= Unit.PERCENT_TO_FRACTION
+        source_dict["boiler_efficiency"] *= Unit.PERCENT_TO_FRACTION
          
         # Remove unused properties
         source_dict = {k:v for k,v in source_dict.items() if k in VALID_PROPERTIES[source_dict["type"]] + ["name", "id", "type"]}
@@ -474,8 +474,8 @@ def _convert_ventilation_systems(
         ventilation_dict = row.to_dict()
         
         # convert unit
-        ventilation_dict["efficiency_heating"] *= Unit.PRC2NONE
-        ventilation_dict["efficiency_cooling"] *= Unit.PRC2NONE
+        ventilation_dict["efficiency_heating"] *= Unit.PERCENT_TO_FRACTION
+        ventilation_dict["efficiency_cooling"] *= Unit.PERCENT_TO_FRACTION
         
         # Append to the list
         ventilation_list.append(ventilation_dict)
@@ -494,7 +494,7 @@ def _convert_photovoltaic_systems(
         photovoltaic_dict = row.to_dict()
         
         # convert unit
-        photovoltaic_dict["efficiency"] *= Unit.PRC2NONE
+        photovoltaic_dict["efficiency"] *= Unit.PERCENT_TO_FRACTION
         
         # Append to the list
         photovoltaic_list.append(photovoltaic_dict)
@@ -566,7 +566,7 @@ def _convert_surfaces(
         
         # convert unit
         if surf_dict["coolroof_reflectance"] is not None:
-            surf_dict["coolroof_reflectance"] *= Unit.PRC2NONE
+            surf_dict["coolroof_reflectance"] *= Unit.PERCENT_TO_FRACTION
         
         # Remove unused properties,
         # if required 1 (no azimuth except for outdoor-wall)
@@ -662,7 +662,7 @@ def _convert_construction_surface(
         material_ids = list(const_dict.values())[2::2]
         thicknesses  = list(const_dict.values())[3::2]
         layers = [
-            {"material_id": material_id, "thickness": thickness*Unit.MM2M}
+            {"material_id": material_id, "thickness": thickness*Unit.MM_TO_M}
             for material_id, thickness in zip(material_ids, thicknesses)
             if material_id is not None
         ]

@@ -452,7 +452,7 @@ class SurfaceConstruction:
         return dragon.Construction(
             self.ID,
             *[
-                dragon.Layer(f"{material.ID}_{thickness*Unit.M2MM}mm", material_dict[material.ID], thickness)
+                dragon.Layer(f"{material.ID}_{thickness*Unit.M_TO_MM}mm", material_dict[material.ID], thickness)
                 for material, thickness in self.layers
             ]
         )
