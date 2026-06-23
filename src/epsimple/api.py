@@ -20,9 +20,6 @@ from .core import (
     SurfaceConstruction     ,
     FenestrationConstruction,
     # profile
-    DaySchedule,
-    RuleSet    ,
-    Schedule   ,
     Profile    ,
     # model
     GreenRetrofitModel,
@@ -136,7 +133,7 @@ def get_database(
     key     :str,
     *,
     as_dict:bool=False
-    ) -> dict|DaySchedule|RuleSet|Schedule|Profile|Material|SurfaceConstruction|FenestrationConstruction:
+    ) -> dict|Profile|Material|SurfaceConstruction|FenestrationConstruction:
     
     """ get item from the specific database
 
@@ -173,16 +170,7 @@ def get_database(
     
     """
     
-    match datatype:
-        case "day_schedule":
-            return DaySchedule.get_DB(key, as_dict=as_dict)
-        
-        case "ruleset":
-            return RuleSet.get_DB(key, as_dict=as_dict)
-        
-        case "schedule":
-            return Schedule.get_DB(key, as_dict=as_dict)
-        
+    match datatype:       
         case "profile":
             return Profile.get_DB(key, as_dict=as_dict)
         

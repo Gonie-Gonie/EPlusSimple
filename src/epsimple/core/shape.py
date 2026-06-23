@@ -29,7 +29,9 @@ from .construction import (
     UnknownConstruction,
     OpenConstruction    ,
 )
-from .profile      import Profile
+from .profile      import (
+    Profile
+)
 from .hvac         import (
     SupplySystem,
     VentilationSystem,
