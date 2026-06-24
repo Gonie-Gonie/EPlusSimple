@@ -3419,33 +3419,36 @@ class Profile:
     
     def __init__(self,
         name:str,
-        heating_setpoint :Schedule|None=None,
-        cooling_setpoint :Schedule|None=None,
-        hvac_availability:Schedule|None=None,
+        heating_setpoint :Schedule|None=None, # °C
+        cooling_setpoint :Schedule|None=None, # °C
+        hvac_availability:Schedule|None=None, # onoff
         occupant         :Schedule|None=None, # W/m2
-        lighting         :Schedule|None=None, # W/m2
+        lighting         :Schedule|None=None, # onoff
         equipment        :Schedule|None=None, # W/m2
+        hotwater         :Schedule|None=None, # L/m2
         ) -> None:
         
         self.name = name
-        self.heating_setpoint  = heating_setpoint
-        self.cooling_setpoint  = cooling_setpoint
-        self.hvac_availability = hvac_availability
+        self.heating_setpoint  =heating_setpoint
+        self.cooling_setpoint  =cooling_setpoint
+        self.hvac_availability =hvac_availability
         self.occupant          =occupant
         self.lighting          =lighting
-        self.equipment         =equipment    
+        self.equipment         =equipment
+        self.hotwater          =hotwater
     
     def to_idf_object(self) -> list[IdfObject]:
         
         return [
             schedule.to_idf_object()
             for schedule in [
-                self.heating_setpoint,
-                self.cooling_setpoint,
+                self.heating_setpoint ,
+                self.cooling_setpoint ,
                 self.hvac_availability,
-                self.occupant,
-                self.lighting,
+                self.occupant ,
+                self.lighting ,
                 self.equipment,
+                self.hotwater ,
             ]
             if isinstance(schedule, Schedule)
         ]

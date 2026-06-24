@@ -25,7 +25,10 @@ from .construction import (
     Glazing           ,
     NoMassConstruction,
 )
-from .profile import Schedule
+from .profile import (
+    Schedule,
+    ScheduleType,
+)
 from .hvac import (
     SupplySystem,
 )

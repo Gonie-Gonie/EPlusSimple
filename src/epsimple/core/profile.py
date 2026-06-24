@@ -24,9 +24,6 @@ from idragon.dragon import (
     Schedule    ,
     ScheduleType,
 )
-from idragon.constants import (
-    THERMAL
-)
 
 # ---------------------------------------------------------------------------- #
 #                                    PROFILE                                   #
@@ -69,6 +66,9 @@ class Profile:
 class KoreanUsageProfile(Profile):
     
     datapath = Directory.PROFILE_DIR / "KoreanUsageProfile.csv"
+    
+    PEOPLE_ACTIVITY_LEVEL = 70   # W/person, 현열
+    DHW_HEAT_PER_LITER    = 40   # Wh/L
     
     def __init__(self,
         name:str,         
@@ -415,9 +415,12 @@ class KoreanUsageProfile(Profile):
         hvac_availability_schedule = is_hvac_operatng
         
         # internal load related
-        occupanct_schedule = is_occupied * self.occupancy / self.occupied_hours / THERMAL.PEOPLE_ACTIVITY_LEVEL
-        equipment_schedule = is_occupied * self.equipment / self.occupied_hours
+        occupanct_schedule = is_occupied * (self.occupancy / self.occupied_hours / KoreanUsageProfile.PEOPLE_ACTIVITY_LEVEL)
+        equipment_schedule = is_occupied * (self.equipment / self.occupied_hours)
         lighting_schedule  = self._get_lighting_mask().astype(ScheduleType.FRACTION)
+        
+        # hotwater
+        hotwater_schedule = is_occupied * (self.domestic_hotwater / self.occupied_hours / KoreanUsageProfile.DHW_HEAT_PER_LITER)
         
         return dragon.Profile(
             self.ID,
@@ -427,6 +430,7 @@ class KoreanUsageProfile(Profile):
             occupant =occupanct_schedule,
             lighting =lighting_schedule ,
             equipment=equipment_schedule,
+            hotwater =hotwater_schedule ,
         )
     
     """ representation
