@@ -204,7 +204,164 @@ class KoreanUsageProfile(Profile):
         )
 
         return Schedule.from_constant(name, ruleset)
-        
+    
+    def _get_lighting_day_schedule(
+        self,
+        *,
+        name: str|None=None,
+        solar_noon_hour :int=12,
+        solar_noon_min  :int=0 ,
+        avoid_start_hour:int=0 ,
+        avoid_end_hour  :int=6 ,
+        ) -> DaySchedule:
+        """
+        Create a daily lighting schedule.
+
+        Lighting intervals are selected only within the occupied period.
+        Intervals farther from approximate solar noon are selected first.
+        Intervals between 00:00 and 06:00 are avoided at first, even if occupied.
+        If there are not enough selected intervals, 00:00-06:00 occupied intervals
+        are filled from 00:00 toward 06:00.
+
+        If a remaining lighting amount falls on intervals with the same distance
+        from solar noon, the remaining amount is evenly distributed over those
+        tied intervals. Therefore, this returns a FRACTION schedule.
+        """
+
+        step_minutes = int(60 / DaySchedule.DATA_INTERVAL)
+        target_steps = float(self.lighting_hours * DaySchedule.DATA_INTERVAL)
+
+        occupant_start = self.occupant_start * 60
+        occupant_end   = self.occupant_end   * 60
+
+        solar_noon = solar_noon_hour * 60 + solar_noon_min
+        avoid_start = avoid_start_hour * 60
+        avoid_end   = avoid_end_hour   * 60
+
+        def in_time_window(t: int | float, start: int, end: int) -> bool:
+            """start inclusive, end exclusive. Supports overnight windows."""
+            if end > start:
+                return start <= t < end
+            if end < start:
+                return (start <= t < 24 * 60) or (0 <= t < end)
+
+            # start == end means full-day occupancy.
+            return True
+
+        def circular_distance_to_noon(t: int | float) -> float:
+            delta = abs(t - solar_noon)
+            return min(delta, 24 * 60 - delta)
+
+        intervals = []
+
+        for idx, (hh, mm) in enumerate(DaySchedule.time_tuple()):
+            interval_end = hh * 60 + mm
+            interval_start = interval_end - step_minutes
+            interval_mid = (interval_start + step_minutes / 2) % (24 * 60)
+
+            if not in_time_window(interval_start, occupant_start, occupant_end):
+                continue
+
+            intervals.append({
+                "idx": idx,
+                "start": interval_start,
+                "distance": circular_distance_to_noon(interval_mid),
+                "is_avoided": avoid_start <= interval_start < avoid_end,
+            })
+
+        values = [0.0] * (DaySchedule.DATA_INTERVAL * 24)
+        remaining = target_steps
+
+        # 1) First fill occupied intervals outside 00:00-06:00.
+        normal_intervals = [
+            item for item in intervals
+            if not item["is_avoided"]
+        ]
+
+        distance_groups: dict[float, list[dict]] = {}
+        for item in normal_intervals:
+            distance_groups.setdefault(item["distance"], []).append(item)
+
+        for distance in sorted(distance_groups.keys(), reverse=True):
+            if remaining <= 0:
+                break
+
+            group = distance_groups[distance]
+
+            if remaining >= len(group):
+                for item in group:
+                    values[item["idx"]] = 1.0
+                remaining -= len(group)
+
+            else:
+                # Equal-distance tie: distribute the remaining amount evenly.
+                value = remaining / len(group)
+                for item in group:
+                    values[item["idx"]] = value
+                remaining = 0
+
+        # 2) If still short, fill occupied intervals in 00:00-06:00 from 00:00.
+        avoided_intervals = sorted(
+            [
+                item for item in intervals
+                if item["is_avoided"]
+            ],
+            key=lambda item: item["start"],
+        )
+
+        for item in avoided_intervals:
+            if remaining <= 0:
+                break
+
+            value = min(1.0, remaining)
+            values[item["idx"]] = value
+            remaining -= value
+
+        # 3) If still short, do not fill non-occupied time.
+        #    This catches inconsistent input such as lighting_hours > occupied_hours.
+        if remaining > 1e-9:
+            raise ValueError(
+                f"KoreanUsageProfile {self.name!r} cannot allocate "
+                f"{self.lighting_hours} lighting hours within occupied time. "
+                f"Unallocated steps: {remaining:.3f}."
+            )
+
+        return DaySchedule(
+            name or f"{self.ID}-Lighting",
+            values,
+            type=ScheduleType.FRACTION,
+        )
+    
+    def _get_lighting_mask(self) -> Schedule:
+        lighting_day = self._get_lighting_day_schedule(
+            name=f"{self.ID}-Lighting",
+        )
+
+        off_day = DaySchedule.from_constant(
+            None,
+            0,
+            type=ScheduleType.FRACTION,
+        )
+
+        lighting_ruleset = RuleSet.from_days(
+            None,
+            default=off_day,
+            type=ScheduleType.FRACTION,
+            **{
+                day_name: lighting_day
+                for day_name in self.operating_days
+            },
+        )
+
+        lighting_schedule = Schedule.from_constant(
+            f"{self.ID}-Lighted",
+            lighting_ruleset,
+        )
+
+        # Vacation mask: 1 during vacation, 0 otherwise.
+        # ~vacation_mask: 0 during vacation, 1 otherwise.
+        return lighting_schedule * (~self._get_vacation_mask())
+    
     def _get_occupied_mask(self) -> Schedule:
         
         return self._get_schedule_based_start_end(
