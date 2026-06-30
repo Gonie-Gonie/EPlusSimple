@@ -1,0 +1,135 @@
+cff-version: 1.2.0
+
+message: >
+  If you use EPlusSimple in academic work,
+  please cite it using the metadata below.
+
+title: EPlusSimple
+
+type: software
+
+version: 0.6.2
+
+date-released: 2026-05-27
+
+license: MIT
+
+repository-code: https://github.com/snu-bslab/EPlusSimple
+
+keywords:
+  - EnergyPlus
+  - Building energy simulation
+  - Building performance simulation
+  - Urban building energy modeling
+  - UBEM
+  - Building stock modeling
+  - Retrofit
+  - Spreadsheet workflow
+  - Excel
+  - Python
+  - Engineering software
+
+authors:
+
+  - family-names: Jo
+    given-names: Hyeong Gon
+    affiliation:  Department of Architecture and Architectural Engineering, Seoul National University
+    email: hyeonggon.jo@snu.ac.kr
+    orcid: https://orcid.org/0009-0004-8821-275X
+
+  - family-names: Lee
+    given-names: Seung Ju
+    affiliation: Department of Architecture and Architectural Engineering, Seoul National University
+    email: seungju.lee@snu.ac.kr
+    orcid: https://orcid.org/0009-0003-8509-3911
+
+  - family-names: Park
+    given-names: Chul Hong
+    affiliation: Department of Architecture and Architectural Engineering, Seoul National University
+    email: seungju.lee@snu.ac.kr
+    orcid: https://orcid.org/0009-0003-4716-8169
+
+  - family-names: Park
+    given-names: Cheol Soo
+    affiliation:  Department of Architecture and Architectural Engineering, Seoul National University
+    email: cheolsoo.park@snu.ac.kr
+    orcid: https://orcid.org/0000-0003-4061-208X
+
+preferred-citation:
+
+  type: software
+
+  title: EPlusSimple
+
+  version: 0.6.2
+
+  year: 2026
+
+  authors:
+
+    - family-names: Jo
+      given-names: Hyeong Gon
+
+    - family-names: Lee
+      given-names: Seung Ju
+
+    - family-names: Park
+      given-names: Chul Hong
+
+    - family-names: Park
+      given-names: Cheol Soo
+
+  publisher: Building Simulation Lab, Seoul National University
+
+  url: https://github.com/snu-bslab/EPlusSimple
+
+references:
+
+  - type: thesis
+
+    authors:
+
+      - family-names: Jo
+        given-names: Hyeong-Gon
+
+    title: Simplified Dynamic Building Energy Simulation for Design Decision-Making
+
+    institution: Seoul National University
+
+    year: 2026
+
+  - type: article
+
+    authors:
+
+      - family-names: Park
+        given-names: Chul-Hong
+
+      - family-names: Lee
+        given-names: Seung-Ju
+
+      - family-names: Jo
+        given-names: Hyeong-Gon
+
+      - family-names: Park
+        given-names: Cheol Soo
+
+    title: Implications of Geometry Simplification in Dynamic Building Energy Modeling
+
+    journal: Energy and Buildings
+
+    year: 2026
+
+identifiers:
+
+  - type: url
+    value: https://github.com/snu-bslab/EPlusSimple
+
+contact:
+
+  - family-names: Jo
+    given-names: Hyeong-Gon
+    email: hyeonggon.jo@snu.ac.kr
+
+funding:
+  - This research was supported by Public Building Green-remodeling Business through the Korea Authority of Land & Infrastructure Safety funded by the Ministry of Land, Infrastructure and Transport.
