@@ -11,9 +11,8 @@ import re
 import pandas as pd
 
 # local modules
-from ..constants      import (
+from ..constants import (
     Directory ,
-    Unit      ,
     SpecialTag    ,
     AUTOID_PREFIX ,
 )
@@ -483,12 +482,16 @@ class KoreanUsageProfile(Profile):
         return f"<KoreanUsageProfile {self.name} (ID={self.ID}) at {hex(id(self))}>"
 
 
+class KoreanUsageProfileExtended(KoreanUsageProfile):
+    datapath = Directory.PROFILE_DIR / "KoreanUsageProfileExtended.csv"
+
+
 def read_csv_without_units(filepath:str, encoding:str="utf-8") -> pd.DataFrame:
     df = pd.read_csv(filepath, encoding=encoding)
     df.columns = [re.sub(r"\s*\[.+\]", "", str(col)) for col in df.columns]
     return df
 
-Profile._DB = {
+Profile._DB.update({
     row["Name"]: KoreanUsageProfile(
         row["Name"],
         row["Occupant-Start"],
@@ -520,7 +523,38 @@ Profile._DB = {
         ID=f"{SpecialTag.DB}{row["Name"]}"
     )
     for _, row in read_csv_without_units(KoreanUsageProfile.datapath,).iterrows()
-}   
+})
 
-
-pass
+Profile._DB.update({
+    row["Name"]: KoreanUsageProfileExtended(
+        row["Name"],
+        row["Occupant-Start"],
+        row["Occupant-End"],
+        row["HVAC-Start"],
+        row["HVAC-End"],
+        row["Ventilation"],
+        row["DomesticHotWater"],
+        row["LightingHours"],
+        row["Occupancy"],
+        row["Equipment"],
+        row["Heating-Setpoint"],
+        row["Cooling-Setpoint"],
+        operate_in_monday    = bool(row["Monday"]   ),
+        operate_in_tuesday   = bool(row["Tuesday"]  ),
+        operate_in_wednesday = bool(row["Wednesday"]),
+        operate_in_thursday  = bool(row["Thursday"] ),
+        operate_in_friday    = bool(row["Friday"]   ),
+        operate_in_saturday  = bool(row["Saturday"] ),
+        operate_in_sunday    = bool(row["Sunday"]   ),
+        operate_in_holiday   = bool(row["Holiday"]  ),
+        vacations= [] if pd.isna(row["Vacations"]) else [
+            (
+                (int(start_month), int(start_day)),
+                (int(end_month), int(end_day))
+            )
+            for start_month, start_day, end_month, end_day in re.findall(r"(\d{1,2})/(\d{1,2})-(\d{1,2})/(\d{1,2})", row["Vacations"])
+        ],
+        ID=f"{SpecialTag.DB}{row['Name']}"
+    )
+    for _, row in read_csv_without_units(KoreanUsageProfileExtended.datapath).iterrows()
+})
