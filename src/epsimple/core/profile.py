@@ -397,8 +397,8 @@ class KoreanUsageProfile(Profile):
     def to_dragon(self) -> dragon.Profile:
         
         # bsae
-        is_occupied      = self._get_occupied_mask()
-        is_hvac_operatng = self._get_hvac_mask()
+        is_occupied       = self._get_occupied_mask()
+        is_hvac_operating = self._get_hvac_mask()
         
         # hvac related
         heating_setpoint_schedule = Schedule.from_constant(
@@ -411,12 +411,12 @@ class KoreanUsageProfile(Profile):
             self.cooling_setpoint       ,
             ScheduleType.TEMPERATURE    ,
         )
-        hvac_availability_schedule = is_hvac_operatng
+        hvac_availability_schedule = is_hvac_operating
         
         # internal load related
-        occupanct_schedule = is_occupied * (self.occupancy / self.occupied_hours / KoreanUsageProfile.PEOPLE_ACTIVITY_LEVEL)
-        equipment_schedule = is_occupied * (self.equipment / self.occupied_hours)
-        lighting_schedule  = self._get_lighting_mask().astype(ScheduleType.FRACTION)
+        occupant_schedule = is_occupied * (self.occupancy / self.occupied_hours / KoreanUsageProfile.PEOPLE_ACTIVITY_LEVEL)
+        equipment_schedule= is_occupied * (self.equipment / self.occupied_hours)
+        lighting_schedule = self._get_lighting_mask().astype(ScheduleType.FRACTION)
         
         # hotwater
         hotwater_schedule = is_occupied * (self.domestic_hotwater / self.occupied_hours / KoreanUsageProfile.DHW_HEAT_PER_LITER)
@@ -426,7 +426,7 @@ class KoreanUsageProfile(Profile):
             heating_setpoint =heating_setpoint_schedule ,
             cooling_setpoint =cooling_setpoint_schedule ,
             hvac_availability=hvac_availability_schedule,
-            occupant =occupanct_schedule,
+            occupant =occupant_schedule,
             lighting =lighting_schedule ,
             equipment=equipment_schedule,
             hotwater =hotwater_schedule ,
