@@ -411,8 +411,7 @@ class Chiller(SourceSystem):
             )
             
         # two chillers are equal if all fundamental properties are euqal
-        return (self.fuel            == other.fuel           ) and\
-               (self.cop             == other.cop            ) and\
+        return (self.cop             == other.cop            ) and\
                (self.capacity        == other.capacity       ) and\
                (self.compressor_type == other.compressor_type) and\
                (self.coolingtower_type     == other.coolingtower_type    ) and\
@@ -572,8 +571,7 @@ class AbsorptionChiller(SourceSystem):
             )
             
         # two chillers are equal if all fundamental properties are euqal
-        return (self.fuel              == other.fuel             ) and\
-               (self.cop               == other.cop              ) and\
+        return (self.cop               == other.cop              ) and\
                (self.capacity          == other.capacity         ) and\
                (self.boiler_efficiency == other.boiler_efficiency)
     
@@ -588,7 +586,7 @@ class AbsorptionChiller(SourceSystem):
         return AbsorptionChiller(
             input.name,
             getattr(input,"cop_cooling", None),
-            getattr(input,"capacity_cooling ", None),
+            getattr(input,"capacity_cooling", None),
             getattr(input,"boiler_efficiency", None),
             ID=input.id
         )
@@ -1786,10 +1784,10 @@ class PhotoVoltaicSystem:
             )
             
         # two PV-panels are equal if physical properties and specifications are euqal
-        return (self.area     == other.area      ) and\
-               (self.effiency == other.efficiency) and\
-               (self.azimuth  == other.azimuth   ) and\
-               (self.tilt     == other.tilt      )
+        return (self.area       == other.area      ) and\
+               (self.efficiency == other.efficiency) and\
+               (self.azimuth    == other.azimuth   ) and\
+               (self.tilt       == other.tilt      )
     
     """ in-out
     """

@@ -168,7 +168,7 @@ run_grjson(
 
 \paragraph{사용가능한 문자} 모든 변수의 명칭은 영문 소문자 및 밑줄(\_)로만 구성한다.
 
-\paragraph{복수형과 단수형} 복수 객체 \texttt{array}를 담는 변수의 명칭(예: ``floors") 또는 복수 객체를 담는 하위 분류를 사용하는 변수의 명칭(예: ``profile\_components"), 길는 복수형을 사용하며, 단일 값을 담는 변수의 명칭(예: ``name")은 단수형을 사용한다. 단, 길이가 정해져있거나 각 위치별 의미가 명시적으로 다른 \texttt{array}를 담는 변수의 명칭(예: ``vintage")은 단수형을 사용한다.
+\paragraph{복수형과 단수형} 복수 객체 \texttt{array}를 담는 변수의 명칭(예: ``floors") 또는 복수 객체를 담는 하위 분류를 사용하는 변수의 명칭(예: ``profile\_components"), 길이는 복수형을 사용하며, 단일 값을 담는 변수의 명칭(예: ``name")은 단수형을 사용한다. 단, 길이가 정해져있거나 각 위치별 의미가 명시적으로 다른 \texttt{array}를 담는 변수의 명칭(예: ``vintage")은 단수형을 사용한다.
 
 \paragraph{축약형의 사용} 모든 변수의 명칭은 축약형을 사용하지 않는 것을 원칙으로 하되, 약어 자체로 통용되는 경우(예: ``cop\_heating")에는 축약형을 사용한다.
 
@@ -263,7 +263,7 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 
 \paragraph{타입} 모든 변수는 정해진 타입의 변수여야 한다. 모든 변수의 타입은 문자\TypeTag{S}($String$), 실수\TypeTag{F}($Float$), 정수\TypeTag{I}($Integer$), 열거형\TypeTag{E}($Enum$), 불리언\TypeTag{B} 로 구분할 수 있다. 
 
-\paragraph{필수 여부} 입력되지 않을 경우 에러가 발생하는 필수 변수\ReqTag{R}($Required$)와 달리, 비 필수 변수\ReqTag{O}($Optional$)는 미 입력 시 기본값이 사용된다. 단, 입력하지 않았다는 것을 명시적으로 \texttt{null}로 지정해야 하고, 변수 자체를 생락하면 안된다.
+\paragraph{필수 여부} 입력되지 않을 경우 에러가 발생하는 필수 변수\ReqTag{R}($Required$)와 달리, 비 필수 변수\ReqTag{O}($Optional$)는 미 입력 시 기본값이 사용된다. 단, 입력하지 않았다는 것을 명시적으로 \texttt{null}로 지정해야 하고, 변수 자체를 생략하면 안된다.
 
 \paragraph{조건부 사용 여부} 어떤 변수는 다른 변수(주로 \texttt{type})의 값에 따라 조건부로 사용된다. 이 경우에도 해당 조건에서 필수적으로 요구되는 변수\ReqTag{CR}($Conditional Required$)와 그렇지 않은 변수\ReqTag{CO}($Conditional Optional$)로 구분할 수 있다. 조건에 만족하지 않는 경우, 해당 변수는 json에서 생략될 수 있다.
 
@@ -280,17 +280,17 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 실재하는 건물에 대한 최상위 정보 체계이다.
 
 \jsontable{building}{
-  \jsontablerow{name                 }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
-  \jsontablerow{north_axis           }{\TypeTag{F}}{\ReqTag{R}}{}{}{[0,360)}{deg(^\circ)}
-  \jsontablerow{address              }{\TypeTag{S}}{\ReqTag{R}}{}{}{\needtobeexplain}{}
-  \jsontablerow{vintage              }{[ \TypeTag{I} ]}{\ReqTag{R}}{}{}{[3,3]}{}
-  \jsontablerow{num_aboveground_floor}{\TypeTag{I}}{\ReqTag{R}}{}{}{[1, $Inf$)}{}
-  \jsontablerow{num_underground_floor}{\TypeTag{I}}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
-  \jsontablerow{floors               }{[ \hyperref[subsubsection:ioref:floor]{\texttt{floor}} ]}{}{}{}{[1, $Inf$)}{}
-  \jsontablerow{supply_systems       }{[ \hyperref[subsubsection:ioref:supplysystem]{\texttt{supply\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
-  \jsontablerow{source_systems       }{[ \hyperref[subsubsection:ioref:sourcesystem]{\texttt{source\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
-  \jsontablerow{ventilation_systems  }{[ \hyperref[subsubsection:ioref:ventilationsystem]{\texttt{ventilation\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
-  \jsontablerow{photovoltaic_systems }{[ \hyperref[subsubsection:ioref:photovoltaicsystem]{\texttt{photovoltaic\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
+  \jsontablerow{name                  }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
+  \jsontablerow{north_axis            }{\TypeTag{F}}{\ReqTag{R}}{}{}{[0,360)}{deg(^\circ)}
+  \jsontablerow{address               }{\TypeTag{S}}{\ReqTag{R}}{}{}{\needtobeexplain}{}
+  \jsontablerow{vintage               }{[ \TypeTag{I} ]}{\ReqTag{R}}{}{}{[3,3]}{}
+  \jsontablerow{num_aboveground_floors}{\TypeTag{I}}{\ReqTag{R}}{}{}{[1, $Inf$)}{}
+  \jsontablerow{num_underground_floors}{\TypeTag{I}}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
+  \jsontablerow{floors                }{[ \hyperref[subsubsection:ioref:floor]{\texttt{floor}} ]}{}{}{}{[1, $Inf$)}{}
+  \jsontablerow{supply_systems        }{[ \hyperref[subsubsection:ioref:supplysystem]{\texttt{supply\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
+  \jsontablerow{source_systems        }{[ \hyperref[subsubsection:ioref:sourcesystem]{\texttt{source\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
+  \jsontablerow{ventilation_systems   }{[ \hyperref[subsubsection:ioref:ventilationsystem]{\texttt{ventilation\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
+  \jsontablerow{photovoltaic_systems  }{[ \hyperref[subsubsection:ioref:photovoltaicsystem]{\texttt{photovoltaic\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
 }
 
 \paragraph{name (건물명)} 건물의 이름. 시뮬레이션에 직접 사용되지 않는다.
@@ -319,9 +319,9 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 
 \paragraph{vintage (허가일자)} 건물의 허가일자. 연(4자리 정수), 월(2자리 정수), 일(2자리 정수)로 이루어진 array이다.
 
-\paragraph{num\_aboveground\_floor (지상층수)} 건물의 지상 층 수. 시뮬레이션에 직접 사용되지 않는다.
+\paragraph{num\_aboveground\_floors (지상층수)} 건물의 지상 층 수. 시뮬레이션에 직접 사용되지 않는다.
 
-\paragraph{num\_underground\_floor (지하층수)} 건물의 지하 층 수. 시뮬레이션에 직접 사용되지 않는다.
+\paragraph{num\_underground\_floors (지하층수)} 건물의 지하 층 수. 시뮬레이션에 직접 사용되지 않는다.
 
 \subsubsection{floor (층)} \label{subsubsection:ioref:floor}
 하위 \hyperref[subsubsection:ioref:zone]{\texttt{zone}}들을 층 단위로 구분하기 위한 클래스이다.
@@ -346,7 +346,7 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
   \jsontablerow{supply_system_heating_id}{\TypeTag{S}}{ \ReqTag{R} }{}{}{\hyperref[subsubsection:ioref:supplysystem]{\texttt{supply\_system}}의 \texttt{id}}{}
   \jsontablerow{supply_system_cooling_id}{\TypeTag{S}}{ \ReqTag{R} }{}{}{\hyperref[subsubsection:ioref:supplysystem]{\texttt{supply\_system}}의 \texttt{id}}{}
   \jsontablerow{ventilation_system_id   }{\TypeTag{S}}{ \ReqTag{R} }{}{}{\hyperref[subsubsection:ioref:ventilationsystem]{\texttt{ventilation\_system}}의 \texttt{id}}{}
-  \jsontablerow{surface                 }{[ \hyperref[subsubsection:ioref:surface]{\texttt{surface}} ]}{ \ReqTag{R} }{}{}{[0, $Inf$)}{}
+  \jsontablerow{surfaces                }{[ \hyperref[subsubsection:ioref:surface]{\texttt{surface}} ]}{ \ReqTag{R} }{}{}{[0, $Inf$)}{}
 }
 
 \paragraph{id (식별자)} 존의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
@@ -417,7 +417,7 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
   \jsontablerow{name           }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
   \jsontablerow{type           }{\TypeTag{E}}{\ReqTag{R}}{}{}{\shortstack[c]{window \\ door \\ glassdoor}}{}
   \jsontablerow{area           }{\TypeTag{F}}{\ReqTag{R}}{}{}{(0,$Inf$)}{m^2}
-  \jsontablerow{construction_id}{\TypeTag{S}}{\ReqTag{R}}{}{}{\hyperref[subsubsection:ioref:fenestrationconstruction]{\texttt{fenewtration\_construction}}의 \texttt{id}}{}
+  \jsontablerow{construction_id}{\TypeTag{S}}{\ReqTag{R}}{}{}{\hyperref[subsubsection:ioref:fenestrationconstruction]{\texttt{fenestration\_construction}}의 \texttt{id}}{}
   \jsontablerow{blind          }{\TypeTag{E}}{\ReqTag{O}}{\texttt{null}}{}{\shortstack[c]{ venetian \\ shade}}{}
 }
 
@@ -474,7 +474,7 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
   \jsontablerow{name                 }{\TypeTag{S}}{\ReqTag{R} }{}{}{}{}
   \jsontablerow{type                 }{\TypeTag{E}}{\ReqTag{R} }{}{}{\shortstack[c]{ heatpump \\ geothermal\_heatpump \\ chiller \\ absorption\_chiller \\ boiler \\ district\_heating}}{}
   \jsontablerow{fuel_type            }{\TypeTag{E}}{\ReqTag{CR} }{}{\texttt{type} $\neq$ ``district\_heating''}{\shortstack[c]{electricity \\ natural\_gas \\ oil \\ district\_heating}}{}
-  \jsontablerow{compressor_type      }{\TypeTag{E}}{\ReqTag{CR}}{}{\texttt{type} = ``chiller''}{\shortstack[c]{ turbo \\ screw \\ reciporating}}{}
+  \jsontablerow{compressor_type      }{\TypeTag{E}}{\ReqTag{CR}}{}{\texttt{type} = ``chiller''}{\shortstack[c]{ turbo \\ screw \\ reciprocating}}{}
   \jsontablerow{coolingtower_type    }{\TypeTag{E}}{\ReqTag{CR}}{}{\texttt{type} = ``chiller''}{\shortstack[c]{ closed \\ open}}{}
   \jsontablerow{coolingtower_control }{\TypeTag{E}}{\ReqTag{CR}}{}{\texttt{type} = ``chiller''}{\shortstack[c]{single-speed \\ two-speed}}{}
   \jsontablerow{hotwater_supply      }{\TypeTag{B}}{\ReqTag{CR}}{}{\texttt{type} = ``boiler'' OR ``district\_heating''}{}{}
@@ -602,7 +602,7 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 
  \jsontable{layer}{
   \jsontablerow{material_id}{\TypeTag{S}}{\ReqTag{R}}{}{}{\hyperref[subsubsection:ioref:material]{\texttt{material}}의 \texttt{id}}{}
-  \jsontablerow{thicknes   }{\TypeTag{F}}{\ReqTag{R}}{}{}{(0.003,$Inf$)}{m}
+  \jsontablerow{thickness  }{\TypeTag{F}}{\ReqTag{R}}{}{}{(0.003,$Inf$)}{m}
 }
 
 \paragraph{material\_id (재료 식별자)} 레이어 구성 재료의 ID.

@@ -417,7 +417,7 @@ class GreenRetrofitModel:
         return {
             k: v
             for zone in self.zone
-            for k, v in zone.get_unique_fenestraion_constructions().items()
+            for k, v in zone.get_unique_fenestration_constructions().items()
         }
     
     def get_unique_surface_constructions(self) -> dict[str, SurfaceConstruction]:

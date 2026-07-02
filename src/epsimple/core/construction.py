@@ -275,11 +275,11 @@ class SurfaceConstruction:
     
     @property
     def depth(self) -> int|float:
-        return sum(thickness for material, thickness in self.layers)
+        return sum(thickness for _, thickness in self.layers)
     
     @property
     def heat_capacity(self) -> int|float:
-        return sum(material.density*material.heat_capacity*thickness for material, thickness in self.layers)
+        return sum(material.density*material.specific_heat*thickness for material, thickness in self.layers)
         
     """ useful methods
     """
