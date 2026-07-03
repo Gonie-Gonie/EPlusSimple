@@ -897,6 +897,45 @@ class DaySchedule(UserList):
 
         return lower & upper    
     
+    @property
+    def step_in_hours(self) -> float:
+        return 1/DaySchedule.DATA_INTERVAL
+    
+    @property
+    def integral(self) -> float:
+        return sum(self.data) * self.step_in_hours
+    
+    @property
+    def positive_hours(self) -> float:
+        return sum(v > 0 for v in self.data) * self.step_in_hours
+    
+    @property
+    def nonzero_hours(self) -> float:
+        return sum(v != 0 for v in self.data) * self.step_in_hours
+    
+    @property
+    def has_positive(self) -> bool:
+        return any(v>0 for v in self.data)
+    
+    @property
+    def has_nonzero(self) -> bool:
+        return any(v!=0 for v in self.data)
+    
+    @property
+    def is_constant(self) -> bool:
+        return all(v == self.data[0] for v in self.data)
+    
+    @property
+    def average(self) -> float:
+        return sum(self.data) / self.fixed_length
+    
+    @property
+    def positive_average(self) -> float:
+        positive_values = [v for v in self.data if v > 0]
+        if not positive_values:
+            return 0.0
+        return sum(positive_values) / len(positive_values)
+    
     """ prohibited methods
     """
     
@@ -2319,10 +2358,13 @@ class RuleSet:
 
     def day_schedule(
         self,
-        key: str,
+        key: str|int,
         *,
         fallback: bool = True,
     ) -> DaySchedule | None:
+        if isinstance(key, int):
+            key = self._DAY_KEYS[key]
+
         day = getattr(self, key)
 
         if day is not None:
@@ -2802,6 +2844,26 @@ class Schedule(UserList):
 
         return lower & upper
     
+    @property
+    def dayschedules(self) -> list[DaySchedule]:
+        return [
+            ruleset.dayschedule(time.weekday()) 
+            for time, ruleset in zip(Schedule.TIME_TUPLE, self.data)
+        ]
+        
+    @property
+    def integral(self) -> float:
+        return sum(dayschedule.integral for dayschedule in self.dayschedules)
+    
+    @property
+    def average(self) -> float:
+        return self.integral / Schedule.FIXED_LENGTH
+    
+    @property
+    def positive_average(self) -> float:
+        positive_values = [v for ds in self.dayschedules for v in ds.data if v > 0]
+        return sum(positive_values) / len(positive_values) if positive_values else 0.0
+        
     def clip(
         self,
         min_value: int|float|None = None,
