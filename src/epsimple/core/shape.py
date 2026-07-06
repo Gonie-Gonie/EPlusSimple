@@ -453,7 +453,7 @@ class Fenestration(ABC):
 
 class BlindType(str, Enum):
     SHADE    = "shade"
-    VENETIAN = "benetian"
+    VENETIAN = "venetian"
 
     def __str__(self) -> str:
         return self.value
@@ -681,7 +681,7 @@ class Zone:
     
     @property
     def area(self) -> int|float:
-        return sum(surface.area for surface in self.surface if surface.type is str(SurfaceType.FLOOR))
+        return sum(surface.area for surface in self.surface if surface.type == str(SurfaceType.FLOOR))
     
     def get_unique_fenestraion_constructions(self) -> dict[str, FenestrationConstruction]:
         

@@ -2356,7 +2356,7 @@ class RuleSet:
         raise KeyError(f"Unknown RuleSet day key: {key!r}")
 
 
-    def dayschedules(
+    def get_dayschedule(
         self,
         key: str|int,
         *,
@@ -2397,7 +2397,7 @@ class RuleSet:
         if include_days:
             for key in self._DAY_KEYS:
                 explicit = getattr(self, key)
-                effective = self.dayschedules(key, fallback=True)
+                effective = self.get_dayschedule(key, fallback=True)
 
                 source = "override" if explicit is not None else "fallback"
                 lines.append(

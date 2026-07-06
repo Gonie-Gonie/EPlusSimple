@@ -411,8 +411,7 @@ class Chiller(SourceSystem):
             )
             
         # two chillers are equal if all fundamental properties are euqal
-        return (self.fuel            == other.fuel           ) and\
-               (self.cop             == other.cop            ) and\
+        return (self.cop             == other.cop            ) and\
                (self.capacity        == other.capacity       ) and\
                (self.compressor_type == other.compressor_type) and\
                (self.coolingtower_type     == other.coolingtower_type    ) and\
@@ -482,12 +481,12 @@ class Chiller(SourceSystem):
         
         # formatting capacity
         chiller_cap_str = f"{self.capacity*Unit.W_TO_KW:4,.1f}kW" if self.capacity is not None else "autosize"
-        coolingtower_cap_str = f"{self.coolingtower_capacity*Unit.W_TO_KW:4,.1f}kW" if self.cooling_capacity is not None else "autosize"
+        coolingtower_cap_str = f"{self.coolingtower_capacity*Unit.W_TO_KW:4,.1f}kW" if self.coolingtower_capacity is not None else "autosize"
         
         return (
             f"{self.fuel} Chiller {self.name} (ID={self.ID})\n"
             f"\t- capacity={chiller_cap_str}, COP={self.cop:4.2f}\n"
-            f"\t- connected coolingtower ({coolingtower_cap_str}): {self.CoolingTowerType} type, {self.coolingtower_control} controlled"
+            f"\t- connected coolingtower ({coolingtower_cap_str}): {self.coolingtower_type} type, {self.coolingtower_control} controlled"
         )
     
     def __repr__(self) -> str:
@@ -572,8 +571,7 @@ class AbsorptionChiller(SourceSystem):
             )
             
         # two chillers are equal if all fundamental properties are euqal
-        return (self.fuel              == other.fuel             ) and\
-               (self.cop               == other.cop              ) and\
+        return (self.cop               == other.cop              ) and\
                (self.capacity          == other.capacity         ) and\
                (self.boiler_efficiency == other.boiler_efficiency)
     
@@ -588,7 +586,7 @@ class AbsorptionChiller(SourceSystem):
         return AbsorptionChiller(
             input.name,
             getattr(input,"cop_cooling", None),
-            getattr(input,"capacity_cooling ", None),
+            getattr(input,"capacity_cooling", None),
             getattr(input,"boiler_efficiency", None),
             ID=input.id
         )
@@ -623,7 +621,7 @@ class AbsorptionChiller(SourceSystem):
         cap_str = f"{self.capacity*Unit.W_TO_KW:4,.1f}kW" if self.capacity is not None else "autosize"
         
         return (
-            f"{self.fuel}-based AbsorptionChiller {self.name} (ID={self.ID})\n"
+            f"AbsorptionChiller {self.name} (ID={self.ID})\n"
             f"\t- capacity={cap_str}, COP={self.cop:4.2f}\n"
             f"\t- connected boiler efficiency={self.boiler_efficiency}"
         )

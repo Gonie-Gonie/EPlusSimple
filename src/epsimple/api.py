@@ -122,9 +122,6 @@ def run_grexcel(
     
 def get_database(
     datatype:Literal[
-        "day_schedule",
-        "ruleset"     ,
-        "schedule"    ,
         "profile"     ,
         "material"                 ,
         "surface_construction"     ,

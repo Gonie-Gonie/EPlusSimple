@@ -378,21 +378,6 @@ class KoreanUsageProfile(Profile):
             f"{self.ID}-HVACOperating",
             ScheduleType.ONOFF,
         ) & (~self._get_vacation_mask())
-        
-    def _get_lighting_mask(self) -> Schedule:
-        
-        lighting_end = self.occupant_end
-        lighting_start = self.occupant_end - self.lighting_hours
-        
-        if self.lighting_hours < 0:
-            lighting_start += 24
-            
-        return self._get_schedule_based_start_end(
-            lighting_start, 0,
-            lighting_end  , 0,
-            f"{self.ID}-Lighted",
-            ScheduleType.ONOFF,
-        ) & (~self._get_vacation_mask())
     
     def to_dragon(self) -> dragon.Profile:
         
