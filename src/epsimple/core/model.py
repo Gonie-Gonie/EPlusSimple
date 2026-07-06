@@ -810,22 +810,59 @@ class GreenRetrofitResult:
         return energy
     
     def get_dhw_servers(self) -> list[SourceSystem]:
-        
-        dhw_servers = []
-        for zone in self.model.zone:
-            if zone.profile.domestic_hotwater > 0:
-                if isinstance(zone.heating_supply.source, Boiler):
-                    dhw_servers.append(zone.heating_supply.source)
-                elif isinstance(zone.heating_supply.source, DistrictHeating):
-                    dhw_servers.append(zone.heating_supply.source)
-                    
+        dhw_servers = [
+            source
+            for source in self.model.supply_system
+            if hasattr(source, "hotwater_supply") and source.hotwater_supply
+        ]
+
         if len(dhw_servers) == 0:
-            
-            dhw_servers.append(
-                Boiler("", Fuel.NATURALGAS, True, 0.85)
-            )
-        
-        return list(set(dhw_servers))
+            dhw_servers = [
+                Boiler(
+                    "HotWaterBoiler",
+                    Fuel.NATURALGAS,
+                    True,
+                    0.85,
+                    None,
+                )
+            ]
+
+        return list({server.ID: server for server in dhw_servers}.values())
+    
+    def calc_domestic_hotwater_site_energy(self) -> dict[str, list[float]]:
+        demand = self.get_domestic_hotwater_energy()
+        dhw_servers = self.get_dhw_servers()
+
+        demand_per_server = [
+            v / self.area / len(dhw_servers)
+            for v in demand
+        ]
+
+        hotwater_energy = {
+            fuel.name: [0.0] * 12
+            for fuel in Fuel
+        }
+
+        for server in dhw_servers:
+            if isinstance(server, DistrictHeating):
+                fuel = Fuel.DISTRICTHEATING.name
+                efficiency = 1.0
+
+            elif isinstance(server, Boiler):
+                fuel = Fuel(server.fuel).name
+                efficiency = server.efficiency
+
+            else:
+                raise RuntimeError(
+                    f"Unsupported DHW server: {type(server).__name__}"
+                )
+
+            hotwater_energy[fuel] = [
+                round(v_org + v_add / efficiency, GreenRetrofitResult.VALID_DIGITS)
+                for v_org, v_add in zip(hotwater_energy[fuel], demand_per_server)
+            ]
+
+        return hotwater_energy
     
     def to_site_uses(self) -> pd.DataFrame:
         
@@ -845,13 +882,6 @@ class GreenRetrofitResult:
             Fuel.DISTRICTHEATING: "OtherFuels" ,
         }
         
-        fuel_name_mapper = {
-            "natural_gas": "NATURALGAS",
-            "electricity": "ELECTRICITY",
-            "district_heating": "DISTRICTHEATING",
-            "oil": "OIL",
-        }
-        
         df_site = pd.DataFrame(index=[v.name for v in Fuel], columns=list(usecol_map.keys())).map(lambda _: [float(0)]*12)
         for fuel_type in Fuel:
             
@@ -868,11 +898,9 @@ class GreenRetrofitResult:
                 df_site.loc[fuel,use] = list(df[target_cols].sum(axis=1)[:12].astype(float).map(lambda v: round(v/self.area, GreenRetrofitResult.VALID_DIGITS)))
         
         # temporary calculation for the domestic hot water (DHW) energy consumption
-        dhw_energy  = self.get_domestic_hotwater_energy()
-        dhw_servers = self.get_dhw_servers()
-        for dhw_server in dhw_servers:
-            target_fuel = fuel_name_mapper[dhw_server.fuel]
-            df_site.loc[target_fuel,"hotwater"] = [v + new_v/len(dhw_servers)/self.model.area for v, new_v in zip(df_site.loc[target_fuel,"hotwater"], dhw_energy)]
+        hotwater_energy_dict = self.calc_domestic_hotwater_site_energy()
+        for fuel, energy in hotwater_energy_dict.items():
+            df_site.loc[fuel, "hotwater"] = energy
         
         # PV panel production
         table_name = "EnergyConsumptionElectricityGeneratedPropaneMonthly"
