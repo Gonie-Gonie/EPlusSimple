@@ -2356,7 +2356,7 @@ class RuleSet:
         raise KeyError(f"Unknown RuleSet day key: {key!r}")
 
 
-    def day_schedule(
+    def dayschedules(
         self,
         key: str|int,
         *,
@@ -2397,7 +2397,7 @@ class RuleSet:
         if include_days:
             for key in self._DAY_KEYS:
                 explicit = getattr(self, key)
-                effective = self.day_schedule(key, fallback=True)
+                effective = self.dayschedules(key, fallback=True)
 
                 source = "override" if explicit is not None else "fallback"
                 lines.append(
@@ -2847,7 +2847,7 @@ class Schedule(UserList):
     @property
     def dayschedules(self) -> list[DaySchedule]:
         return [
-            ruleset.dayschedule(time.weekday()) 
+            ruleset.dayschedules(time.weekday()) 
             for time, ruleset in zip(Schedule.TIME_TUPLE, self.data)
         ]
         

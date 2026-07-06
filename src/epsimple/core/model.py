@@ -799,6 +799,34 @@ class GreenRetrofitResult:
     def area(self) -> float:
         return self.model.area
     
+    def get_domestic_hotwater_energy(self) -> list[float]:
+        
+        energy = [0] * 12
+        for zone in self.model.zone:
+            for dayschedule, date in zip(zone.profile._get_occupied_mask().dayschedules, dragon.Schedule.TIME_TUPLE):
+                if dayschedule.has_positive:
+                    energy[date.month-1] += zone.profile.domestic_hotwater * zone.area * 1E-3
+        
+        return energy
+    
+    def get_dhw_servers(self) -> list[SourceSystem]:
+        
+        dhw_servers = []
+        for zone in self.model.zone:
+            if zone.profile.domestic_hotwater > 0:
+                if isinstance(zone.heating_supply.source, Boiler):
+                    dhw_servers.append(zone.heating_supply.source)
+                elif isinstance(zone.heating_supply.source, DistrictHeating):
+                    dhw_servers.append(zone.heating_supply.source)
+                    
+        if len(dhw_servers) == 0:
+            
+            dhw_servers.append(
+                Boiler("", Fuel.NATURALGAS, True, 0.85)
+            )
+        
+        return list(set(dhw_servers))
+    
     def to_site_uses(self) -> pd.DataFrame:
         
         usecol_map = {
@@ -817,6 +845,13 @@ class GreenRetrofitResult:
             Fuel.DISTRICTHEATING: "OtherFuels" ,
         }
         
+        fuel_name_mapper = {
+            "natural_gas": "NATURALGAS",
+            "electricity": "ELECTRICITY",
+            "district_heating": "DISTRICTHEATING",
+            "oil": "OIL",
+        }
+        
         df_site = pd.DataFrame(index=[v.name for v in Fuel], columns=list(usecol_map.keys())).map(lambda _: [float(0)]*12)
         for fuel_type in Fuel:
             
@@ -831,6 +866,13 @@ class GreenRetrofitResult:
             for use in df_site.columns:
                 target_cols = [col for col in df.columns if any(col.startswith(usecol) for usecol in usecol_map[use])]                
                 df_site.loc[fuel,use] = list(df[target_cols].sum(axis=1)[:12].astype(float).map(lambda v: round(v/self.area, GreenRetrofitResult.VALID_DIGITS)))
+        
+        # temporary calculation for the domestic hot water (DHW) energy consumption
+        dhw_energy  = self.get_domestic_hotwater_energy()
+        dhw_servers = self.get_dhw_servers()
+        for dhw_server in dhw_servers:
+            target_fuel = fuel_name_mapper[dhw_server.fuel]
+            df_site.loc[target_fuel,"hotwater"] = [v + new_v/len(dhw_servers)/self.model.area for v, new_v in zip(df_site.loc[target_fuel,"hotwater"], dhw_energy)]
         
         # PV panel production
         table_name = "EnergyConsumptionElectricityGeneratedPropaneMonthly"

@@ -6,4 +6,7 @@ for profile in Profile.get_DB("__all__"):
     
     grm.zone[0].profile = profile
     grr = grm.run()
+    
+    d = grr.to_dict()
+    
     pass
