@@ -52,7 +52,10 @@ class Unit(float, Enum):
     
     # power
     W2KW = 1/1000
+
+class THERMAL(float, Enum):
     
+    PEOPLE_ACTIVITY_LEVEL = 107 # W/m2K
     
 # ---------------------------------------------------------------------------- #
 #                                  CONVENTIONS                                 #

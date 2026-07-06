@@ -48,26 +48,23 @@ class PackageInfo:
 class Unit(float, Enum):
     
     # length
-    MM2M = 1/1000
-    M2MM = 1000
+    MM_TO_M = 1/1000
+    M_TO_MM = 1000
     
     # ratio
-    NONE2PRC = 100
-    PRC2NONE = 1/100
+    FRACTION_TO_PERCENT = 100
+    PERCENT_TO_FRACTION = 1/100
     
     # power
-    W2KW = 1/1000
+    W_TO_KW = 1/1000
     
     # infiltration
-    ACH502ACH = 0.07
-    
+    ACH50_TO_ACH = 0.07    
     
 class ConvectionHeatTransfer(float, Enum):
     
     IN  = 1/0.110 # 거실의 실내표면열전달저항 (건축물의 에너지절약설계기준 [별표 5])
     OUT = 1/0.043 # 거실의 실외(직접외기)표면열전달저항 (건축물의 에너지절약설계기준 [별표 5])
-
-    
     
 # ---------------------------------------------------------------------------- #
 #           COEFFICIENT: REGULATIONS, STANDARDS, DOMESTIC STATISTICS           #

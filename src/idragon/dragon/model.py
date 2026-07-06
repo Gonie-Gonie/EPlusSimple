@@ -16,8 +16,8 @@ from ..imugi import (
 )
 
 from ..common import (
-    Version  ,
-    Setting  ,
+    Version,
+    Setting,
 )
 from .construction import (
     Material    ,
@@ -30,11 +30,15 @@ from .shape import (
 )
 from .hvac import (   
     SupplySystem     ,
-    SupplyGroup,
+    SupplyGroup      ,
     PhotoVoltaicPanel,
 )
 from .profile import (
-    Profile,
+    ScheduleType,
+    Profile     ,
+)
+from ..constants import (
+    THERMAL
 )
 
 
@@ -113,11 +117,13 @@ class EnergyModel:
         idf["GlobalGeometryRules"][0] =IdfObject("GlobalGeometryRules", ["UpperLeftCorner", "CounterClockwise", "World"])
         
         # global objects
+        for schedule_type in ScheduleType:
+            idf.append(schedule_type.to_idf_object())
         idf["Schedule:Compact"].append(["ALLON" , "", "Through: 12/31", "For: AllDays", "Until: 24:00", 1])
         idf["Schedule:Compact"].append(["ALLOFF", "", "Through: 12/31", "For: AllDays", "Until: 24:00", 0])
         
         # assumptions
-        idf["Schedule:Constant"].append(["$DEFAULT$PEOPLEACTIVITY", None, 107])
+        idf["Schedule:Constant"].append(["$DEFAULT$PEOPLEACTIVITY", ScheduleType.REAL, THERMAL.PEOPLE_ACTIVITY_LEVEL.value])
         
         # main output
         idf["OutputControl:Table:Style"].append(["COMMA", "JtoKWH"])

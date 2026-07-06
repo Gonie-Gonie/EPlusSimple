@@ -414,7 +414,7 @@ class SurfaceConstruction:
         # two constructions are equal if all layers have same material and thickness
         return (len(self.layers) == len(other.layers)) and\
                all(
-                   (self_layer[0] == other_layer[0]) and (self.layer[1] == other.layer[1])
+                   (self_layer[0] == other_layer[0]) and (self_layer[1] == other_layer[1])
                    for self_layer, other_layer in zip(self.layers, other.layers)
                 )
     
@@ -452,7 +452,7 @@ class SurfaceConstruction:
         return dragon.Construction(
             self.ID,
             *[
-                dragon.Layer(f"{material.ID}_{thickness*Unit.M2MM}mm", material_dict[material.ID], thickness)
+                dragon.Layer(f"{material.ID}_{thickness*Unit.M_TO_MM}mm", material_dict[material.ID], thickness)
                 for material, thickness in self.layers
             ]
         )

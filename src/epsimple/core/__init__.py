@@ -11,11 +11,8 @@ from .construction import (
     FenestrationConstruction,
 )
 from .profile import (
-    DaySchedule,
-    RuleSet    ,
-    Period     ,
-    Schedule   ,
-    Profile    ,
+    Profile           ,
+    KoreanUsageProfile,
 )
 from .hvac import (
     # enums

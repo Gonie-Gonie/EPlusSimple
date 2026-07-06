@@ -40,10 +40,7 @@ from . import (
     UnknownConstruction     ,
     FenestrationConstruction,
     # profile
-    DaySchedule,
-    RuleSet    ,
-    Schedule   ,
-    Profile    ,
+    Profile,
     # hvac
     Fuel,
     SourceSystem      ,
@@ -244,16 +241,6 @@ class GreenRetrofitModel:
         self.__supply_system = list(value)
     
     @property
-    def hotwater_demand(self) -> list[float]:
-        
-        demand = [0]*12    
-        for zone in self.zone:
-            zone_use = [v*zone.area for v in zone.profile.hotwater]
-            demand = [base+v for base, v in zip(demand, zone_use)]
-        
-        return demand
-    
-    @property
     def area(self) -> float:
         return sum(zone.area for zone in self.zone)
     
@@ -441,30 +428,6 @@ class GreenRetrofitModel:
         return {
             zone.profile.ID: zone.profile
             for zone in self.zone
-        }
-    
-    def get_unique_schedules(self) -> dict[str, Schedule]:
-        
-        return {
-            k:v
-            for profile in self.get_unique_profiles().values()
-            for k,v in profile.get_unique_schedules().items()
-        }
-        
-    def get_unique_rulesets(self) -> dict[str, RuleSet]:
-        
-        return {
-            k:v
-            for schedule in self.get_unique_schedules().values()
-            for k,v in schedule.get_unique_rulesets().items()
-        }
-        
-    def get_unique_day_schedules(self) -> dict[str, DaySchedule]:
-        
-        return {
-            k:v
-            for ruleset in self.get_unique_rulesets().values()
-            for k,v in ruleset.get_unique_day_schedules().items()
         }
     
     """ model in-out
@@ -725,20 +688,8 @@ class GreenRetrofitModel:
         }
         
         # profile
-        day_schedule_dict = {
-            k: v.to_dragon()
-            for k, v in self.get_unique_day_schedules().items()
-        }
-        ruleset_dict = {
-            k: v.to_dragon(day_schedule_dict=day_schedule_dict)
-            for k, v in self.get_unique_rulesets().items()
-        }
-        schedule_dict = {
-            k: v.to_dragon(ruleset_dict=ruleset_dict)
-            for k, v in self.get_unique_schedules().items()
-        }
         profile_dict = {
-            k: v.to_dragon(schedule_dict=schedule_dict)
+            k: v.to_dragon()
             for k, v in self.get_unique_profiles().items()
         }
         
@@ -788,7 +739,7 @@ class GreenRetrofitModel:
                     zone.ID,
                     dragonized_surfaces[zone.ID],
                     profile_dict[zone.profile.ID],
-                    (zone.infiltration if zone.infiltration is not None else GreenRetrofitModel.get_default_infiltration(zone))*Unit.ACH502ACH,
+                    (zone.infiltration if zone.infiltration is not None else GreenRetrofitModel.get_default_infiltration(zone))*Unit.ACH50_TO_ACH,
                     zone.light_density,
                     supply_dict.get(getattr(zone.cooling_supply,"ID",None), None),
                     supply_dict.get(getattr(zone.heating_supply,"ID",None), None),
@@ -848,44 +799,69 @@ class GreenRetrofitResult:
     def area(self) -> float:
         return self.model.area
     
-    def calc_hotwater_energy(self) -> dict[str, list[float]]:
+    def get_domestic_hotwater_energy(self) -> list[float]:
         
-        # calculate hotwater demand using the applied profiles
-        demand = self.model.hotwater_demand
+        energy = [0] * 12
+        for zone in self.model.zone:
+            for dayschedule, date in zip(zone.profile._get_occupied_mask().dayschedules, dragon.Schedule.TIME_TUPLE):
+                if dayschedule.has_positive:
+                    energy[date.month-1] += zone.profile.domestic_hotwater * zone.area * 1E-3
         
-        # find hotwater supply 
-        hotwater_supply = [source for source in self.model.supply_system if hasattr(source, "hotwater_supply") and source.hotwater_supply]
-        # if empty, add a boiler
-        if len(hotwater_supply) == 0:
-            DEFAULT_BOILER_EFFICIENCY_FOR_HOTWATER = 0.85
-            hotwater_supply =[Boiler("HotWaterBoiler", Fuel.NATURALGAS, True, DEFAULT_BOILER_EFFICIENCY_FOR_HOTWATER, None)]
-        
-        # calc demand distribution for the hotwater supplies
-        demand_per_supply = [v/self.area/len(hotwater_supply) for v in demand]
-        
-        # get hotwater energy by fuel types
-        hotwater_energy = {fuel.name: [0]*12 for fuel in Fuel}
-        for supply in hotwater_supply:            
-            
-            # case 1: district heating
-            if isinstance(supply, DistrictHeating):
-                
-                EFFICIENCY_OF_DISTRICT_HEATING = 1.0
-                hotwater_energy[Fuel.DISTRICTHEATING.name] = [
-                    round(v_add/EFFICIENCY_OF_DISTRICT_HEATING +v_org, GreenRetrofitResult.VALID_DIGITS)
-                    for v_add, v_org in zip(demand_per_supply, hotwater_energy[Fuel.DISTRICTHEATING.name])
-                ]
-            
-            # case 2: boiler 
-            elif isinstance(supply, Boiler):
-                hotwater_energy[Fuel(supply.fuel).name] = [
-                    round(v_add/supply.efficiency +v_org, GreenRetrofitResult.VALID_DIGITS)
-                    for v_add, v_org in zip(demand_per_supply, hotwater_energy[Fuel(supply.fuel).name])
-                ]
-                
+        return energy
+    
+    def get_dhw_servers(self) -> list[SourceSystem]:
+        dhw_servers = [
+            source
+            for source in self.model.supply_system
+            if hasattr(source, "hotwater_supply") and source.hotwater_supply
+        ]
+
+        if len(dhw_servers) == 0:
+            dhw_servers = [
+                Boiler(
+                    "HotWaterBoiler",
+                    Fuel.NATURALGAS,
+                    True,
+                    0.85,
+                    None,
+                )
+            ]
+
+        return list({server.ID: server for server in dhw_servers}.values())
+    
+    def calc_domestic_hotwater_site_energy(self) -> dict[str, list[float]]:
+        demand = self.get_domestic_hotwater_energy()
+        dhw_servers = self.get_dhw_servers()
+
+        demand_per_server = [
+            v / self.area / len(dhw_servers)
+            for v in demand
+        ]
+
+        hotwater_energy = {
+            fuel.name: [0.0] * 12
+            for fuel in Fuel
+        }
+
+        for server in dhw_servers:
+            if isinstance(server, DistrictHeating):
+                fuel = Fuel.DISTRICTHEATING.name
+                efficiency = 1.0
+
+            elif isinstance(server, Boiler):
+                fuel = Fuel(server.fuel).name
+                efficiency = server.efficiency
+
             else:
-                raise RuntimeError("급탕이 보일러랑 바닥난방말고 또있나??")
-        
+                raise RuntimeError(
+                    f"Unsupported DHW server: {type(server).__name__}"
+                )
+
+            hotwater_energy[fuel] = [
+                round(v_org + v_add / efficiency, GreenRetrofitResult.VALID_DIGITS)
+                for v_org, v_add in zip(hotwater_energy[fuel], demand_per_server)
+            ]
+
         return hotwater_energy
     
     def to_site_uses(self) -> pd.DataFrame:
@@ -920,9 +896,9 @@ class GreenRetrofitResult:
             for use in df_site.columns:
                 target_cols = [col for col in df.columns if any(col.startswith(usecol) for usecol in usecol_map[use])]                
                 df_site.loc[fuel,use] = list(df[target_cols].sum(axis=1)[:12].astype(float).map(lambda v: round(v/self.area, GreenRetrofitResult.VALID_DIGITS)))
-                
-        # hot water use from the profiles
-        hotwater_energy_dict = self.calc_hotwater_energy()
+        
+        # temporary calculation for the domestic hot water (DHW) energy consumption
+        hotwater_energy_dict = self.calc_domestic_hotwater_site_energy()
         for fuel, energy in hotwater_energy_dict.items():
             df_site.loc[fuel, "hotwater"] = energy
         
