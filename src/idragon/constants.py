@@ -52,6 +52,9 @@ class Unit(float, Enum):
     
     # power
     W2KW = 1/1000
+    
+    # volume
+    L2M3 = 1/1000
 
 class THERMAL(float, Enum):
     

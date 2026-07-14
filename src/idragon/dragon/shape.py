@@ -32,6 +32,7 @@ from .profile import (
 from .hvac import (
     SupplySystem,
 )
+from ..constants import Unit
 
 # ---------------------------------------------------------------------------- #
 #                                    CLASSES                                   #
@@ -793,12 +794,14 @@ class Zone:
         # ventilation
         if self.profile.occupant is not None:
             
+            BASE_VENTILATION_FLOW_PER_PERSON = 8.3 * Unit.L2M3
+            
             if self.ventilation is None:
                 load_objs.append(IdfObject("ZoneVentilation:DesignFlowRate",{
                     "Name": f"NaturalVentilation:{self.name}",
                     "Zone or ZoneList or Space or SpaceList Name": f"{self.name}",
                     "Design Flow Rate Calculation Method": "Flow/Person",
-                    "Flow Rate per Person": 0.002,
+                    "Flow Rate per Person": BASE_VENTILATION_FLOW_PER_PERSON,
                 }, ignore_default=False))
             
             else:
@@ -809,7 +812,7 @@ class Zone:
                     "Name": f"NaturalVentilation:{self.name}",
                     "Zone or ZoneList or Space or SpaceList Name": f"{self.name}",
                     "Design Flow Rate Calculation Method": "Flow/Person",
-                    "Flow Rate per Person": 0.002 * (1-overall_efficiency),
+                    "Flow Rate per Person": BASE_VENTILATION_FLOW_PER_PERSON * (1-overall_efficiency),
                     "Ventilation Type": "Exhaust",
                     "Fan Pressure Rise": 50 / (1-overall_efficiency),
                     "Fan Total Efficiency": 0.85,
