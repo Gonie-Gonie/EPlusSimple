@@ -506,7 +506,7 @@ class SurfaceConstruction:
         ) -> SurfaceConstruction:
         
         # date
-        regulation_date = max(date for date in surface_construction_regulation_dates if date < vintage)
+        regulation_date = max(date for date in surface_construction_regulation_dates if date <= vintage)
         
         # part
         match surface_type:
