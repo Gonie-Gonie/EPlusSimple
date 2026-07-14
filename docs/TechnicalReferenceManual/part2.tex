@@ -429,7 +429,7 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 
 \paragraph{area (면적)} 개구부의 면적. 해당 개구부가 속한 면의 면적보다 작아야 한다.
 
-\paragraph{construction\_id (구조체 식별자)} 개구부의 구조체. \texttt{type}이 ``window'' 또는 ``glassdoor''인 경우, \texttt{is\_transparent} 속성이 \texttt{True}인 구조체여야 한다. 반대로, \texttt{type}이 ``door''인 경우, \texttt{is\_transparent} 속성이 \texttt{False}인 구조체여야 한다
+\paragraph{construction\_id (구조체 식별자)} 개구부의 구조체. \texttt{type}이 ``window'' 또는 ``glassdoor''인 경우, \texttt{is\_transparent} 속성이 \texttt{True}인 구조체여야 한다. \texttt{type}이 ``door''인 경우, \texttt{is\_transparent} 속성이 \texttt{False}인 구조체여야 한다
 
 \paragraph{blind (블라인드)} 블라인드의 종류. 값이 \texttt{null}이면 블라인드가 없는 것을 의미한다.
 
@@ -452,17 +452,17 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 
 \paragraph{type (유형)} 공급설비의 종류. 선택한 공급설비 유형에 따라 냉·난방 제공 가능 여부가 달라진다. 각 공급설비별 냉·난방 지원 가능 여부는 Figure \ref{fig:supply_and_source_properties_and_connection}에 제시되어 있다.
 
-\paragraph{cop\_cooling (냉방COP)} 정격 냉방 성능계수(COP). 정격 운전 조건에서의 냉방 출력을 소비 전력으로 나눈 값이다. 공급설비의 유형을 ``packaged\_airconditioner''로 선택한 경우에만 입력한다.
+\paragraph{cop\_cooling (냉방COP)} 정격 냉방 성능계수(COP). 정격 운전 조건에서의 냉방 출력을 소비 전력으로 나눈 값이다. 공급설비의 유형이 ``packaged\_airconditioner''인 경우에만 입력한다.
 
-\paragraph{capacity\_cooling (냉방용량)} 냉방용량. 설비의 최대 냉방 출력을 의미한다. 해당 값을 입력하지 않을 경우 (\texttt{null}), EnergyPlus의 autosizing을 이용한다. 공급설비의 유형을 ``packaged\_airconditioner''로 선택한 경우에만 입력한다.
+\paragraph{capacity\_cooling (냉방용량)} 냉방용량. 설비의 최대 냉방 출력을 의미한다. 해당 값을 입력하지 않을 경우 (\texttt{null}), autosizing을 이용한다. 공급설비의 유형이 ``packaged\_airconditioner''인 경우에만 입력한다.
 
-\paragraph{capacity\_heating (난방용량)} 난방용량. 설비의 최대 난방 출력을 의미한다. 해당 값을 입력하지 않을 경우 (\texttt{null}), EnergyPlus의 autosizing을 이용한다. 공급설비의 유형을 ``radiator''혹은 ``electric\_radiator''로 선택한 경우에만 입력한다.
+\paragraph{capacity\_heating (난방용량)} 난방용량. 설비의 최대 난방 출력을 의미한다. 해당 값을 입력하지 않을 경우 (\texttt{null}),autosizing을 이용한다. 공급설비의 유형이 ``radiator''혹은 ``electric\_radiator''인 경우에만 입력한다.
 
 \paragraph{source\_system\_id (생산설비 식별자)} 연결된 생산설비의 ID. 연결가능한 생산설비는 Figure \ref{fig:supply_and_source_properties_and_connection}\와 같다.
 
 \begin{defaultfigure}
   \includegraphics[width=\textwidth]{HVAC_properties_and_connectables.png}
-  \caption{공급 및 생산설비 종류에 따른 요구 속성 및 연결 가능성 (적색 선은 난방, 청색 선은 냉방이 가능함을 의미하며, packaged\_air\_conditioner와 electric\_radiator는 생산설비의 연결을 요구하지 않는다.)}
+  \caption{공급 및 생산설비 종류에 따른 요구 속성 및 가능한 조합 (적색 선은 난방, 청색 선은 냉방이 가능함을 의미하며, packaged\_air\_conditioner와 electric\_radiator는 생산설비의 연결을 요구하지 않는다.)}
   \label{fig:supply_and_source_properties_and_connection}
 \end{defaultfigure}
 
@@ -628,16 +628,6 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 \paragraph{u (열관류율)} 창호의 열관류율(U-value).
 
 \paragraph{g (태양열취득계수)} 창호의 열취득계수(G-value, SHGC).
-
-% ---------------------------------------------------------------------------- %
-%                                  NEW SECTION                                 %
-% ---------------------------------------------------------------------------- %
-
-\section{입력파일 (xlsx)}
-\label{section:format-explanation-xlsx}
-
-엑셀 기반 입력파일은 각 시트가 grm 입력파일의 클래스에 대응되는 형태로 구성된다. 각 시트 내에서, 열은 클래스의 속성에 대응되며, 행은 개별 객체 인스턴스에 해당한다.
-
 
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
