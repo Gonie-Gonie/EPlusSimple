@@ -561,12 +561,16 @@ class GreenRetrofitModel:
         dragonized_default_innerwall_construction = default_innerwall_construction.to_dragon()
         unknown_surfaces = []
         for surface in surface_dict.values():
-            unknown_surfaces.append(surface)
             
             if surface.construction is UnknownConstruction():
+                unknown_surfaces.append(surface)
+                
+                # interior wall
                 if (surface.type == SurfaceType.WALL) and (surface.boundary == SurfaceBoundaryCondition.ZONE):
                     surface.construction = default_innerwall_construction
                     surface_construction_dict[dragonized_default_innerwall_construction.name] = dragonized_default_innerwall_construction
+                
+                # exterior wall / roof / floor
                 else:            
                     regulated_construction = SurfaceConstruction.get_regulated_construction(
                         self.vintage    ,
