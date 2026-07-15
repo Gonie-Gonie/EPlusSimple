@@ -341,6 +341,10 @@ class Surface:
         return area
     
     @property
+    def height(self) -> float:
+        return max(vtx.z for vtx in self.vertex) - min(vtx.z for vtx in self.vertex)
+    
+    @property
     def center(self) -> Vertex:
         return sum(self.vertex)/len(self.vertex)
     
@@ -367,10 +371,21 @@ class Surface:
     """ idf
     """
     
-    def to_idf_object(self, zone:Zone) -> IdfObject:
+    def _get_fenestration_width_and_height(self, opening_area:int|float) -> tuple[float, float]:
         
         # for stable calculation, opening sizes are reduced
         SAFETY_FACTOR_FOR_OPENING_SIZE = 0.999
+        SAFETY_MARGIN_FOR_OPENING_SIZE = 0.001
+        
+        height = (self.height - SAFETY_MARGIN_FOR_OPENING_SIZE)*SAFETY_FACTOR_FOR_OPENING_SIZE
+        width  = opening_area/height * SAFETY_FACTOR_FOR_OPENING_SIZE
+       
+        
+        return width, height
+    
+    def to_idf_object(self, zone:Zone) -> IdfObject:
+        
+        SAFETY_MARGIN_FOR_OPENING_SIZE = 0.001
         
         # window and door objects
         if isinstance(self.boundary, Surface):
@@ -381,9 +396,8 @@ class Surface:
                     self.name,
                     win_copied.name,
                     1,
-                    1E-3, 1E-3,
-                    win.area**(1/2)*SAFETY_FACTOR_FOR_OPENING_SIZE,
-                    win.area**(1/2)*SAFETY_FACTOR_FOR_OPENING_SIZE,
+                    SAFETY_MARGIN_FOR_OPENING_SIZE, SAFETY_MARGIN_FOR_OPENING_SIZE,
+                    *self._get_fenestration_width_and_height(win.area)
                 ])
                 for win, win_copied in zip(self.window, self.boundary.window)
             ]
@@ -394,9 +408,8 @@ class Surface:
                     self.name,
                     door_copied.name,
                     1,
-                    1E-3, 1E-3,
-                    door.area**(1/2)*SAFETY_FACTOR_FOR_OPENING_SIZE,
-                    door.area**(1/2)*SAFETY_FACTOR_FOR_OPENING_SIZE,
+                    SAFETY_MARGIN_FOR_OPENING_SIZE, SAFETY_MARGIN_FOR_OPENING_SIZE,
+                    *self._get_fenestration_width_and_height(door.area)
                 ])
                 for door, door_copied in zip(self.door, self.boundary.door)
             ]
@@ -408,9 +421,8 @@ class Surface:
                     self.name,
                     None,
                     1,
-                    1E-3, 1E-3,
-                    win.area**(1/2)*SAFETY_FACTOR_FOR_OPENING_SIZE,
-                    win.area**(1/2)*SAFETY_FACTOR_FOR_OPENING_SIZE,
+                    SAFETY_MARGIN_FOR_OPENING_SIZE, SAFETY_MARGIN_FOR_OPENING_SIZE,
+                    *self._get_fenestration_width_and_height(win.area)
                 ]) 
                 for win in self.window
             ]
@@ -420,9 +432,8 @@ class Surface:
                     door.construction.name,
                     self.name,
                     1,
-                    1E-3, 1E-3,
-                    door.area**(1/2)*SAFETY_FACTOR_FOR_OPENING_SIZE,
-                    door.area**(1/2)*SAFETY_FACTOR_FOR_OPENING_SIZE,
+                    SAFETY_MARGIN_FOR_OPENING_SIZE, SAFETY_MARGIN_FOR_OPENING_SIZE,
+                    *self._get_fenestration_width_and_height(door.area)
                 ])
                 for door in self.door
             ]       
