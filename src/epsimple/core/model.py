@@ -389,7 +389,8 @@ class GreenRetrofitModel:
         
         for zone in self.zone:
             volsum += zone.area * zone.height
-            infiltration_volsum += zone.infiltration * zone.area * zone.height
+            infiltration = zone.infiltration if zone.infiltration is not None else GreenRetrofitModel.get_default_infiltration(zone)
+            infiltration_volsum += infiltration * zone.area * zone.height
         
         if volsum > 0:
             return infiltration_volsum / volsum
