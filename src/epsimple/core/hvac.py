@@ -1625,7 +1625,7 @@ class VentilationSystem:
         return self.__heating_efficiency
     
     @heating_efficiency.setter
-    @validate_range(min=SMALLEST_VALUE, max=1)
+    @validate_range(min=SMALLEST_VALUE, max=1-SMALLEST_VALUE)
     @validate_type(int, float)
     def heating_efficiency(self, value:int|float) -> None:
         self.__heating_efficiency = value
@@ -1635,7 +1635,7 @@ class VentilationSystem:
         return self.__cooling_efficiency
     
     @cooling_efficiency.setter
-    @validate_range(min=SMALLEST_VALUE, max=1)
+    @validate_range(min=SMALLEST_VALUE, max=1-SMALLEST_VALUE)
     @validate_type(int, float)
     def cooling_efficiency(self, value:int|float) -> None:
         self.__cooling_efficiency = value
