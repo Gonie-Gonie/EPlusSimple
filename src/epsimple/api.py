@@ -7,8 +7,9 @@
 from __future__ import annotations
 import os
 import re
-from enum import Enum
-from typing import Literal
+from enum    import Enum
+from typing  import Literal
+from pathlib import Path
 from concurrent.futures import ProcessPoolExecutor
 
 # third-party modules
@@ -64,7 +65,11 @@ def run_grjson(
     
     # set default output filepath
     if output_filepath is None:
-        output_filepath = re.sub(r"(\.\w+?)$",rf".grr",input_filepath)
+        input_path = Path(input_filepath)
+        if input_path.suffix == "":
+            output_filepath = str(input_path) + ".grr"
+        else:
+            output_filepath = str(input_path.with_suffix(".grr"))
      
     # read input file
     grm = GreenRetrofitModel.from_grjson(input_filepath)
