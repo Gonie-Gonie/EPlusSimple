@@ -212,30 +212,30 @@ class GreenRetrofitModel:
     """
         
     @property
-    def supply_system(self) -> list[SupplySystem]:
+    def source_system(self) -> list[SourceSystem]:
         
-        heating_supplies = {
+        heating_sources = {
             zone.heating_supply.source.ID: zone.heating_supply.source
             for zone in self.zone
-            if isinstance(zone.heating_supply, SupplySystem) and not isinstance(zone.heating_supply, NoneSource)
+            if isinstance(zone.heating_supply, SourceSystem) and not isinstance(zone.heating_supply, NoneSource)
         }
         
-        cooling_supplies = {
+        cooling_sources = {
             zone.cooling_supply.source.ID: zone.cooling_supply.source
             for zone in self.zone
-            if isinstance(zone.cooling_supply, SupplySystem) and not isinstance(zone.cooling_supply, NoneSource)
+            if isinstance(zone.cooling_supply, SourceSystem) and not isinstance(zone.cooling_supply, NoneSource)
         }
         
-        unique_supplies = list((heating_supplies|cooling_supplies).values())
+        unique_sources = list((heating_sources|cooling_sources).values())
         
-        return self.__supply_system + unique_supplies
+        return self.__supply_system + unique_sources
     
-    @supply_system.setter
-    def supply_system(self, value:list[SupplySystem]):
+    @source_system.setter
+    def source_system(self, value:list[SourceSystem]):
         
-        if not isinstance(value, Iterable) and not all(isinstance(item, SupplySystem) for item in value):
+        if not isinstance(value, Iterable) and not all(isinstance(item, SourceSystem) for item in value):
             raise ValueError(
-                f"Supply system of a GreenRetrofitModel instance should be an iterable instance of SupplySystem(s)."
+                f"Source system of a GreenRetrofitModel instance should be an iterable instance of SourceSystem(s)."
             )
         
         self.__supply_system = list(value)
@@ -506,8 +506,8 @@ class GreenRetrofitModel:
         
         # add unused source systems
         # please refer to the definition of the supply_system property
-        applied_ID = (supply.ID for supply in grm.supply_system)
-        grm.supply_system = [sys for sys in source_system_dict.values() if sys.ID not in applied_ID]
+        applied_ID = (source.ID for source in grm.source_system)
+        grm.source_system = [sys for sys in source_system_dict.values() if sys.ID not in applied_ID]
         
         # pv panel
         grm.pv = list(photovoltaic_systems.values())
@@ -816,7 +816,7 @@ class GreenRetrofitResult:
     def get_dhw_servers(self) -> list[SourceSystem]:
         dhw_servers = [
             source
-            for source in self.model.supply_system
+            for source in self.model.source_system
             if hasattr(source, "hotwater_supply") and source.hotwater_supply
         ]
 
