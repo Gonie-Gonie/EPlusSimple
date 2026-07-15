@@ -111,7 +111,7 @@ def address_to_weather(
     weather_location = sigungu_info["기상지역명"]
     weather_filepath = Directory.WEATHER_DATA_DIR /  sigungu_info["EPW파일명"]
     
-    climate = CLIMATE_TABLE.at[sigungu, max(datestr for datestr in CLIMATE_TABLE.columns if datestr < vintage.strftime(r"%Y%m%d"))]
+    climate = CLIMATE_TABLE.at[sigungu, max(datestr for datestr in CLIMATE_TABLE.columns if datestr <= vintage.strftime(r"%Y%m%d"))]
     
     return terrain, climate, weather_location, weather_filepath
 
