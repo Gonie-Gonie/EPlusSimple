@@ -1390,7 +1390,7 @@ class ElectricRadiator(SupplySystem):
         
         return ElectricRadiator(
             input.name,
-            input.capacity_heating,
+            getattr(input.capacity_heating,None),
             ID=input.id,
         )
         
