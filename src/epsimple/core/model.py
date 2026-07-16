@@ -907,10 +907,20 @@ class GreenRetrofitResult:
         for fuel, energy in hotwater_energy_dict.items():
             df_site.loc[fuel, "hotwater"] = energy
         
-        # PV panel production
-        table_name = "EnergyConsumptionElectricityGeneratedPropaneMonthly"
-        if table_name in self.result.tbl.keys():
-            df_site.loc["ELECTRICITY","generators"] = self.result.tbl[table_name]["ELECTRICITYPRODUCED:FACILITY [kWh]"][:12].astype(float).map(lambda v: round(v/self.area, GreenRetrofitResult.VALID_DIGITS)).tolist()
+        # On-site PV generation used within the facility
+        table_name = "ELECTRICITYBALANCEMONTHLY"
+
+        if table_name in self.result.tbl:
+            df_electricity_balance = self.result.tbl[table_name]
+
+            electricity_produced = (df_electricity_balance["ELECTRICITYPRODUCED:FACILITY [kWh]"   ].iloc[:12].astype(float))
+            electricity_surplus  = (df_electricity_balance["ELECTRICITYSURPLUSSOLD:FACILITY [kWh]"].iloc[:12].astype(float))
+            electricity_used_onsite = (electricity_produced - electricity_surplus).clip(lower=0.0)
+
+            df_site.loc["ELECTRICITY","generators",] = [
+                round(value / self.area, GreenRetrofitResult.VALID_DIGITS,)
+                for value in electricity_used_onsite
+            ]
         
         return df_site
     
