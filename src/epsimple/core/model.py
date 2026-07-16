@@ -140,7 +140,7 @@ class GreenRetrofitModel:
         self.pv  =pv
         
         # initialization
-        self.__supply_system = []
+        self.__source_system = []
     
     """ address related
     """
@@ -217,18 +217,18 @@ class GreenRetrofitModel:
         heating_sources = {
             zone.heating_supply.source.ID: zone.heating_supply.source
             for zone in self.zone
-            if isinstance(zone.heating_supply, SourceSystem) and not isinstance(zone.heating_supply, NoneSource)
+            if zone.heating_supply is not None and not isinstance(zone.heating_supply.source, NoneSource)
         }
         
         cooling_sources = {
             zone.cooling_supply.source.ID: zone.cooling_supply.source
             for zone in self.zone
-            if isinstance(zone.cooling_supply, SourceSystem) and not isinstance(zone.cooling_supply, NoneSource)
+            if zone.cooling_supply is not None and not isinstance(zone.cooling_supply.source, NoneSource)
         }
         
         unique_sources = list((heating_sources|cooling_sources).values())
         
-        return self.__supply_system + unique_sources
+        return self.__source_system + unique_sources
     
     @source_system.setter
     def source_system(self, value:list[SourceSystem]):
@@ -238,7 +238,7 @@ class GreenRetrofitModel:
                 f"Source system of a GreenRetrofitModel instance should be an iterable instance of SourceSystem(s)."
             )
         
-        self.__supply_system = list(value)
+        self.__source_system = list(value)
     
     @property
     def area(self) -> float:
