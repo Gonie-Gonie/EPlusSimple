@@ -163,27 +163,42 @@ function Invoke-RepoPowerShellScript {
     )
 
     $fullPath = Resolve-RepoPath $Path
-    Assert-FileExists -Path $fullPath -Message 'PowerShell script was not found.'
+
+    Assert-FileExists `
+        -Path $fullPath `
+        -Message 'PowerShell script was not found.'
 
     Push-Location $RepoRoot
+
     try {
-        $global:LASTEXITCODE = 0
-        & $fullPath @Arguments
-        $exitCode = $global:LASTEXITCODE
-    } catch {
+        $childArguments = @(
+            '-NoProfile'
+            '-ExecutionPolicy'
+            'Bypass'
+            '-File'
+            $fullPath
+        )
+
+        $childArguments += @($Arguments)
+
+        & $PowerShellExe @childArguments
+        $exitCode = $LASTEXITCODE
+    }
+    catch {
         Write-Host '[ERROR] PowerShell script failed.'
         Write-Host "Script : $fullPath"
         Write-Host "Reason : $($_.Exception.Message)"
         exit 1
-    } finally {
+    }
+    finally {
         Pop-Location
     }
 
-    if ($null -ne $exitCode -and $exitCode -ne 0) {
-        exit $exitCode
+    if ($null -eq $exitCode) {
+        $exitCode = 0
     }
 
-    exit 0
+    exit $exitCode
 }
 
 function Invoke-RepoPythonScript {
@@ -278,7 +293,7 @@ if ($null -eq $RunArgs -or $RunArgs.Count -eq 0) {
 }
 
 $command = $RunArgs[0]
-$restArgs = Get-RestArgs -Values $RunArgs
+$restArgs = @(Get-RestArgs -Values $RunArgs)
 
 if ($command -in @('help', '-h', '--help', '/?')) {
     Write-Usage

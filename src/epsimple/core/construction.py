@@ -9,6 +9,7 @@ import os
 from copy     import deepcopy
 from types    import SimpleNamespace
 from datetime import datetime
+from pathlib  import Path
 
 # third-party modules
 import pandas as pd
@@ -34,36 +35,13 @@ from ..constants import (
     AUTOID_PREFIX ,
 )
 
-
-
-# ---------------------------------------------------------------------------- #
-#                                   VARIABLES                                  #
-# ---------------------------------------------------------------------------- #
-
-# databases
-df_material                  = pd.read_csv(os.path.join(Directory.CONSTRUCTION_DIR,"material.csv"))
-df_surface_construction      = pd.read_csv(os.path.join(Directory.CONSTRUCTION_DIR,"construction_regulation_surface.csv"))
-df_fenestration_construction = pd.read_csv(os.path.join(Directory.CONSTRUCTION_DIR,"construction_regulation_fenestration.csv"))
-
-# post-process
-df_material.set_index("name", inplace=True)
-df_surface_construction["시행일자"] = df_surface_construction["시행일자"].map(lambda v: str(v))
-df_surface_construction.set_index(["시행일자","부위","외기조건","용도","지역"], inplace=True)
-df_fenestration_construction.set_index(["창개수","로이유리","아르곤","열교차단재","창틀","공기층"], inplace=True)
-
-# for convenience
-surface_construction_regulation_dates = [
-    datetime.strptime(datestr, r"%Y%m%d")
-    for datestr in sorted(set(df_surface_construction.index.get_level_values("시행일자")))
-]
-
-
 # ---------------------------------------------------------------------------- #
 #                            CONSTRUCTION COMPONENTS                           #
 # ---------------------------------------------------------------------------- #
 
 class Material:
     
+    _DB_filepath = Directory.CONSTRUCTION_DIR / "material.csv"
     _DB = {}
     
     def __init__(self,
@@ -170,6 +148,25 @@ class Material:
         )    
     
     @staticmethod
+    def load_DB() -> None:
+        
+        # load dataframe from csv file
+        df_material = pd.read_csv(Material._DB_filepath)
+        df_material.set_index("name", inplace=True)
+        
+        # set the database
+        Material._DB = {
+            row.name: Material(
+                row.name,
+                row["conductivity"] ,
+                row["density"]      ,
+                row["heat_capacity"],
+                ID = f"{SpecialTag.DB}{row.name}"
+            )
+            for _, row in df_material.iterrows()
+        }
+    
+    @staticmethod
     def get_DB(
         key:str,
         *,
@@ -182,7 +179,7 @@ class Material:
         
         # special key to get path of the database
         if key == "__path__":
-            return os.path.join(Directory.CONSTRUCTION_DIR, "material.csv")
+            return str(Material._DB_filepath)
         
         # special key to get all item in the database
         if key == "__all__":
@@ -227,6 +224,7 @@ class Material:
 
 class SurfaceConstruction:
     
+    _DB_filepath = Directory.CONSTRUCTION_DIR / "construction_regulation_surface.csv"
     _DB = {}
     
     def __init__(self,
@@ -458,6 +456,28 @@ class SurfaceConstruction:
         )
     
     @staticmethod
+    def load_DB() -> None:
+        
+        # load dataframe from csv file
+        df_surface_construction = pd.read_csv(SurfaceConstruction._DB_filepath)
+        df_surface_construction["시행일자"] = df_surface_construction["시행일자"].map(lambda v: str(v))
+        df_surface_construction.set_index(["시행일자","부위","외기조건","용도","지역"], inplace=True)
+        
+        # set the database
+        SurfaceConstruction._DB = {
+            (row.name): SurfaceConstruction.create_simply(
+                "&".join(row.name),
+                float(row["열관류율"]),
+                ID = f"{SpecialTag.DB}{'&'.join(row.name)}"
+            )
+            for _, row in df_surface_construction.iterrows()
+        }
+        SurfaceConstruction.REGULATION_DATES = [
+            datetime.strptime(datestr, r"%Y%m%d")
+            for datestr in sorted(set(df_surface_construction.index.get_level_values("시행일자")))
+        ]
+    
+    @staticmethod
     def get_DB(
         key:str,
         *,
@@ -470,7 +490,7 @@ class SurfaceConstruction:
         
         # special key to get path of the database
         if key == "__path__":
-            return os.path.join(Directory.CONSTRUCTION_DIR, "construction_regulation_surface.csv")
+            return str(SurfaceConstruction._DB_filepath)
         
         # special key to get all item in the database
         if key == "__all__":
@@ -506,7 +526,7 @@ class SurfaceConstruction:
         ) -> SurfaceConstruction:
         
         # date
-        regulation_date = max(date for date in surface_construction_regulation_dates if date <= vintage)
+        regulation_date = max(date for date in SurfaceConstruction.REGULATION_DATES if date <= vintage)
         
         # part
         match surface_type:
@@ -554,7 +574,7 @@ class SurfaceConstruction:
         }
     
     def __str__(self) -> str:
-        return f"Construction (for surface, {self.depth:.1f}mm) {self.name} (ID={self.ID}): U_int={self.U_internal:.2f}W/m2K, Cp={self.heat_capacity:.1f}J/m2K"
+        return f"Construction (for surface, {self.depth*Unit.M_TO_MM:.1f}mm) {self.name} (ID={self.ID}): U_int={self.U_internal:.2f}W/m2K, Cp={self.heat_capacity:.1f}J/m2K"
     
     def __repr__(self) -> str:
         return f"<Construction (for surface) {self.name} (ID={self.ID}) at {hex(id(self))}>"
@@ -600,6 +620,7 @@ class UnknownConstruction(SpecialConstruction):
 
 class FenestrationConstruction:
     
+    _DB_filepath = Directory.CONSTRUCTION_DIR / "construction_regulation_fenestration.csv"
     _DB = {}
     
     def __init__(
@@ -708,6 +729,24 @@ class FenestrationConstruction:
             )
     
     @staticmethod
+    def load_DB() -> None:
+        
+        # load dataframe from csv file
+        df_fenestration_construction = pd.read_csv(FenestrationConstruction._DB_filepath)
+        df_fenestration_construction.set_index(["창개수","로이유리","아르곤","열교차단재","창틀","공기층"], inplace=True)
+        
+        # set the database
+        FenestrationConstruction._DB = {
+            (row.name): FenestrationConstruction(
+                "&".join(row.name),
+                float(row["열관류율"]),
+                float(row["SHGC"]),
+                ID = f"{SpecialTag.DB}{'&'.join(row.name)}"
+            )
+            for _, row in df_fenestration_construction.iterrows()
+        }
+    
+    @staticmethod
     def get_DB(
         key:str,
         *,
@@ -720,7 +759,7 @@ class FenestrationConstruction:
         
         # special key to get path of the database
         if key == "__path__":
-            return os.path.join(Directory.CONSTRUCTION_DIR, "fenestration_regulation_surface.csv")
+            return str(FenestrationConstruction._DB_filepath)
         
         # special key to get all item in the database
         if key == "__all__":
@@ -767,33 +806,6 @@ class FenestrationConstruction:
 #                        INITIATION: LOAD CONSTRUCTIONS                        #
 # ---------------------------------------------------------------------------- #
 
-Material._DB = {
-    row.name: Material(
-        row.name,
-        row["conductivity"] ,
-        row["density"]      ,
-        row["heat_capacity"],
-        ID = f"{SpecialTag.DB}{row.name}"
-    )
-    for _, row in df_material.iterrows()
-}
-
-SurfaceConstruction._DB = {
-    (row.name): SurfaceConstruction.create_simply(
-        "&".join(row.name),
-        float(row["열관류율"]),
-        ID = f"{SpecialTag.DB}{'&'.join(row.name)}"
-    )
-    for _, row in df_surface_construction.iterrows()
-}
-
-FenestrationConstruction._DB = {
-    (row.name): FenestrationConstruction(
-        "&".join(row.name),
-        float(row["열관류율"]),
-        float(row["SHGC"]),
-        ID = f"{SpecialTag.DB}{'&'.join(row.name)}"
-    )
-    for _, row in df_fenestration_construction.iterrows()
-}
-
+Material.load_DB()
+SurfaceConstruction.load_DB()
+FenestrationConstruction.load_DB()

@@ -484,7 +484,7 @@ class Chiller(SourceSystem):
         coolingtower_cap_str = f"{self.coolingtower_capacity*Unit.W_TO_KW:4,.1f}kW" if self.coolingtower_capacity is not None else "autosize"
         
         return (
-            f"{self.fuel} Chiller {self.name} (ID={self.ID})\n"
+            f"Electric Chiller {self.name} (ID={self.ID})\n"
             f"\t- capacity={chiller_cap_str}, COP={self.cop:4.2f}\n"
             f"\t- connected coolingtower ({coolingtower_cap_str}): {self.coolingtower_type} type, {self.coolingtower_control} controlled"
         )
@@ -1368,10 +1368,10 @@ class ElectricRadiator(SupplySystem):
     def __hash__(self) -> int:
         return hash(self.ID)
     
-    def __eq__(self, other:Radiator) -> bool:
+    def __eq__(self, other:ElectricRadiator) -> bool:
         
         # type validation
-        if not isinstance(other, Radiator):
+        if not isinstance(other, ElectricRadiator):
             raise TypeError(
                 f"Cannot compare {type(self)} instance with {type(other)} instance"
             )
@@ -1390,7 +1390,7 @@ class ElectricRadiator(SupplySystem):
         
         return ElectricRadiator(
             input.name,
-            input.capacity_heating,
+            getattr(input.capacity_heating,None),
             ID=input.id,
         )
         
@@ -1625,7 +1625,7 @@ class VentilationSystem:
         return self.__heating_efficiency
     
     @heating_efficiency.setter
-    @validate_range(min=SMALLEST_VALUE, max=1)
+    @validate_range(min=SMALLEST_VALUE, max=1-SMALLEST_VALUE)
     @validate_type(int, float)
     def heating_efficiency(self, value:int|float) -> None:
         self.__heating_efficiency = value
@@ -1635,7 +1635,7 @@ class VentilationSystem:
         return self.__cooling_efficiency
     
     @cooling_efficiency.setter
-    @validate_range(min=SMALLEST_VALUE, max=1)
+    @validate_range(min=SMALLEST_VALUE, max=1-SMALLEST_VALUE)
     @validate_type(int, float)
     def cooling_efficiency(self, value:int|float) -> None:
         self.__cooling_efficiency = value

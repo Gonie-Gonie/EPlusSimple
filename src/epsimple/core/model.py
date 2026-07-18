@@ -111,7 +111,7 @@ def address_to_weather(
     weather_location = sigungu_info["기상지역명"]
     weather_filepath = Directory.WEATHER_DATA_DIR /  sigungu_info["EPW파일명"]
     
-    climate = CLIMATE_TABLE.at[sigungu, max(datestr for datestr in CLIMATE_TABLE.columns if datestr < vintage.strftime(r"%Y%m%d"))]
+    climate = CLIMATE_TABLE.at[sigungu, max(datestr for datestr in CLIMATE_TABLE.columns if datestr <= vintage.strftime(r"%Y%m%d"))]
     
     return terrain, climate, weather_location, weather_filepath
 
@@ -140,7 +140,7 @@ class GreenRetrofitModel:
         self.pv  =pv
         
         # initialization
-        self.__supply_system = []
+        self.__source_system = []
     
     """ address related
     """
@@ -212,33 +212,33 @@ class GreenRetrofitModel:
     """
         
     @property
-    def supply_system(self) -> list[SupplySystem]:
+    def source_system(self) -> list[SourceSystem]:
         
-        heating_supplies = {
+        heating_sources = {
             zone.heating_supply.source.ID: zone.heating_supply.source
             for zone in self.zone
-            if isinstance(zone.heating_supply, SupplySystem) and not isinstance(zone.heating_supply, NoneSource)
+            if zone.heating_supply is not None and not isinstance(zone.heating_supply.source, NoneSource)
         }
         
-        cooling_supplies = {
+        cooling_sources = {
             zone.cooling_supply.source.ID: zone.cooling_supply.source
             for zone in self.zone
-            if isinstance(zone.cooling_supply, SupplySystem) and not isinstance(zone.cooling_supply, NoneSource)
+            if zone.cooling_supply is not None and not isinstance(zone.cooling_supply.source, NoneSource)
         }
         
-        unique_supplies = list((heating_supplies|cooling_supplies).values())
+        unique_sources = list((heating_sources|cooling_sources).values())
         
-        return self.__supply_system + unique_supplies
+        return self.__source_system + unique_sources
     
-    @supply_system.setter
-    def supply_system(self, value:list[SupplySystem]):
+    @source_system.setter
+    def source_system(self, value:list[SourceSystem]):
         
-        if not isinstance(value, Iterable) and not all(isinstance(item, SupplySystem) for item in value):
+        if not isinstance(value, Iterable) and not all(isinstance(item, SourceSystem) for item in value):
             raise ValueError(
-                f"Supply system of a GreenRetrofitModel instance should be an iterable instance of SupplySystem(s)."
+                f"Source system of a GreenRetrofitModel instance should be an iterable instance of SourceSystem(s)."
             )
         
-        self.__supply_system = list(value)
+        self.__source_system = list(value)
     
     @property
     def area(self) -> float:
@@ -389,7 +389,8 @@ class GreenRetrofitModel:
         
         for zone in self.zone:
             volsum += zone.area * zone.height
-            infiltration_volsum += zone.infiltration * zone.area * zone.height
+            infiltration = zone.infiltration if zone.infiltration is not None else GreenRetrofitModel.get_default_infiltration(zone)
+            infiltration_volsum += infiltration * zone.area * zone.height
         
         if volsum > 0:
             return infiltration_volsum / volsum
@@ -506,8 +507,8 @@ class GreenRetrofitModel:
         
         # add unused source systems
         # please refer to the definition of the supply_system property
-        applied_ID = (supply.ID for supply in grm.supply_system)
-        grm.supply_system = [sys for sys in source_system_dict.values() if sys.ID not in applied_ID]
+        applied_ID = (source.ID for source in grm.source_system)
+        grm.source_system = [sys for sys in source_system_dict.values() if sys.ID not in applied_ID]
         
         # pv panel
         grm.pv = list(photovoltaic_systems.values())
@@ -561,12 +562,16 @@ class GreenRetrofitModel:
         dragonized_default_innerwall_construction = default_innerwall_construction.to_dragon()
         unknown_surfaces = []
         for surface in surface_dict.values():
-            unknown_surfaces.append(surface)
             
             if surface.construction is UnknownConstruction():
+                unknown_surfaces.append(surface)
+                
+                # interior wall
                 if (surface.type == SurfaceType.WALL) and (surface.boundary == SurfaceBoundaryCondition.ZONE):
                     surface.construction = default_innerwall_construction
                     surface_construction_dict[dragonized_default_innerwall_construction.name] = dragonized_default_innerwall_construction
+                
+                # exterior wall / roof / floor
                 else:            
                     regulated_construction = SurfaceConstruction.get_regulated_construction(
                         self.vintage    ,
@@ -812,7 +817,7 @@ class GreenRetrofitResult:
     def get_dhw_servers(self) -> list[SourceSystem]:
         dhw_servers = [
             source
-            for source in self.model.supply_system
+            for source in self.model.source_system
             if hasattr(source, "hotwater_supply") and source.hotwater_supply
         ]
 
@@ -902,10 +907,20 @@ class GreenRetrofitResult:
         for fuel, energy in hotwater_energy_dict.items():
             df_site.loc[fuel, "hotwater"] = energy
         
-        # PV panel production
-        table_name = "EnergyConsumptionElectricityGeneratedPropaneMonthly"
-        if table_name in self.result.tbl.keys():
-            df_site.loc["ELECTRICITY","generators"] = self.result.tbl[table_name]["ELECTRICITYPRODUCED:FACILITY [kWh]"][:12].astype(float).map(lambda v: round(v/self.area, GreenRetrofitResult.VALID_DIGITS)).tolist()
+        # On-site PV generation used within the facility
+        table_name = "ELECTRICITYBALANCEMONTHLY"
+
+        if table_name in self.result.tbl:
+            df_electricity_balance = self.result.tbl[table_name]
+
+            electricity_produced = (df_electricity_balance["ELECTRICITYPRODUCED:FACILITY [kWh]"   ].iloc[:12].astype(float))
+            electricity_surplus  = (df_electricity_balance["ELECTRICITYSURPLUSSOLD:FACILITY [kWh]"].iloc[:12].astype(float))
+            electricity_used_onsite = (electricity_produced - electricity_surplus).clip(lower=0.0)
+
+            df_site.loc["ELECTRICITY","generators",] = [
+                round(value / self.area, GreenRetrofitResult.VALID_DIGITS,)
+                for value in electricity_used_onsite
+            ]
         
         return df_site
     
