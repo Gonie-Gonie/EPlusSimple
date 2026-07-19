@@ -1,7 +1,29 @@
 
 \chapter{버전별 변경사항}
 
-\newversionsection{0.6.2}{2025-05-27}{
+\newversionsection{0.6.3}{2026-07-19}{
+    \begin{itemize}
+        \item 내장 런처가 grm 파일 실행을 지원
+        \item 내장 런처가 진행 상황을 표시 (디버그, 시뮬레이션 중, 결과 처리 중 3단계별 완성 여부를 표시)
+    \end{itemize}
+}{
+    \begin{itemize}
+        \item 용도프로필을 EnergyPlus 스케줄로 변환하는 알고리즘의 전면 수정 (Technical Reference Manucal 참고, 입력 가능한 용도프로필의 종류 및 명칭은 기존과 동일함)
+        \item 자연환기 및 기계환기(전열교환기 적용 시)에서 인당 환기 유량을 2L/s에서 8.3L/s로 변경
+        \item 태양광 패널의 발전량 산정 시 현장에서 사용되지 않고 남는 전력은 제외하도록 변경
+    \end{itemize}
+}{
+    \begin{itemize}
+        \item 급탕이 아닌 지역난방 연료 사용 시 결과에 집계되지 않던 오류 수정
+        \item 허가일자가 법규 시행일과 같을 때 이전 법규가 적용되던 오류 수정
+        \item 베네시안(venetian) 블라인드 적용 시 오류 발생하던 문제 수정
+        \item 전기방열기의 용량(선택 옵션)을 미입력 시 실행이 불가하던 오류 수정
+    \end{itemize}
+}{
+    \par -
+}
+
+\newversionsection{0.6.2}{2026-05-27}{
     \par -
 }{
     \begin{itemize}
@@ -19,7 +41,7 @@
     \end{itemize}
 }
 
-\newversionsection{0.6.1}{2025-01-27}{
+\newversionsection{0.6.1}{2026-01-27}{
     \begin{itemize}
         \item 침기를 optional 변수로 변경 (\textit{null}로 입력 시 외기와 맞닿은 창문이 있는 경우 $1.5ACH50$, 없는 경우 $0ACH50$로 자동 입력).
         \item ``교실(어린이집)'' 용도프로필 추가 (방학이 없는 ``교실(초중고)'' 프로필과 동일함)
@@ -49,7 +71,7 @@
     \par-
 }{
     \begin{itemize}
-        \item 기본으로 제공되는 용도프로필 목록에서 ``구내식당(초중고)'', ``주방 및 조리실 (초중고)'', ``체육시설 (초중고)'' 삭제\footnote{사유: 운영시간, 재실 등 상세 스케줄 입력 미비. 추후 버전에서 보완될 예정임.}.
+        \item 기본으로 제공되는 용도프로필 목록에서 ``구내식당(초중고)'', ``주방 및 조리실 (초중고)'', ``체육시설 (초중고)'' 삭제.
         \item ``custom'' 프로필 입력은 이제 허용되지 않음 (\texttt{zone}의 속성 중 ``profile\_id'' 삭제, grm 구조에서 \texttt{profile} 및 \texttt{profile\_components} 아래의 항목들 모두 삭제).
     \end{itemize}
 }

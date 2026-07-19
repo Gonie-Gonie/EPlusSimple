@@ -8,7 +8,7 @@ title: EPlusSimple
 
 type: software
 
-version: 0.6.2
+version: 0.6.3
 
 date-released: 2026-05-27
 
@@ -46,7 +46,7 @@ authors:
   - family-names: Park
     given-names: Chul Hong
     affiliation: Department of Architecture and Architectural Engineering, Seoul National University
-    email: seungju.lee@snu.ac.kr
+    email: chulhong.park@snu.ac.kr
     orcid: https://orcid.org/0009-0003-4716-8169
 
   - family-names: Park
@@ -61,7 +61,7 @@ preferred-citation:
 
   title: EPlusSimple
 
-  version: 0.6.2
+  version: 0.6.3
 
   year: 2026
 
