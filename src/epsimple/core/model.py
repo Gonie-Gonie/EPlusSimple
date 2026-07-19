@@ -912,9 +912,10 @@ class GreenRetrofitResult:
 
         if table_name in self.result.tbl:
             df_electricity_balance = self.result.tbl[table_name]
+            df_electricity_balance.columns = [re.sub(r" \[\w*\]","",col) for col in df_electricity_balance.columns]
 
-            electricity_produced = (df_electricity_balance["ELECTRICITYPRODUCED:FACILITY [kWh]"   ].iloc[:12].astype(float))
-            electricity_surplus  = (df_electricity_balance["ELECTRICITYSURPLUSSOLD:FACILITY [kWh]"].iloc[:12].astype(float))
+            electricity_produced = (df_electricity_balance["ELECTRICITYPRODUCED:FACILITY"   ].iloc[:12].astype(float))
+            electricity_surplus  = (df_electricity_balance["ELECTRICITYSURPLUSSOLD:FACILITY"].iloc[:12].astype(float))
             electricity_used_onsite = (electricity_produced - electricity_surplus).clip(lower=0.0)
 
             df_site.loc["ELECTRICITY","generators",] = [
