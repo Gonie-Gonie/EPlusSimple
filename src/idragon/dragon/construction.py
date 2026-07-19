@@ -149,7 +149,7 @@ class Material:
         
         if not isinstance(other, Material):
             raise TypeError(
-                f""
+                f"Cannot compare Material with {type(other)}"
             )
             
         return all(getattr(self, attr) == getattr(other, attr) for attr in ["name","conductivity","density","specific_heat"])
@@ -235,7 +235,7 @@ class Construction:
             
             if not (all(isinstance(arg, Material) for arg in args[::2]) and all(isinstance(arg, int|float) for arg in args[1::2])):
                 raise TypeError(
-                    f""
+                    f"Invalid arguments for Construction: {args}"
                 )
             
             self.layers = [
@@ -245,7 +245,7 @@ class Construction:
             
         else:
             raise ValueError(
-                f""
+                f"Invalid arguments for Construction: {args}"
             )
     
     @property
@@ -370,7 +370,7 @@ class Glazing:
     """
     
     def __str__(self) -> str:
-        return f"Glazing {self.name} (U={self.U:.2f}W/m2K, G={self.G:.3f}"
+        return f"Glazing {self.name} (U={self.U:.2f}W/m2K, G={self.G:.3f})"
     
     def __repr__(self) -> str:
         return f"<Glazing {self.name} at {hex(id(self))}>"

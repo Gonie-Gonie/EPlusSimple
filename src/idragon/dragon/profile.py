@@ -2847,7 +2847,7 @@ class Schedule(UserList):
     @property
     def dayschedules(self) -> list[DaySchedule]:
         return [
-            ruleset.dayschedules(time.weekday()) 
+            ruleset.get_dayschedule(time.weekday()) 
             for time, ruleset in zip(Schedule.TIME_TUPLE, self.data)
         ]
         

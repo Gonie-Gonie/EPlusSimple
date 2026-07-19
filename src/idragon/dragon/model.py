@@ -135,11 +135,19 @@ class EnergyModel:
             "EnergyConsumptionElectricityGeneratedPropaneMonthly",
         ])
         
-        # dummy output
-        idf["Output:VariableDictionary"].append(["regular"])
-        idf["Output:Variable"].append(["*", "Site Outdoor Air DryBulb Temperature", "Hourly"])
-        idf["Output:Variable"].append(["*", "Zone Mean Air Temperature", "Hourly"])
-        idf["Output:Variable"].append(["*", "Water Use Equipment Heating Energy", "Hourly"])
+        idf["Output:Table:Monthly"].append([
+            "ElectricityBalanceMonthly",
+            3,
+
+            "ElectricityProduced:Facility",
+            "SumOrAverage",
+
+            "ElectricitySurplusSold:Facility",
+            "SumOrAverage",
+
+            "ElectricityPurchased:Facility",
+            "SumOrAverage",
+        ])
         
         return idf
     

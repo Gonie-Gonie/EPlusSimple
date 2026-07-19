@@ -13,9 +13,87 @@
 본 실험은 \ref{section:targetbuilding-ashrae140-modified}에서 기술하는 표준 건물을 활용하여, 용도프로필별, 기상데이터별 표준적인 시뮬레이션을 수행하고,
 이를 통해 외부 및 내부 부하에 따른 용도별 에너지사용량의 차이를 제시한다.
 
-용도프로필 21개는 \simulator 에서 사용 가능한 모든 용도프로필을 사용하였다.
+\subsection{공통 계산조건}
 
-기상데이터는 각 시도청소재지 18개소를 선정하였다 \parencref{table:weatherdata-points}.
+모든 실험에는 동일한 기준모델, EnergyPlus 계산조건, 외피 구조체, 창호, 조명밀도, 침기율 및 냉난방설비를 적용한다.
+
+\begin{defaulttable}
+  \caption{ASHRAE 140-modified 실험의 공통 계산조건}
+  \label{table:ashrae140-common-settings}
+  \begin{tabularx}{\textwidth}{p{4.0cm}X}
+    \toprule
+    항목 & 적용값 \\ \midrule
+
+    시뮬레이션 엔진 & \simulator~\releaseversion, EnergyPlus 24.2.0 \\
+    계산기간 & 2026년 1월 1일--12월 31일 \\
+    계산 시간간격 & 시간당 6회, 10분 간격 \\
+    난방 크기산정기간 & 기상파일의 1월 1일--1월 31일 \\
+    냉방 크기산정기간 & 기상파일의 8월 1일--8월 31일 \\
+    존 크기산정 계수 & 난방 1.25, 냉방 1.15 \\
+    표면 대류모델 & 실내·실외 TARP \\
+    일사분배 & \texttt{MinimalShadowing} \\
+    장비용량 & 냉방 및 난방용량 \texttt{Autosize} \\
+
+    \bottomrule
+  \end{tabularx}
+\end{defaulttable}
+
+공통 계산조건의 EnergyPlus 객체 및 고정값은 \textit{EPlusSimple Technical Reference Manual}의 「시뮬레이션 설정」 절과 「냉난방설비」 절에 기술된 조건을 적용한다.
+
+\subsection{용도프로필별 실험}
+
+용도프로필별 실험에서는 각 계산마다 기준 입력파일을 새로 읽고,
+단일 존의 용도프로필만 시험 대상 프로필로 변경한다.
+건물 주소는 서울특별시 관악구로 고정하고,
+형상, 외피, 창호, 조명밀도, 침기율 및 냉난방설비 입력은 변경하지 않는다.
+
+실험에 사용하는 프로필은 다음 24개이다.
+
+{\small
+주거공간,
+소규모사무실,
+대규모사무실,
+회의실 및 세미나실,
+강당,
+구내식당,
+화장실,
+그 외 체류공간,
+부속공간,
+창고/설비/문서실,
+전산실,
+주방 및 조리실,
+병실,
+객실,
+교실(초중고),
+강의실(대학),
+매장(상점/백화점),
+전시실(전시관/박물관),
+열람실(도서관),
+체육시설,
+구내식당(초중고),
+주방 및 조리실(초중고),
+체육시설(초중고),
+교실(어린이집).
+}
+
+프로필별 재실시간, 냉난방 가용시간, 설정온도, 일일 조명시간,
+인체발열량, 기기발열량, 급탕열량, 요일별 운전 여부 및 휴가기간은
+\textit{EPlusSimple Technical Reference Manual}의
+「프로필」 절에 수록된 다음 표의 값을 사용한다.
+
+\begin{itemize}
+  \item 「내장 프로필 DB의 시간 및 외기량 값」
+  \item 「내장 프로필 DB의 일일 발열량 값」
+  \item 「내장 프로필 DB의 요일 및 공휴일 운전 플래그」
+  \item 「내장 프로필 DB의 휴가기간」
+\end{itemize}
+
+\subsection{기상데이터별 실험}
+
+기상데이터별 실험에서는 각 계산마다 기준 입력파일을 새로 읽고, 건물 주소만 \ref{table:weatherdata-points}의 18개 주소로 변경한다.
+존 용도프로필은 소규모사무실로 고정하고, 형상, 외피, 창호, 조명밀도, 침기율 및 냉난방설비 입력은 변경하지 않는다.
+
+각 주소에 적용되는 EPW 파일은 \textit{EPlusSimple Technical Reference Manual}의 「기상데이터」 절에 수록된 행정구역별 기상파일 매핑을 사용한다.
 
 \begin{defaulttable}
   \caption{기상데이터 선택 지점}
@@ -51,15 +129,13 @@
   \end{tabular}
 \end{defaulttable}
 
-본 실험의 결과는 \ref{chapter:ashrae140-modified}에서 기술한다.
+본 실험의 결과는 \cref{chapter:ashrae140-modified}에서 기술한다.
 
 % ---------------------------------------------------------------------------- %
 %                                  NEW SECTION                                 %
 % ---------------------------------------------------------------------------- %
 
 \chapter{대상건물}
-
-\section{ASHRAE 140-modified}
 \label{section:targetbuilding-ashrae140-modified}
 
 이 모델은 ASHRAE Standard 140-2023(Method of Test for Evaluating Building Performance Simulation Software)의 Base Case 600을 \simulator 의 입력에 맞게 일부 수정한 것이다\cite{ASHRAE140_2023}. 이는 남측 벽면에 총 $12m^2$($6m^2$ 창호 2개소)의 투명 이중창이 있는 $8m \times 6m \times 2.7m$ 크기의 직육면체 형태의 단일 존 건물이다 \parencref{fig:ashrae140-2023-case600shape}.
@@ -70,9 +146,34 @@
   \label{fig:ashrae140-2023-case600shape}
 \end{defaultfigure}
 
-ASHRAE Standard 140-2023에서 변경된 내용은 아래와 같다.
-\begin{itemize}
-  \item 소규모사무실 용도프로필 사용
-  \item 냉난방 COP 3.0의 전기히트펌프 사용
-  \item 조명밀도는 $10W/m^2$, 침기율은 $1.5ACH_{50}$
-\end{itemize}
+
+\begin{defaulttable}
+  \caption{ASHRAE 140-modified 기준모델의 입력조건}
+  \label{table:ashrae140-base-model-settings}
+  \begin{tabularx}{\textwidth}{p{4.0cm}X}
+    \toprule
+    항목 & 입력조건 \\ \midrule
+
+    건물 형상 & 단일 존, $8\,\mathrm{m}\times6\,\mathrm{m}\times2.7\,\mathrm{m}$ \\
+    바닥면적 및 존 체적 & $48.0\,\mathrm{m^2}$, $129.6\,\mathrm{m^3}$ \\
+    건물 방위 & \inlinecode{north_axis}=0 \\
+    기준 주소 & 서울특별시 관악구 \\
+    기준일 & 2000년 1월 1일 \\
+    경계조건 & 바닥은 \texttt{ground}, 외벽과 지붕은 \texttt{outdoors} \\
+    외벽 면적 & 북벽·남벽 각각 $21.6\,\mathrm{m^2}$, 동벽·서벽 각각 $16.2\,\mathrm{m^2}$ \\
+    지붕 및 바닥 면적 & 각각 $48.0\,\mathrm{m^2}$ \\
+    창호 & 남측 창호 2개, 각 $6.0\,\mathrm{m^2}$, 총 $12.0\,\mathrm{m^2}$ \\
+    창호 열성능 & 열관류율 $2.1\,\mathrm{W/(m^2K)}$, SHGC 0.769 \\
+    구조체 & 외벽, 바닥 및 지붕에 명시적 재료층 구조체 사용 \\
+    기준 용도프로필 & 소규모사무실 \\
+    조명밀도 & $10\,\mathrm{W/m^2}$ \\
+    침기율 & $1.5\,ACH_{50}$ \\
+    냉난방 공급설비 & \texttt{air\_handling\_unit} 한 개를 난방 및 냉방에 공통 연결 \\
+    냉난방 생산설비 & 전기식 \texttt{heatpump}, 냉방 COP 3.0, 난방 COP 3.0 \\
+    냉난방용량 & 냉방 및 난방 모두 \texttt{Autosize} \\
+    환기설비 & 별도 환기설비 미연결 \\
+    태양광설비 & 없음 \\
+
+    \bottomrule
+  \end{tabularx}
+\end{defaulttable}

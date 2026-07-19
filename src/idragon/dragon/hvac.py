@@ -641,7 +641,7 @@ class Chiller(SourceSystem):
             }, ignore_default=False),
             IdfObject("Sizing:Plant",{
                 "Plant or Condenser Loop Name": self.idf_loopname,
-                "Loop Type": "Heating",
+                "Loop Type": "Cooling",
                 "Design Loop Exit Temperature": 6,
                 "Loop Design Temperature Difference": 4,
             })
@@ -1300,7 +1300,7 @@ class AbsorptionChiller(SourceSystem):
             }, ignore_default=False),
             IdfObject("Sizing:Plant",{
                 "Plant or Condenser Loop Name": self.idf_loopname,
-                "Loop Type": "Heating",
+                "Loop Type": "Cooling",
                 "Design Loop Exit Temperature": 6,
                 "Loop Design Temperature Difference": 4,
             })

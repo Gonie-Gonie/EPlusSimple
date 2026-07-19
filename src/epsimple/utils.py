@@ -409,8 +409,8 @@ def _convert_source_systems(
                 
         # convert value type
         if "hotwater_supply" in source_dict.keys():
-            source_dict["hotwater_supply"] = bool(source_dict["hotwater_supply"])
-         
+            source_dict["hotwater_supply"] = bool(source_dict["hotwater_supply"]) if not pd.isna(source_dict["hotwater_supply"]) else False
+ 
         # convert unit
         source_dict["efficiency"]        *= Unit.PERCENT_TO_FRACTION
         source_dict["boiler_efficiency"] *= Unit.PERCENT_TO_FRACTION
