@@ -662,7 +662,7 @@ class FenestrationConstruction:
         return self.__g
     
     @g.setter
-    @validate_range(min=0, max=1)
+    @validate_range(min=math.nextafter(0, math.inf), max=math.nextafter(1, -math.inf))
     @validate_type(int, float, allow_none=True)
     def g(self, value: int|float) -> None:
         self.__g = value
