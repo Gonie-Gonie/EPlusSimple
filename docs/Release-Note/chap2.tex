@@ -1,6 +1,21 @@
 
 \chapter{버전별 변경사항}
 
+\newversionsection{0.6.4}{2026-07-27}{
+    \par -
+}{
+    \begin{itemize}
+        \item 지면(ground), 단열면(adiabatic)을 경계조건으로 가지는 면(surface)에 개구부를 입력하였을 때 명시적 에러 발생
+    \end{itemize}
+}{
+    \begin{itemize}
+        \item 문자열 입력값에 ,;! 가 포함되었을 때 오류 발생하던 문제 수정
+        \item 입력값의 범위 검증 시 경계값을 포함하지 않는 경우에도 경계값 포함으로 검증되던 오류를 수정
+    \end{itemize}
+}{
+    \par -
+}
+
 \newversionsection{0.6.3}{2026-07-19}{
     \begin{itemize}
         \item 내장 런처가 grm 파일 실행을 지원
