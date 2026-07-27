@@ -1720,6 +1720,16 @@ class IdfObject(StaticIndexedDict):
                 
     """ representation
     """
+    
+    @staticmethod
+    def __wrap_value_to_idftext(v:str|None|int|float) -> str:
+        
+        if v is None: v = ""
+        if v is []  : v = ""
+        
+        s = str(v).replace(",","_").replace(";","_").replace("!","_")
+        
+        return s        
                 
     def __str__(self) -> str:
         
@@ -1735,7 +1745,10 @@ class IdfObject(StaticIndexedDict):
         item_for_write = self.data|{f"EXTENDEDDD {idx}":v for idx, v in enumerate(self.__extended_input)}
         
         text = f"{self.idd.name},\n" +\
-            "\n".join(["  " + f"{str(value)+',' if (value not in [None, [], ""]) else ',':30} !- {key}" for key, value in item_for_write.items()])
+            "\n".join([
+                "  " + f"{IdfObject.__wrap_value_to_idftext(value) + ",":30} !- {key}"
+                for key, value in item_for_write.items()
+            ])
         
         # erase empty fields in last
         text = re.sub(r"(  ,\s+!-[^\n]+(\n|$))+$",r"", text)
