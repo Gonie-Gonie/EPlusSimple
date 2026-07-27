@@ -5,7 +5,6 @@
 
 # built-in modules
 from __future__ import annotations
-import re
 import math
 from copy  import deepcopy
 from types import SimpleNamespace
@@ -42,7 +41,6 @@ from idragon.dragon import (
     SurfaceBoundaryCondition,
 )
 from idragon.utils import (
-    SMALLEST_VALUE,
     validate_range,
     validate_type ,
     validate_enum ,
@@ -79,6 +77,11 @@ class Surface:
         self.adjacent_zone = adjacent_zone
         self.construction  = construction
         self.reflectance   = reflectance
+        
+        if self.boundary in ["ground", "adiabatic"] and len(fenestrations) > 0:
+            raise ValueError(
+                "Cannot assign windows or doors to a surface with bounary condition == ground or adiabatic."
+            )
         self.fenestrations = fenestrations
         
         # set default ID if not specified
@@ -94,7 +97,7 @@ class Surface:
         return self.__area
     
     @area.setter
-    @validate_range(min=SMALLEST_VALUE)
+    @validate_range(min=math.nextafter(0,math.inf))
     @validate_type(int, float)
     def area(self, value:int|float) -> None:
         self.__area = value
@@ -104,7 +107,7 @@ class Surface:
         return self.__azimuth
     
     @azimuth.setter
-    @validate_range(min=0, max=360-SMALLEST_VALUE)
+    @validate_range(min=0, max=math.nextafter(360,-math.inf))
     @validate_type(int, float, allow_none=True)
     def azimuth(self, value:int|float) -> None:
         
@@ -178,7 +181,7 @@ class Surface:
         return self.__reflectance
     
     @reflectance.setter
-    @validate_range(min=SMALLEST_VALUE, max=1)
+    @validate_range(min=math.nextafter(0,math.inf), max=1)
     @validate_type(int, float, allow_none=True)
     def reflectance(self, value:int|float) -> None:
         self.__reflectance = value       
@@ -642,7 +645,7 @@ class Zone:
         return self.__height
     
     @height.setter
-    @validate_range(min=SMALLEST_VALUE)
+    @validate_range(min=math.nextafter(0,math.inf))
     def height(self, value: int|float) -> None:
         self.__height = value
     

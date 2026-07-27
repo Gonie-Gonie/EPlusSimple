@@ -5,6 +5,7 @@
 
 # built-in modules
 from __future__ import annotations
+import math
 from enum   import Enum
 from types  import SimpleNamespace
 from typing import Any
@@ -14,7 +15,6 @@ from typing import Any
 # local modules
 from idragon import dragon
 from idragon.utils import (
-    SMALLEST_VALUE,
     validate_type ,
     validate_enum ,
     validate_range,
@@ -111,7 +111,7 @@ class HeatPump(SourceSystem):
         return self.__heating_cop
     
     @heating_cop.setter
-    @validate_range(min=SMALLEST_VALUE)
+    @validate_range(min=math.nextafter(0,math.inf))
     @validate_type(int, float)
     def heating_cop(self, value: int|float) -> None:
         self.__heating_cop = value
@@ -121,7 +121,7 @@ class HeatPump(SourceSystem):
         return self.__cooling_cop
     
     @cooling_cop.setter
-    @validate_range(min=SMALLEST_VALUE)
+    @validate_range(min=math.nextafter(0,math.inf))
     @validate_type(int, float)
     def cooling_cop(self, value: int|float) -> None:
         self.__cooling_cop = value
@@ -131,7 +131,7 @@ class HeatPump(SourceSystem):
         return self.__heating_capacity
     
     @heating_capacity.setter
-    @validate_range(min=SMALLEST_VALUE)
+    @validate_range(min=math.nextafter(0,math.inf))
     @validate_type(int, float, allow_none=True)
     def heating_capacity(self, value: int|float) -> None:
         self.__heating_capacity = value
@@ -141,7 +141,7 @@ class HeatPump(SourceSystem):
         return self.__cooling_capacity
     
     @cooling_capacity.setter
-    @validate_range(min=SMALLEST_VALUE)
+    @validate_range(min=math.nextafter(0,math.inf))
     @validate_type(int, float, allow_none=True)
     def cooling_capacity(self, value: int|float) -> None:
         self.__cooling_capacity = value
@@ -340,7 +340,7 @@ class Chiller(SourceSystem):
         return self.__cop
     
     @cop.setter
-    @validate_range(min=SMALLEST_VALUE)
+    @validate_range(min=math.nextafter(0,math.inf))
     @validate_type(int, float)
     def cop(self, value: int|float) -> None:
         self.__cop = value
@@ -350,7 +350,7 @@ class Chiller(SourceSystem):
         return self.__capacity
     
     @capacity.setter
-    @validate_range(min=SMALLEST_VALUE)
+    @validate_range(min=math.nextafter(0,math.inf))
     @validate_type(int, float, allow_none=True)
     def capacity(self, value: int|float) -> None:
         self.__capacity = value
@@ -378,7 +378,7 @@ class Chiller(SourceSystem):
         return self.__coolingtower_capacity
     
     @coolingtower_capacity.setter
-    @validate_range(min=SMALLEST_VALUE)
+    @validate_range(min=math.nextafter(0,math.inf))
     @validate_type(int, float, allow_none=True)
     def coolingtower_capacity(self, value: int|float) -> None:
         self.__coolingtower_capacity = value
@@ -527,7 +527,7 @@ class AbsorptionChiller(SourceSystem):
         return self.__cop
     
     @cop.setter
-    @validate_range(min=SMALLEST_VALUE)
+    @validate_range(min=math.nextafter(0,math.inf))
     @validate_type(int, float)
     def cop(self, value: int|float) -> None:
         self.__cop = value
@@ -537,7 +537,7 @@ class AbsorptionChiller(SourceSystem):
         return self.__capacity
     
     @capacity.setter
-    @validate_range(min=SMALLEST_VALUE)
+    @validate_range(min=math.nextafter(0,math.inf))
     @validate_type(int, float, allow_none=True)
     def capacity(self, value: int|float) -> None:
         self.__capacity = value
@@ -547,7 +547,7 @@ class AbsorptionChiller(SourceSystem):
         return self.__boiler_efficiency
     
     @boiler_efficiency.setter
-    @validate_range(min=SMALLEST_VALUE, max=1)
+    @validate_range(min=math.nextafter(0,math.inf), max=1)
     @validate_type(int, float, allow_none=True)
     def boiler_efficiency(self, value: int|float) -> None:
         self.__boiler_efficiency = value
@@ -765,7 +765,7 @@ class Boiler(SourceSystem):
         return self.__efficiency
     
     @efficiency.setter
-    @validate_range(min=SMALLEST_VALUE, max=1)
+    @validate_range(min=math.nextafter(0,math.inf), max=1)
     @validate_type(int, float)
     def efficiency(self, value: int|float) -> None:
         self.__efficiency = value
@@ -775,7 +775,7 @@ class Boiler(SourceSystem):
         return self.__capacity
     
     @capacity.setter
-    @validate_range(min=SMALLEST_VALUE)
+    @validate_range(min=math.nextafter(0,math.inf))
     @validate_type(int, float, allow_none=True)
     def capacity(self, value: int|float) -> None:
         self.__capacity = value
@@ -944,7 +944,7 @@ class PackagedAirConditioner(SupplySystem):
         return self.__cop
     
     @cop.setter
-    @validate_range(min=SMALLEST_VALUE)
+    @validate_range(min=math.nextafter(0,math.inf))
     @validate_type(int, float)
     def cop(self, value: int|float|None) -> None:
         self.__cop = value
@@ -954,7 +954,7 @@ class PackagedAirConditioner(SupplySystem):
         return self.__capacity
     
     @capacity.setter
-    @validate_range(min=SMALLEST_VALUE)
+    @validate_range(min=math.nextafter(0,math.inf))
     @validate_type(int, float, allow_none=True)
     def capacity(self, value: int|float|None) -> None:
         self.__capacity = value
@@ -1245,7 +1245,7 @@ class Radiator(SupplySystem):
         return self.__capacity
     
     @capacity.setter
-    @validate_range(min=SMALLEST_VALUE)
+    @validate_range(min=math.nextafter(0,math.inf))
     @validate_type(int, float, allow_none=True)
     def capacity(self, value: int|float) -> None:
         self.__capacity = value
@@ -1349,7 +1349,7 @@ class ElectricRadiator(SupplySystem):
         return self.__capacity
     
     @capacity.setter
-    @validate_range(min=SMALLEST_VALUE)
+    @validate_range(min=math.nextafter(0,math.inf))
     @validate_type(int, float, allow_none=True)
     def capacity(self, value: int|float|None) -> None:
         self.__capacity = value
@@ -1625,7 +1625,7 @@ class VentilationSystem:
         return self.__heating_efficiency
     
     @heating_efficiency.setter
-    @validate_range(min=SMALLEST_VALUE, max=1-SMALLEST_VALUE)
+    @validate_range(min=math.nextafter(0,math.inf), max=math.nextafter(1,-math.inf))
     @validate_type(int, float)
     def heating_efficiency(self, value:int|float) -> None:
         self.__heating_efficiency = value
@@ -1635,7 +1635,7 @@ class VentilationSystem:
         return self.__cooling_efficiency
     
     @cooling_efficiency.setter
-    @validate_range(min=SMALLEST_VALUE, max=1-SMALLEST_VALUE)
+    @validate_range(min=math.nextafter(0,math.inf), max=math.nextafter(1,-math.inf))
     @validate_type(int, float)
     def cooling_efficiency(self, value:int|float) -> None:
         self.__cooling_efficiency = value
@@ -1730,7 +1730,7 @@ class PhotoVoltaicSystem:
         return self.__area
     
     @area.setter
-    @validate_range(min=SMALLEST_VALUE)
+    @validate_range(min=math.nextafter(0,math.inf))
     @validate_type(int, float)
     def area(self, value:int|float) -> None:
         self.__area = value
@@ -1740,7 +1740,7 @@ class PhotoVoltaicSystem:
         return self.__efficiency
     
     @efficiency.setter
-    @validate_range(min=SMALLEST_VALUE, max=1)
+    @validate_range(min=math.nextafter(0,math.inf), max=1)
     @validate_type(int, float)
     def efficiency(self, value:int|float) -> None:
         self.__efficiency = value
@@ -1750,7 +1750,7 @@ class PhotoVoltaicSystem:
         return self.__azimuth
     
     @azimuth.setter
-    @validate_range(min=0, max=360-SMALLEST_VALUE)
+    @validate_range(min=0, max=math.nextafter(360,-math.inf))
     @validate_type(int, float)
     def azimuth(self, value:int|float) -> None:
         self.__azimuth = value

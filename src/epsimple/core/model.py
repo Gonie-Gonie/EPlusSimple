@@ -8,6 +8,7 @@ from __future__ import annotations
 import os
 import re
 import json
+import math
 from copy     import deepcopy
 from types    import SimpleNamespace
 from typing   import Iterable
@@ -22,7 +23,6 @@ from idragon       import dragon
 from idragon.utils import (
     validate_range,
     validate_type ,
-    SMALLEST_VALUE,
 )
 from ..constants import (
     Directory  ,
@@ -203,7 +203,7 @@ class GreenRetrofitModel:
         return self.__north_axis
     
     @north_axis.setter
-    @validate_range(min=0, max=360-SMALLEST_VALUE)
+    @validate_range(min=0, max=math.nextafter(360,-math.inf))
     @validate_type(int, float)
     def north_axis(self, value: int|float) -> None:
         self.__north_axis = value

@@ -48,7 +48,6 @@ from .launcher import (
     EnergyPlusResult,
     run             ,
 )
-from .utils import SMALLEST_VALUE
 
 # ---------------------------------------------------------------------------- #
 #                                  EXCEPTIONS                                  #
@@ -453,9 +452,9 @@ class IddField():
                 case "ip-units"                  : pass
                 case "unitsBasedOnField"         : attr_dict["unit"] = f"BasedOn:{value}"
                 case "minimum"                   : attr_dict["minimum"] = float(value)
-                case "minimum>"                  : attr_dict["minimum"] = float(value) + SMALLEST_VALUE
+                case "minimum>"                  : attr_dict["minimum"] = math.nextafter(value, math.inf)
                 case "maximum"                   : attr_dict["maximum"] = float(value)    
-                case "maximum<"                  : attr_dict["maximum"] = float(value) - SMALLEST_VALUE
+                case "maximum<"                  : attr_dict["maximum"] = math.nextafter(value, -math.inf)
                 case "default":      
                     value = float(value) if re.match(r"^\d*\.?\d*$",value) else value
                     attr_dict["default"] = value
@@ -1492,9 +1491,21 @@ class IdfObject(StaticIndexedDict):
         """ deeocopied instance has no parent, but shares idd and deepcopied values
         """
         
-        new_object = IdfObject(self.idd, None, self.values())
+        values = (
+            list(self.values())
+            + deepcopy(self.__extended_input, memo)
+        )
+
+        new_object = IdfObject(
+            self.idd,
+            None,
+            values,
+            ensure_validity=False,
+            ignore_default=True,
+        )
+
+        new_object.ensure_validity = self.ensure_validity
         memo[id(self)] = new_object
-        
         return new_object
     
     def __eq__(self, other:"IdfObject") -> bool:
@@ -1540,13 +1551,6 @@ class IdfObject(StaticIndexedDict):
                     # change the name
                     idf_object[possible_reference["field"]] = new_name
         
-                         
-    
-    def set_wwr(self, value:float, construction=None) -> None:
-        # TODO! Zone에 걸릴 경우 -> surface로 toss
-        # TODO! Suface에 걸릴 경우 -> window 객체명 (construction) 받아서 ~~
-        # TODO! else raise exception
-        pass
              
     """ validation
     """                    
@@ -1720,6 +1724,16 @@ class IdfObject(StaticIndexedDict):
                 
     """ representation
     """
+    
+    @staticmethod
+    def __wrap_value_to_idftext(v:str|None|int|float) -> str:
+        
+        if v is None: v = ""
+        if v is []  : v = ""
+        
+        s = str(v).replace(",","_").replace(";","_").replace("!","_")
+        
+        return s        
                 
     def __str__(self) -> str:
         
@@ -1735,7 +1749,10 @@ class IdfObject(StaticIndexedDict):
         item_for_write = self.data|{f"EXTENDEDDD {idx}":v for idx, v in enumerate(self.__extended_input)}
         
         text = f"{self.idd.name},\n" +\
-            "\n".join(["  " + f"{str(value)+',' if (value not in [None, [], ""]) else ',':30} !- {key}" for key, value in item_for_write.items()])
+            "\n".join([
+                "  " + f"{IdfObject.__wrap_value_to_idftext(value) + ",":30} !- {key}"
+                for key, value in item_for_write.items()
+            ])
         
         # erase empty fields in last
         text = re.sub(r"(  ,\s+!-[^\n]+(\n|$))+$",r"", text)
@@ -1971,7 +1988,7 @@ class IdfObjectList(UserList):
                 value = deepcopy(value)
 
         # Case 2 (Iterable): create an idf_object with value
-        elif isinstance(value, Iterable|dict):
+        elif not isinstance(value, str) and isinstance(value, Iterable|dict):
             value = IdfObject(self.idd, self, value, ignore_default=True)
         
         # allocate value and set a new parnet
@@ -2216,7 +2233,7 @@ class IdfObjectList(UserList):
         
         # if not, return an attribute of itself
         else:
-            self.__ensure_validity
+            return self.__ensure_validity
     
     @ensure_validity.setter
     def ensure_validity(self, value:bool) -> None:

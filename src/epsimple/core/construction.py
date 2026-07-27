@@ -5,7 +5,7 @@
 
 # built-in modules
 from __future__ import annotations
-import os
+import math
 from copy     import deepcopy
 from types    import SimpleNamespace
 from datetime import datetime
@@ -23,7 +23,6 @@ from idragon.dragon import (
     SurfaceBoundaryCondition,
 )
 from idragon.utils import (
-    SMALLEST_VALUE,
     validate_type ,
     validate_range,
 )
@@ -74,7 +73,7 @@ class Material:
         return self.__conductivity
     
     @conductivity.setter
-    @validate_range(min=SMALLEST_VALUE)
+    @validate_range(min=math.nextafter(0,math.inf))
     @validate_type(int, float)
     def conductivity(self, value: int|float) -> None:
         self.__conductivity = value
@@ -84,7 +83,7 @@ class Material:
         return self.__density
     
     @density.setter
-    @validate_range(min=SMALLEST_VALUE)
+    @validate_range(min=math.nextafter(0,math.inf))
     @validate_type(int, float)
     def density(self, value: int|float) -> None:
         self.__density = value
@@ -356,7 +355,7 @@ class SurfaceConstruction:
         U_maximum = 1/(1/h_in + 1/h_out)
         
         # raise an exception if the given U-value is too large
-        if U >= U_maximum - SMALLEST_VALUE:
+        if U >= U_maximum:
             raise ValueError(
                 f"U-value should be smaller than {U_maximum:.3f}W/m2K,"
                 f" given h_in({h_in:.3f}W/m2K) and h_out({h_out:.3f}W/m2K)"
@@ -653,7 +652,7 @@ class FenestrationConstruction:
         return self.__u
     
     @u.setter
-    @validate_range(min=SMALLEST_VALUE)
+    @validate_range(min=math.nextafter(0,math.inf))
     @validate_type(int, float)
     def u(self, value: int|float) -> None:
         self.__u = value
@@ -663,7 +662,7 @@ class FenestrationConstruction:
         return self.__g
     
     @g.setter
-    @validate_range(min=0, max=1)
+    @validate_range(min=math.nextafter(0, math.inf), max=math.nextafter(1, -math.inf))
     @validate_type(int, float, allow_none=True)
     def g(self, value: int|float) -> None:
         self.__g = value
