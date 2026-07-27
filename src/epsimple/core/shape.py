@@ -77,6 +77,11 @@ class Surface:
         self.adjacent_zone = adjacent_zone
         self.construction  = construction
         self.reflectance   = reflectance
+        
+        if self.boundary in ["ground", "adiabatic"] and len(fenestrations) > 0:
+            raise ValueError(
+                "Cannot assign windows or doors to a surface with bounary condition == ground or adiabatic."
+            )
         self.fenestrations = fenestrations
         
         # set default ID if not specified
