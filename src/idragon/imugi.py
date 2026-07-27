@@ -1492,9 +1492,21 @@ class IdfObject(StaticIndexedDict):
         """ deeocopied instance has no parent, but shares idd and deepcopied values
         """
         
-        new_object = IdfObject(self.idd, None, self.values())
+        values = (
+            list(self.values())
+            + deepcopy(self.__extended_input, memo)
+        )
+
+        new_object = IdfObject(
+            self.idd,
+            None,
+            values,
+            ensure_validity=False,
+            ignore_default=True,
+        )
+
+        new_object.ensure_validity = self.ensure_validity
         memo[id(self)] = new_object
-        
         return new_object
     
     def __eq__(self, other:"IdfObject") -> bool:
@@ -1540,13 +1552,6 @@ class IdfObject(StaticIndexedDict):
                     # change the name
                     idf_object[possible_reference["field"]] = new_name
         
-                         
-    
-    def set_wwr(self, value:float, construction=None) -> None:
-        # TODO! Zone에 걸릴 경우 -> surface로 toss
-        # TODO! Suface에 걸릴 경우 -> window 객체명 (construction) 받아서 ~~
-        # TODO! else raise exception
-        pass
              
     """ validation
     """                    
@@ -1984,7 +1989,7 @@ class IdfObjectList(UserList):
                 value = deepcopy(value)
 
         # Case 2 (Iterable): create an idf_object with value
-        elif isinstance(value, Iterable|dict):
+        elif not isinstance(value, str) and isinstance(value, Iterable|dict):
             value = IdfObject(self.idd, self, value, ignore_default=True)
         
         # allocate value and set a new parnet
@@ -2229,7 +2234,7 @@ class IdfObjectList(UserList):
         
         # if not, return an attribute of itself
         else:
-            self.__ensure_validity
+            return self.__ensure_validity
     
     @ensure_validity.setter
     def ensure_validity(self, value:bool) -> None:
@@ -2638,7 +2643,7 @@ class IDF(StaticIndexedDict):
             """)
         
         # write header and str format of whole of the idf_objects
-        with open(filepath, "w", encoding="UTF-8") as f:
+        with open(filepath, "w", encoding="cp949") as f:
             f.write(header)
             f.write(str(self))
         
