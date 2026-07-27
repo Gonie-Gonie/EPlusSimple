@@ -20,9 +20,6 @@ from typing      import (
 
 # local modules
 from ..imugi import (
-    # variables
-    SMALLEST_VALUE,
-    # classes
     IdfObject,
     IDF      ,
 )
@@ -2684,7 +2681,7 @@ class DomesticHotWater:
         return self.__efficiency
     
     @efficiency.setter
-    @validate_range(min=SMALLEST_VALUE, max=1)
+    @validate_range(min=math.nextafter(0, math.inf), max=1)
     @validate_type(int, float)
     def efficiency(self, value: int|float) -> None:
         self.__efficiency = value
@@ -2761,7 +2758,7 @@ class PhotoVoltaicPanel:
         return self.__area
     
     @area.setter
-    @validate_range(min=SMALLEST_VALUE)
+    @validate_range(min=math.nextafter(0, math.inf))
     @validate_type(int, float)
     def area(self, value: int|float) -> None:
         self.__area = value
@@ -2781,7 +2778,7 @@ class PhotoVoltaicPanel:
         return self.__azimuth
     
     @azimuth.setter
-    @validate_range(min=0, max=360-SMALLEST_VALUE)
+    @validate_range(min=0, max=math.nextafter(360, -math.inf))
     def azimuth(self, value: int|float) -> None:
         self.__azimuth = value
         
@@ -2790,7 +2787,7 @@ class PhotoVoltaicPanel:
         return self.__efficiency
     
     @efficiency.setter
-    @validate_range(min=SMALLEST_VALUE, max=1)
+    @validate_range(min=math.nextafter(0, math.inf), max=1)
     @validate_type(int, float)
     def efficiency(self, value: int|float) -> None:
         self.__efficiency = value
@@ -2800,7 +2797,7 @@ class PhotoVoltaicPanel:
         return self.__effective_area_ratio
     
     @effective_area_ratio.setter
-    @validate_range(min=SMALLEST_VALUE, max=1)
+    @validate_range(min=math.nextafter(0, math.inf), max=1)
     @validate_type(int, float)
     def effective_area_ratio(self, value: int|float) -> None:
         self.__effective_area_ratio = value

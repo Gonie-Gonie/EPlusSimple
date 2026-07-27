@@ -6,6 +6,7 @@
 
 # built-in modules
 from __future__ import annotations
+import math
 from enum   import Enum
 from typing import (
     overload     ,
@@ -16,9 +17,6 @@ from typing import (
 
 # local modules
 from ..imugi import (
-    # variables
-    SMALLEST_VALUE,
-    # classes
     IdfObject,
 )
 from ..utils import (
@@ -89,7 +87,7 @@ class Material:
         return self.__conductivity
     
     @conductivity.setter
-    @validate_range(min=SMALLEST_VALUE)
+    @validate_range(min=math.nextafter(0,math.inf))
     @validate_type(int, float)
     def conductivity(self, value: int|float) -> None:
         self.__conductivity = value
@@ -99,7 +97,7 @@ class Material:
         return self.__density
     
     @density.setter
-    @validate_range(min=SMALLEST_VALUE)
+    @validate_range(min=math.nextafter(0,math.inf))
     @validate_type(int, float)
     def density(self, value: int|float) -> None:
         self.__density = value
@@ -181,7 +179,7 @@ class Layer:
     
     @thickness.setter
     @validate_type(int, float)
-    @validate_range(min=SMALLEST_VALUE)
+    @validate_range(min=math.nextafter(0,math.inf))
     def thickness(self, value:int|float) -> None:
         self.__thickness = value
     
@@ -332,7 +330,7 @@ class Glazing:
         return self.__U
     
     @U.setter
-    @validate_range(min=SMALLEST_VALUE)
+    @validate_range(min=math.nextafter(0,math.inf))
     @validate_type(int, float)
     def U(self, value: int|float) -> None:
         self.__U = value
@@ -342,7 +340,7 @@ class Glazing:
         return self.__G
     
     @G.setter
-    @validate_range(min=SMALLEST_VALUE)
+    @validate_range(min=math.nextafter(0,math.inf))
     @validate_type(int, float)
     def G(self, value: int|float) -> None:
         self.__G = value
@@ -394,7 +392,7 @@ class NoMassConstruction:
         return self.__U
     
     @U.setter
-    @validate_range(min=SMALLEST_VALUE)
+    @validate_range(min=math.nextafter(0,math.inf))
     @validate_type(int, float)
     def U(self, value: int|float) -> None:
         self.__U = value

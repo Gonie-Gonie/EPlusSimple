@@ -48,7 +48,6 @@ from .launcher import (
     EnergyPlusResult,
     run             ,
 )
-from .utils import SMALLEST_VALUE
 
 # ---------------------------------------------------------------------------- #
 #                                  EXCEPTIONS                                  #
@@ -453,9 +452,9 @@ class IddField():
                 case "ip-units"                  : pass
                 case "unitsBasedOnField"         : attr_dict["unit"] = f"BasedOn:{value}"
                 case "minimum"                   : attr_dict["minimum"] = float(value)
-                case "minimum>"                  : attr_dict["minimum"] = float(value) + SMALLEST_VALUE
+                case "minimum>"                  : attr_dict["minimum"] = math.nextafter(value, math.inf)
                 case "maximum"                   : attr_dict["maximum"] = float(value)    
-                case "maximum<"                  : attr_dict["maximum"] = float(value) - SMALLEST_VALUE
+                case "maximum<"                  : attr_dict["maximum"] = math.nextafter(value, -math.inf)
                 case "default":      
                     value = float(value) if re.match(r"^\d*\.?\d*$",value) else value
                     attr_dict["default"] = value
@@ -2643,7 +2642,7 @@ class IDF(StaticIndexedDict):
             """)
         
         # write header and str format of whole of the idf_objects
-        with open(filepath, "w", encoding="cp949") as f:
+        with open(filepath, "w", encoding="UTF-8") as f:
             f.write(header)
             f.write(str(self))
         
