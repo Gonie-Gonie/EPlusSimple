@@ -875,6 +875,7 @@ class GreenRetrofitResult:
             "heating"    : ["HEATING"],
             "cooling"    : ["COOLING"],
             "lighting"   : ["INTERIORLIGHTS","EXTERIORLIGHTS"],
+            "equipment"  : ["INTERIOREQUIPMENT"],
             "circulation": ["FANS","PUMPS","HEATRECOVERY"],
             "hotwater"   : ["WATERSYSTEMS"],
             "generators" : []
@@ -952,7 +953,7 @@ class GreenRetrofitResult:
     def summarize(self, df:pd.DataFrame, *, gross:bool) -> dict:
         
         # 컬럼 구분
-        use_cols = ["heating", "cooling", "lighting", "circulation", "hotwater"]
+        use_cols = ["heating", "cooling", "lighting", "equipment", "circulation", "hotwater"]
         gen_cols = ["generators"]
         
         # total
