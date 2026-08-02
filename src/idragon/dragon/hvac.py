@@ -268,6 +268,7 @@ class HeatPump(SourceSystem):
                 "Availability Schedule Name": "ALLON",
                 "Gross Rated Total Cooling Capacity": self.cooling_capacity if self.cooling_capacity is not None else "autosize",
                 "Gross Rated Cooling COP": self.cooling_cop,
+                "Fuel Type": self.fuel.to_idf_name(),
                 # Cooling Curves
                 "Cooling Capacity Ratio Modifier Function of Low Temperature Curve Name": f"Curve_for_{self.idf_objname}:CoolingCapaMF_LowTemp",
                 "Cooling Capacity Ratio Boundary Curve Name": f"Curve_for_{self.idf_objname}:CoolingCapaBoundary",
