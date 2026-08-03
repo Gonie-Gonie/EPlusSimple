@@ -884,7 +884,8 @@ class GreenRetrofitResult:
         fuel_name_in_energyplus = {
             Fuel.ELECTRICITY    : "Electricity",
             Fuel.NATURALGAS     : "NaturalGas" ,
-            Fuel.OIL            : "Diesel"    ,
+            Fuel.LPG            : "Propane"    ,
+            Fuel.OIL            : "Diesel"     ,
             Fuel.DISTRICTHEATING: "OtherFuels" ,
         }
         

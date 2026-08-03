@@ -129,10 +129,13 @@ class EnergyModel:
         idf["OutputControl:Table:Style"].append(["COMMA", "JtoKWH"])
         idf["Output:Table:SummaryReports"].append([
             "EndUseEnergyConsumptionElectricityMonthly",
-            "EndUseEnergyConsumptionNaturalGasMonthly",
-            "EndUseEnergyConsumptionDieselMonthly"   ,
-            "EndUseEnergyConsumptionOtherFuelsMonthly"   ,
-            "EnergyConsumptionElectricityGeneratedPropaneMonthly",
+            "EndUseEnergyConsumptionNaturalGasMonthly" ,
+            "EndUseEnergyConsumptionDieselMonthly"     ,
+            "EndUseEnergyConsumptionFuelOilMonthly"    ,
+            "EndUseEnergyConsumptionCoalMonthly"       ,
+            "EndUseEnergyConsumptionPropaneMonthly"    ,
+            "EndUseEnergyConsumptionGasolineMonthly"   ,
+            "EndUseEnergyConsumptionOtherFuelsMonthly" ,
         ])
         
         idf["Output:Table:Monthly"].append([

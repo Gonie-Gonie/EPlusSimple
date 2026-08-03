@@ -45,26 +45,19 @@ if TYPE_CHECKING:
 
 class Fuel(str, Enum):
     
-    ELECTRICITY = "electricity"
-    NATURALGAS  = "naturalgas"
-    PROPANE     = "propane"
-    FUELOILNO1  = "fueloilno1"
-    FUELOILNO2  = "fueloilno2"
-    COAL        = "coal"
-    DIESEL      = "diesel"
-    GASOLINE    = "gasoline"
-    OTHER       = "other"
+    ELECTRICITY = "Electricity"
+    NATURALGAS  = "NaturalGas"
+    PROPANE     = "Propane"
+    FUELOILNO1  = "FuelOilNo1"
+    FUELOILNO2  = "FuelOilNo2"
+    COAL        = "Coal"
+    DIESEL      = "Diesel"
+    GASOLINE    = "Gasoline"
+    OTHERFUEL1  = "OtherFuel1"
+    OTHERFUEL2  = "OtherFuel2"
     
     def __str__(self) -> str:
-        return self.value
-    
-    def to_idf_name(self) -> str:
-        
-        if self == Fuel.OTHER:
-            return "OtherFuel1"
-        else:
-            return self.value
-    
+        return self.value  
 
 
 class SourceSystem(ABC):
@@ -131,7 +124,7 @@ class HeatPump(SourceSystem):
         self.name = name
         
         # fundamental properties
-        self.fuel = fuel
+        self.fuel = Fuel(fuel)
         self.heating_cop = heating_cop
         self.cooling_cop = cooling_cop
         self.heating_capacity = heating_capacity
@@ -268,7 +261,7 @@ class HeatPump(SourceSystem):
                 "Availability Schedule Name": "ALLON",
                 "Gross Rated Total Cooling Capacity": self.cooling_capacity if self.cooling_capacity is not None else "autosize",
                 "Gross Rated Cooling COP": self.cooling_cop,
-                "Fuel Type": self.fuel.to_idf_name(),
+                "Fuel Type": self.fuel.value,
                 # Cooling Curves
                 "Cooling Capacity Ratio Modifier Function of Low Temperature Curve Name": f"Curve_for_{self.idf_objname}:CoolingCapaMF_LowTemp",
                 "Cooling Capacity Ratio Boundary Curve Name": f"Curve_for_{self.idf_objname}:CoolingCapaBoundary",
@@ -1338,7 +1331,7 @@ class Boiler(SourceSystem):
         components = [
             IdfObject("Boiler:HotWater",{
                 "Name": self.idf_objname,
-                "Fuel Type": self.fuel.to_idf_name(),
+                "Fuel Type": self.fuel.value,
                 "Nominal Capacity": self.capacity if self.capacity is not None else "autosize",
                 "Nominal Thermal Efficiency": self.efficiency,
                 "Efficiency Curve Temperature Evaluation Variable": "LeavingBoiler",
