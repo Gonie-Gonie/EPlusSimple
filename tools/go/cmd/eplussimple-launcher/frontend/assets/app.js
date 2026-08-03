@@ -12,6 +12,7 @@ const graphOrder = [
 const energyTypes = [
   { key: "ELECTRICITY", label: "전기", color: "rgba(72,190,141,1)", light_color: "rgba(137,220,181,1)" },
   { key: "NATURALGAS", label: "가스", color: "rgba(195,24,24,1)", light_color: "rgba(227,124,124,1)" },
+  { key: "LPG", label: "LPG", color: "rgba(54,108,196,1)", light_color: "rgba(132,169,229,1)" },
   { key: "OIL", label: "유류", color: "rgba(242,176,77,1)", light_color: "rgba(247,208,148,1)" },
   { key: "DISTRICTHEATING", label: "지역난방", color: "rgba(186,28,162,1)", light_color: "rgba(218,126,201,1)" },
 ];
