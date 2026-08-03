@@ -51,7 +51,7 @@ class Fuel(str, Enum):
             case Fuel.OIL:
                 return dragon.Fuel.DIESEL
             case Fuel.DISTRICTHEATING:
-                return dragon.Fuel.OTHER
+                return dragon.Fuel.OTHERFUEL1
 
 
 class SourceSystem:
