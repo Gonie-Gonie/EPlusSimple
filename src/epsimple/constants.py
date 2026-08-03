@@ -73,6 +73,7 @@ class Site2Source(float, Enum): # kWh -> kWh
     
     ELECTRICITY     = 2.75
     NATURALGAS      = 1.1
+    LPG             = 1.1
     OIL             = 1.1 
     DISTRICTHEATING = 0.728 
     
@@ -81,6 +82,7 @@ class Site2CO2(float, Enum): # kWh -> kgCO2eq
     
     ELECTRICITY     = 0.4541
     NATURALGAS      = 0.2024
+    LPG             = 0.2326
     OIL             = 0.2603
     DISTRICTHEATING = 0.1358
     
@@ -89,6 +91,7 @@ class Site2Cost(float, Enum): # kWh -> won
     
     ELECTRICITY     = 162.92
     NATURALGAS      =  78.12
+    LPG             = 184.89
     OIL             = 141.92
     DISTRICTHEATING =  94.98
     

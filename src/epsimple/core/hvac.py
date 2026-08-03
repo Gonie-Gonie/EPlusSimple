@@ -35,6 +35,7 @@ class Fuel(str, Enum):
     
     ELECTRICITY     = "electricity"
     NATURALGAS      = "natural_gas"
+    LPG             = "lpg"
     OIL             = "oil"
     DISTRICTHEATING = "district_heating"
     
@@ -48,6 +49,8 @@ class Fuel(str, Enum):
                 return dragon.Fuel.ELECTRICITY
             case Fuel.NATURALGAS:
                 return dragon.Fuel.NATURALGAS
+            case Fuel.LPG:
+                return dragon.Fuel.PROPANE
             case Fuel.OIL:
                 return dragon.Fuel.DIESEL
             case Fuel.DISTRICTHEATING:

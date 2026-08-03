@@ -198,8 +198,8 @@ PROPERTY_RENAME_DICT = {
     },
     "fuel_type": {
         "전기"   : "electricity",
-        "가스"   : "natural_gas",
         "천연가스": "natural_gas",
+        "LPG"    : "lpg"        ,
         "난방유" : "oil"        ,
         "지역난방": "district_heating",
     },
