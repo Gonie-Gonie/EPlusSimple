@@ -502,6 +502,7 @@ class AbsorptionChiller(SourceSystem):
         name:str     ,
         cop     :int|float|None=None,
         capacity:int|float|None=None,
+        boiler_fuel      :str|Fuel|None=None,
         boiler_efficiency:int|float|None=None,
         *,
         ID:str|None=None
@@ -515,6 +516,7 @@ class AbsorptionChiller(SourceSystem):
         self.capacity = None if capacity is None else capacity
         
         # secondary source system (boiler) properties
+        self.boiler_fuel       = Fuel(boiler_fuel)
         self.boiler_efficiency = 0.85 if boiler_efficiency is None else boiler_efficiency
 
         # set default ID if not specified
@@ -590,6 +592,7 @@ class AbsorptionChiller(SourceSystem):
             input.name,
             getattr(input,"cop_cooling", None),
             getattr(input,"capacity_cooling", None),
+            input.fuel_type,
             getattr(input,"boiler_efficiency", None),
             ID=input.id
         )
@@ -598,7 +601,7 @@ class AbsorptionChiller(SourceSystem):
         
         boiler = dragon.Boiler(
             f"Boiler_for_{self.ID}",
-            Fuel.NATURALGAS.to_dragon(),
+            self.boiler_fuel.to_dragon(),
             self.boiler_efficiency
         )
         
