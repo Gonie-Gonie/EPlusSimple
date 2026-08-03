@@ -445,7 +445,7 @@ class Surface:
             shade_objs.append(IdfObject("WindowShadingControl",{
                 "Name": f"{win.name}:ShadingControl",
                 "Zone Name": zone.name,
-                "Shading Type": "InteriorShade",
+                "Shading Type": "InteriorBlind" if isinstance(win.blind, Blind) else "InteriorShade",
                 "Shading Control Type": "OffNightAndOnDayIfCoolingAndHighSolarOnWindow",
                 "Setpoint": 20,
                 "Shading Device Material Name": win.blind.name,
@@ -547,7 +547,7 @@ class Blind(Shading):
     def __init__(self,
         name,
         slat_width       :int|float,
-        slat_seperation  :int|float,
+        slat_separation  :int|float,
         slat_angle       :int|float,
         front_reflectance:int|float,
         back_reflectance :int|float,
@@ -558,7 +558,7 @@ class Blind(Shading):
         
         # thermal properties
         self.slat_width        = slat_width
-        self.slat_seperation   = slat_seperation
+        self.slat_separation   = slat_separation
         self.slat_angle        = slat_angle
         self.front_reflectance = front_reflectance
         self.back_reflectance  = back_reflectance
@@ -568,8 +568,10 @@ class Blind(Shading):
         return [IdfObject("WindowMaterial:Blind",{
             "Name": self.name,
             "Slat Width": self.slat_width,
-            "Slat Seperation": self.slat_seperation,
+            "Slat Separation": self.slat_separation,
             "Slat Angle": self.slat_angle,
+            "Slat Beam Visible Transmittance" : 0.0,
+            "Slat Diffuse Visible Transmittance": 0.0,
             "Front Side Slat Beam Solar Reflectance"   : self.front_reflectance,
             "Back Side Slat Beam Solar Reflectance"    : self.back_reflectance ,
             "Front Side Slat Diffuse Solar Reflectance": self.front_reflectance,
