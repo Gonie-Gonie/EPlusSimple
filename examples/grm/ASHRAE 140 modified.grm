@@ -8,8 +8,6 @@
             1,
             1
         ],
-        "num_aboveground_floors": 1,
-        "num_underground_floors": 0,
         "floors": [
             {
                 "floor_number": 1,
@@ -23,7 +21,7 @@
                         "infiltration": 1.5,
                         "supply_system_heating_id": "SUPL-0x000000",
                         "supply_system_cooling_id": "SUPL-0x000000",
-                        "ventilation_system_id": null,
+                        "ventilation_systems": [],
                         "surfaces": [
                             {
                                 "id": "SURF-0x000000",

@@ -284,8 +284,6 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
   \jsontablerow{north_axis            }{\TypeTag{F}}{\ReqTag{R}}{}{}{[0,360)}{deg(^\circ)}
   \jsontablerow{address               }{\TypeTag{S}}{\ReqTag{R}}{}{}{\needtobeexplain}{}
   \jsontablerow{vintage               }{[ \TypeTag{I} ]}{\ReqTag{R}}{}{}{[3,3]}{}
-  \jsontablerow{num_aboveground_floors}{\TypeTag{I}}{\ReqTag{R}}{}{}{[1, $Inf$)}{}
-  \jsontablerow{num_underground_floors}{\TypeTag{I}}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
   \jsontablerow{floors                }{[ \hyperref[subsubsection:ioref:floor]{\texttt{floor}} ]}{}{}{}{[1, $Inf$)}{}
   \jsontablerow{supply_systems        }{[ \hyperref[subsubsection:ioref:supplysystem]{\texttt{supply\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
   \jsontablerow{source_systems        }{[ \hyperref[subsubsection:ioref:sourcesystem]{\texttt{source\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
@@ -319,10 +317,6 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 
 \paragraph{vintage (허가일자)} 건물의 허가일자. 연(4자리 정수), 월(2자리 정수), 일(2자리 정수)로 이루어진 array이다.
 
-\paragraph{num\_aboveground\_floors (지상층수)} 건물의 지상 층 수. 시뮬레이션에 직접 사용되지 않는다.
-
-\paragraph{num\_underground\_floors (지하층수)} 건물의 지하 층 수. 시뮬레이션에 직접 사용되지 않는다.
-
 \subsubsection{floor (층)} \label{subsubsection:ioref:floor}
 하위 \hyperref[subsubsection:ioref:zone]{\texttt{zone}}들을 층 단위로 구분하기 위한 클래스이다.
 
@@ -345,7 +339,7 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
   \jsontablerow{infiltration            }{\TypeTag{F}}{ \ReqTag{R} }{}{}{[0,$Inf$)}{ACH50}
   \jsontablerow{supply_system_heating_id}{\TypeTag{S}}{ \ReqTag{R} }{}{}{\hyperref[subsubsection:ioref:supplysystem]{\texttt{supply\_system}}의 \texttt{id}}{}
   \jsontablerow{supply_system_cooling_id}{\TypeTag{S}}{ \ReqTag{R} }{}{}{\hyperref[subsubsection:ioref:supplysystem]{\texttt{supply\_system}}의 \texttt{id}}{}
-  \jsontablerow{ventilation_systems     }{[ \hyperref[subsubsection:ioref:ventilationsystemassignment]{\texttt{ventilation\_system\_assignment}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
+  \jsontablerow{ventilation_systems     }{[ \hyperref[subsubsection:ioref:ventilationassignment]{\texttt{ventilation\_assignment}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
 
   \jsontablerow{surfaces                }{[ \hyperref[subsubsection:ioref:surface]{\texttt{surface}} ]}{ \ReqTag{R} }{}{}{[0, $Inf$)}{}
 }
@@ -371,19 +365,18 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 \paragraph{surface (소속 면)} 소속면. 해당 \texttt{zone}을 인접존으로 하는 \texttt{surface}를 포함하여, 1개 이상의 천장(\texttt{type} = ``ceiling''), 1개 이상의 바닥(\texttt{type} = ``floor'') 및 1개 이상의 벽체(\texttt{type} = ``wall'')를 필요로 한다. 즉, 인접존이 없을 경우, 3 이상의 길이를 가지는 list가 필요하다.
 
 \subsubsection{ventilation\_system\_assignment (환기설비 배치)}
-\label{subsubsection:ioref:ventilationsystemassignment}
+\label{subsubsection:ioref:ventilationassignment}
 
 각 존에 적용되는 환기설비의 종류와 설치 대수를 정의한다.
 하나의 객체는 기존에 정의된 \hyperref[subsubsection:ioref:ventilationsystem]{\texttt{ventilation\_system}} 하나를 참조한다.
 
-\jsontable{ventilation\_system\_assignment}{
+\jsontable{ventilation\_assignment}{
   \jsontablerow{id   }{\TypeTag{S}}{\ReqTag{R}}{}{}{\hyperref[subsubsection:ioref:ventilationsystem]{\texttt{ventilation\_system}}의 \texttt{id}}{}
   \jsontablerow{count}{\TypeTag{I}}{\ReqTag{R}}{}{}{[1, $Inf$)}{}
 }
 
 \paragraph{id (환기설비 식별자)}
 해당 존에 적용되는 \hyperref[subsubsection:ioref:ventilationsystem]{\texttt{ventilation\_system}}의 식별자이다.
-동일한 존의 \texttt{ventilation\_systems} 배열에서 같은\texttt{id}를 중복하여 사용할 수 없다.
 
 \paragraph{count (설치 대수)}
 해당 환기설비가 존에 적용되는 대수이다.
