@@ -105,26 +105,28 @@
                 ]
             }
         ],
-        "supply_systems": [
-            {
-                "id": "SUPL-0x000000",
-                "name": "실내기-실",
-                "type": "air_handling_unit",
-                "source_system_id": "SRCE-0x000000"
-            }
-        ],
-        "source_systems": [
-            {
-                "id": "SRCE-0x000000",
-                "name": "실외기",
-                "type": "heatpump",
-                "capacity_cooling": null,
-                "capacity_heating": null,
-                "cop_cooling": 3.0,
-                "cop_heating": 3.0,
-                "fuel_type": "electricity"
-            }
-        ],
+        "supply_systems": {
+            "air_handling_unit":[
+                {
+                    "id": "SUPL-0x000000",
+                    "name": "실내기-실",
+                    "source_system_id": "SRCE-0x000000"
+                }
+            ]
+        },
+        "source_systems": {
+            "heatpump": [
+                {
+                    "id": "SRCE-0x000000",
+                    "name": "실외기",
+                    "capacity_cooling": null,
+                    "capacity_heating": null,
+                    "cop_cooling": 3.0,
+                    "cop_heating": 3.0,
+                    "fuel_type": "electricity"
+                }
+            ]
+        },
         "ventilation_systems": [],
         "photovoltaic_systems": []
     },
