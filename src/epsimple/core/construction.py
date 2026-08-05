@@ -521,6 +521,7 @@ class SurfaceConstruction:
         boundary_cond:SurfaceBoundaryCondition,
         climate      :str        ,
         *,
+        is_radiant_floor      :bool=False,
         is_multifamily_housing:bool=False,
         ) -> SurfaceConstruction:
         
@@ -535,12 +536,21 @@ class SurfaceConstruction:
                 if boundary_cond is SurfaceBoundaryCondition.OUTDOOR:
                     part = "최상층 지붕"
                 else:
-                    part = "바닥난방이 아닌 층간바닥"
+                    if is_radiant_floor:
+                        part = "바닥난방인 층간바닥"
+                    else:
+                        part = "바닥난방이 아닌 층간바닥"
             case SurfaceType.FLOOR  :
                 if (boundary_cond is SurfaceBoundaryCondition.OUTDOOR) or (boundary_cond is SurfaceBoundaryCondition.GROUND):
-                    part = "바닥난방이 아닌 최하층 바닥"
+                    if is_radiant_floor:
+                        part = "바닥난방인 최하층 바닥"
+                    else:
+                        part = "바닥난방이 아닌 최하층 바닥"
                 else:
-                    part = "바닥난방이 아닌 층간바닥"
+                    if is_radiant_floor:
+                        part = "바닥난방인 층간바닥"
+                    else:
+                        part = "바닥난방이 아닌 층간바닥"
         
         # usage
         if is_multifamily_housing:

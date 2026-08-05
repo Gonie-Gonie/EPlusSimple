@@ -43,6 +43,7 @@ from . import (
     Profile,
     # hvac
     Fuel,
+    RadiantFloor      ,
     SourceSystem      ,
     Boiler            ,
     DistrictHeating   ,
@@ -548,6 +549,11 @@ class GreenRetrofitModel:
             surface.ID: surface
             for surface in sum(surfaces_by_zone.values(), start=[])
         }
+        radiant_floor_list = sum([
+            [surf.ID for surf in surfaces_by_zone[zone.ID] if surf.type == SurfaceType.FLOOR]
+            for zone in self.zone
+            if isinstance(zone.heating_supply, RadiantFloor)
+        ], start=[])
         
         # allocate unknowns
         default_innerwall_construction = SurfaceConstruction(
@@ -575,6 +581,7 @@ class GreenRetrofitModel:
                         surface.type    ,
                         surface.boundary,
                         self.climate    ,
+                        is_radiant_floor      =(surface.ID in radiant_floor_list),
                         is_multifamily_housing=self.is_multifamlily_housing,
                     )
                     surface.construction = regulated_construction
