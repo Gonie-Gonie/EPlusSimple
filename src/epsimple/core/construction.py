@@ -521,7 +521,7 @@ class SurfaceConstruction:
         boundary_cond:SurfaceBoundaryCondition,
         climate      :str        ,
         *,
-        is_residential:bool=False,
+        is_multifamily_housing:bool=False,
         ) -> SurfaceConstruction:
         
         # date
@@ -543,7 +543,7 @@ class SurfaceConstruction:
                     part = "바닥난방이 아닌 층간바닥"
         
         # usage
-        if is_residential:
+        if is_multifamily_housing:
             usage = "공동주택"
         else:
             usage = "공동주택 외"

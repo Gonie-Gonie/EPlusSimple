@@ -284,6 +284,7 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
   \jsontablerow{north_axis            }{\TypeTag{F}}{\ReqTag{R}}{}{}{[0,360)}{deg(^\circ)}
   \jsontablerow{address               }{\TypeTag{S}}{\ReqTag{R}}{}{}{\needtobeexplain}{}
   \jsontablerow{vintage               }{[ \TypeTag{I} ]}{\ReqTag{R}}{}{}{[3,3]}{}
+  \jsontablerow{is_multifamily_housing}{\TypeTag{B}}{\ReqTag{R}}{}{}{}{}
   \jsontablerow{floors                }{[ \hyperref[subsubsection:ioref:floor]{\texttt{floor}} ]}{}{}{}{[1, $Inf$)}{}
   \jsontablerow{supply_systems        }{[ \hyperref[subsubsection:ioref:supplysystem]{\texttt{supply\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
   \jsontablerow{source_systems        }{[ \hyperref[subsubsection:ioref:sourcesystem]{\texttt{source\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
@@ -316,6 +317,8 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 \paragraph{address (주소)} 건물의 주소. 식별 가능한 법정 기초행정구역명(세종특별자치시와 제주특별자치도 제주시, 서귀포시를 포함)을 포함하여야 한다. 
 
 \paragraph{vintage (허가일자)} 건물의 허가일자. 연(4자리 정수), 월(2자리 정수), 일(2자리 정수)로 이루어진 array이다.
+
+\paragraph{is\_multifamily\_housing (공동주택 여부)} 건축법 시행령 및 건축물의 에너지절약설계기준 상 공동주택에 적용되는 법규를 적용받는지 여부.
 
 \subsubsection{floor (층)} \label{subsubsection:ioref:floor}
 하위 \hyperref[subsubsection:ioref:zone]{\texttt{zone}}들을 층 단위로 구분하기 위한 클래스이다.

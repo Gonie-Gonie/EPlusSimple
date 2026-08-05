@@ -121,8 +121,9 @@ class GreenRetrofitModel:
     def __init__(self,
         name      :str,
         address   :str,
-        vintage   :list[int]|datetime  ,
-        north_axis:int|float =0         ,
+        vintage   :list[int]|datetime,
+        is_multifamily_housing:bool  ,
+        north_axis:int|float =0      ,
         zone      :list[Zone]=[],
         pv        :list[PhotoVoltaicSystem]=[],
         ) -> None:
@@ -132,6 +133,7 @@ class GreenRetrofitModel:
         
         # fundamental properties
         self.vintage   =vintage
+        self.is_multifamlily_housing = is_multifamily_housing
         self.address   =address
         self.north_axis=north_axis
         
@@ -288,7 +290,7 @@ class GreenRetrofitModel:
                     wall.type    ,
                     wall.boundary,
                     self.climate    ,
-                    is_residential=False,
+                    is_multifamily_housing=self.is_multifamlily_housing,
                 ).get_U()
                 
             else:
@@ -314,7 +316,7 @@ class GreenRetrofitModel:
                     roof.type    ,
                     roof.boundary,
                     self.climate    ,
-                    is_residential=False,
+                    is_multifamily_housing=self.is_multifamlily_housing,
                 ).get_U()
                 
             else:
@@ -340,7 +342,7 @@ class GreenRetrofitModel:
                     floor.type    ,
                     floor.boundary,
                     self.climate    ,
-                    is_residential=False,
+                    is_multifamily_housing=self.is_multifamlily_housing,
                 ).get_U()
                 
             else:
@@ -441,18 +443,13 @@ class GreenRetrofitModel:
         with open(filepath, encoding="UTF-8") as f:
             input = json.load(f, object_hook=lambda d: SimpleNamespace(**d))
         
-        # building info.
-        name       = input.building.name
-        address    = input.building.address
-        vintage    = input.building.vintage
-        north_axis = input.building.north_axis
-        
         # create a green-retrofit-model
         grm = cls(
-            name      ,
-            address   ,
-            vintage   ,
-            north_axis,
+            input.building.name,
+            input.building.address,
+            input.building.vintage,
+            input.building.is_multifamily_housing,
+            input.building.north_axis,
         )
         
         # construction
@@ -578,7 +575,7 @@ class GreenRetrofitModel:
                         surface.type    ,
                         surface.boundary,
                         self.climate    ,
-                        is_residential=False,
+                        is_multifamily_housing=self.is_multifamlily_housing,
                     )
                     surface.construction = regulated_construction
                     
