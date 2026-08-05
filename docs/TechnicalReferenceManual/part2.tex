@@ -345,7 +345,8 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
   \jsontablerow{infiltration            }{\TypeTag{F}}{ \ReqTag{R} }{}{}{[0,$Inf$)}{ACH50}
   \jsontablerow{supply_system_heating_id}{\TypeTag{S}}{ \ReqTag{R} }{}{}{\hyperref[subsubsection:ioref:supplysystem]{\texttt{supply\_system}}의 \texttt{id}}{}
   \jsontablerow{supply_system_cooling_id}{\TypeTag{S}}{ \ReqTag{R} }{}{}{\hyperref[subsubsection:ioref:supplysystem]{\texttt{supply\_system}}의 \texttt{id}}{}
-  \jsontablerow{ventilation_system_id   }{\TypeTag{S}}{ \ReqTag{R} }{}{}{\hyperref[subsubsection:ioref:ventilationsystem]{\texttt{ventilation\_system}}의 \texttt{id}}{}
+  \jsontablerow{ventilation_systems     }{[ \hyperref[subsubsection:ioref:ventilationsystemassignment]{\texttt{ventilation\_system\_assignment}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
+
   \jsontablerow{surfaces                }{[ \hyperref[subsubsection:ioref:surface]{\texttt{surface}} ]}{ \ReqTag{R} }{}{}{[0, $Inf$)}{}
 }
 
@@ -365,9 +366,28 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 
 \paragraph{supply\_system\_cooling\_id (냉방 공급 설비)} 냉방공급시스템의 ID.
 
-\paragraph{ventilation\_system\_id (환기 설비)} 환기시스템의 ID.
+\paragraph{ventilation\_systems (환기 설비)} 환기시스템의 ID 및 개수 목록.
 
 \paragraph{surface (소속 면)} 소속면. 해당 \texttt{zone}을 인접존으로 하는 \texttt{surface}를 포함하여, 1개 이상의 천장(\texttt{type} = ``ceiling''), 1개 이상의 바닥(\texttt{type} = ``floor'') 및 1개 이상의 벽체(\texttt{type} = ``wall'')를 필요로 한다. 즉, 인접존이 없을 경우, 3 이상의 길이를 가지는 list가 필요하다.
+
+\subsubsection{ventilation\_system\_assignment (환기설비 배치)}
+\label{subsubsection:ioref:ventilationsystemassignment}
+
+각 존에 적용되는 환기설비의 종류와 설치 대수를 정의한다.
+하나의 객체는 기존에 정의된 \hyperref[subsubsection:ioref:ventilationsystem]{\texttt{ventilation\_system}} 하나를 참조한다.
+
+\jsontable{ventilation\_system\_assignment}{
+  \jsontablerow{id   }{\TypeTag{S}}{\ReqTag{R}}{}{}{\hyperref[subsubsection:ioref:ventilationsystem]{\texttt{ventilation\_system}}의 \texttt{id}}{}
+  \jsontablerow{count}{\TypeTag{I}}{\ReqTag{R}}{}{}{[1, $Inf$)}{}
+}
+
+\paragraph{id (환기설비 식별자)}
+해당 존에 적용되는 \hyperref[subsubsection:ioref:ventilationsystem]{\texttt{ventilation\_system}}의 식별자이다.
+동일한 존의 \texttt{ventilation\_systems} 배열에서 같은\texttt{id}를 중복하여 사용할 수 없다.
+
+\paragraph{count (설치 대수)}
+해당 환기설비가 존에 적용되는 대수이다.
+1 이상의 정수로 입력한다.
 
 \subsubsection{surface (면)} \label{subsubsection:ioref:surface}
 존과 존, 외부 (외기 또는 지면), 또는 단열선 사이의 면(벽체)이다.
@@ -520,10 +540,10 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 
 \subsubsection{ventilation\_system (환기설비)} \label{subsubsection:ioref:ventilationsystem}
 
-
 \jsontable{ventilation\_system}{
   \jsontablerow{id             }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
   \jsontablerow{name           }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
+  \jsontablerow{airflow_rate   }{\TypeTag{F}}{\ReqTag{R}}{}{}{(0,$Inf$)}{m^3/s}
   \jsontablerow{efficiency_heating}{\TypeTag{F}}{\ReqTag{O}}{0.70}{}{(0,1)}{1}
   \jsontablerow{efficiency_cooling}{\TypeTag{F}}{\ReqTag{O}}{0.45}{}{(0,1)}{1}
 }
@@ -531,6 +551,8 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 \paragraph{id (식별자)} 환기설비의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
 
 \paragraph{name (이름)} 사용자 편의를 위해 제공되는 생산설비 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
+
+\paragraph{airflow\_rate (풍량)} 환기설비의 풍량.
 
 \paragraph{efficiency\_cooling (냉방효율)} 유효 냉방 전열교환 효율.
 
@@ -668,7 +690,7 @@ constants
  └─ site2cost
 \end{verbatim}
 
-각 항목은 연료 유형(전력:\texttt{electricity}, 천연가스:\texttt{natural\_gas}, 지역난방:\texttt{district\_heating}, 유류:\texttt{oil})별 변환계수를 정의한다.
+각 항목은 연료 유형(전력:\texttt{electricity}, 천연가스:\texttt{natural\_gas}, LPG: \texttt{lpg},지역난방:\texttt{district\_heating}, 유류:\texttt{oil})별 변환계수를 정의한다.
 
 \begin{itemize}
 \item \texttt{site2source} : 에너지소요량[$kWh$]를 1차에너지소요량[$kWh$]로 변환하기 위한 계수
@@ -685,6 +707,7 @@ site_uses
  ├─ heating
      ├─ ELECTRICITY     : [12개월 배열]
      ├─ NATURALGAS      : [12개월 배열]
+     ├─ LPG             : [12개월 배열]
      ├─ OIL             : [12개월 배열]
      └─ DISTRICTHEATING : [12개월 배열]
        (다른 end-use도 동일)
@@ -714,6 +737,7 @@ summary_per_area
      (연료별 집계)
      ├─ ELECTRICITY     
      ├─ NATURALGAS      
+     ├─ LPG
      ├─ OIL             
      └─ DISTRICTHEATING 
      (end-use별 집계)

@@ -1605,6 +1605,7 @@ class VentilationSystem:
     
     def __init__(self,
         name:str,
+        airflow_rate      :int|float          ,
         heating_efficiency:int|float|None=None,
         cooling_efficiency:int|float|None=None,
         *,
@@ -1615,6 +1616,7 @@ class VentilationSystem:
         self.name = name
         
         # fundamental properties
+        self.airflow_rate = airflow_rate
         self.heating_efficiency = 0.7  if heating_efficiency is None else heating_efficiency
         self.cooling_efficiency = 0.45 if cooling_efficiency is None else cooling_efficiency
         
@@ -1625,6 +1627,16 @@ class VentilationSystem:
     
     """ fundamental properties
     """
+    
+    @property
+    def airflow_rate(self) -> int|float:
+        return self.__airflow_rate
+    
+    @airflow_rate.setter
+    @validate_range(min=math.nextafter(0,math.inf))
+    @validate_type(int, float)
+    def airflow_rate(self, value:int|float) -> None:
+        self.__airflow_rate = value
     
     @property
     def heating_efficiency(self) -> int|float:
@@ -1665,7 +1677,8 @@ class VentilationSystem:
             )    
             
         # two ventilation systems are equal if all efficiencies are equal
-        return (self.heating_efficiency == other.heating_efficiency) and\
+        return (self.airflow_rate == other.airflow_rate) and\
+               (self.heating_efficiency == other.heating_efficiency) and\
                (self.cooling_efficiency == other.cooling_efficiency)
                
     
@@ -1679,6 +1692,7 @@ class VentilationSystem:
         
         return VentilationSystem(
             input.name,
+            input.airflow_rate,
             getattr(input,"efficiency_heating", None),
             getattr(input,"efficiency_cooling", None),
             ID=input.id,
@@ -1696,7 +1710,7 @@ class VentilationSystem:
     """
     
     def __str__(self) -> str:
-        return f"Ventilator (HEX) {self.name} (ID={self.ID}) with eff_h={self.heating_efficiency*Unit.FRACTION_TO_PERCENT:.1f}%, eff_c={self.cooling_efficiency*Unit.FRACTION_TO_PERCENT:.1f}%"
+        return f"Ventilator (HEX) {self.name} (ID={self.ID}) with flow rate = {self.airflow_rate*Unit.M3_PER_S_TO_CMH:.1f} CMH eff_h={self.heating_efficiency*Unit.FRACTION_TO_PERCENT:.1f}%, eff_c={self.cooling_efficiency*Unit.FRACTION_TO_PERCENT:.1f}%"
     
     def __repr__(self) -> str:
         return f"<VentilationSystem {self.name} (ID={self.ID}) at {hex(id(self))}>"

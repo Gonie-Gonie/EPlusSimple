@@ -722,11 +722,15 @@ class GreenRetrofitModel:
                 supply_dict[zone.cooling_supply.ID] = zone.cooling_supply.to_dragon(source_dict)
         
         # ventilation system
-        ventilator_dict = {
-            zone.ventilation_system.ID: zone.ventilation_system.to_dragon()
-            for zone in self.zone
-            if zone.ventilation_system is not None
-        }
+        ventilator_dict = {zone.ID: None for zone in self.zone}
+        for zone in self.zone:
+            if len(zone.ventilation_system) > 0:
+                total_airflow = sum(vent_sys.airflow_rate for vent_sys in zone.ventilation_system)
+                ventilator_dict[zone.ID] = dragon.EnergyRecoveryVentilator(
+                    f"ERV_for_{zone.ID}",
+                    sum(vent_sys.heating_efficiency*vent_sys.airflow_rate for vent_sys in zone.ventilation_system)/total_airflow,
+                    sum(vent_sys.cooling_efficiency*vent_sys.airflow_rate for vent_sys in zone.ventilation_system)/total_airflow,
+                )            
         
         # photovoltaic system
         pv_dict = {
@@ -748,7 +752,7 @@ class GreenRetrofitModel:
                     zone.light_density,
                     supply_dict.get(getattr(zone.cooling_supply,"ID",None), None),
                     supply_dict.get(getattr(zone.heating_supply,"ID",None), None),
-                    ventilator_dict.get(getattr(zone.ventilation_system,"ID", None), None)
+                    ventilator_dict[zone.ID],
                 )
                 for zone in self.zone
             ],

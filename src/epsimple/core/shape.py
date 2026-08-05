@@ -612,7 +612,7 @@ class Zone:
         infiltration :int|float|None=None,
         heating_supply_system:SupplySystem=None,
         cooling_supply_system:SupplySystem=None,
-        ventilation_system   :VentilationSystem=None,
+        ventilation_system   :list[VentilationSystem]=None,
         *,
         floor:int|None=None,
         ID:str|None = None
@@ -630,6 +630,9 @@ class Zone:
         self.infiltration  = infiltration
         self.heating_supply = heating_supply_system
         self.cooling_supply = cooling_supply_system
+        
+        if ventilation_system is None:
+            ventilation_system = []
         self.ventilation_system    = ventilation_system
         
         # set default ID if not specified
@@ -733,6 +736,11 @@ class Zone:
         floor:int|None=None,
         ) -> Zone:
         
+        ventilation_systems = []
+        for vent_sys in input.ventilation_systems:
+            for _ in range(vent_sys.count):
+                ventilation_systems.append(ventilation_system_dict.get(vent_sys.id))
+        
         return Zone(
             input.name,
             input.height,
@@ -742,7 +750,7 @@ class Zone:
             input.infiltration,
             supply_system_dict.get(input.supply_system_heating_id),
             supply_system_dict.get(input.supply_system_cooling_id),
-            ventilation_system_dict.get(input.ventilation_system_id),
+            ventilation_systems,
             ID=input.id
         )
         

@@ -60,6 +60,9 @@ class Unit(float, Enum):
     # infiltration
     ACH50_TO_ACH = 0.07    
     
+    # VOLUME FLOW RATE
+    M3_PER_S_TO_CMH = 3600
+    
 class ConvectionHeatTransfer(float, Enum):
     
     IN  = 1/0.110 # 거실의 실내표면열전달저항 (건축물의 에너지절약설계기준 [별표 5])
