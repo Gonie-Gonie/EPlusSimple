@@ -58,16 +58,8 @@ class Fuel(str, Enum):
 
 
 class SourceSystem:
+    TYPE_MAPPER={}
     
-    type_mapper={}
-    
-    @staticmethod
-    def from_json(
-        input:SimpleNamespace,
-        ) -> Any:
-        
-        return SourceSystem.type_mapper[input.type].from_json(input)
-
 
 class HeatPump(SourceSystem):
     
@@ -891,15 +883,7 @@ class SupplySystem:
     
     # map json input to a correspondingsubclasses 
     # type_mapper class-variable will be defined at the end of the document
-    type_mapper={}
-    
-    @staticmethod
-    def from_json(
-        input:SimpleNamespace,
-        source_system_dict:dict[str, SourceSystem],
-        ) -> Any:
-        
-        return SupplySystem.type_mapper[input.type].from_json(input, source_system_dict)
+    TYPE_MAPPER={}
 
     # define heat/cool-ablity by subclass and the connected source system
     _heatable_sources = []
@@ -1851,7 +1835,7 @@ class PhotoVoltaicSystem:
 #                                 CHILD CLASSES                                #
 # ---------------------------------------------------------------------------- #
 
-SupplySystem.type_mapper = {
+SupplySystem.TYPE_MAPPER = {
     "packaged_air_conditioner": PackagedAirConditioner,
     "air_handling_unit"       : AirHandlingUnit       ,
     "fan_coil_unit"           : FanCoilUnit           ,
@@ -1861,7 +1845,7 @@ SupplySystem.type_mapper = {
     "electric_radiant_floor"  : ElectricRadiantFloor  ,
 }
 
-SourceSystem.type_mapper = {
+SourceSystem.TYPE_MAPPER = {
     "heatpump"           : HeatPump          ,
     "geothermal_heatpump": GeothermalHeatPump,
     "chiller"            : Chiller           ,

@@ -473,12 +473,14 @@ class GreenRetrofitModel:
         
         # system
         source_system_dict = {
-            system_input.id: SourceSystem.from_json(system_input)
-            for system_input in input.building.source_systems
+            sys_item.id: SourceSystem.TYPE_MAPPER[sys_type].from_json(sys_item)
+            for sys_type, sys_list in vars(input.building.source_systems).items()
+            for sys_item in sys_list
         }
         supply_system_dict = {
-            system_input.id: SupplySystem.from_json(system_input, source_system_dict)
-            for system_input in input.building.supply_systems
+            sys_item.id: SupplySystem.TYPE_MAPPER[sys_type].from_json(sys_item, source_system_dict)
+            for sys_type, sys_list in vars(input.building.supply_systems).items()
+            for sys_item in sys_list
         }
         ventilation_system_dict = {
             ventilation_input.id: VentilationSystem.from_json(ventilation_input)

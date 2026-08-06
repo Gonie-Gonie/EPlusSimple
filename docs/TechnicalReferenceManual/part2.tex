@@ -154,13 +154,7 @@ run_grjson(
 
 \simulator 의 입력파일은 실제 건물의 물리적 구성 관계를 반영하여 계층적으로 구성되어 있다 \parencref{fig:grm_structure}. 즉, 건물(\texttt{building})을 최상위 객체로 하여 층(\texttt{floor}), 실(\texttt{zone}), 면(\texttt{surface}), 개구부(\texttt{fenestration}) 등과 같은 공간 요소가 실제 건물의 포함 관계와 유사한 형태로 단계적으로 조직된다. 이러한 구조를 통해 건물의 공간적 구성과 시스템 연결 관계를 직관적으로 표현할 수 있다.
 
-한편, 재료(\texttt{material})나 구조체(\texttt{construction})과 같은 물리적 속성은 공간 객체 내부에 직접 중복 정의되지 않고 별도의 객체로 정의된 뒤 참조 방식으로 연결된다. 예를 들어 면(\texttt{surface})은 특정 구조체(\texttt{surface\_construction})를 참조하는 방식으로 구성된다. 이러한 구조는 동일한 정보를 여러 객체에서 재사용할 수 있도록 한다. 또한, 설비 시스템(\texttt{hvac\_system})과 제어 로직(\texttt{control\_logic})은 건물 객체의 하위에 별도의 분류로 정의되어, 공간 요소와는 독립적으로 구성되며, 필요한 경우 공간 요소와 연결될 수 있도록 설계되어 있다. 이는 건물의 물리적 구성과 시스템 구성을 명확히 구분한다.
-
-\begin{defaultfigure}
-  \includegraphics[width=0.99\textwidth]{grm-datastructure.png}
-  \caption{\simulator\ 입력파일 체계도}
-  \label{fig:grm_structure}
-\end{defaultfigure}
+한편, 재료(\texttt{material})나 구조체(\texttt{construction})과 같은 물리적 속성은 공간 객체 내부에 직접 중복 정의되지 않고 별도의 객체로 정의된 뒤 참조 방식으로 연결된다. 예를 들어 면(\texttt{surface})은 특정 구조체(\texttt{surface\_construction})를 참조하는 방식으로 구성된다. 이러한 구조는 동일한 정보를 여러 객체에서 재사용할 수 있도록 한다. 또한, 설비 시스템(\texttt{hvac\_system})은 건물 객체의 하위에 별도의 분류로 정의되어, 공간 요소와는 독립적으로 구성되며, 필요한 경우 공간 요소와 연결될 수 있도록 설계되어 있다.
 
 \subsection{규칙}
 
@@ -286,8 +280,8 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
   \jsontablerow{vintage               }{[ \TypeTag{I} ]}{\ReqTag{R}}{}{}{[3,3]}{}
   \jsontablerow{is_multifamily_housing}{\TypeTag{B}}{\ReqTag{R}}{}{}{}{}
   \jsontablerow{floors                }{[ \hyperref[subsubsection:ioref:floor]{\texttt{floor}} ]}{}{}{}{[1, $Inf$)}{}
-  \jsontablerow{supply_systems        }{[ \hyperref[subsubsection:ioref:supplysystem]{\texttt{supply\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
-  \jsontablerow{source_systems        }{[ \hyperref[subsubsection:ioref:sourcesystem]{\texttt{source\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
+  \jsontablerow{supply_systems        }{\hyperref[subsubsection:ioref:supplysystems]{\texttt{supply\_systems}}}{\ReqTag{R}}{}{}{}{}
+\jsontablerow{source_systems          }{\hyperref[subsubsection:ioref:sourcesystems]{\texttt{source\_systems}}}{\ReqTag{R}}{}{}{}{}
   \jsontablerow{ventilation_systems   }{[ \hyperref[subsubsection:ioref:ventilationsystem]{\texttt{ventilation\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
   \jsontablerow{photovoltaic_systems  }{[ \hyperref[subsubsection:ioref:photovoltaicsystem]{\texttt{photovoltaic\_system}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
 }
@@ -322,6 +316,16 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 
 \subsubsection{floor (층)} \label{subsubsection:ioref:floor}
 하위 \hyperref[subsubsection:ioref:zone]{\texttt{zone}}들을 층 단위로 구분하기 위한 클래스이다.
+
+\paragraph{supply\_systems (공급설비 목록)}
+건물에 정의된 공급설비를 종류별로 구분하여 저장하는 객체이다.
+각 하위 key의 값은 해당 종류의 공급설비 객체로 구성된 배열이다.
+공급설비가 하나도 없는 경우 빈 객체 \texttt{\{\}}를 입력한다.
+
+\paragraph{source\_systems (생산설비 목록)}
+건물에 정의된 생산설비를 종류별로 구분하여 저장하는 객체이다.
+각 하위 key의 값은 해당 종류의 생산설비 객체로 구성된 배열이다.
+생산설비가 하나도 없는 경우 빈 객체 \texttt{\{\}}를 입력한다.
 
 \jsontable{floor}{
   \jsontablerow{floor_number}{\TypeTag{I}}{\ReqTag{O}}{0}{}{}{}
@@ -449,90 +453,263 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 
 \paragraph{blind (블라인드)} 블라인드의 종류. 값이 \texttt{null}이면 블라인드가 없는 것을 의미한다.
 
-\subsubsection{supply\_system (공급설비)} \label{subsubsection:ioref:supplysystem}
-각 존에 존재하는 말단 공급설비이다. 
+\subsubsection{supply\_systems (공급설비)}
+\label{subsubsection:ioref:supplysystems}
 
-\jsontable{supply\_system}{
-  \jsontablerow{id              }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
-  \jsontablerow{name            }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
-  \jsontablerow{type            }{\TypeTag{E}}{\ReqTag{R}}{}{}{\shortstack[c]{ packaged\_air\_conditioner \\ air\_handling\_unit \\ fan\_coil\_unit \\ radiator \\ electric\_radiator \\ radiant\_floor}}{}
-  \jsontablerow{cop_cooling     }{\TypeTag{F}}{\ReqTag{CR}}{3.0}{\texttt{type} = ``packaged\_air\_conditioner''}{(0,$Inf$)}{W/W}
-  \jsontablerow{capacity_cooling}{\TypeTag{F}}{\ReqTag{CR}}{\texttt{null}}{\texttt{type} = ``packaged\_air\_conditioner''}{(0,$Inf$)}{W}
-  \jsontablerow{capacity_heating}{\TypeTag{F}}{\ReqTag{CR}}{\texttt{null}}{\texttt{type} = ``radiator'' OR ``electric\_radiator''}{(0,$Inf$)}{W}
-  \jsontablerow{source_system_id}{\TypeTag{S}}{\ReqTag{CR}}{}{}{\hyperref[subsubsection:ioref:sourcesystem]{\texttt{source\_system}}의 \texttt{id}}{}
+건물에 정의된 공급설비를 종류별로 구분하는 객체이다.
+각 속성은 해당 종류의 공급설비 객체 배열이며, 해당 종류의 설비가 없는 경우 속성 자체를 생략한다.
+따라서 개별 공급설비 객체는 별도의 \texttt{type} 속성을 가지지 않으며, 소속된 배열의 속성명에 따라 class가 결정된다.
+
+\jsontable{supply\_systems}{
+  \jsontablerow{packaged_air_conditioner}{[ \hyperref[subsubsection:ioref:packagedairconditioner]
+       {\texttt{packaged\_air\_conditioner}} ]}{\ReqTag{O}}{}{}{[1,$Inf$)}{}
+  \jsontablerow{air_handling_unit       }{[ \hyperref[subsubsection:ioref:airhandlingunit]
+       {\texttt{air\_handling\_unit}} ]}{\ReqTag{O}}{}{}{[1,$Inf$)}{}
+  \jsontablerow{fan_coil_unit           }{[ \hyperref[subsubsection:ioref:fancoilunit]
+       {\texttt{fan\_coil\_unit}} ]}{\ReqTag{O}}{}{}{[1,$Inf$)}{}
+  \jsontablerow{radiator                }{[ \hyperref[subsubsection:ioref:radiator]
+       {\texttt{radiator}} ]}{\ReqTag{O}}{}{}{[1,$Inf$)}{}
+  \jsontablerow{electric_radiator       }{[ \hyperref[subsubsection:ioref:electricradiator]
+       {\texttt{electric\_radiator}} ]}{\ReqTag{O}}{}{}{[1,$Inf$)}{}
+  \jsontablerow{radiant_floor           }{[ \hyperref[subsubsection:ioref:radiantfloor]
+       {\texttt{radiant\_floor}} ]}{\ReqTag{O}}{}{}{[1,$Inf$)}{}
+  \jsontablerow{electric_radiant_floor  }{[ \hyperref[subsubsection:ioref:electricradiantfloor]
+       {\texttt{electric\_radiant\_floor}} ]}{\ReqTag{O}}{}{}{[1,$Inf$)}{}
 }
 
-\paragraph{id (식별자)} 공급설비의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
+\subsubsection{packaged\_air\_conditioner (패키지 에어컨)} \label{subsubsection:ioref:packagedairconditioner}
 
-\paragraph{name (이름)} 사용자 편의를 위해 제공되는 공급설비 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
+별도의 생산설비를 참조하지 않고 냉방을 공급하는 독립형 설비이다.
 
-\paragraph{type (유형)} 공급설비의 종류. 선택한 공급설비 유형에 따라 냉·난방 제공 가능 여부가 달라진다. 각 공급설비별 냉·난방 지원 가능 여부는 Figure \ref{fig:supply_and_source_properties_and_connection}에 제시되어 있다.
-
-\paragraph{cop\_cooling (냉방COP)} 정격 냉방 성능계수(COP). 정격 운전 조건에서의 냉방 출력을 소비 전력으로 나눈 값이다. 공급설비의 유형이 ``packaged\_airconditioner''인 경우에만 입력한다.
-
-\paragraph{capacity\_cooling (냉방용량)} 냉방용량. 설비의 최대 냉방 출력을 의미한다. 해당 값을 입력하지 않을 경우 (\texttt{null}), autosizing을 이용한다. 공급설비의 유형이 ``packaged\_airconditioner''인 경우에만 입력한다.
-
-\paragraph{capacity\_heating (난방용량)} 난방용량. 설비의 최대 난방 출력을 의미한다. 해당 값을 입력하지 않을 경우 (\texttt{null}),autosizing을 이용한다. 공급설비의 유형이 ``radiator''혹은 ``electric\_radiator''인 경우에만 입력한다.
-
-\paragraph{source\_system\_id (생산설비 식별자)} 연결된 생산설비의 ID. 연결가능한 생산설비는 Figure \ref{fig:supply_and_source_properties_and_connection}\와 같다.
-
-\begin{defaultfigure}
-  \includegraphics[width=\textwidth]{HVAC_properties_and_connectables.png}
-  \caption{공급 및 생산설비 종류에 따른 요구 속성 및 가능한 조합 (적색 선은 난방, 청색 선은 냉방이 가능함을 의미하며, packaged\_air\_conditioner와 electric\_radiator는 생산설비의 연결을 요구하지 않는다.)}
-  \label{fig:supply_and_source_properties_and_connection}
-\end{defaultfigure}
-
-\subsubsection{source\_system (생산설비)} \label{subsubsection:ioref:sourcesystem}
-건물에 존재하는 생산설비이다.
-
-\jsontable{source\_system}{
-  \jsontablerow{id                   }{\TypeTag{S}}{\ReqTag{R} }{}{}{}{}
-  \jsontablerow{name                 }{\TypeTag{S}}{\ReqTag{R} }{}{}{}{}
-  \jsontablerow{type                 }{\TypeTag{E}}{\ReqTag{R} }{}{}{\shortstack[c]{ heatpump \\ geothermal\_heatpump \\ chiller \\ absorption\_chiller \\ boiler \\ district\_heating}}{}
-  \jsontablerow{fuel_type            }{\TypeTag{E}}{\ReqTag{CR} }{}{\texttt{type} $\neq$ ``district\_heating''}{\shortstack[c]{electricity \\ natural\_gas \\ oil \\ district\_heating}}{}
-  \jsontablerow{compressor_type      }{\TypeTag{E}}{\ReqTag{CR}}{}{\texttt{type} = ``chiller''}{\shortstack[c]{ turbo \\ screw \\ reciprocating}}{}
-  \jsontablerow{coolingtower_type    }{\TypeTag{E}}{\ReqTag{CR}}{}{\texttt{type} = ``chiller''}{\shortstack[c]{ closed \\ open}}{}
-  \jsontablerow{coolingtower_control }{\TypeTag{E}}{\ReqTag{CR}}{}{\texttt{type} = ``chiller''}{\shortstack[c]{single-speed \\ two-speed}}{}
-  \jsontablerow{hotwater_supply      }{\TypeTag{B}}{\ReqTag{CR}}{}{\texttt{type} = ``boiler'' OR ``district\_heating''}{}{}
-  \jsontablerow{coolingtower_capacity}{\TypeTag{F}}{\ReqTag{CO}}{\texttt{null}}{\texttt{type} = ``chiller''}{(0, $Inf$)}{W}
-  \jsontablerow{boiler_efficiency    }{\TypeTag{F}}{\ReqTag{CO}}{0.85}{\texttt{type} = ``absorption\_chiller''}{(0,1)}{1}
-  \jsontablerow{capacity_cooling     }{\TypeTag{F}}{\ReqTag{CO}}{\texttt{null}}{\texttt{type} = ``chiller'' OR ``heatpump'' OR ``geothermal\_heatpump'' OR ``absorption\_chiller''}{(0,$Inf$)}{W}
-  \jsontablerow{capacity_heating     }{\TypeTag{F}}{\ReqTag{CO}}{\texttt{null}}{\texttt{type} = ``heatpump'' OR ``geothermal\_heatpump'' OR ``boiler''}{(0,$Inf$)}{W}
-  \jsontablerow{cop_cooling          }{\TypeTag{F}}{\ReqTag{CO}}{3.0}{\texttt{type} = ``heatpump'' OR ``geothermal\_heatpump'' OR ``chiller'' OR ``absorption\_chiller''}{(0,$Inf$)}{W/W}
-  \jsontablerow{cop_heating          }{\TypeTag{F}}{\ReqTag{CO}}{3.0}{\texttt{type} = ``heatpump'' OR ``geothermal\_heatpump''}{(0,$Inf$)}{W/W}
-  \jsontablerow{efficiency           }{\TypeTag{F}}{\ReqTag{CO}}{0.85}{\texttt{type} = ``boiler''}{(0,1)}{1}
+\jsontable{packaged\_air\_conditioner}{
+  \jsontablerow{id}{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
+  \jsontablerow{name}{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
+  \jsontablerow{cop_cooling}{\TypeTag{F}}{\ReqTag{O}}{3.0}{}{(0,$Inf$)}{W/W}
+  \jsontablerow{capacity_cooling}{\TypeTag{F}}{\ReqTag{O}}{\texttt{null}}{}{(0,$Inf$)}{W}
 }
 
-\paragraph{id (식별자)} 생산설비의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
+\paragraph{cop\_cooling (냉방 COP)} 정격 냉방 성능계수이다. 속성을 생략하거나 \texttt{null}을 입력하면 3.0을 적용한다.
 
-\paragraph{name (이름)} 사용자 편의를 위해 제공되는 생산설비 구별 식별자. 중복, 사용가능한 문자에 제한이 없으며, 시뮬레이션에 직접 사용되지 않는다.
+\paragraph{capacity\_cooling (냉방용량)} 설비의 정격 냉방용량이다. 속성을 생략하거나 \texttt{null}을 입력하면 EnergyPlus의 autosizing을 이용한다.
 
-\paragraph{type (유형)} 생산설비의 종류. 공급설비에 열을 제공하는 기기의 종류를 선택하며, 선택가능한 유형은 히트펌프(``heatpump''), 지열 히트펌프(``geothermal\_heatpump''), 칠러(``chiller''), 흡수식 칠러(``absorption\_chiller''), 보일러(``boiler''), 지역난방(``district\_heating'')이다.
+\subsubsection{air\_handling\_unit (공조기)} \label{subsubsection:ioref:airhandlingunit}
 
-\paragraph{fuel\_type (연료종류)} 연료의 종류. 생산설비의 사용 연료를 의미하며, 선택 가능한 항목은 전기(``electricity''), 천연가스/가스(``natural\_gas''), 난방유(``oil''), 지역난방(``district\_heating'')이다.
+히트펌프 또는 지열히트펌프에서 생산된 냉열 또는 온열을
+존에 공급하는 설비이다.
+
+\jsontable{air\_handling\_unit}{
+  \jsontablerow{id}{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
+  \jsontablerow{name}{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
+  \jsontablerow{source_system_id}{\TypeTag{S}}{\ReqTag{R}}{}{}{\hyperref[subsubsection:ioref:sourcesystems]{\texttt{source\_systems}}에 정의된 생산설비의 \texttt{id}}{}
+}
+
+\paragraph{source\_system\_id (생산설비 식별자)} 공조기에 연결되는 생산설비의 식별자이다. \texttt{source\_systems.heatpump} 또는 \texttt{source\_systems.geothermal\_heatpump}에 정의된 객체를
+참조해야 한다.
+
+\subsubsection{fan\_coil\_unit (팬코일유닛)} \label{subsubsection:ioref:fancoilunit}
+
+연결된 생산설비에서 공급되는 온수 또는 냉수를 이용하여 존에 난방 또는 냉방을 공급하는 설비이다.
+
+\jsontable{fan\_coil\_unit}{
+  \jsontablerow{id}{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
+  \jsontablerow{name}{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
+  \jsontablerow{source_system_id}{\TypeTag{S}}{\ReqTag{R}}{}{}{\hyperref[subsubsection:ioref:sourcesystems]{\texttt{source\_systems}}에 정의된 생산설비의 \texttt{id}}{}
+}
+
+\paragraph{source\_system\_id (생산설비 식별자)} 팬코일유닛에 연결되는 생산설비의 식별자이다. 난방용 팬코일유닛은 \texttt{boiler} 또는 \texttt{district\_heating}을 참조하며, 냉방용 팬코일유닛은 \texttt{chiller} 또는 \texttt{absorption\_chiller}를 참조한다.
+
+\subsubsection{radiator (방열기)} \label{subsubsection:ioref:radiator}
+
+보일러 또는 지역난방에서 공급되는 온수를 이용하여 존에 난방을 공급하는 방열기이다.
+
+\jsontable{radiator}{
+  \jsontablerow{id}{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
+  \jsontablerow{name}{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
+  \jsontablerow{capacity_heating}{\TypeTag{F}}{\ReqTag{O}}{\texttt{null}}{}{(0,$Inf$)}{W}
+  \jsontablerow{source_system_id}{\TypeTag{S}}{\ReqTag{R}}{}{}{\hyperref[subsubsection:ioref:sourcesystems]{\texttt{source\_systems}}에 정의된 생산설비의 \texttt{id}}{}
+}
+
+\paragraph{capacity\_heating (난방용량)} 방열기의 정격 난방용량이다. 속성을 생략하거나 \texttt{null}을 입력하면 EnergyPlus의 autosizing을 이용한다.
+
+\paragraph{source\_system\_id (생산설비 식별자)} 방열기에 온수를 공급하는 생산설비의 식별자이다. \texttt{boiler} 또는 \texttt{district\_heating} 객체를 참조해야 한다.
+
+\subsubsection{electric\_radiator (전기 방열기)} \label{subsubsection:ioref:electricradiator}
+
+별도의 생산설비를 참조하지 않고 전기를 이용하여 존에 난방을 공급하는 방열기이다.
+
+\jsontable{electric\_radiator}{
+  \jsontablerow{id}{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
+  \jsontablerow{name}{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
+  \jsontablerow{capacity_heating}{\TypeTag{F}}{\ReqTag{O}}{\texttt{null}}{}{(0,$Inf$)}{W}
+}
+
+\paragraph{capacity\_heating (난방용량)} 전기 방열기의 정격 난방용량이다. 속성을 생략하거나 \texttt{null}을 입력하면 EnergyPlus의 autosizing을 이용한다.
+
+\subsubsection{radiant\_floor (바닥난방)} \label{subsubsection:ioref:radiantfloor}
+
+보일러 또는 지역난방에서 공급되는 온수를 이용하는 온수식 바닥복사난방 설비이다.
+
+\jsontable{radiant\_floor}{
+  \jsontablerow{id}{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
+  \jsontablerow{name}{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
+  \jsontablerow{source_system_id}{\TypeTag{S}}{\ReqTag{R}}{}{}{\hyperref[subsubsection:ioref:sourcesystems]{\texttt{source\_systems}}에 정의된 생산설비의 \texttt{id}}{}
+}
+
+\paragraph{source\_system\_id (생산설비 식별자)} 바닥닥난방에 온수를 공급하는 생산설비의 식별자이다.\texttt{boiler} 또는 \texttt{district\_heating} 객체를 참조해야 한다.
+
+\subsubsection{electric\_radiant\_floor (전기 바닥난방)} \label{subsubsection:ioref:electricradiantfloor}
+
+별도의 생산설비를 참조하지 않고 전기를 이용하는 바닥복사난방 설비이다.
+
+\jsontable{electric\_radiant\_floor}{
+  \jsontablerow{id}{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
+  \jsontablerow{name}{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
+}
+
+\subsubsection{source\_systems (생산설비)} \label{subsubsection:ioref:sourcesystems}
+
+건물에 정의된 생산설비를 종류별로 구분하는 객체이다. 각 속성은 해당 종류의 생산설비 객체 배열이며, 해당 종류의 설비가 없는 경우 속성 자체를 생략한다. 따라서 개별 생산설비 객체는 별도의 \texttt{type} 속성을 가지지 않으며, 소속된 배열의 속성명에 따라 class가 결정된다.
+
+\jsontable{source\_systems}{
+  \jsontablerow{heatpump}{[ \hyperref[subsubsection:ioref:heatpump]{\texttt{heatpump}} ]}{\ReqTag{O}}{}{}{[1,$Inf$)}{}
+  \jsontablerow{geothermal_heatpump}{[ \hyperref[subsubsection:ioref:geothermalheatpump]{\texttt{geothermal\_heatpump}} ]}{\ReqTag{O}}{}{}{[1,$Inf$)}{}
+  \jsontablerow{chiller}{[ \hyperref[subsubsection:ioref:chiller]{\texttt{chiller}} ]}{\ReqTag{O}}{}{}{[1,$Inf$)}{}
+  \jsontablerow{absorption_chiller}{[ \hyperref[subsubsection:ioref:absorptionchiller]{\texttt{absorption\_chiller}} ]}{\ReqTag{O}}{}{}{[1,$Inf$)}{}
+  \jsontablerow{boiler}{[ \hyperref[subsubsection:ioref:boiler]{\texttt{boiler}} ]}{\ReqTag{O}}{}{}{[1,$Inf$)}{}
+  \jsontablerow{district_heating}{[ \hyperref[subsubsection:ioref:districtheating]{\texttt{district\_heating}} ]}{\ReqTag{O}}{}{}{[1,$Inf$)}{}
+}
 
 
-\paragraph{compressor\_type (압축기 종류)} 압축기의 종류. 
+\subsubsection{heatpump (히트펌프)} \label{subsubsection:ioref:heatpump}
 
-\paragraph{coolingtower\_type (냉각탑 종류)} 냉각탑의 종류. 
+냉방과 난방을 공급할 수 있는 히트펌프 생산설비이다.
 
-\paragraph{coolingtower\_control (냉각탑 제어방식)} 냉각탑에 적용된 제어. 
+\jsontable{heatpump}{
+  \jsontablerow{id}{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
+  \jsontablerow{name}{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
+  \jsontablerow{fuel_type}{\TypeTag{E}}{\ReqTag{R}}{}{}{\shortstack[c]{electricity \\ natural\_gas \\ lpg \\ oil \\ district\_heating}}{}
+  \jsontablerow{capacity_cooling}{\TypeTag{F}}{\ReqTag{O}}{\texttt{null}}{}{(0,$Inf$)}{W}
+  \jsontablerow{capacity_heating}{\TypeTag{F}}{\ReqTag{O}}{\texttt{null}}{}{(0,$Inf$)}{W}
+  \jsontablerow{cop_cooling}{\TypeTag{F}}{\ReqTag{O}}{3.0}{}{(0,$Inf$)}{W/W}
+  \jsontablerow{cop_heating}{\TypeTag{F}}{\ReqTag{O}}{3.0}{}{(0,$Inf$)}{W/W}
+}
 
-\paragraph{hotwater\_supply (급탕용)} 급탕공급 여부. 급탕을 공급하는 모든 생산설비들은 급탕효율 계산에 이용되며, 모든 설비가 동등하게 급탕 부하를 분담하는 것으로 가정한다.
+\paragraph{fuel\_type (연료 종류)} 히트펌프의 에너지원을 정의한다.
 
-\paragraph{coolingtower\_capacity (냉각탑 용량)} 냉각탑용량. 해당 값을 입력하지 않을 경우 (\texttt{null}) EnergyPlus의 autosizing을 이용한다.
+\paragraph{capacity\_cooling (냉방용량)} 정격 냉방용량이다. 속성을 생략하거나 \texttt{null}을 입력하면 EnergyPlus의 autosizing을 이용한다.
 
-\paragraph{boiler\_efficiency (연동보일러 효율)} 연동된 보일러의 효율.
+\paragraph{capacity\_heating (난방용량)} 정격 난방용량이다. 속성을 생략하거나 \texttt{null}을 입력하면 EnergyPlus의 autosizing을 이용한다.
 
-\paragraph{capacity\_cooling (냉방용량)} 냉방용량. 해당 값을 입력하지 않을 경우 (\texttt{null}) EnergyPlus의 autosizing을 이용한다.
+\paragraph{cop\_cooling (냉방 COP)} 정격 냉방 성능계수이다.
 
-\paragraph{capacity\_heating (난방용량)} 난방용량. 해당 값을 입력하지 않을 경우 (\texttt{null}) EnergyPlus의 autosizing을 이용한다.
+\paragraph{cop\_heating (난방 COP)} 정격 난방 성능계수이다.
 
-\paragraph{cop\_cooling (냉방COP)} 정격 냉방성능계수(COP). 정격 운전 조건에서의 냉방 출력을 소비 전력으로 나눈 값이다.
+\subsubsection{geothermal\_heatpump (지열히트펌프)} \label{subsubsection:ioref:geothermalheatpump}
 
-\paragraph{cop\_heating (난방COP)} 정격 난방성능계수(COP). 정격 운전 조건에서의 난방 출력을 소비 전력으로 나눈 값이다.
+지열을 열원으로 사용하는 히트펌프 생산설비이다.
 
-\paragraph{efficiency (효율)} 보일러의 효율.
+\jsontable{geothermal\_heatpump}{
+  \jsontablerow{id}{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
+  \jsontablerow{name}{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
+  \jsontablerow{fuel_type}{\TypeTag{E}}{\ReqTag{R}}{}{}{\shortstack[c]{ electricity \\ natural\_gas \\ lpg \\ oil \\ district\_heating}}{}
+  \jsontablerow{capacity_cooling}{\TypeTag{F}}{\ReqTag{O}}{\texttt{null}}{}{(0,$Inf$)}{W}
+  \jsontablerow{capacity_heating}{\TypeTag{F}}{\ReqTag{O}}{\texttt{null}}{}{(0,$Inf$)}{W}
+  \jsontablerow{cop_cooling}{\TypeTag{F}}{\ReqTag{O}}{3.0}{}{(0,$Inf$)}{W/W}
+  \jsontablerow{cop_heating}{\TypeTag{F}}{\ReqTag{O}}{3.0}{}{(0,$Inf$)}{W/W}
+}
+
+\paragraph{fuel\_type (연료 종류)} 지열히트펌프의 에너지원을 정의한다.
+
+\paragraph{capacity\_cooling (냉방용량)} 정격 냉방용량이다. 속성을 생략하거나 \texttt{null}을 입력하면 EnergyPlus의 autosizing을 이용한다.
+
+\paragraph{capacity\_heating (난방용량)} 정격 난방용량이다. 속성을 생략하거나 \texttt{null}을 입력하면 EnergyPlus의 autosizing을 이용한다.
+
+\paragraph{cop\_cooling (냉방 COP)} 정격 냉방 성능계수이다. 
+
+\paragraph{cop\_heating (난방 COP)} 정격 난방 성능계수이다.
+
+\subsubsection{chiller (냉동기)} \label{subsubsection:ioref:chiller}
+
+전기를 이용하여 냉수를 생산하는 냉동기이다.
+냉각탑의 종류와 제어방식을 함께 정의한다.
+
+\jsontable{chiller}{
+  \jsontablerow{id}{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
+  \jsontablerow{name}{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
+  \jsontablerow{compressor_type}{\TypeTag{E}}{\ReqTag{R}}{}{}{\shortstack[c]{ turbo \\ screw \\  reciprocating }}{}
+  \jsontablerow{coolingtower_type}{\TypeTag{E}}{\ReqTag{R}}{}{}{\shortstack[c]{ open \\ closed}}{}
+  \jsontablerow{coolingtower_control}{\TypeTag{E}}{\ReqTag{R}}{}{}{\shortstack[c]{ single-speed \\ two-speed}}{}
+  \jsontablerow{capacity_cooling}{\TypeTag{F}}{\ReqTag{O}}{\texttt{null}}{}{(0,$Inf$)}{W}
+  \jsontablerow{cop_cooling}{\TypeTag{F}}{\ReqTag{O}}{3.0}{}{(0,$Inf$)}{W/W}
+  \jsontablerow{coolingtower_capacity}{\TypeTag{F}}{\ReqTag{O}}{\texttt{null}}{}{(0,$Inf$)}{W}
+}
+
+\paragraph{compressor\_type (압축기 종류)} 냉동기에 적용되는 압축기의 종류이다.
+
+\paragraph{coolingtower\_type (냉각탑 종류)} 냉동기의 응축열을 방출하는 냉각탑의 형식이다.
+
+\paragraph{coolingtower\_control (냉각탑 제어방식)} 냉각탑의 속도 제어방식이다.
+
+\paragraph{capacity\_cooling (냉방용량)} 냉동기의 정격 냉방용량이다. 속성을 생략하거나 \texttt{null}을 입력하면 EnergyPlus의 autosizing을 이용한다.
+
+\paragraph{cop\_cooling (냉방 COP)} 냉동기의 정격 냉방 성능계수이다. 
+
+\paragraph{coolingtower\_capacity (냉각탑 용량)} 냉각탑의 정격 열제거용량이다. 속성을 생략하거나 \texttt{null}을 입력하면 EnergyPlus의 autosizing을 이용한다.
+
+\subsubsection{absorption\_chiller (흡수식 냉동기)} \label{subsubsection:ioref:absorptionchiller}
+
+연동 보일러에서 공급되는 열을 이용하여 냉수를 생산하는 흡수식 냉동기이다.
+
+\jsontable{absorption\_chiller}{
+  \jsontablerow{id}{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
+  \jsontablerow{name}{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
+  \jsontablerow{fuel_type}{\TypeTag{E}}{\ReqTag{R}}{}{}{\shortstack[c]{ electricity \\ natural\_gas \\ lpg \\ oil \\ district\_heating}}{}
+  \jsontablerow{capacity_cooling}{\TypeTag{F}}{\ReqTag{O}}{\texttt{null}}{}{(0,$Inf$)}{W}
+  \jsontablerow{cop_cooling}{\TypeTag{F}}{\ReqTag{O}}{0.9}{}{(0,$Inf$)}{W/W}
+  \jsontablerow{boiler_efficiency}{\TypeTag{F}}{\ReqTag{O}}{0.85}{}{(0,1]}{1}
+}
+
+\paragraph{fuel\_type (연동 보일러 연료)} 흡수식 냉동기에 열을 공급하는 연동 보일러의 연료 종류이다.
+
+\paragraph{capacity\_cooling (냉방용량)} 흡수식 냉동기의 정격 냉방용량이다. 속성을 생략하거나 \texttt{null}을 입력하면 EnergyPlus의 autosizing을 이용한다.
+
+\paragraph{cop\_cooling (냉방 COP)} 흡수식 냉동기의 정격 냉방 성능계수이다.
+
+\paragraph{boiler\_efficiency (연동 보일러 효율)} 흡수식 냉동기에 열을 공급하는 연동 보일러의 효율이다.
+
+\subsubsection{boiler (보일러)} \label{subsubsection:ioref:boiler}
+
+연료를 소비하여 난방용 온수를 생산하는 보일러이다. 
+\texttt{hotwater\_supply}가 \texttt{true}이면 급탕 생산설비로도 사용된다.
+
+\jsontable{boiler}{
+  \jsontablerow{id}{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
+  \jsontablerow{name}{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
+  \jsontablerow{fuel_type}{\TypeTag{E}}{\ReqTag{R}}{}{}{\shortstack[c]{ electricity \\ natural\_gas \\ lpg \\ oil \\ district\_heating}}{}
+  \jsontablerow{hotwater_supply}{\TypeTag{B}}{\ReqTag{R}}{}{}{}{}
+  \jsontablerow{capacity_heating}{\TypeTag{F}}{\ReqTag{O}}{\texttt{null}}{}{(0,$Inf$)}{W}
+  \jsontablerow{efficiency}{\TypeTag{F}}{\ReqTag{O}}{0.85}{}{(0,1]}{1}
+}
+
+\paragraph{fuel\_type (연료 종류)} 보일러에서 사용하는 연료의 종류이다.
+
+\paragraph{hotwater\_supply (급탕 공급 여부)} 보일러를 급탕 생산설비로 사용할지를 나타낸다. \texttt{true}이면 해당 보일러가 급탕 부하를 분담한다.
+
+\paragraph{capacity\_heating (난방용량)} 보일러의 정격 난방용량이다. 속성을 생략하거나 \texttt{null}을 입력하면 EnergyPlus의 autosizing을 이용한다.
+
+\paragraph{efficiency (효율)} 보일러의 연료 투입량 대비 유효 열생산량의 비율이다.
+
+\subsubsection{district\_heating (지역난방)} \label{subsubsection:ioref:districtheating}
+
+외부 지역난방망에서 공급되는 열을 건물의 난방 또는 급탕에 사용하는 생산설비이다.
+
+\jsontable{district\_heating}{
+  \jsontablerow{id}{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
+  \jsontablerow{name}{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
+  \jsontablerow{hotwater_supply}{\TypeTag{B}}{\ReqTag{R}}{}{}{}{}
+}
+
+\paragraph{hotwater\_supply (급탕 공급 여부)} 지역난방을 급탕 열원으로 사용할지를 나타낸다. \texttt{true}이면 해당 지역난방 설비가 급탕 부하를 분담한다.
 
 \subsubsection{ventilation\_system (환기설비)} \label{subsubsection:ioref:ventilationsystem}
 
