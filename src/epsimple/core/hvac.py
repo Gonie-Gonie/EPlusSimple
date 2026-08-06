@@ -1296,7 +1296,7 @@ class Radiator(SupplySystem):
         return Radiator(
             input.name,
             source_system_dict[input.source_system_id],
-            getattr(input,"capacity_heating"),
+            getattr(input,"capacity_heating", None),
             ID=input.id
         )
     
