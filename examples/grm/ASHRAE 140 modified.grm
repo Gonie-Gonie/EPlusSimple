@@ -20,7 +20,8 @@
                         "profile": "소규모사무실",
                         "light_density": 10,
                         "supply_system_ids": [
-                            "SUPL-0x000001"
+                           "SUPL-0x000000",
+                           "SUPL-0x000001"
                         ],
                         "ventilation_systems": [],
                         "surfaces": [
