@@ -609,7 +609,6 @@ class Zone:
         surfaces:list[Surface],
         profile :Profile,
         light_density:int|float,
-        infiltration :int|float|None=None,
         heating_supply_system:SupplySystem=None,
         cooling_supply_system:SupplySystem=None,
         ventilation_system   :list[VentilationSystem]=None,
@@ -627,7 +626,6 @@ class Zone:
         self.surface = surfaces
         self.profile = profile
         self.light_density = light_density
-        self.infiltration  = infiltration
         self.heating_supply = heating_supply_system
         self.cooling_supply = cooling_supply_system
         
@@ -684,6 +682,21 @@ class Zone:
     
     """ useful methods
     """
+    
+    @property
+    def infiltration(self) -> float:
+        
+        has_outdoor_window = lambda surf: (
+            surf.boundary == SurfaceBoundaryCondition.OUTDOOR
+        ) and any(
+            isinstance(fen, Window) for fen in surf.fenestrations
+        )
+        
+        if any(has_outdoor_window(surf) for surf in self.surface):
+            return 1.5
+        
+        else:
+            return 0
     
     @property
     def area(self) -> int|float:
@@ -745,7 +758,6 @@ class Zone:
             [Surface.from_json(surf_input, surface_construction_dict, fenestration_construction_dict) for surf_input in input.surfaces],
             Profile._DB[input.profile],
             input.light_density,
-            input.infiltration,
             supply_system_dict.get(input.supply_system_heating_id),
             supply_system_dict.get(input.supply_system_cooling_id),
             ventilation_systems,

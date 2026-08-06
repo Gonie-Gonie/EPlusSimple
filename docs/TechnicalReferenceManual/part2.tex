@@ -343,7 +343,6 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
   \jsontablerow{height                  }{\TypeTag{F}}{ \ReqTag{R} }{}{}{(0,$Inf$)}{m}
   \jsontablerow{profile                 }{\TypeTag{S}}{ \ReqTag{R} }{}{}{\needtobeexplain}{}
   \jsontablerow{light_density           }{\TypeTag{F}}{ \ReqTag{R} }{}{}{[0,$Inf$)}{W/m^{2}}
-  \jsontablerow{infiltration            }{\TypeTag{F}}{ \ReqTag{R} }{}{}{[0,$Inf$)}{ACH50}
   \jsontablerow{supply_system_heating_id}{\TypeTag{S}}{ \ReqTag{R} }{}{}{\hyperref[subsubsection:ioref:supplysystem]{\texttt{supply\_system}}의 \texttt{id}}{}
   \jsontablerow{supply_system_cooling_id}{\TypeTag{S}}{ \ReqTag{R} }{}{}{\hyperref[subsubsection:ioref:supplysystem]{\texttt{supply\_system}}의 \texttt{id}}{}
   \jsontablerow{ventilation_systems     }{[ \hyperref[subsubsection:ioref:ventilationassignment]{\texttt{ventilation\_assignment}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
@@ -358,8 +357,6 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 \paragraph{height (천장고)} 존의 높이. 실의 부피 계산에 이용된다.
 
 \paragraph{profile (용도프로필)} 존의 용도프로필. 기본으로 제공되는 항목 중에서 입력 가능하다. 
-
-\paragraph{profile\_id (용도프로필 식별자)} 존에 적용된 custom 용도프로필의 ID. 
 
 \paragraph{light\_density (조명밀도)} 조명 밀도.
 
