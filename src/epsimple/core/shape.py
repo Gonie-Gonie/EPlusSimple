@@ -526,7 +526,7 @@ class Window(Fenestration):
             input.name,
             input.area,
             fenestration_construction_dict[input.construction_id],
-            blind=input.blind,
+            blind=getattr(input, "blind", None),
             ID   =input.id
         )
     
@@ -732,8 +732,6 @@ class Zone:
         fenestration_construction_dict:dict[str, FenestrationConstruction],
         supply_system_dict     :dict[str, SupplySystem     ],
         ventilation_system_dict:dict[str, VentilationSystem],
-        *,
-        floor:int|None=None,
         ) -> Zone:
         
         ventilation_systems = []

@@ -124,7 +124,7 @@ class GreenRetrofitModel:
         address   :str,
         vintage   :list[int]|datetime,
         is_multifamily_housing:bool  ,
-        north_axis:int|float =0      ,
+        north_axis:int|float         ,
         zone      :list[Zone]=[],
         pv        :list[PhotoVoltaicSystem]=[],
         ) -> None:
@@ -499,7 +499,6 @@ class GreenRetrofitModel:
                 fenestration_construction_dict,
                 supply_system_dict            ,
                 ventilation_system_dict       ,
-                floor=floor_input.floor_number,
             )
             for floor_input in input.building.floors
             for zone_input  in floor_input.zones
