@@ -44,6 +44,7 @@ from . import (
     # hvac
     Fuel,
     RadiantFloor      ,
+    ElectricRadiantFloor,
     SourceSystem      ,
     Boiler            ,
     DistrictHeating   ,
@@ -217,19 +218,14 @@ class GreenRetrofitModel:
     @property
     def source_system(self) -> list[SourceSystem]:
         
-        heating_sources = {
-            zone.heating_supply.source.ID: zone.heating_supply.source
+        sources = {
+            supply.source.ID: supply.source
             for zone in self.zone
-            if zone.heating_supply is not None and not isinstance(zone.heating_supply.source, NoneSource)
+            for supply in zone.supply_systems
+            if not isinstance(supply.source, NoneSource)
         }
         
-        cooling_sources = {
-            zone.cooling_supply.source.ID: zone.cooling_supply.source
-            for zone in self.zone
-            if zone.cooling_supply is not None and not isinstance(zone.cooling_supply.source, NoneSource)
-        }
-        
-        unique_sources = list((heating_sources|cooling_sources).values())
+        unique_sources = list(sources.values())
         
         return self.__source_system + unique_sources
     
@@ -553,7 +549,7 @@ class GreenRetrofitModel:
         radiant_floor_list = sum([
             [surf.ID for surf in surfaces_by_zone[zone.ID] if surf.type == SurfaceType.FLOOR]
             for zone in self.zone
-            if isinstance(zone.heating_supply, RadiantFloor)
+            if any(isinstance(sys, RadiantFloor|ElectricRadiantFloor) for sys in zone.supply_systems)
         ], start=[])
         
         # allocate unknowns
@@ -697,29 +693,47 @@ class GreenRetrofitModel:
         # source / supply system
         supply_dict = dict()
         source_dict = dict()
+        zone_heatables_dict = dict()
+        zone_coolables_dict = dict()
         for zone in self.zone:
             
-            if zone.heating_supply is not None:
+            heatable_list = []
+            coolable_list = []
+            
+            for supply_sys in zone.supply_systems:
                 
-                if not isinstance(zone.heating_supply.source, NoneSource) and (zone.heating_supply.source.ID not in source_dict.keys()):
-                    source_dict[zone.heating_supply.source.ID] = zone.heating_supply.source.to_dragon()
-                supply_dict[zone.heating_supply.ID] = zone.heating_supply.to_dragon(source_dict)
+                if not isinstance(supply_sys.source, NoneSource) and (supply_sys.source.ID not in source_dict.keys()):
+                    source_dict[supply_sys.source.ID] = supply_sys.source.to_dragon()
+                supply_dict[supply_sys.ID] = supply_sys.to_dragon(source_dict)
                 
-            if zone.cooling_supply is not None:
+                if supply_sys.heatable:
+                    heatable_list.append(supply_sys.ID)
+                if supply_sys.coolable:
+                    coolable_list.append(supply_sys.ID)
+            
+            if len(heatable_list) == 0:
+                zone_heatables_dict[zone.ID] = None
+            elif len(heatable_list) == 1:
+                zone_heatables_dict[zone.ID] = supply_dict[heatable_list[0]]
+            else:
+                zone_heatables_dict[zone.ID] = dragon.SupplyGroup(*[supply_dict[sys_id] for sys_id in heatable_list])
                 
-                if not isinstance(zone.cooling_supply.source, NoneSource) and (zone.cooling_supply.source.ID not in source_dict.keys()):
-                    source_dict[zone.cooling_supply.source.ID] = zone.cooling_supply.source.to_dragon()
-                supply_dict[zone.cooling_supply.ID] = zone.cooling_supply.to_dragon(source_dict)
+            if len(coolable_list) == 0:
+                zone_coolables_dict[zone.ID] = None
+            elif len(coolable_list) == 1:
+                zone_coolables_dict[zone.ID] = supply_dict[coolable_list[0]]
+            else:
+                zone_coolables_dict[zone.ID] = dragon.SupplyGroup(*[supply_dict[sys_id] for sys_id in coolable_list])
         
         # ventilation system
         ventilator_dict = {zone.ID: None for zone in self.zone}
         for zone in self.zone:
-            if len(zone.ventilation_system) > 0:
-                total_airflow = sum(vent_sys.airflow_rate for vent_sys in zone.ventilation_system)
+            if len(zone.ventilation_systems) > 0:
+                total_airflow = sum(vent_sys.airflow_rate for vent_sys in zone.ventilation_systems)
                 ventilator_dict[zone.ID] = dragon.EnergyRecoveryVentilator(
                     f"ERV_for_{zone.ID}",
-                    sum(vent_sys.heating_efficiency*vent_sys.airflow_rate for vent_sys in zone.ventilation_system)/total_airflow,
-                    sum(vent_sys.cooling_efficiency*vent_sys.airflow_rate for vent_sys in zone.ventilation_system)/total_airflow,
+                    sum(vent_sys.heating_efficiency*vent_sys.airflow_rate for vent_sys in zone.ventilation_systems)/total_airflow,
+                    sum(vent_sys.cooling_efficiency*vent_sys.airflow_rate for vent_sys in zone.ventilation_systems)/total_airflow,
                 )            
         
         # photovoltaic system
@@ -740,8 +754,8 @@ class GreenRetrofitModel:
                     profile_dict[zone.profile.ID],
                     zone.infiltration*Unit.ACH50_TO_ACH,
                     zone.light_density,
-                    supply_dict.get(getattr(zone.cooling_supply,"ID",None), None),
-                    supply_dict.get(getattr(zone.heating_supply,"ID",None), None),
+                    zone_coolables_dict[zone.ID],
+                    zone_heatables_dict[zone.ID],
                     ventilator_dict[zone.ID],
                 )
                 for zone in self.zone

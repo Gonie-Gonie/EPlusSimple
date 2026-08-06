@@ -338,16 +338,15 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 건물에서 하나의 실, 또는 같은 열적 특성(유사한 용도, 공통 설비 등)을 공유하는 서로 연결된 여러 실을 모사하는 최소 단위이다.
 
 \jsontable{zone}{
-  \jsontablerow{id                      }{\TypeTag{S}}{ \ReqTag{R} }{}{}{}{}
-  \jsontablerow{name                    }{\TypeTag{S}}{ \ReqTag{R} }{}{}{}{}
-  \jsontablerow{height                  }{\TypeTag{F}}{ \ReqTag{R} }{}{}{(0,$Inf$)}{m}
-  \jsontablerow{profile                 }{\TypeTag{S}}{ \ReqTag{R} }{}{}{\needtobeexplain}{}
-  \jsontablerow{light_density           }{\TypeTag{F}}{ \ReqTag{R} }{}{}{[0,$Inf$)}{W/m^{2}}
-  \jsontablerow{supply_system_heating_id}{\TypeTag{S}}{ \ReqTag{R} }{}{}{\hyperref[subsubsection:ioref:supplysystem]{\texttt{supply\_system}}의 \texttt{id}}{}
-  \jsontablerow{supply_system_cooling_id}{\TypeTag{S}}{ \ReqTag{R} }{}{}{\hyperref[subsubsection:ioref:supplysystem]{\texttt{supply\_system}}의 \texttt{id}}{}
-  \jsontablerow{ventilation_systems     }{[ \hyperref[subsubsection:ioref:ventilationassignment]{\texttt{ventilation\_assignment}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
+  \jsontablerow{id                 }{\TypeTag{S}}{ \ReqTag{R} }{}{}{}{}
+  \jsontablerow{name               }{\TypeTag{S}}{ \ReqTag{R} }{}{}{}{}
+  \jsontablerow{height             }{\TypeTag{F}}{ \ReqTag{R} }{}{}{(0,$Inf$)}{m}
+  \jsontablerow{profile            }{\TypeTag{S}}{ \ReqTag{R} }{}{}{\needtobeexplain}{}
+  \jsontablerow{light_density      }{\TypeTag{F}}{ \ReqTag{R} }{}{}{[0,$Inf$)}{W/m^{2}}
+  \jsontablerow{supply_system_ids  }{[ \TypeTag{S} ]}{ \ReqTag{R} }{}{}{\hyperref[subsubsection:ioref:supplysystems]{\texttt{supply\_system}}의 \texttt{id}}{}
+  \jsontablerow{ventilation_systems}{[ \hyperref[subsubsection:ioref:ventilationassignment]{\texttt{ventilation\_assignment}} ]}{\ReqTag{R}}{}{}{[0, $Inf$)}{}
 
-  \jsontablerow{surfaces                }{[ \hyperref[subsubsection:ioref:surface]{\texttt{surface}} ]}{ \ReqTag{R} }{}{}{[0, $Inf$)}{}
+  \jsontablerow{surfaces           }{[ \hyperref[subsubsection:ioref:surface]{\texttt{surface}} ]}{ \ReqTag{R} }{}{}{[0, $Inf$)}{}
 }
 
 \paragraph{id (식별자)} 존의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
@@ -360,9 +359,7 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 
 \paragraph{light\_density (조명밀도)} 조명 밀도.
 
-\paragraph{supply\_system\_heating\_id (난방 공급 설비)} 난방공급시스템의 ID. 
-
-\paragraph{supply\_system\_cooling\_id (냉방 공급 설비)} 냉방공급시스템의 ID.
+\paragraph{supply\_system\_ids (공급 설비)} 공급시스템의 ID 목록. 동일한 ID를 중복입력할 수 없으며, 바닥난방(radiant\_floor) 또는 전기바닥난방(electric\_radiant\_floor) 시스템은 같은 실에 2개 이상 입력할 수 없다.
 
 \paragraph{ventilation\_systems (환기 설비)} 환기시스템의 ID 및 개수 목록.
 

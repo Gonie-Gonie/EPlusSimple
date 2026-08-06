@@ -33,6 +33,8 @@ from .profile      import (
 )
 from .hvac         import (
     SupplySystem,
+    RadiantFloor,
+    ElectricRadiantFloor,
     VentilationSystem,
 )
 from idragon import dragon
@@ -609,9 +611,8 @@ class Zone:
         surfaces:list[Surface],
         profile :Profile,
         light_density:int|float,
-        heating_supply_system:SupplySystem=None,
-        cooling_supply_system:SupplySystem=None,
-        ventilation_system   :list[VentilationSystem]=None,
+        supply_systems     :list[SupplySystem]=None,
+        ventilation_systems:list[VentilationSystem]=None,
         *,
         floor:int|None=None,
         ID:str|None = None
@@ -626,12 +627,14 @@ class Zone:
         self.surface = surfaces
         self.profile = profile
         self.light_density = light_density
-        self.heating_supply = heating_supply_system
-        self.cooling_supply = cooling_supply_system
         
-        if ventilation_system is None:
-            ventilation_system = []
-        self.ventilation_system    = ventilation_system
+        if supply_systems is None:
+            supply_systems = []
+        self.supply_systems = supply_systems
+        
+        if ventilation_systems is None:
+            ventilation_systems = []
+        self.ventilation_systems = ventilation_systems
         
         # set default ID if not specified
         if ID is None:
@@ -651,34 +654,65 @@ class Zone:
         self.__height = value
     
     @property
-    def heating_supply(self) -> SupplySystem:
-        return self.__heating_supply
-    
-    @heating_supply.setter
-    @validate_type(SupplySystem, allow_none=True)
-    def heating_supply(self, value:SupplySystem) -> None:
-        
-        if (value is not None) and (not value.heatable):
-            raise ValueError(
-                f"Tried to set non-heatable supply system {value.name} ({type(value)}) as heating_supply for zone {self.name}"
+    def supply_systems(self) -> list[SupplySystem]:
+        return self.__supply_systems
+
+
+    @supply_systems.setter
+    def supply_systems(
+        self,
+        value: list[SupplySystem],
+        ) -> None:
+
+        if not isinstance(value, list):
+            raise TypeError(
+                "supply_systems must be a list."
+            )
+
+        if not all(
+            isinstance(system, SupplySystem)
+            for system in value
+        ):
+            raise TypeError(
+                "All items in supply_systems must be "
+                "SupplySystem instances."
             )
             
-        self.__heating_supply = value
+        if len([sys for sys in value if isinstance(sys, RadiantFloor|ElectricRadiantFloor)]) > 1:
+            raise ValueError(
+                "Cannot apply two or more radiant floor systems to one zone."
+            )
+
+        ids = [system.ID for system in value]
+
+        if len(ids) != len(set(ids)):
+            raise ValueError(
+                "Duplicated supply-system ID in one zone."
+            )
+
+        self.__supply_systems = list(value)
     
     @property
-    def cooling_supply(self) -> SupplySystem:
-        return self.__cooling_supply
-    
-    @cooling_supply.setter
-    @validate_type(SupplySystem, allow_none=True)
-    def cooling_supply(self, value:SupplySystem) -> None:
-        
-        if (value is not None) and (not value.coolable):
-            raise ValueError(
-                f"Tried to set non-coolable supply system {value.name} ({type(value)}) as cooling_supply for zone {self.name}"
-            )
-            
-        self.__cooling_supply = value
+    def heating_supply_systems(
+        self,
+        ) -> list[SupplySystem]:
+
+        return [
+            system
+            for system in self.supply_systems
+            if system.heatable
+        ]
+
+    @property
+    def cooling_supply_systems(
+        self,
+        ) -> list[SupplySystem]:
+
+        return [
+            system
+            for system in self.supply_systems
+            if system.coolable
+        ]
     
     """ useful methods
     """
@@ -758,8 +792,7 @@ class Zone:
             [Surface.from_json(surf_input, surface_construction_dict, fenestration_construction_dict) for surf_input in input.surfaces],
             Profile._DB[input.profile],
             input.light_density,
-            supply_system_dict.get(input.supply_system_heating_id),
-            supply_system_dict.get(input.supply_system_cooling_id),
+            [supply_system_dict[sys_id] for sys_id in input.supply_system_ids],
             ventilation_systems,
             ID=input.id
         )

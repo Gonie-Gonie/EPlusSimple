@@ -1944,7 +1944,15 @@ class AirHandlingUnit(SupplySystem):
         self.fan_efficiency   = fan_efficiency
         self.fan_pressure     = fan_pressure
         self.motor_efficiency = motor_efficiency
+    
+    @property
+    def heatable(self) -> bool:
+        return True
         
+    @property
+    def coolable(self) -> bool:
+        return True
+    
     """ idf-related
     """
     
@@ -2090,6 +2098,14 @@ class FanCoilUnit(SupplySystem):
         self.fan_efficiency   = fan_efficiency
         self.fan_pressure     = fan_pressure
         self.motor_efficiency = motor_efficiency
+    
+    @property
+    def heatable(self) -> bool:
+        return isinstance(self.source, Boiler)
+        
+    @property
+    def coolable(self) -> bool:
+        return isinstance(self.source, Chiller|AbsorptionChiller)
     
     """ idf-related
     """

@@ -24,6 +24,7 @@ from .hvac import (
     Radiator              ,
     ElectricRadiator      ,
     RadiantFloor          ,
+    ElectricRadiantFloor  ,
     # source systems
     SourceSystem      ,
     HeatPump          ,

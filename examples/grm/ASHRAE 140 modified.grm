@@ -112,6 +112,13 @@
                     "name": "실내기-실",
                     "source_system_id": "SRCE-0x000000"
                 }
+            ],
+            "radiant_floor":[
+                {
+                    "id": "SUPL-0x000001",
+                    "name":"바닥난방",
+                    "source_system_id": "SRCE-0x000001"
+                }
             ]
         },
         "source_systems": {
@@ -125,7 +132,16 @@
                     "cop_heating": 3.0,
                     "fuel_type": "electricity"
                 }
+            ],
+            "boiler": [
+                {
+                    "id": "SRCE-0x000001",
+                    "name": "보보일러",
+                    "fuel_type": "lpg",
+                    "hotwater_supply": true
+                }
             ]
+
         },
         "ventilation_systems": [],
         "photovoltaic_systems": []
