@@ -394,7 +394,7 @@ class Chiller(SourceSystem):
         # fundamental properties
         self.cop        = cop
         self.capacity   = capacity
-        self.compressor = compressor
+        self.compressor = CompressorType(compressor)
         
         # connected source
         self.coolingtower = coolingtower
