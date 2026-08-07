@@ -8,9 +8,9 @@ title: EPlusSimple
 
 type: software
 
-version: 0.6.4
+version: 0.6.5
 
-date-released: 2026-07-27
+date-released: 2026-08-07
 
 license: MIT
 
@@ -61,7 +61,7 @@ preferred-citation:
 
   title: EPlusSimple
 
-  version: 0.6.4
+  version: 0.6.5
 
   year: 2026
 
