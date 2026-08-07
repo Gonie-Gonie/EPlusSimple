@@ -27,10 +27,10 @@ from .construction import (
 )
 from .profile import (
     Schedule,
-    ScheduleType,
 )
 from .hvac import (
     SupplySystem,
+    SupplyGroup ,
 )
 from ..constants import Unit
 
@@ -617,7 +617,7 @@ class Zone:
         profile,
         infiltration,
         light_density,
-        supply_systems,
+        supply_systems:None|SupplySystem|SupplyGroup,
         ventilation   ,
         ):
         
@@ -626,12 +626,38 @@ class Zone:
         self.profile = profile
         self.infiltration = infiltration
         self.light_density = light_density
-        self.supply_systems = supply_systems
+        self.supply = supply_systems
         self.ventilation    = ventilation
     
     @property
+    def supply(self) -> SupplyGroup | None:
+        return self.__supply
+
+
+    @supply.setter
+    def supply(
+        self,
+        value: SupplyGroup | SupplySystem | None,
+    ) -> None:
+
+        if value is None:
+            self.__supply = None
+
+        elif isinstance(value, SupplyGroup):
+            self.__supply = value
+
+        elif isinstance(value, SupplySystem):
+            self.__supply = SupplyGroup([value])
+
+        else:
+            raise TypeError(
+                "supply must be a SupplySystem, SupplyGroup, or None."
+            )
+    
+    
+    @property
     def is_conditioned(self):
-        return (self.supply_systems is not None) and (self.profile.hvac_availability is not None)
+        return (self.supply is not None) and (self.profile.hvac_availability is not None)
     
     @property
     def floor_surface(self) -> list[Surface]:

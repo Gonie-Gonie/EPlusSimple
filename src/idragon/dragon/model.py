@@ -156,28 +156,20 @@ class EnergyModel:
     
     @staticmethod
     def add_supply_system(
-        idf   :IDF         ,
-        zone  :Zone        , 
-        supply:SupplySystem,
-        *,
-        for_heating:bool,
-        for_cooling:bool,
+        idf   :IDF,
+        zone  :Zone,
+        supply:SupplyGroup,
         ) -> None:
-        
-        # get idf objects
-        supply_objs, postprocesors = supply.to_idf_object(
-            zone,
-            for_heating=for_heating,
-            for_cooling=for_cooling,
-        )
-        
-        # append
-        idf.append(*supply_objs)
-        for processor in postprocesors:
-            processor.run(idf)
 
-        return
-    
+        supply_objects, postprocessors = supply.to_idf_object(zone)
+
+        idf.append(*supply_objects)
+
+        for processor in postprocessors:
+            processor.run(idf)
+            
+        return 
+        
     def to_idf(self) -> IDF:
         
         # create default objects
@@ -219,60 +211,21 @@ class EnergyModel:
             idf.append(*zone.to_idf_object())
         
         # HVAC: Source
-        created_sources = set([None])
+        created_sources = set()
         for zone in self.conditioned_zones:
-            
-            if isinstance(zone.cooling_supply, SupplyGroup):
+
+            for source in zone.supply.sources:
+
+                if source in created_sources:
+                    continue
+
+                idf.append(*source.to_idf_object())
+                created_sources.add(source)
                 
-                for supply in zone.cooling_supply.systems:   
-                    if supply.source not in created_sources:
-                        source_objs = supply.source.to_idf_object()
-                        idf.append(*source_objs)
-                        created_sources.add(supply.source)
-            
-            else:
-                if (zone.cooling_supply is not None) and (zone.cooling_supply.source not in created_sources):
-                    source_objs = zone.cooling_supply.source.to_idf_object()
-                    idf.append(*source_objs)
-                    created_sources.add(zone.cooling_supply.source)
-            
-            if isinstance(zone.heating_supply, SupplyGroup):
-                
-                for supply in zone.heating_supply.systems:   
-                    if supply.source not in created_sources:
-                        source_objs = supply.source.to_idf_object()
-                        idf.append(*source_objs)
-                        created_sources.add(supply.source)
-                        
-            else:    
-                if (zone.heating_supply is not None) and (zone.heating_supply.source not in created_sources):
-                    source_objs = zone.heating_supply.source.to_idf_object()
-                    idf.append(*source_objs)
-                    created_sources.add(zone.heating_supply.source)
-    
         # HVAC: Supply 
         # Should be after adding supply systems and zones to the idf
         for zone in self.conditioned_zones:
-            
-            if zone.cooling_supply is zone.heating_supply:
-                EnergyModel.add_supply_system(idf,
-                    zone, zone.cooling_supply,
-                    for_heating=True, for_cooling=True
-                )
-                
-            else:
-                if zone.cooling_supply is not None:
-                    EnergyModel.add_supply_system(idf,
-                        zone, zone.cooling_supply,
-                        for_heating=False, for_cooling=True
-                    )
-                
-                # heating supply
-                if zone.heating_supply is not None:
-                    EnergyModel.add_supply_system(idf,
-                        zone, zone.heating_supply,
-                        for_heating=True, for_cooling=False
-                    )          
+            EnergyModel.add_supply_system(idf, zone, zone.supply)      
         
         if len(self.unconditioned_zones) > 0:
             

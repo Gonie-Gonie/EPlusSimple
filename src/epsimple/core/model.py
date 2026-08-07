@@ -700,7 +700,13 @@ class GreenRetrofitModel:
                 if not isinstance(supply_sys.source, NoneSource) and (supply_sys.source.ID not in source_dict.keys()):
                     source_dict[supply_sys.source.ID] = supply_sys.source.to_dragon()
                 supply_dict[supply_sys.ID] = supply_sys.to_dragon(source_dict)
+        
+        zone_supply_dict = {}
+        for zone in self.zone:
 
+            systems = [supply_dict[system.ID] for system in zone.supply_systems]
+            zone_supply_dict[zone.ID] = (dragon.SupplyGroup(systems) if systems else None)
+        
         # ventilation system
         ventilator_dict = {zone.ID: None for zone in self.zone}
         for zone in self.zone:
@@ -730,7 +736,7 @@ class GreenRetrofitModel:
                     profile_dict[zone.profile.ID],
                     zone.infiltration*Unit.ACH50_TO_ACH,
                     zone.light_density,
-                    dragon.SupplyGroup([supply_dict[sys.ID] for sys in zone.supply_systems]),
+                    zone_supply_dict[zone.ID],
                     ventilator_dict[zone.ID],
                 )
                 for zone in self.zone
