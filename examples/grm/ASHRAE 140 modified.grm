@@ -19,8 +19,10 @@
                         "height": 2.7,
                         "profile": "소규모사무실",
                         "light_density": 10,
-                        "supply_system_heating_id": "SUPL-0x000000",
-                        "supply_system_cooling_id": "SUPL-0x000000",
+                        "supply_system_ids": [
+                           "SUPL-0x000000",
+                           "SUPL-0x000001"
+                        ],
                         "ventilation_systems": [],
                         "surfaces": [
                             {
@@ -111,6 +113,13 @@
                     "name": "실내기-실",
                     "source_system_id": "SRCE-0x000000"
                 }
+            ],
+            "radiant_floor":[
+                {
+                    "id": "SUPL-0x000001",
+                    "name":"바닥난방",
+                    "source_system_id": "SRCE-0x000001"
+                }
             ]
         },
         "source_systems": {
@@ -124,7 +133,16 @@
                     "cop_heating": 3.0,
                     "fuel_type": "electricity"
                 }
+            ],
+            "boiler": [
+                {
+                    "id": "SRCE-0x000001",
+                    "name": "보보일러",
+                    "fuel_type": "lpg",
+                    "hotwater_supply": true
+                }
             ]
+
         },
         "ventilation_systems": [],
         "photovoltaic_systems": []

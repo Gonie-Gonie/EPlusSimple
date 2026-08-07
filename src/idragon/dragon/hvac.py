@@ -1607,7 +1607,10 @@ class SupplySystemToIdfPostProcessor(ABC):
         
         self.zone   = zone
         self.supply = supply
-        self.source = supply.source
+    
+    @property
+    def source(self) -> SourceSystem:
+        return self.supply.source
     
     @abstractmethod
     def run(self, idf:IDF) -> None: ...
@@ -1787,61 +1790,215 @@ class ZoneTerminalUnitAppender(SupplySystemToIdfPostProcessor):
         
         return
 
-class SequentialLoadFractionController(SupplySystemToIdfPostProcessor):
-    
+class SequentialLoadFractionController(
+    SupplySystemToIdfPostProcessor
+):
+
     @staticmethod
-    def find_target_equipment_number(equipmentlist:IdfObject, objname:str) -> int:
-        
-        for idx in range(1, 100):
-            
-            if equipmentlist[f"Zone Equipment {idx} Name"] == objname:
-                return idx
-            
-            elif equipmentlist[f"Zone Equipment {idx} Name"] is None:
+    def find_target_equipment_number(
+        equipmentlist: IdfObject,
+        objname: str,
+    ) -> int:
+
+        for index in range(1, 100):
+
+            if (
+                equipmentlist[
+                    f"Zone Equipment {index} Name"
+                ]
+                == objname
+            ):
+                return index
+
+            if (
+                equipmentlist[
+                    f"Zone Equipment {index} Name"
+                ]
+                is None
+            ):
                 raise ValueError(
-                    f"Cannot find objname {objname} in the equipmentlist {equipmentlist['Name']}"
+                    f"Cannot find {objname!r} in "
+                    f"{equipmentlist['Name']!r}."
                 )
 
+        raise ValueError(
+            f"Too many equipment entries in "
+            f"{equipmentlist['Name']!r}."
+        )
 
-    def get_fraction_schedules(self) -> list[Schedule]:
-        
-        if self.supply.availabilities is None:
-            availabilities = [Schedule.from_constant(None, 1) for _ in range(len(self.supply.systems))]
-        else:
-            availabilities = [sche.changetype(ScheduleType.REAL) for sche in self.supply.availabilities]
-            
-        
-        num_remained = sum(availabilities, start=Schedule.from_constant(None, 0))
-        fraction_schedules = []
-        
-        for sche in availabilities:
-            
-            fraction_schedules.append( sche * (1/(num_remained+(1E-10))))
-            num_remained -= sche
-        
-        for sche in fraction_schedules:
-            sche.name = hex(id(sche))
-        
-        return fraction_schedules
-    
-    
-    
-    def run(self, idf:IDF) -> None:
-        
-        # find target equipment list
-        target_equiplist = idf["ZoneHVAC:EquipmentList"][self.zone.idf_equipmentlistname]
-        
-        # get fraction schedules and append to the idf
-        fraction_schedule = self.get_fraction_schedules()
-        for sche in fraction_schedule:
-            idf.append(sche.to_idf_object())
-        
-        for sys, f_sche in zip(self.supply.systems, fraction_schedule):
-            sys_idx = SequentialLoadFractionController.find_target_equipment_number(target_equiplist, sys.idf_get_objname(self.zone))
-            target_equiplist[f"Zone Equipment {sys_idx} Sequential Cooling Fraction Schedule Name"] = f_sche.name
-            target_equiplist[f"Zone Equipment {sys_idx} Sequential Heating Fraction Schedule Name"] = f_sche.name
-            
-        return
+    @staticmethod
+    def _as_fraction_availability(
+        schedule: Schedule | None,
+    ) -> Schedule:
+
+        if schedule is None:
+            return Schedule.from_constant(
+                None,
+                1,
+            )
+
+        return schedule.changetype(
+            ScheduleType.REAL
+        )
+
+    def _get_mode_fractions(
+        self,
+        mode: str,
+    ) -> dict[int, Schedule]:
+
+        match mode:
+            case "heating":
+                capability = "heatable"
+
+            case "cooling":
+                capability = "coolable"
+
+            case _:
+                raise ValueError(
+                    f"Invalid HVAC mode: {mode!r}."
+                )
+
+        active_items = [
+            (
+                system,
+                self._as_fraction_availability(
+                    availability
+                ),
+            )
+            for system, availability
+            in zip(
+                self.supply.systems,
+                self.supply.availabilities,
+            )
+            if getattr(system, capability)
+        ]
+
+        if len(active_items) == 0:
+            return {}
+
+        # 단일 설비는 항상 남은 부하의 100% 담당
+        if len(active_items) == 1:
+            system, _ = active_items[0]
+
+            fraction = Schedule.from_constant(
+                None,
+                1,
+            )
+            fraction.name = (
+                f"{mode}_fraction_for_"
+                f"{system.idf_get_objname(self.zone)}"
+            )
+
+            return {
+                id(system): fraction,
+            }
+
+        remaining = sum(
+            (
+                availability
+                for _, availability
+                in active_items
+            ),
+            start=Schedule.from_constant(
+                None,
+                0,
+            ),
+        )
+
+        fractions = {}
+
+        for system, availability in active_items:
+
+            fraction = availability * (
+                1 / (remaining + 1.0e-10)
+            )
+
+            fraction.name = (
+                f"{mode}_fraction_for_"
+                f"{system.idf_get_objname(self.zone)}"
+            )
+
+            fractions[id(system)] = fraction
+
+            remaining -= availability
+
+        return fractions
+
+    def run(
+        self,
+        idf: IDF,
+    ) -> None:
+
+        equipment_list = (
+            idf["ZoneHVAC:EquipmentList"][
+                self.zone.idf_equipmentlistname
+            ]
+        )
+
+        heating_fractions = (
+            self._get_mode_fractions(
+                "heating"
+            )
+        )
+
+        cooling_fractions = (
+            self._get_mode_fractions(
+                "cooling"
+            )
+        )
+
+        for schedule in (
+            *heating_fractions.values(),
+            *cooling_fractions.values(),
+        ):
+            idf.append(
+                schedule.to_idf_object()
+            )
+
+        for system in self.supply.systems:
+
+            equipment_number = (
+                self.find_target_equipment_number(
+                    equipment_list,
+                    system.idf_get_objname(
+                        self.zone
+                    ),
+                )
+            )
+
+            heating_fraction = (
+                heating_fractions.get(
+                    id(system)
+                )
+            )
+
+            cooling_fraction = (
+                cooling_fractions.get(
+                    id(system)
+                )
+            )
+
+            equipment_list[
+                f"Zone Equipment "
+                f"{equipment_number} "
+                "Sequential Heating Fraction "
+                "Schedule Name"
+            ] = (
+                heating_fraction.name
+                if heating_fraction is not None
+                else "ALLOFF"
+            )
+
+            equipment_list[
+                f"Zone Equipment "
+                f"{equipment_number} "
+                "Sequential Cooling Fraction "
+                "Schedule Name"
+            ] = (
+                cooling_fraction.name
+                if cooling_fraction is not None
+                else "ALLOFF"
+            )
 
 class SupplySystem(ABC):
     
@@ -1884,43 +2041,128 @@ class SupplySystem(ABC):
   
 class SupplyGroup:
     
-    def __init__(self,
-        systems:list[SupplySystem],
+    def __init__(
+        self,
+        systems: list[SupplySystem],
         *,
-        availabilities:list[Schedule] = None,
+        availabilities: list[Schedule | None] | None = None,
         ) -> None:
-        
-        self.systems        = systems
-        self.availabilities = availabilities
+
+        if not systems:
+            raise ValueError(
+                "SupplyGroup requires at least one system."
+            )
+
+        if not all(isinstance(system, SupplySystem) for system in systems):
+            raise TypeError(
+                "All systems must be SupplySystem instances."
+                )
+
+        if (availabilities is not None) and (len(availabilities) != len(systems)):
+            raise ValueError(
+                "The number of availabilities must "
+                "match the number of systems."
+            )
+
+        if any((not system.heatable and not system.coolable) for system in systems):
+            raise ValueError(
+                "Every supply system must support "
+                "heating or cooling."
+                )
+
+        self.systems = tuple(systems)
+
+        self.availabilities = (
+            (None,) * len(self.systems)
+            if availabilities is None
+            else tuple(availabilities)
+        )
     
     @property
-    def source(self) -> list[SourceSystem]:
-        return [sys.source for sys in self.systems]
+    def heating_systems(
+        self,
+    ) -> tuple[SupplySystem, ...]:
+
+        return tuple(
+            system
+            for system in self.systems
+            if system.heatable
+        )
+
+    @property
+    def cooling_systems(
+        self,
+    ) -> tuple[SupplySystem, ...]:
+
+        return tuple(
+            system
+            for system in self.systems
+            if system.coolable
+        )
+
+    @property
+    def heatable(self) -> bool:
+        return bool(self.heating_systems)
+
+    @property
+    def coolable(self) -> bool:
+        return bool(self.cooling_systems)
     
-    def to_idf_object(self,
-        zone       :Zone,
-        for_heating:bool,
-        for_cooling:bool,
-        ) -> tuple[list[IdfObject], list[SupplySystemToIdfPostProcessor]]:
-        
-        if self.availabilities is None:
-            availabilities = [None] * len(self.systems)
-        else:
-            availabilities = self.availabilities
-            
-        idfobjects     = []
+    @property
+    def sources(
+        self,
+        ) -> tuple[SourceSystem, ...]:
+
+        unique_sources = []
+
+        for system in self.systems:
+            source = system.source
+
+            if source is None:
+                continue
+
+            if not any(source is existing for existing in unique_sources):
+                unique_sources.append(source)
+
+        return tuple(unique_sources)
+    
+    def to_idf_object(
+        self,
+        zone: Zone,
+        ) -> tuple[list[IdfObject],list[SupplySystemToIdfPostProcessor]]:
+
+        idf_objects = []
         postprocessors = []
-        for sys, sche in zip(self.systems, availabilities):
-            idfobject, postprocessor = sys.to_idf_object(zone, for_heating, for_cooling, availability = sche)
-            idfobjects     += idfobject
-            postprocessors += postprocessor
-            
-            if sche is not None:
-                idfobjects.append(sche.to_idf_object())
-        
-        postprocessors.append(SequentialLoadFractionController(self, zone))
-        
-        return idfobjects, postprocessors       
+
+        for system, availability in zip(
+            self.systems,
+            self.availabilities,
+           ):
+            objects, processors = (
+                system.to_idf_object(
+                    zone,
+                    for_heating=system.heatable,
+                    for_cooling=system.coolable,
+                    availability=availability,
+                )
+            )
+
+            idf_objects.extend(objects)
+            postprocessors.extend(processors)
+
+            if availability is not None:
+                idf_objects.append(
+                    availability.to_idf_object()
+                )
+
+        postprocessors.append(
+            SequentialLoadFractionController(
+                self,
+                zone,
+            )
+        )
+
+        return idf_objects, postprocessors    
         
     
 class AirHandlingUnit(SupplySystem):
@@ -1944,7 +2186,15 @@ class AirHandlingUnit(SupplySystem):
         self.fan_efficiency   = fan_efficiency
         self.fan_pressure     = fan_pressure
         self.motor_efficiency = motor_efficiency
+    
+    @property
+    def heatable(self) -> bool:
+        return True
         
+    @property
+    def coolable(self) -> bool:
+        return True
+    
     """ idf-related
     """
     
@@ -2058,7 +2308,7 @@ class AirHandlingUnit(SupplySystem):
         if id(self) in memo:
             return memo[id(self)]
         
-        clone =  AirHandlingUnit(
+        clone =  type(self)(
             name             = f"{self.name}:COPY",
             source           = self.source,
             fan_efficiency   = self.fan_efficiency,
@@ -2068,6 +2318,15 @@ class AirHandlingUnit(SupplySystem):
         memo[id(self)] = clone
         return clone
     
+class PackagedAirConditioner(AirHandlingUnit):
+    
+    @property
+    def heatable(self) -> bool:
+        return False
+        
+    @property
+    def coolable(self) -> bool:
+        return True
     
 class FanCoilUnit(SupplySystem):
     
@@ -2090,6 +2349,14 @@ class FanCoilUnit(SupplySystem):
         self.fan_efficiency   = fan_efficiency
         self.fan_pressure     = fan_pressure
         self.motor_efficiency = motor_efficiency
+    
+    @property
+    def heatable(self) -> bool:
+        return isinstance(self.source, Boiler)
+        
+    @property
+    def coolable(self) -> bool:
+        return isinstance(self.source, Chiller|AbsorptionChiller)
     
     """ idf-related
     """

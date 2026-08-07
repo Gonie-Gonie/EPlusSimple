@@ -27,10 +27,10 @@ from .construction import (
 )
 from .profile import (
     Schedule,
-    ScheduleType,
 )
 from .hvac import (
     SupplySystem,
+    SupplyGroup ,
 )
 from ..constants import Unit
 
@@ -617,8 +617,7 @@ class Zone:
         profile,
         infiltration,
         light_density,
-        supply_cooling,
-        supply_heating,
+        supply_systems:None|SupplySystem|SupplyGroup,
         ventilation   ,
         ):
         
@@ -627,29 +626,38 @@ class Zone:
         self.profile = profile
         self.infiltration = infiltration
         self.light_density = light_density
-        self.cooling_supply = supply_cooling
-        self.heating_supply = supply_heating
+        self.supply = supply_systems
         self.ventilation    = ventilation
     
     @property
-    def heating_supply(self):
-        return self.__supply_heating
+    def supply(self) -> SupplyGroup | None:
+        return self.__supply
+
+
+    @supply.setter
+    def supply(
+        self,
+        value: SupplyGroup | SupplySystem | None,
+    ) -> None:
+
+        if value is None:
+            self.__supply = None
+
+        elif isinstance(value, SupplyGroup):
+            self.__supply = value
+
+        elif isinstance(value, SupplySystem):
+            self.__supply = SupplyGroup([value])
+
+        else:
+            raise TypeError(
+                "supply must be a SupplySystem, SupplyGroup, or None."
+            )
     
-    @heating_supply.setter
-    def heating_supply(self, value:SupplySystem|None):
-        self.__supply_heating = value
-        
-    @property
-    def cooling_supply(self):
-        return self.__supply_cooling
     
-    @cooling_supply.setter
-    def cooling_supply(self, value:SupplySystem|None):
-        self.__supply_cooling = value
-        
     @property
     def is_conditioned(self):
-        return ((self.heating_supply is not None) or (self.cooling_supply is not None)) and (self.profile.hvac_availability is not None)
+        return (self.supply is not None) and (self.profile.hvac_availability is not None)
     
     @property
     def floor_surface(self) -> list[Surface]:
