@@ -1,6 +1,42 @@
 
 \chapter{버전별 변경사항}
 
+\newversionsection{0.7.0}{2026-08-07}{
+    \begin{itemize}
+        \item GRR 결과에 기기부하 에너지 사용량을 별도 집계하는 \texttt{equipment} 용도 항목을 추가.
+        \item LPG 연료를 추가하고, GRM 입력값 \texttt{lpg}를 EnergyPlus의 \texttt{Propane}으로 변환하도록 지원.
+              LPG의 1차에너지 환산계수, 온실가스 배출계수 및 에너지 비용계수는 각각 1.1, 0.2326~kgCO$_{2,eq}$/kWh, 184.89~KRW/kWh를 적용.
+        \item 건물이 공동주택 법규를 적용받는지를 지정하는 \texttt{building.is\_multifamily\_housing} 입력을 추가.
+        \item 하나의 존에 여러 공급설비를 적용할 수 있도록 \texttt{zone.supply\_system\_ids} 입력을 추가. 냉난방 겸용, 난방 전용 및 냉방 전용 설비를 함께 입력할 수 있으며, 각 설비가 지원하는 운전모드에 따라 난방 및 냉방 부하분담을 각각 계산.
+        \item 하나의 존에 여러 환기설비를 적용할 수 있도록 \texttt{zone.ventilation\_systems} 입력을 추가. 각 항목은 환기설비 \texttt{id}와 설치 대수 \texttt{count}로 구성.
+        \item 환기설비의 정격풍량을 나타내는 \texttt{ventilation\_system.airflow\_rate} 입력을 추가.
+    \end{itemize}
+}{
+    \begin{itemize}
+        \item \textbf{GRM의 공급설비 및 생산설비 입력 구조를 변경.}
+              기존에는 \texttt{supply\_systems}와 \texttt{source\_systems}가 설비 객체의 배열이었으며, 각 객체의 \texttt{type} 속성으로 설비 종류를 구분하였으나,이제 개별 설비 객체의 \texttt{type} 속성은 사용하지 않음.
+        \item \textbf{존의 공급설비 입력 구조를 변경.}
+              \texttt{supply\_system\_heating\_id}와 \texttt{supply\_system\_cooling\_id}를 하나의 \texttt{supply\_system\_ids} 배열로 통합. 배열이 비어 있으면 비공조 존으로 처리하며, 같은 존에 동일한 공급설비 ID를 중복 입력할 수 없음. 바닥난방과 전기바닥난방은 한 존에 합계 한 개만 입력 가능.
+        \item \textbf{존의 환기설비 입력 구조를 변경.}
+              단일 \texttt{ventilation\_system\_id} 대신 \texttt{ventilation\_systems} 배열을 사용하며, 각 항목은
+              \texttt{\{"id": "...", "count": n\}} 형식으로 입력.
+        \item 비필수 입력값은 속성 자체를 생략할 수 있도록 변경. 문서에서 \texttt{Optional}로 표시된 속성은 생략하거나, \texttt{null}이 허용된 경우 \texttt{null}로 입력 가능. 창의 \texttt{blind}, 방열기의 \texttt{capacity\_heating} 등에도 동일한 규칙을 적용.
+        \item \texttt{floor.floor\_number}는 시뮬레이션 및 GRM 파싱에 사용하지 않는 선택 메타데이터로 변경하여 생략 가능.
+        \item 침기율을 사용자 입력값으로 받지 않고 자동 결정하도록 변경. 외기에 면한 창 또는 유리문이 있는 존에는 1.5~ACH50, 그렇지 않은 존에는 0~ACH50을 적용.
+        \item \texttt{unknown} 구조체의 법규 DB 조회 방법을 변경. \texttt{is\_multifamily\_housing} 값에 따라 공동주택 또는 공동주택 외 기준을 선택하며, 존에 바닥난방 또는 전기바닥난방이 적용된 경우 바닥난방 구조체 구분을 사용.
+        \item 복수 공급설비를 \texttt{idragon.SupplyGroup} 하나로 변환하도록 냉난방설비 처리 구조를 변경. 공급설비별 \texttt{heatable}/\texttt{coolable} 속성에 따라 난방 및 냉방 설비 목록을 자동 구분하고, 각 운전모드의 sequential load fraction을 별도로 생성. 지원하지 않는 운전모드의 부하분담 스케줄에는 \texttt{ALLOFF}를 적용.
+        \item 복수 환기설비가 적용된 존의 난방 및 냉방 열회수효율을 각 설비의 설치 대수와 정격풍량을 반영한 풍량가중평균으로 계산하도록 변경.
+        \item Python API에서 \texttt{GreenRetrofitModel.north\_axis}를 기본값 없는 필수 인자로 변경.
+        \item 공식 ASHRAE 140 수정 예시 GRM과 GRR을 새로운 입력 및 출력 구조에 맞게 갱신.
+    \end{itemize}
+}{
+    \par -
+}{
+    \begin{itemize}
+        \item 엑셀파일 기반 입력은 0-7-0에서 지원하지 않음 (추후 업데이트 예정)
+    \end{itemize}
+}
+
 \newversionsection{0.6.5}{2026-08-07}{
     \par -
 }{
