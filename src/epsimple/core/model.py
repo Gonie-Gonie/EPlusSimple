@@ -693,38 +693,14 @@ class GreenRetrofitModel:
         # source / supply system
         supply_dict = dict()
         source_dict = dict()
-        zone_heatables_dict = dict()
-        zone_coolables_dict = dict()
         for zone in self.zone:
-            
-            heatable_list = []
-            coolable_list = []
             
             for supply_sys in zone.supply_systems:
                 
                 if not isinstance(supply_sys.source, NoneSource) and (supply_sys.source.ID not in source_dict.keys()):
                     source_dict[supply_sys.source.ID] = supply_sys.source.to_dragon()
                 supply_dict[supply_sys.ID] = supply_sys.to_dragon(source_dict)
-                
-                if supply_sys.heatable:
-                    heatable_list.append(supply_sys.ID)
-                if supply_sys.coolable:
-                    coolable_list.append(supply_sys.ID)
-            
-            if len(heatable_list) == 0:
-                zone_heatables_dict[zone.ID] = None
-            elif len(heatable_list) == 1:
-                zone_heatables_dict[zone.ID] = supply_dict[heatable_list[0]]
-            else:
-                zone_heatables_dict[zone.ID] = dragon.SupplyGroup(*[supply_dict[sys_id] for sys_id in heatable_list])
-                
-            if len(coolable_list) == 0:
-                zone_coolables_dict[zone.ID] = None
-            elif len(coolable_list) == 1:
-                zone_coolables_dict[zone.ID] = supply_dict[coolable_list[0]]
-            else:
-                zone_coolables_dict[zone.ID] = dragon.SupplyGroup(*[supply_dict[sys_id] for sys_id in coolable_list])
-        
+
         # ventilation system
         ventilator_dict = {zone.ID: None for zone in self.zone}
         for zone in self.zone:
@@ -754,8 +730,7 @@ class GreenRetrofitModel:
                     profile_dict[zone.profile.ID],
                     zone.infiltration*Unit.ACH50_TO_ACH,
                     zone.light_density,
-                    zone_coolables_dict[zone.ID],
-                    zone_heatables_dict[zone.ID],
+                    dragon.SupplyGroup([supply_dict[sys.ID] for sys in zone.supply_systems]),
                     ventilator_dict[zone.ID],
                 )
                 for zone in self.zone

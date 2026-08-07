@@ -55,7 +55,7 @@ from .hvac import (
     Boiler,
     # supply systems
     SupplySystem,
-    SupplyGroup ,
+    SupplyGroup,
     AirHandlingUnit,
     FanCoilUnit,
     Radiator,
