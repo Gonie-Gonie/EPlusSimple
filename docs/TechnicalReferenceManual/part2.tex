@@ -419,12 +419,11 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
 
 \paragraph{adjacent\_zone\_id (인접존 식별자)} 인접존 ID. 면의 경계조건을 ``zone''으로 설정한 경우에만 입력한다.
 
-\paragraph{construction\_id (구조체 식별자)} 구조체 ID. 
+\paragraph{construction\_id (구조체 식별자)} 구조체 ID. null 값 입력시 ``unknown''으로 처리된다.
 
 \paragraph{coolroof\_reflectance (쿨루프 반사율)} 지붕면의 태양 반사율. 쿨루프(Cool Roof)시공이 적용된 경우에만 입력한다.
 
-\subsubsection{fenestration (개구부)} \label{subsubsection:ioref:fenestration}
-개구부. 벽체의 열린 부분을 의미하며, 창, 문(유리문, 방화문 등) 등 외기와의 접촉 또는 채광·환기를 목적으로 설치된 요소를 포함한다.
+\subsubsection{fenestration (개구부)} \label{subsubsection:ioref:fenestration} 개구부. 벽체의 열린 부분을 의미하며, 창, 문(유리문, 방화문 등) 등 외기와의 접촉 또는 채광·환기를 목적으로 설치된 요소를 포함한다. 경계조건(bounadry\_condition)이 ``outdoors'' 또는 ``zone'' 인 경우에만 사용 가능하다 (``ground'' 또는 ``adiabatic''인 경우, 빈 리스트로 입력하여야 함). 또한 특정 면에 종속된 개구부 면적의 총 합은 해당 면의 면적 합보다 작아야 한다.
 
 \jsontable{fenestration}{
   \jsontablerow{id             }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
@@ -805,7 +804,7 @@ grjson에서 다른 객체의 지칭은 \texttt{ID}값에 기반하여 이루어
   \jsontablerow{name          }{\TypeTag{S}}{\ReqTag{R}}{}{}{}{}
   \jsontablerow{is_transparent}{\TypeTag{B}}{\ReqTag{R}}{}{}{}{}
   \jsontablerow{u             }{\TypeTag{F}}{\ReqTag{R}}{}{}{(0, $Inf$)}{W{\cdot}m^{-1}{\cdot}K^{-1}}
-  \jsontablerow{g             }{\TypeTag{F}}{\ReqTag{CR}}{}{\texttt{is\_transparent} = \texttt{True}}{(0,1]}{}
+  \jsontablerow{g             }{\TypeTag{F}}{\ReqTag{CR}}{}{\texttt{is\_transparent} = \texttt{True}}{(0,1)}{}
 }
 
 \paragraph{id (식별자)} 창호의 식별자. \ref{subsubsection:ioref:id_description}에 따라 정의된다.
