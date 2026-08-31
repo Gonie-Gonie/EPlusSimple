@@ -1106,18 +1106,19 @@ def parse_majorchange(masterdict: dict) -> str:
             "야간보육 인원": 1.5 * 60,   # 19:30~21:00
         }
 
+        def _weighted_occ(c: str) -> float:
+            # 인원이 0인 보육 시간대는 평균에서 제외; 전부 0이면 재실인원 0으로 처리
+            active = [
+                (float(surveyresult.loc[surveyresult["항목"].eq(k), c].iloc[0]), t)
+                for k, t in time_min.items()
+                if float(surveyresult.loc[surveyresult["항목"].eq(k), c].iloc[0]) > 0
+            ]
+            if not active:
+                return 0.0
+            return sum(n * t for n, t in active) / sum(t for _, t in active)
+
         occlist = [
-            sum(
-                float(surveyresult.loc[surveyresult["항목"].eq(k), c].iloc[0]) * t
-                for k, t in time_min.items()
-                if float(surveyresult.loc[surveyresult["항목"].eq(k), c].iloc[0]) > 0
-            )
-            /
-            sum(
-                t
-                for k, t in time_min.items()
-                if float(surveyresult.loc[surveyresult["항목"].eq(k), c].iloc[0]) > 0
-            )
+            _weighted_occ(c)
             for c in ["그린리모델링 이전", "그린리모델링 이후", "운영특성 반영"]
         ]
     else:
@@ -1255,83 +1256,79 @@ def parse_majorchange(masterdict: dict) -> str:
 
 
 def parse_perfchange(masterdict: dict) -> str:
-    
+
+    def 유형열원(prefix:str, equipment:str) -> str:
+        유형 = masterdict.get(f"{prefix}_{equipment}_유형")
+        열원 = masterdict.get(f"{prefix}_{equipment}_열원")
+        return f"{'-' if pd.isna(유형) else 유형} / {'-' if pd.isna(열원) else 열원}"
+
+    def 근거(part:str) -> str:
+        values = set()
+        for prefix in ["GR이전", "GR이후", "N년차"]:
+            v = masterdict.get(f"{prefix}_{part}_근거")
+            values.add("-" if pd.isna(v) else v)
+        return "/".join(values - {"-"})
+
+    def 수치(prefix:str, col:str) -> str:
+        v = masterdict.get(f"{prefix}_{col}")
+        return "-" if pd.isna(v) else f"{v:.2f}"
+
     df = pd.DataFrame(
         [
             [
                 "외벽 열관류율 [W/m2·K]",
-                f"{masterdict.get('GR이전_외벽_열관류율 [W/m2·K]'):.2f}",
-                f"{masterdict.get('GR이후_외벽_열관류율 [W/m2·K]'):.2f}",
-                f"{masterdict.get('N년차_외벽_열관류율 [W/m2·K]'):.2f}",
-                "/".join(set([
-                    masterdict.get("GR이전_외벽_근거"),
-                    masterdict.get("GR이후_외벽_근거"),
-                    masterdict.get("N년차_외벽_근거"),
-                ]) - {"-"})
+                수치("GR이전", "외벽_열관류율 [W/m2·K]"),
+                수치("GR이후", "외벽_열관류율 [W/m2·K]"),
+                수치("N년차" , "외벽_열관류율 [W/m2·K]"),
+                근거("외벽")
             ],
             [
                 "창호 열관류율 [W/m2·K]",
-                f"{masterdict.get('GR이전_창 및 문_열관류율 [W/m2·K]'):.2f}",
-                f"{masterdict.get('GR이후_창 및 문_열관류율 [W/m2·K]'):.2f}",
-                f"{masterdict.get('N년차_창 및 문_열관류율 [W/m2·K]'):.2f}",
-                "/".join(set([
-                    masterdict.get("GR이전_창 및 문_근거"),
-                    masterdict.get("GR이후_창 및 문_근거"),
-                    masterdict.get("N년차_창 및 문_근거"),
-                ]) - {"-"})
+                수치("GR이전", "창 및 문_열관류율 [W/m2·K]"),
+                수치("GR이후", "창 및 문_열관류율 [W/m2·K]"),
+                수치("N년차" , "창 및 문_열관류율 [W/m2·K]"),
+                근거("창 및 문")
             ],
             [
                 "창호 취득계수(SHGC)",
-                f"{masterdict.get('GR이전_창 및 문_취득계수'):.2f}",
-                f"{masterdict.get('GR이후_창 및 문_취득계수'):.2f}",
-                f"{masterdict.get('N년차_창 및 문_취득계수'):.2f}",
-                "/".join(set([
-                    masterdict.get("GR이전_창 및 문_근거"),
-                    masterdict.get("GR이후_창 및 문_근거"),
-                    masterdict.get("N년차_창 및 문_근거"),
-                ]) - {"-"})
+                수치("GR이전", "창 및 문_취득계수"),
+                수치("GR이후", "창 및 문_취득계수"),
+                수치("N년차" , "창 및 문_취득계수"),
+                근거("창 및 문")
             ],
             [
                 "지붕 열관류율 [W/m2·K]",
-                f"{masterdict.get('GR이전_지붕_열관류율 [W/m2·K]'):.2f}",
-                f"{masterdict.get('GR이후_지붕_열관류율 [W/m2·K]'):.2f}",
-                f"{masterdict.get('N년차_지붕_열관류율 [W/m2·K]'):.2f}",
-                "/".join(set([
-                    masterdict.get("GR이전_지붕_근거"),
-                    masterdict.get("GR이후_지붕_근거"),
-                    masterdict.get("N년차_지붕_근거"),
-                ]) - {"-"})
+                수치("GR이전", "지붕_열관류율 [W/m2·K]"),
+                수치("GR이후", "지붕_열관류율 [W/m2·K]"),
+                수치("N년차" , "지붕_열관류율 [W/m2·K]"),
+                근거("지붕")
             ],
             [
                 "바닥 열관류율 [W/m2·K]",
-                f"{masterdict.get('GR이전_바닥_열관류율 [W/m2·K]'):.2f}",
-                f"{masterdict.get('GR이후_바닥_열관류율 [W/m2·K]'):.2f}",
-                f"{masterdict.get('N년차_바닥_열관류율 [W/m2·K]'):.2f}",
-                "/".join(set([
-                    masterdict.get("GR이전_바닥_근거"),
-                    masterdict.get("GR이후_바닥_근거"),
-                    masterdict.get("N년차_바닥_근거"),
-                ]) - {"-"})
+                수치("GR이전", "바닥_열관류율 [W/m2·K]"),
+                수치("GR이후", "바닥_열관류율 [W/m2·K]"),
+                수치("N년차" , "바닥_열관류율 [W/m2·K]"),
+                근거("바닥")
             ],
             [
                 "조명밀도",
-                f"{masterdict.get('GR이전_조명밀도 [W/m2]'):.2f}",
-                f"{masterdict.get('GR이후_조명밀도 [W/m2]'):.2f}",
-                f"{masterdict.get('N년차_조명밀도 [W/m2]'):.2f}",
+                수치("GR이전", "조명밀도 [W/m2]"),
+                수치("GR이후", "조명밀도 [W/m2]"),
+                수치("N년차" , "조명밀도 [W/m2]"),
                 "-"
             ],
             [
                 "침기율",
-                f"{masterdict.get('GR이전_침기율 [ACH]'):.2f}",
-                f"{masterdict.get('GR이후_침기율 [ACH]'):.2f}",
-                f"{masterdict.get('N년차_침기율 [ACH]'):.2f}",
+                수치("GR이전", "침기율 [ACH]"),
+                수치("GR이후", "침기율 [ACH]"),
+                수치("N년차" , "침기율 [ACH]"),
                 "-",
             ],
             [
                 "난방1 유형/열원",
-                masterdict.get("GR이전_난방1_유형") + " / " + str(masterdict.get("GR이전_난방1_열원")),
-                masterdict.get("GR이후_난방1_유형") + " / " + str(masterdict.get("GR이후_난방1_열원")),
-                masterdict.get("N년차_난방1_유형") + " / " + str(masterdict.get("N년차_난방1_열원")),
+                유형열원("GR이전", "난방1"),
+                유형열원("GR이후", "난방1"),
+                유형열원("N년차" , "난방1"),
                 "/".join(set([
                     "-" if pd.isna(masterdict.get("GR이전_난방1_근거")) else masterdict.get("GR이전_난방1_근거"),
                     "-" if pd.isna(masterdict.get("GR이후_난방1_근거")) else masterdict.get("GR이후_난방1_근거"),
@@ -1373,9 +1370,9 @@ def parse_perfchange(masterdict: dict) -> str:
             ],
             [
                 "냉방1 유형/열원",
-                f"{masterdict.get('GR이전_냉방1_유형')} / {str(masterdict.get('GR이전_냉방1_열원'))}",
-                f"{masterdict.get('GR이후_냉방1_유형')} / {str(masterdict.get('GR이후_냉방1_열원'))}",
-                f"{masterdict.get('N년차_냉방1_유형')} / {str(masterdict.get('N년차_냉방1_열원'))}",
+                유형열원("GR이전", "냉방1"),
+                유형열원("GR이후", "냉방1"),
+                유형열원("N년차" , "냉방1"),
                 "/".join(set([
                     "-" if pd.isna(masterdict.get("GR이전_냉방1_근거")) else masterdict.get("GR이전_냉방1_근거"),
                     "-" if pd.isna(masterdict.get("GR이후_냉방1_근거")) else masterdict.get("GR이후_냉방1_근거"),
@@ -1962,7 +1959,28 @@ def build_report(
         lpgusetext = ""
     else:
         lpgusetext = ", ".join(lpguse_conditions) + " 에서 LPG보일러 사용하는 건물임"
-        
+
+    pk_value = masterdict.get("관리건축물대장PK")
+
+    if pd.isna(pk_value) or str(pk_value).strip() == "":
+        building_register_pk = "-"
+    elif isinstance(pk_value, float) and pk_value.is_integer():
+        building_register_pk = str(int(pk_value))
+    else:
+        building_register_pk = str(pk_value).strip()
+
+    building_register_pk = escape_str(building_register_pk)
+
+    # 결측 시 'nan' 인쇄 방지: GR 준공일자, 층수
+    date_value = masterdict.get("GR이후_그린리모델링 허가일자")
+    gr_completion_date = "-" if pd.isna(date_value) else escape_str(str(date_value).strip())
+
+    def _floor_str(col: str) -> str:
+        v = masterdict.get(col)
+        return "-" if pd.isna(v) else f"{v:.0f}"
+    floors_below = _floor_str("GR이전_규모_지하")
+    floors_above = _floor_str("GR이전_규모_지상")
+
     context = {
         "metadata": metadata,
         "master"  : masterdict,
@@ -1973,7 +1991,11 @@ def build_report(
         "equinitytex"    : parse_equinity(masterdict),
         "lpgusetext"    : lpgusetext,
         "summarytabletex" : [df.style.format(lambda x: f"{x:>6,.1f}" if isinstance(x, int|float) else x).to_latex(**summarytablestyle).replace(r"\toprule", r"\hline").replace(r"\midrule", r"\hline").replace(r"\bottomrule", r"\hline") for df in summarytable(grrbefore, grrafter, grrafterN)],
-        "comment": {k:escape_str(v) for k,v in commentdict.items()}
+        "comment": {k:escape_str(v) for k,v in commentdict.items()},
+        "building_register_pk": building_register_pk,
+        "gr_completion_date": gr_completion_date,
+        "floors_below": floors_below,
+        "floors_above": floors_above,
     }
     
     # build
