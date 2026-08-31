@@ -246,16 +246,44 @@ def convert_이전레이어(wb, verbose:bool=True) -> None:
     address = wb["건물정보"].cell(2,3).value
     vintage = datetime(*[int(v) for v in wb["건물정보"].cell(2,6).value.split("-")])
     _, climate, _, _ = address_to_weather(address, vintage)
-    
+
+
+
     for 구조체_row in sheet.iter_rows(min_row=2):
         
         if all(cell.value is None for cell in 구조체_row):
             break
-        
-        if 구조체_row[1].value == '&SPECIAL&이전레이어&':
+        special_idx = next(
+            (
+                idx
+                for idx in range(5)
+                if 구조체_row[2*idx+1].value == '&SPECIAL&이전레이어&'
+            ),
+            None
+        )
+
+        if special_idx is not None:
             
             구조체이름 = 구조체_row[0].value
-            원래값들 = [cell.value for cell in 구조체_row[3:11] if cell.value is not None]
+            원래레이어들 = [
+                (
+                    구조체_row[2*idx+1].value,
+                    구조체_row[2*idx+2].value
+                )
+                for idx in range(5)
+            ]
+            
+            이전레이어앞값들 = [
+                layer
+                for layer in 원래레이어들[:special_idx]
+                if layer[0] is not None
+            ]
+            
+            이전레이어뒤값들 = [
+                layer
+                for layer in 원래레이어들[special_idx+1:]
+                if layer[0] is not None
+            ]
             
             for 면_row in wb["면"].iter_rows(min_row=2):
                 
@@ -288,16 +316,44 @@ def convert_이전레이어(wb, verbose:bool=True) -> None:
                             wb["재료"].cell(현재재료개수+2,2).value = layer[0].conductivity
                             wb["재료"].cell(현재재료개수+2,3).value = layer[0].density
                             wb["재료"].cell(현재재료개수+2,4).value = layer[0].specific_heat
+
+                    이전레이어값들 = [
+                        (
+                            layer[0].ID,
+                            layer[1] * 1000
+                        )
+                        for layer in 이전surface.layers
+                    ]
+                    
+                    최종레이어값들 = (
+                        이전레이어앞값들
+                        + 이전레이어값들
+                        + 이전레이어뒤값들
+                    )
+                    
+                    if len(최종레이어값들) > 5:
+                        raise ValueError(
+                            f"구조체 '{구조체이름}'의 최종 레이어가 "
+                            f"{len(최종레이어값들)}개입니다."
+                        )
                     
                     sheet.cell(현재구조체개수+2, 1).value = 추가할면별구조체이름
                     for idx, layer in enumerate(이전surface.layers):
                         sheet.cell(현재구조체개수+2, 2*(idx+1)  ).value = layer[0].ID
                         sheet.cell(현재구조체개수+2, 2*(idx+1)+1).value = layer[1] * 1000
                     
-                    for idx2, value in enumerate(원래값들):
-                        sheet.cell(현재구조체개수+2, 2*(idx+1)+2+idx2).value = value
+                    for idx, layer in enumerate(최종레이어값들):
+                        sheet.cell(현재구조체개수+2, 2*(idx+1)  ).value = layer[0]
+                        sheet.cell(현재구조체개수+2, 2*(idx+1)+1).value = layer[1]
                     
-    drop_rows_inplace(wb, sheet_name="구조체_면", col_name="레이어1_재료", values=['&SPECIAL&이전레이어&'], verbose=verbose)        
+    for idx in range(1, 6):
+        drop_rows_inplace(
+            wb,
+            sheet_name="구조체_면",
+            col_name=f"레이어{idx}_재료",
+            values=['&SPECIAL&이전레이어&'],
+            verbose=verbose
+        )  
 
 
 def replace_typo(wb) -> None:
