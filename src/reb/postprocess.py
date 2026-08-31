@@ -62,6 +62,11 @@ def row_to_dayofweekstr(row:pd.Series) -> str:
 
 
 def row_to_설비운영(row:pd.Series) -> None|설비운영:
+
+    # 미설치/미사용 : 사용시간이 00:00~00:00 (선행판정)
+    시간 = row[["시작시","시작분","종료시","종료분"]]
+    if not pd.isna(시간).any() and (시간.astype(int)==0).all():
+        return 설비운영(None,None,None,사용여부=False)
     
     if pd.isna(row.iloc[:6]).any():
         return None
@@ -205,7 +210,8 @@ def make_집중진료_dayschedule_values(starth, startm, endh, endm,
 class 설비운영:
     사용시간:str
     사용기간:str
-    설정온도:int    
+    설정온도:int
+    사용여부:bool=True  # False = 미설치/미사용
     
     def get_hvac_availability_schedule(self, mode:Literal["heating","cooling"]) -> dragon.Schedule:
         
@@ -218,7 +224,9 @@ class 설비운영:
                 dragon.DaySchedule.from_compact(None,[(24,0,0)], dragon.ScheduleType.ONOFF),
             ))]
         )
-        
+
+        if not self.사용여부:
+            return alloff_schedule
         # 시간
         starth, startm, endh, endm = parse_duration_hours(self.사용시간)
         if starth + startm/100 < endh + endm/100:
