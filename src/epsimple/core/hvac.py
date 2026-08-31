@@ -508,6 +508,8 @@ class AbsorptionChiller(SourceSystem):
         self.capacity = None if capacity is None else capacity
         
         # secondary source system (boiler) properties
+        if boiler_fuel is None:
+            boiler_fuel = "natural_gas"
         self.boiler_fuel       = Fuel(boiler_fuel)
         self.boiler_efficiency = 0.85 if boiler_efficiency is None else boiler_efficiency
 

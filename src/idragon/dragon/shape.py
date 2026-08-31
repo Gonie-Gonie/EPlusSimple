@@ -362,7 +362,7 @@ class Surface:
                 f"Tried to create subsurface whose area ({area:.3f}m2) is larger than that of the mother surface ({self.area:.3f}m2)"
             )
             
-        scale_factor = area/self.area
+        scale_factor = math.sqrt(area/self.area)
         center       = self.center
         
         return [center + scale_factor*(vtx - center) for vtx in self.vertex]

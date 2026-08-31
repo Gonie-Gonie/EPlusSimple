@@ -525,6 +525,10 @@ class SurfaceConstruction:
         is_multifamily_housing:bool=False,
         ) -> SurfaceConstruction:
         
+        # type regulation
+        surface_type  = SurfaceType(surface_type)
+        boundary_cond = SurfaceBoundaryCondition(boundary_cond)
+        
         # date
         regulation_date = max(date for date in SurfaceConstruction.REGULATION_DATES if date <= vintage)
         

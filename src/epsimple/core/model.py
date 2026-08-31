@@ -502,7 +502,7 @@ class GreenRetrofitModel:
         
         # add unused source systems
         # please refer to the definition of the supply_system property
-        applied_ID = (source.ID for source in grm.source_system)
+        applied_ID = {source.ID for source in grm.source_system}
         grm.source_system = [sys for sys in source_system_dict.values() if sys.ID not in applied_ID]
         
         # pv panel

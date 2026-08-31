@@ -1308,7 +1308,7 @@ class IdfObject(StaticIndexedDict):
         if item is None:
             item = []
         
-        if isinstance(item, list):
+        if isinstance(item, list|tuple):
             for key, value in zip(self.allowed_keys[:len(item)], item):
                 if (value == 0) or value:
                     self[key] = value

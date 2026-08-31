@@ -104,7 +104,7 @@ class Version:
         # if non-supported type or the number of the arguments are specified
         else:
             raise ValueError(
-                f"Expected one string or two/three integers, but got {','.join([type(arg) for arg in args])}."
+                f"Expected one string or two/three integers, but got {','.join([str(type(arg)) for arg in args])}."
             )
 
         # allocate each version numbers as attributes

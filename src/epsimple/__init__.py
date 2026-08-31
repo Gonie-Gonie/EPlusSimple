@@ -9,7 +9,7 @@ from .constants import PackageInfo
 # check python version
 if sys.version_info < PackageInfo.REQUIRED_PYTHON:
     raise ImportError(
-        f"{PackageInfo.NAME} requires python version {','.join(PackageInfo.REQUIRED_PYTHON)} or higher\n",
+        f"{PackageInfo.NAME} requires python version {','.join(map(str,PackageInfo.REQUIRED_PYTHON))} or higher\n",
         f"You are using Python {sys.version} at {sys.executable}"
     )
 

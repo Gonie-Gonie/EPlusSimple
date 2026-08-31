@@ -84,7 +84,7 @@ def validate_enum(
             if value not in keys:
                 raise ValueError(
                     f"Invalid value '{value}' for {func.__name__}. "
-                    f"Allowed values: {','.join(keys)}"
+                    f"Allowed values: {','.join(map(str,keys))}"
                 )
             return func(self, value)
         return wrapper

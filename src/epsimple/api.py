@@ -91,7 +91,7 @@ def run_grexcel(
     output_filepath:str|None=None,
     *,
     save           :bool    =True,
-    ) -> str:
+    ) -> str|dict:
     
     """ run grexcel input file and write result
     * note: this function has the identital structure with the 'run_grjson' func
@@ -185,7 +185,7 @@ def get_database(
             if key not in ["__path__","__all__"]:
                 key = tuple(key.split("&"))
             
-            return SurfaceConstruction.get_DB(key, as_dict=True)
+            return SurfaceConstruction.get_DB(key, as_dict=as_dict)
         
         case "fenestration_construction":
             
@@ -193,7 +193,7 @@ def get_database(
             if key not in ["__path__","__all__"]:
                 key = tuple(key.split("&"))
                 
-            return FenestrationConstruction.get_DB(key, as_dict=True)
+            return FenestrationConstruction.get_DB(key, as_dict=as_dict)
         
         case _:
             raise KeyError(
