@@ -655,7 +655,16 @@ def _convert_construction_surface(
         const_dict = row.to_dict()
         
         # Get ID of the reference properties (material)
-        const_dict = {k:(_name_to_id(df_material, v) if k.endswith("material") else v) for k,v in const_dict.items()}
+        const_dict = {
+            k: (
+                None
+                if k.endswith("material") and str(v).strip() == "공기층"
+                else _name_to_id(df_material, v)
+                if k.endswith("material")
+                else v
+            )
+            for k, v in const_dict.items()
+        }
         
         # Construct layer info.:
         # After first two values (id, name), the remaining values come in material_id & thickness pairs
