@@ -19,11 +19,11 @@ from reb.report import build_report, MetaData, escape_str
 #                                   SETTINGS                                   #
 # ---------------------------------------------------------------------------- #
 
-rebexcel_dir  = r"B:\공유 드라이브\01 진행과제\(안전원) 시뮬레이터\12 개발\scripts\run_REB_excel\input_excel"
-grr_dir       = r"B:\공유 드라이브\01 진행과제\(안전원) 시뮬레이터\12 개발\scripts\run_REB_excel\result_grr"
-report_dir    = r"B:\공유 드라이브\01 진행과제\(안전원) 시뮬레이터\12 개발\scripts\run_REB_excel\report"
-comment_path  = r"B:\공유 드라이브\01 진행과제\(안전원) 시뮬레이터\12 개발\scripts\run_REB_excel\comment.csv"
-masterdb_path = r"B:\공유 드라이브\01 진행과제\(안전원) 시뮬레이터\12 개발\scripts\run_REB_excel\masterdb.xlsx"
+rebexcel_dir  = r"Z:\01 진행과제\(부동산원) GR정성평가\31 코드\run_REB_excel\input_excel"
+grr_dir       = r"Z:\01 진행과제\(부동산원) GR정성평가\31 코드\run_REB_excel\result_grr"
+report_dir    = r"Z:\01 진행과제\(부동산원) GR정성평가\31 코드\run_REB_excel\report"
+comment_path  = r"Z:\01 진행과제\(부동산원) GR정성평가\31 코드\run_REB_excel\comment.csv"
+masterdb_path = r"Z:\01 진행과제\(부동산원) GR정성평가\31 코드\run_REB_excel\masterdb.xlsx"
 
 # ---------------------------------------------------------------------------- #
 #                                   MAIN FUNC                                  #
@@ -51,7 +51,7 @@ def find_building_sets(
         }
         
     
-    rebexcel_filelist = [file for file in os.listdir(rebexcel_dir) if file.endswith(".xlsx")]
+    rebexcel_filelist = [file for file in os.listdir(rebexcel_dir) if file.endswith(".xlsx") and not file.startswith("~$")]
     grr_filelist      = [file for file in os.listdir(grr_dir) if file.endswith(".grr")]
     
     buildingdict = dict()
@@ -103,7 +103,10 @@ def find_comment(
     buildingid = int(buildingfilename[:3])
     buildingname = buildingfilename[4:]
     
-    commentdict = commentdf[(commentdf["고유번호"] == buildingid) & (commentdf["건축물명"].map(lambda s: s.replace(" ","")) == buildingname.replace(" ",""))].iloc[0,2:].to_dict()
+    matched = commentdf[(commentdf["고유번호"] == buildingid) & (commentdf["건축물명"].map(lambda s: s.replace(" ","")) == buildingname.replace(" ",""))]
+    if matched.empty:
+        raise KeyError(f"comment.csv에 '{buildingid}_{buildingname}' 항목이 없습니다.")
+    commentdict = matched.iloc[0,2:].to_dict()
     
     pointkeys = ["동절기 실내 온도", "동절기 실내 습도", "하절기 실내 온도", "하절기 실내 습도", "공기질", "음환경", "빛환경"]
     commentdict["point"] = sum(int(commentdict[key]) for key in pointkeys) / len(pointkeys)
@@ -123,7 +126,7 @@ def get_master_df() -> pd.DataFrame:
     
     # multicolumn 정리
     df.columns = [
-        "_".join([str(x).strip().replace("\n"," ") for x in col if "Unnamed" not in str(x)])
+        "_".join([str(x).strip().replace("\n"," ") for x in col if "Unnamed" not in str(x) and str(x).strip() != "-"])
         for col in df.columns
     ]
     
@@ -141,7 +144,7 @@ def get_master_df() -> pd.DataFrame:
     ]
     
     # 인덱스 정리
-    df.index = df.loc[:,["임시 고유번호","건축물명"]].apply(lambda x: f"{int(x[0]):03d}_{x[1].strip()}".replace(" ", ""), axis=1)
+    df.index = df.loc[:,["임시 고유번호","건축물명"]].apply(lambda x: f"{int(x.iloc[0]):03d}_{x.iloc[1].strip()}".replace(" ", ""), axis=1)
     
     return df
     
@@ -154,25 +157,41 @@ def main(
     
     commentdf = pd.read_csv(comment_path, encoding="cp949")
     masterdf  = get_master_df()
+
+    
+            # pk번호 이야기
+    pk_column = "관리건축물대장PK"
+
+    if pk_column not in masterdf.columns:
+        raise KeyError(
+            f"masterdb 총괄리스트에 '{pk_column}' 열이 없습니다. "
+            f"PK 관련 열: {[col for col in masterdf.columns if 'PK' in col]}"
+        )
+
+    
     commentdf["건축물명"] = commentdf["건축물명"].map(lambda x: x.strip())
     validlist, invalidlist = find_building_sets(
         rebexcel_dir,
         grr_dir     ,
     )
     
-    for d in validlist:
-        
+    for idx, d in enumerate(validlist, start=1):
+
         pdfpath     = os.path.join(report_dir, f"{d["name"]}.pdf")
         workingpath = os.path.join(report_dir, f"{d["name"]}.working")
         if os.path.exists(pdfpath) or os.path.exists(workingpath):
+            print(f"[{idx}/{len(validlist)}] {d['name']} : 이미 존재함, 건너뜀")
             continue
         else:
             with open(workingpath, "w") as f:
                 f.write("")
-        
+
+        print(f"[{idx}/{len(validlist)}] {d['name']} : 리포트 생성 시작")
+
         try:
             commentdict = find_comment(commentdf, d["name"])
             masterdict  = masterdf.loc[d["name"].replace(" ", "")].to_dict()
+
             
             build_report(
                 *d["excel"].values(),
@@ -180,8 +199,11 @@ def main(
                 commentdict,
                 masterdict ,
                 pdfpath    ,
-            )        
-        
+            )
+
+        except Exception as error:
+            print(f"[{idx}/{len(validlist)}] {d['name']} : 실패 - {type(error).__name__}: {error}")
+
         finally:
             if os.path.exists(workingpath):
                 os.remove(workingpath)
