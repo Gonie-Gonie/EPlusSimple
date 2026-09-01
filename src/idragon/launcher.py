@@ -37,7 +37,7 @@ class ExecutableEnergyPlusNotFoundError(Exception):
     pass
 
 # ---------------------------------------------------------------------------- #
-#                           MANAGE ENERGYPLUS RESULT                           #
+#                          MANAGE ENERGYPLUS RESULTS                           #
 # ---------------------------------------------------------------------------- #
 
 class EnergyPlusResult:
@@ -60,7 +60,7 @@ class EnergyPlusResult:
         for file in args:
             if not os.path.exists(file):
                 raise FileNotFoundError(
-                    f"'{file}' is not existing energyplus output file."
+                    f"'{file}' is not an existing EnergyPlus output file."
                 )
             
             with open(file, encoding="UTF-8", errors="ignore") as f:
@@ -158,7 +158,7 @@ def find_executable_dir(version:Version|str):
     if ep_dirname in os.listdir(Directory.ENERGYPLUS_DIR):
         return os.path.join(Directory.ENERGYPLUS_DIR, ep_dirname)
     
-    # local PC (EnergyPlus defatult installation directory)
+    # local PC (EnergyPlus default installation directory)
     elif ep_dirname in os.listdir("C:\\"):
         return os.path.join("C:\\", ep_dirname)
     
@@ -196,7 +196,7 @@ def run(
         return run_single(idfpath[0], weather[0], verbose=verbose, ep_dir=ep_dir, output_dir=output_dir, delete=delete)
     
     else:
-        multirun_iterator = tqdm(zip(idfpath, weather), ncols=100, desc="Running idfs")
+        multirun_iterator = tqdm(zip(idfpath, weather), ncols=100, desc="Running IDF files")
         return [
             run_single(idfpath_single, weather_single, verbose=False, ep_dir=ep_dir, delete=delete)
             for idfpath_single, weather_single in multirun_iterator
@@ -223,10 +223,10 @@ def run_single(
         # If there is no such a text,
         if not ep_version_match:
             raise RuntimeError(
-                f"Cannot find EnergyPlus version as the format in the idf text"
+                f"Cannot determine the EnergyPlus version from the IDF text"
             )
         
-        # find executable energyplus       
+        # find the EnergyPlus executable
         ep_dir = find_executable_dir(ep_version_match.group("version"))
     
     # launch

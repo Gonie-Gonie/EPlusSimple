@@ -7,7 +7,7 @@
 % ---------------------------------------------------------------------------- %
 
 \chapter{디렉토리 구조}
-\simulator 는 핵심 알고리즘을 포함하는 python 모듈(\pymodule)과 함께, 독립 실행형 Python 런타임, 실행 스크립트, 기술문서, 및 예시파일을 포함한다.
+\simulator 는 핵심 알고리즘을 포함하는 Python 모듈(\pymodule)과 함께, 독립 실행형 Python 런타임, 실행 스크립트, 기술문서, 및 예시파일을 포함한다.
 디렉토리의 각 구성 요소별 내용은 \textcref{table:release-dirstructure}\과 같다.
 
 \begin{defaulttable}
@@ -20,7 +20,7 @@
     
     \textbf{src/} & 엔진의 핵심 알고리즘이 포함된 소스 코드 & - \\
     \hspace{0.5em} $\llcorner$ \pymodule/ & \simulator 친화적 구조 및 중간 변환 & \ref{section:howtorun-pythonmodule} \\
-    \hspace{0.5em} $\llcorner$ idragon/ & EnergyPlus 친화적 구조 및 idf 변환 & - \\
+    \hspace{0.5em} $\llcorner$ idragon/ & EnergyPlus 친화적 구조 및 IDF 변환 & - \\
     \hspace{0.5em} $\llcorner$ launcher/ & Excel 기반 입력파일 실행을 위한 GUI 서버 및 클라이언트 & \ref{section:howtorun-excellauncher} \\
     \addlinespace 
     
@@ -71,7 +71,7 @@
 
 \simulator\은 아래 세 가지 방법으로 실행할 수 있다.
 \begin{itemize}
-  \item \textbf{명령줄 인터페이스 (Command Line Interface; CLI)}: EPluSimpleCLI 실행파일을 이용, cmd 콘솔 명령어로 \simulator 의 주요 기능을 실행한다. GUI 프로그램 등, 본 엔진과 연동되는 외부 프로그램에 권장되는 방법이다. 포맷 변환, DB 조회 등 외부 프로그램과의 연동이 필요한 기능들이 지원된다.
+  \item \textbf{명령줄 인터페이스 (Command Line Interface; CLI)}: EPlusSimpleCLI 실행파일을 이용, cmd 콘솔 명령어로 \simulator 의 주요 기능을 실행한다. GUI 프로그램 등, 본 엔진과 연동되는 외부 프로그램에 권장되는 방법이다. 포맷 변환, DB 조회 등 외부 프로그램과의 연동이 필요한 기능들이 지원된다.
   \item \textbf{Excel 기반 입력파일 실행}: Excel 기반 입력파일(\texttt{.xlsx} 확장자)을 작성하여, 내장 GUI (EPlusSimpleLauncher.exe)를 통해 \simulator \를 실행한다. 본 엔진을 독립적으로 사용하는 사용자에게 권장되는 방법이며, 시뮬레이션의 실행만 가능하다.
   \item \textbf{Python 모듈 직접 사용}: 엔진에 포함된 portable Python, 또는 별도의 환경에서 \pymodule\을 직접 import하여 \simulator 의 모든 함수를 활용할 수 있다. 본 엔진을 parametric 시뮬레이션 등 변칙적으로 활용하려는 연구자 및 개발자에게 권장되는 방법이다. 단, EnergyPlus 엔진, 기상데이터와의 상대경로가 유지되거나, 별도로 처리해주어야 한다.
 \end{itemize}
@@ -91,7 +91,7 @@ EPlusSimpleCLI <command> [args]
 \subsection{시뮬레이션 실행}
 \label{subsection:clisubcommands-run}
 
-\simulator 의 핵심 기능으로, 입력파일을 받아 시뮬레이션을 실행하고, 결과를 출력파일로 저장하는 기능이다. 입력파일은 \texttt{grm}(json 형식, \ref{section:format-explanation-grm}) 또는 \texttt{xlsx} (\simulator\ 전용 엑셀 입력 형식, \ref{section:format-explanation-xlsx}) 모두 가능하며, 출력파일은 \texttt{grr}(json 형식, \ref{section:format-explanation-grr})이다.
+\simulator 의 핵심 기능으로, 입력파일을 받아 시뮬레이션을 실행하고, 결과를 출력파일로 저장하는 기능이다. 입력파일은 \texttt{grm}(JSON 형식, \ref{section:format-explanation-grm}) 또는 \texttt{xlsx} (\simulator\ 전용 엑셀 입력 형식, \ref{section:format-explanation-xlsx}) 모두 가능하며, 출력파일은 \texttt{grr}(JSON 형식, \ref{section:format-explanation-grr})이다.
 
 \begin{codeblock}{CLI subcommand signature: `run'}
 EPlusSimpleCLI run --input <input_filepath> [--output <output_filepath>]
@@ -99,7 +99,7 @@ EPlusSimpleCLI run --input <input_filepath> [--output <output_filepath>]
 
 \paragraph{입력 인자}
 \begin{description}
-  \item[\texttt{-i}, \texttt{--input}] 입력파일의 경로. \texttt{grm} 또는 \texttt{xlsx} 형식의 파일이 가능하다. 입력파일의 형식은 확장자에 따라 \texttt{xlsx} 확장자는 Excel 기반 입력파일로, 그 외는 json 형식의 입력파일로 인식된다.
+  \item[\texttt{-i}, \texttt{--input}] 입력파일의 경로. \texttt{grm} 또는 \texttt{xlsx} 형식의 파일이 가능하다. 입력파일의 형식은 확장자에 따라 \texttt{xlsx} 확장자는 Excel 기반 입력파일로, 그 외는 JSON 형식의 입력파일로 인식된다.
   \item[\texttt{-o}, \texttt{--output}] 출력파일의 경로. 지정하지 않으면 입력파일의 경로에서 확장자만 \texttt{grr}로 바꾼 경로에 저장된다.
 \end{description}
 

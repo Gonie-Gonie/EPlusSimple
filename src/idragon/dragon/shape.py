@@ -39,7 +39,7 @@ from ..constants import Unit
 # ---------------------------------------------------------------------------- #
 
 class Vertex:
-    """ 3-dimensional vertex / vector
+    """ Three-dimensional vertex/vector
     """
     
     def __init__(self,
@@ -167,7 +167,7 @@ class Vertex:
     
     @classmethod
     def are_coplanar(cls, *args:Vertex) -> bool:
-        """ check if all the vertex arguments are in one plane
+        """ Check whether all vertex arguments are coplanar
         """
         
         # type check
@@ -176,7 +176,7 @@ class Vertex:
                 f"All arguments should be vertex instances"
             )
         
-        # if less than 4 vertices are given,
+        # If fewer than four vertices are given,
         # they are always in a plane
         if len(args) <= 3:
             return True
@@ -186,7 +186,7 @@ class Vertex:
         normal = (args[1] - args[0]).cross(args[2]-args[0]).unit
         
         # if any of the other vertices are out of the plane,
-        # the vertices are not in the one plane
+        # the vertices are not coplanar
         for point in args[3:]:
             if abs(normal.dot((point - args[0]).unit)) > 1E-15:
                 return False
@@ -241,7 +241,7 @@ class SurfaceType(str, Enum):
     
     
 class Surface:
-    """ 2D-surface for zone
+    """ Two-dimensional surface for a zone
     """
     
     def __init__(self,
@@ -305,18 +305,18 @@ class Surface:
         
         if not isinstance(value, list|tuple) or not all(isinstance(item, Vertex) for item in value):
             raise TypeError(
-                f"All vertices should be Vertex instances"
+                f"All vertices must be Vertex instances"
             )
             
         if len(value) < 3:
             raise ValueError(
-                f"3 or more vertices are requried to construct a surface. (currently {len(value)})"
+                f"3 or more vertices are required to construct a surface. (currently {len(value)})"
             )
         
         if not Vertex.are_coplanar(*value):
             Vertex.are_coplanar(*value)
             raise ValueError(
-                f"Vertices constructing a surface should be in a plane"
+                f"Vertices constructing a surface must be coplanar"
             )
         
         self.__vertex = tuple(value)
@@ -359,7 +359,7 @@ class Surface:
         
         if area > self.area:
             raise ValueError(
-                f"Tried to create subsurface whose area ({area:.3f}m2) is larger than that of the mother surface ({self.area:.3f}m2)"
+                f"Tried to create subsurface whose area ({area:.3f}m2) is larger than that of the parent surface ({self.area:.3f}m2)"
             )
             
         scale_factor = math.sqrt(area/self.area)
@@ -373,7 +373,7 @@ class Surface:
     
     def _get_fenestration_width_and_height(self, opening_area:int|float) -> tuple[float, float]:
         
-        # for stable calculation, opening sizes are reduced
+        # for numerical stability, opening sizes are reduced
         SAFETY_FACTOR_FOR_OPENING_SIZE = 0.999
         SAFETY_MARGIN_FOR_OPENING_SIZE = 0.001
         
@@ -438,7 +438,7 @@ class Surface:
                 for door in self.door
             ]       
         
-        # shadings
+        # shading objects
         shade_objs = []
         for win in self.blinded_window:
             shade_objs += win.blind.to_idf_object()
@@ -502,7 +502,7 @@ class Surface:
     
     def __str__(self) -> str:
         return f"{len(self.vertex)}-points polygon (area: {self.area}, normal: {self.normal})\n\t" +\
-            "\n\t".join([f"{idx}th vertex {vertex}" for idx, vertex in enumerate(self.vertex)])
+            "\n\t".join([f"vertex {idx + 1} {vertex}" for idx, vertex in enumerate(self.vertex)])
 
     def __repr__(self) -> str:
         return f"<{len(self.vertex)}-points polygon at {hex(id(self))}>"
@@ -873,4 +873,3 @@ class Zone:
         
         
         
-      

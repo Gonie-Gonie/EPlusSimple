@@ -82,7 +82,7 @@ class Surface:
         
         if self.boundary in ["ground", "adiabatic"] and len(fenestrations) > 0:
             raise ValueError(
-                "Cannot assign windows or doors to a surface with bounary condition == ground or adiabatic."
+                "Cannot assign windows or doors to a surface with a boundary condition of 'ground' or 'adiabatic'."
             )
         self.fenestrations = fenestrations
         
@@ -117,12 +117,12 @@ class Surface:
         
         if not is_required and (value is not None):
             raise ValueError(
-                f"Azimuth property is not required for {self.type} with {self.boundary} condition"
+                f"The azimuth property is not required for {self.type} with {self.boundary} condition"
             )
         
         if is_required and not isinstance(value, int|float):
             raise ValueError(
-                f"Azimuth property is required for outdoor wall"
+                f"The azimuth property is required for outdoor wall"
             )
         
         self.__azimuth = value        
@@ -509,7 +509,7 @@ class Window(Fenestration):
         
         if not value.is_transparent:
             raise ValueError(
-                f"Construction for an {type(self)} should be transparent"
+                f"The construction for {type(self).__name__} must be transparent"
             )
         
         else:
@@ -561,7 +561,7 @@ class Door(Fenestration):
         
         if value.is_transparent:
             raise ValueError(
-                f"Construction for an {type(self)} should be not transparent"
+                f"Construction for an {type(self)} must be opaque"
             )
             
         else:
@@ -595,7 +595,7 @@ class Door(Fenestration):
 
 
 class GlassDoor(Window):
-    """ is identital to the Window class """
+    """ is identical to the Window class """
     pass
     
 # ---------------------------------------------------------------------------- #
@@ -687,7 +687,7 @@ class Zone:
 
         if len(ids) != len(set(ids)):
             raise ValueError(
-                "Duplicated supply-system ID in one zone."
+                "Duplicate supply-system ID in one zone."
             )
 
         self.__supply_systems = list(value)

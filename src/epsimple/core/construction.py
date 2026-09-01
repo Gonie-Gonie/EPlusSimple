@@ -180,7 +180,7 @@ class Material:
         if key == "__path__":
             return str(Material._DB_filepath)
         
-        # special key to get all item in the database
+        # special key to get all items in the database
         if key == "__all__":
             return [
                 Material.get_DB(_key, as_dict=as_dict)
@@ -197,7 +197,7 @@ class Material:
         else:
             material =  Material._DB[key]
         
-        # dictionarize the object if requried
+        # convert the object to a dictionary if required
         if not as_dict:
             return material
         else:
@@ -248,7 +248,7 @@ class SurfaceConstruction:
             ):
             
             raise ValueError(
-                f"Construction requires pairs of material-numeric."
+                f"Construction requires material-thickness pairs."
             )
         
         # set layer property
@@ -338,7 +338,7 @@ class SurfaceConstruction:
             * name of the created construction
         U (int|float)
             * U-value [W/m2K]
-            * should be smaller than zero-thickness wall (with default h_in & h_out: 0.031W/m2K)
+            * should be smaller than zero-thickness wall (with default h_in & h_out: 6.54 W/m2K)
         h_in  (int|float, default=1/0.11 = 9.09)
             * interior surface heat transfer coefficient [W/m2K]
             * default: 거실의 실내표면열전달저항 (건축물의 에너지절약설계기준 [별표 5])
@@ -351,7 +351,7 @@ class SurfaceConstruction:
             * default: 내력벽의 두께 (2층이상, 건축물의 구조기준 등에 관한 규칙 제32조 제2항)
         """
         
-        # calculate minimum U-value given h_in & h_out
+        # calculate maximum U-value given h_in & h_out
         U_maximum = 1/(1/h_in + 1/h_out)
         
         # raise an exception if the given U-value is too large
@@ -374,7 +374,7 @@ class SurfaceConstruction:
             insulation_thickness = 0
             concrete_thickness   = concrete.conductivity * (1/U - 1/h_in - 1/h_out)
         
-        # create an construction
+        # create a construction
         return SurfaceConstruction(
             name,
             insulation, insulation_thickness,
@@ -438,14 +438,14 @@ class SurfaceConstruction:
         material_dict:dict[str, dragon.Material]=dict()
         ) -> dragon.Construction:
         
-        # create undictionarized materials
+        # create dradon material object
         # note that given material dict is not changed
         material_dict = deepcopy(material_dict)
         for ID, material in self.get_unique_materials().items():
             if ID not in material_dict.keys():
                 material_dict[ID] = material.to_dragon()
         
-        # create an dragon-construction 
+        # create a dragon-construction 
         return dragon.Construction(
             self.ID,
             *[
@@ -508,7 +508,7 @@ class SurfaceConstruction:
         else:
             construction =  SurfaceConstruction._DB[key]
         
-        # dictionarize the object if requried
+        # convert the object to a dictionary if required
         if not as_dict:
             return construction
         else:
@@ -595,14 +595,14 @@ class SurfaceConstruction:
 
 class SpecialConstruction:
 
-    # special constructions are singleton class
+    # special constructions are singleton classes
     _instance = None    
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
     
-    # special constructions don't have any material
+    # special constructions do not contain any materials
     def get_unique_materials(self) -> dict[str, Material]:
         return {}
     
@@ -625,7 +625,7 @@ class UnknownConstruction(SpecialConstruction):
     # ID for singleton instance
     ID = f"{SpecialTag.SPECIAL}{AUTOID_PREFIX.SURFACE_CONSTRUCTION}UNKNOWN"
     
-    # unknown constructions cannot be a dragon
+    # unknown constructions cannot be converted to a dragon object
     # they must be resolved into a specific construction using regulation DB
     def to_dragon(self, *, material_dict:dict[str, dragon.Material]=dict()) -> None:
         return None
@@ -791,7 +791,7 @@ class FenestrationConstruction:
         else:
             construction =  FenestrationConstruction._DB[key]
         
-        # dictionarize the object if requried
+        # convert the object to a dictionary if required
         if not as_dict:
             return construction
         else:
@@ -816,7 +816,7 @@ class FenestrationConstruction:
         
         
 # ---------------------------------------------------------------------------- #
-#                        INITIATION: LOAD CONSTRUCTIONS                        #
+#                      INITIALIZATION: LOAD CONSTRUCTIONS                      #
 # ---------------------------------------------------------------------------- #
 
 Material.load_DB()

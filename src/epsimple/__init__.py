@@ -6,10 +6,10 @@
 import sys
 from .constants import PackageInfo
 
-# check python version
+# check Python version
 if sys.version_info < PackageInfo.REQUIRED_PYTHON:
     raise ImportError(
-        f"{PackageInfo.NAME} requires python version {','.join(map(str,PackageInfo.REQUIRED_PYTHON))} or higher\n",
+        f"{PackageInfo.NAME} requires Python version {','.join(map(str,PackageInfo.REQUIRED_PYTHON))} or higher\n",
         f"You are using Python {sys.version} at {sys.executable}"
     )
 
@@ -23,11 +23,11 @@ module_validity, missing_module = check_modules([
     "tqdm"  ,
 ])
 
-# if any requried module is not installed,
-# fail to import the pyGRsim module
+# if any required module is not installed,
+# fail to import the epsimple module
 if module_validity != 0:
     raise ImportError(
-        f"Failed to import {PackageInfo.NAME} due to required python modules are not installed: "
+        f"Failed to import {PackageInfo.NAME} because required Python modules are not installed: "
         f"{', '.join(missing_module)}"
     )
 

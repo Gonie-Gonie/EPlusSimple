@@ -37,12 +37,12 @@ def check_modules(modules:list[str]):
         except ImportError:
                 missing_module.append(mod)
     
-    # if missing module exists,
+    # If any modules are missing,
     if missing_module:
         
-        # check if the user want to install the modules
+        # check whether the user wants to install the modules
         print(
-            f"Required but uninstalled modules: {', '.join(missing_module)}"
+            f"Required modules that are not installed: {', '.join(missing_module)}"
         )
         want_import = input("Do you want to install the modules? [Y/N]")
         
@@ -61,12 +61,12 @@ def check_modules(modules:list[str]):
                 print(f"Failed to install: {', '.join(failed_module)}")
                 return 1, failed_module
             
-            # else (successed insalling all required moduels),
+            # else (successfully installed all required modules),
             # return normal code (0)
             else:
                 return 0, []
         
-        # if user do not want to install module automatically,
+        # if the user does not want to install modules automatically,
         # return error code (1)
         else:
             return 1, missing_module
@@ -286,7 +286,7 @@ def _assign_id(
         )
     
     # Assign id using the index
-    # For the safety, reset the index before the assigning
+    # For safety, reset the index before the assigning
     df_assigned.reset_index(inplace=True, drop=True)
     df_assigned.insert(0, "id", df_assigned.index.map(lambda v: f"{prefix}-0x{v:06X}"))
     
@@ -306,7 +306,7 @@ def _replace_nan_to_none(
         return [_replace_nan_to_none(v) for v in obj]
     
     # Convert the nan instance to the None
-    # to export 'null' into the result json
+    # to export 'null' into the result JSON
     if pd.isna(obj):
         obj =  None
     
@@ -318,8 +318,8 @@ def _name_to_id(
     name:str         ,
     ) -> str:
     
-    # If name is not given, return None (for json: null)
-    # This is desinged for empty use of the reference inputs (e.g. zone:supply_system_heating_id)
+    # If no name is provided, return None (for json: null)
+    # This is designed for empty use of the reference inputs (e.g. zone:supply_system_heating_id)
     if pd.isna(name):
         return None    
 
@@ -334,7 +334,7 @@ def _name_to_id(
     if len(target_row) > 1:
         raise KeyError(f"Multiple ({len(target_row)}) IDs found for name '{name}'. Please check for duplicate entries.")
     
-    # Return ID matched with the 'name'
+    # Return the ID matching the 'name'
     target_id = target_row.iloc[0]
     return target_id
     
@@ -396,7 +396,7 @@ def _convert_source_systems(
     source_list = []
     for _, row in df_source.iterrows():
         
-        # Convert form
+        # Convert the row to a dictionary
         source_dict = row.to_dict()
         
         # Rename values
@@ -407,11 +407,11 @@ def _convert_source_systems(
             ("coolingtower_type","coolingtower_type"),
         )
                 
-        # convert value type
+        # convert the value type
         if "hotwater_supply" in source_dict.keys():
             source_dict["hotwater_supply"] = bool(source_dict["hotwater_supply"]) if not pd.isna(source_dict["hotwater_supply"]) else False
  
-        # convert unit
+        # convert units
         source_dict["efficiency"]        *= Unit.PERCENT_TO_FRACTION
         source_dict["boiler_efficiency"] *= Unit.PERCENT_TO_FRACTION
          
@@ -443,7 +443,7 @@ def _convert_supply_systems(
     supply_list = []
     for _, row in df_supply.iterrows():
         
-        # Convert form
+        # Convert the row to a dictionary
         supply_dict = row.to_dict()
         
         # Rename values
@@ -470,10 +470,10 @@ def _convert_ventilation_systems(
     ventilation_list = []
     for _, row in df_ventilation.iterrows():
         
-        # Convert form
+        # Convert the row to a dictionary
         ventilation_dict = row.to_dict()
         
-        # convert unit
+        # convert units
         ventilation_dict["efficiency_heating"] *= Unit.PERCENT_TO_FRACTION
         ventilation_dict["efficiency_cooling"] *= Unit.PERCENT_TO_FRACTION
         
@@ -490,10 +490,10 @@ def _convert_photovoltaic_systems(
     photovoltaic_list = []
     for _, row in df_photovoltaic.iterrows():
         
-        # Convert form
+        # Convert the row to a dictionary
         photovoltaic_dict = row.to_dict()
         
-        # convert unit
+        # convert units
         photovoltaic_dict["efficiency"] *= Unit.PERCENT_TO_FRACTION
         
         # Append to the list
@@ -510,7 +510,7 @@ def _convert_fenestrations(
     fenestration_list = []
     for _, row in df_fenestration.iterrows():
 
-        # Convert form
+        # Convert the row to a dictionary
         fenestration_dict = row.to_dict()
         
         # Get ID of the reference properties (construction)
@@ -520,7 +520,7 @@ def _convert_fenestrations(
         fenestration_dict.pop("parent_surface_name")
         fenestration_dict.pop("construction_name")
         
-        # allocate default blind
+        # assign the default shade
         if fenestration_dict["blind"] == 1.0:
             fenestration_dict["blind"] = "shade"
         else:
@@ -543,7 +543,7 @@ def _convert_surfaces(
     surf_list = []
     for _, row in df_surface.iterrows():
         
-        # Convert form
+        # Convert the row to a dictionary
         surf_dict = row.to_dict()
             
         # Get ID of the reference properties (adjacent zone),
@@ -564,7 +564,7 @@ def _convert_surfaces(
         surf_dict.pop("adj_zone_name")
         surf_dict.pop("construction_name")
         
-        # convert unit
+        # convert units
         if surf_dict["coolroof_reflectance"] is not None:
             surf_dict["coolroof_reflectance"] *= Unit.PERCENT_TO_FRACTION
         
@@ -576,9 +576,9 @@ def _convert_surfaces(
         if (surf_dict["type"] != "ceiling") or (surf_dict["boundary_condition"] != "outdoors"):
             surf_dict.pop("coolroof_reflectance")
         
-        # Find children fenestration objects,
+        # Find child fenestration objects,
         child_fenestrations = df_fenestration.query("parent_surface_name == @row['name']")
-        # and convert the children fenestrations to dicts
+        # and convert the child fenestrations to dicts
         fen_list = _convert_fenestrations(child_fenestrations, df_construction_fenestration)
         surf_dict["fenestrations"] = fen_list
         
@@ -601,7 +601,7 @@ def _convert_zones(
     zone_list = []
     for _, row in df_zone.iterrows():
         
-        # Convert form
+        # Convert the row to a dictionary
         zone_dict = row.to_dict()
 
         # Get ID of the reference properties (heating supply system, cooling supply system)
@@ -615,9 +615,9 @@ def _convert_zones(
         zone_dict.pop("supply_system_cooling_name")
         zone_dict.pop("ventilation_system_name")
         
-        # Find children surface objects,
+        # Find child surface objects,
         child_surfaces = df_surface.query("parent_zone_name == @row['name']")
-        # and convert the children surfaces to dicts
+        # and convert the child surfaces to dicts
         surf_list = _convert_surfaces(child_surfaces, df_zone, df_fenestration, df_construction_surface, df_construction_fenestration) 
         zone_dict["surfaces"] = surf_list
 
@@ -634,7 +634,7 @@ def _convert_material(
     material_list = []
     for _, row in df_material.iterrows():
         
-        # Convert form
+        # Convert the row to a dictionary
         material_dict = row.to_dict()
         
         # Append to the list
@@ -651,7 +651,7 @@ def _convert_construction_surface(
     const_list = []
     for _, row in df_construction_surface.iterrows():
         
-        # Convert form
+        # Convert the row to a dictionary
         const_dict = row.to_dict()
         
         # Get ID of the reference properties (material)
@@ -687,7 +687,7 @@ def _convert_construction_fenestration(
     const_list = []
     for _, row in df_construction_fenestration.iterrows():
         
-        # Convert form
+        # Convert the row to a dictionary
         const_dict = row.to_dict()
         
         # Rename values
@@ -707,26 +707,26 @@ def excel2grjson(
     save           :bool    =True,
     ) -> tuple[dict, str]:
     
-    """ Convert an excel input file to a grjson formatted file
+    """ Convert an Excel input file to GRM-formatted JSON
 
     Args
     ----
     input_filepath (str)
-        * filepath of an input excel file 
+        * path to an input Excel file
     output_filepath (str, default=None)
-        * filepath of the output grjson file (grm extension recommanded). 
-        * default to uuid-based temporal filename in the current directory
+        * filepath of the output grjson file (grm extension recommended).
+        * default to uuid-based temporary filename in the current directory
     save (bool, default=True)
         * if True, save the result grjson to the output_filepath
     
     Returns
     -------
     grjson (dict)
-        * json structured converted dict
+        * converted dictionary in the GRM JSON structure
     output_filepath (str)
         * output_filepath
         * if save==False, returns None
-        * if given as parameter and save==True, returned value is same as the given
+        * if explicitly provided and save==True, the same path is returned
     """
     
     # filter warnings
@@ -786,7 +786,7 @@ def excel2grjson(
         if output_filepath is None:
             output_filepath = os.path.join(os.path.dirname(input_filepath), f"{uuid4()}.grm")
             
-        # Write json
+        # Write JSON
         with open(output_filepath, "w", encoding="utf-8") as f:
             json.dump(grjson, f, ensure_ascii=False, indent=4)
             

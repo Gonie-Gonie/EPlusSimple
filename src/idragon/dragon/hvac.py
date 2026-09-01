@@ -256,7 +256,7 @@ class HeatPump(SourceSystem):
         
         outdoor_obj = [
             IdfObject("AirConditioner:VariableRefrigerantFlow",{
-                # specfications
+                # specifications
                 "Heat Pump Name": self.idf_objname,
                 "Availability Schedule Name": "ALLON",
                 "Gross Rated Total Cooling Capacity": self.cooling_capacity if self.cooling_capacity is not None else "autosize",
@@ -1622,7 +1622,7 @@ class DemandBranchAppender(SupplySystemToIdfPostProcessor):
     @staticmethod
     def count_current_branches_connector(splitter_or_mixer:IdfObject) -> int:
         
-        # calculate all items inlcuded
+        # count all populated fields
         not_none_items = len({k:v for k,v in splitter_or_mixer.items() if v is not None})
         
         # exclude its name and inlet(splitter)/outlet(mixer) name
@@ -1633,7 +1633,7 @@ class DemandBranchAppender(SupplySystemToIdfPostProcessor):
     @staticmethod
     def count_current_branches_branchlist(branchlist:IdfObject) -> int:
         
-        # calculate all items inlcuded
+        # count all populated fields
         not_none_items = len({k:v for k,v in branchlist.items() if v is not None})
         
         # exclude its name 
@@ -1720,7 +1720,7 @@ class ZoneAirNodeAppender(SupplySystemToIdfPostProcessor):
     @staticmethod
     def ensure_nodelist_existence(idf:IDF, zone:Zone) -> None:
         
-        # ensure existence of the inlet nodelist
+        # ensure that the inlet node list exists
         if zone.idf_airinletnodelistname not in idf["NodeList"].names:
             # create nodelist
             idf["NodeList"].append([zone.idf_airinletnodelistname])
@@ -1728,7 +1728,7 @@ class ZoneAirNodeAppender(SupplySystemToIdfPostProcessor):
             target_connection = idf["ZoneHVAC:EquipmentConnections"][lambda obj: obj["Zone Name"] == zone.name][0]
             target_connection["Zone Air Inlet Node or NodeList Name"] = zone.idf_airinletnodelistname
             
-        # ensure existence of the exhaust nodelist
+        # ensure that the exhaust node list exists
         if zone.idf_airexhaustnodelistname not in idf["NodeList"].names:
             # create nodelist
             idf["NodeList"].append([zone.idf_airexhaustnodelistname])
@@ -1741,7 +1741,7 @@ class ZoneAirNodeAppender(SupplySystemToIdfPostProcessor):
     @staticmethod
     def count_current_nodes(nodelist:IdfObject) -> int:
         
-        # calculate all items inlcuded
+        # count all populated fields
         not_none_items = len({k:v for k,v in nodelist.items() if v is not None})
         
         # exclude its name 
@@ -1771,7 +1771,7 @@ class ZoneTerminalUnitAppender(SupplySystemToIdfPostProcessor):
     @staticmethod
     def count_current_units(nodelist:IdfObject) -> int:
         
-        # calculate all items inlcuded
+        # count all populated fields
         not_none_items = len({k:v for k,v in nodelist.items() if v is not None})
         
         # exclude its name 
@@ -2907,7 +2907,7 @@ class ElectricRadiantFloor(SupplySystem):
         return obj_internal_heatsources + obj_radiant_floor, postprocessors
 
 # ---------------------------------------------------------------------------- #
-#                                HOTWATER SYSTEM                               #
+#                               HOT-WATER SYSTEM                               #
 # ---------------------------------------------------------------------------- #
 
 class DomesticHotWater:

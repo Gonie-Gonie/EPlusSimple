@@ -420,7 +420,7 @@ class NoMassConstruction:
     """
     
     def __str__(self) -> str:
-        return f"No-mass-construction {self.name} (U={self.U:.2f}W/m2K)"
+        return f"No-mass construction {self.name} (U={self.U:.2f}W/m2K)"
     
     def __repr__(self) -> str:
         return f"<NoMassConstruction {self.name} at {hex(id(self))}>"

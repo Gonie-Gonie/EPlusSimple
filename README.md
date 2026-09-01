@@ -274,7 +274,7 @@ examples\
 docs\                         # unless documentation is skipped
 ```
 
-Regression-document updates use the repository runtime. The release Python runtime is created separately and installs only `scripts\release\requirements-release.txt`.
+Regression test report updates use the repository runtime. The release Python runtime is created separately and installs only `scripts\release\requirements-release.txt`.
 
 ## Typical workflow
 

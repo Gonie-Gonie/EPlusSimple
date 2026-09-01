@@ -108,7 +108,7 @@ class SpecialTag(str, Enum):
     
     """
     Special tags (to be precise, prefix) are used to indicate special instances,
-    by being attached as a prefix to the instance's ID
+    by being prepended to an instance ID
     """
     
     # general
@@ -131,7 +131,7 @@ class SpecialTag(str, Enum):
     >>> f"{SpecialTag.CLONE}"
     $CLONE_OF$:
     
-    >>> f"{SpecialTag.CLONE:SURFACE}
+    >>> f"{SpecialTag.CLONE:SURFACE}"
     $CLONE_OF:SURFACE$:
     
     >>> SpecialTag.CLONE

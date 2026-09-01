@@ -38,9 +38,9 @@ class Version:
 
     @overload
     def __init__(self, version_str:str) -> None:
-        """ Create Version instance with text
-        - The string must includes three integers and two delimeters
-        - Any non-numeric delimeter is allowed
+        """ Create a Version instance with text
+        - The string must include three integers and two delimiters
+        - Any non-numeric delimiter is allowed
         - Any non-numeric prefix or suffix is allowed 
 
         Examples
@@ -53,7 +53,7 @@ class Version:
 
     @overload
     def __init__(self, major:int, minor:int, patch:int=0, /) -> None:
-        """ Create Version instance with integers
+        """ Create a Version instance with integers
         - three integers: major, minor, patch
         - last integer (patch) is optional, the default value is 0
 
@@ -66,26 +66,26 @@ class Version:
     def __init__(self, *args) -> None:
 
         # Case 1: Create Version instance with text
-        #         if only one str typed argument is specified
+        #         if only one string argument is specified
         if (len(args) == 1) and isinstance(args[0], str):
 
-            # split the first (and unique) argument by any non-numerics
+            # split the first (and unique) argument on non-numeric characters
             version_str = args[0]
             version_str_splited = re.split(r"\D+", version_str)
 
-            # delete possible blanks and convert the splited 'possible' numerics into the numeric
+            # delete possible blanks and convert the split numeric components to integers
             numerics = [int(possible_numeric) for possible_numeric in version_str_splited if (possible_numeric != "")]
             if len(numerics) == 2:
                 numerics += [0]
 
             # EnergyPlus version format requires three integers
-            # thus the number of the numerics must be three
+            # thus there must be three version numbers
             if len(numerics) != 3:
                 raise ValueError(
                     f"Expected three integers, but got {len(numerics)} in {version_str}"
                 )
 
-            # allocate each numerics into version numbers
+            # assign each numeric component to a version number
             major, minor, patch = numerics
 
         # Case 2: Create Version instance with integers
@@ -116,7 +116,7 @@ class Version:
     @staticmethod
     def to_version_anyway(arg:Version|tuple|list|str):
         """ tries to return a version instance
-        * if an input is already a version instance, nothing changed
+        * if an input is already a version instance, it is returned unchanged
         * if not, an attempt is made to convert
         """
         # if a version instance is given, return itself
@@ -127,7 +127,7 @@ class Version:
         if isinstance(arg, tuple|list):
             return Version(*arg)
 
-        # if else, try to convert into a version instance
+        # Otherwise, try to convert into a version instance
         else:
             return Version(arg)
 
@@ -167,7 +167,7 @@ class Version:
         yield self.patch
 
     def __format__(self, format_spec:str="-") -> str:
-        """ Allows a Version instance to be represented as a string with any delimeter (default to '-')
+        """ Allows a Version instance to be represented as a string with any delimiter (default to '-')
 
         Examples
         --------
@@ -185,8 +185,7 @@ class Version:
     @property
     def iddname(self) -> str:
         """ Naming rule to load original idd files
-        * This is not a convention of the module,
-        * but a convention of DOE, EnergyPlus
+        * This follows the EnergyPlus naming convention, not an internal module convention
         """
         return f"V{self:-}-Energy+.idd"
 

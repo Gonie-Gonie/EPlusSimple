@@ -217,8 +217,8 @@ class KoreanUsageProfile(Profile):
         Create a daily lighting schedule.
 
         Lighting intervals are selected only within the occupied period.
-        Intervals farther from approximate solar noon are selected first.
-        Intervals between 00:00 and 06:00 are avoided at first, even if occupied.
+        Intervals farther from the approximate solar-noon time are selected first.
+        Intervals between 00:00 and 06:00 are initially excluded, even if occupied.
         If there are not enough selected intervals, 00:00-06:00 occupied intervals
         are filled from 00:00 toward 06:00.
 
@@ -238,7 +238,7 @@ class KoreanUsageProfile(Profile):
         avoid_end   = avoid_end_hour   * 60
 
         def in_time_window(t: int | float, start: int, end: int) -> bool:
-            """start inclusive, end exclusive. Supports overnight windows."""
+            """Start is inclusive; end is exclusive. Supports overnight windows."""
             if end > start:
                 return start <= t < end
             if end < start:
@@ -321,7 +321,7 @@ class KoreanUsageProfile(Profile):
         if remaining > 1e-9:
             raise ValueError(
                 f"KoreanUsageProfile {self.name!r} cannot allocate "
-                f"{self.lighting_hours} lighting hours within occupied time. "
+                f"{self.lighting_hours} lighting hours within the occupied period. "
                 f"Unallocated steps: {remaining:.3f}."
             )
 
@@ -381,11 +381,11 @@ class KoreanUsageProfile(Profile):
     
     def to_dragon(self) -> dragon.Profile:
         
-        # bsae
+        # base
         is_occupied       = self._get_occupied_mask()
         is_hvac_operating = self._get_hvac_mask()
         
-        # hvac related
+        # HVAC-related
         heating_setpoint_schedule = Schedule.from_constant(
             f"{self.ID}-HeatingSetpoint",
             self.heating_setpoint       ,
@@ -398,12 +398,12 @@ class KoreanUsageProfile(Profile):
         )
         hvac_availability_schedule = is_hvac_operating
         
-        # internal load related
+        # internal-load-related
         occupant_schedule = is_occupied * (self.occupancy / self.occupied_hours / KoreanUsageProfile.PEOPLE_ACTIVITY_LEVEL)
         equipment_schedule= is_occupied * (self.equipment / self.occupied_hours)
         lighting_schedule = self._get_lighting_mask().astype(ScheduleType.FRACTION)
         
-        # hotwater
+        # hot water
         hotwater_schedule = is_occupied * (self.domestic_hotwater / self.occupied_hours / KoreanUsageProfile.DHW_HEAT_PER_LITER)
         
         return dragon.Profile(
@@ -455,7 +455,7 @@ class KoreanUsageProfile(Profile):
             f"\t-hvac    : {self.hvac_start}h - {self.hvac_end}h",
             f"\t-lighting hours: {self.lighting_hours} h",  
             f"\t-ventilation      : {self.ventilation} m3/m2h",
-            f"\t-domestic hotwater: {self.domestic_hotwater} Wh/m2d",
+            f"\t-domestic hot water: {self.domestic_hotwater} Wh/m2d",
             f"\t-occupancy        : {self.occupancy} Wh/m2d",
             f"\t-equipment        : {self.equipment} Wh/m2d",
             f"\t-setpoints: [{self.heating_setpoint} °C, {self.cooling_setpoint} °C]",

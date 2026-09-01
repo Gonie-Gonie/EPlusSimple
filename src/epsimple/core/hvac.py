@@ -159,7 +159,7 @@ class HeatPump(SourceSystem):
                 f"Cannot compare {type(self)} instance with {type(other)} instance"
             )
             
-        # two packaged air conditioners are equal if fuel, cops, and capacities are equal
+        # two packaged air conditioners are equal if fuel, COPs, and capacities are equal
         return (self.fuel             == other.fuel            ) and\
                (self.heating_cop      == other.heating_cop     ) and\
                (self.cooling_cop      == other.cooling_cop     ) and\
@@ -317,7 +317,7 @@ class Chiller(SourceSystem):
         self.capacity        = None if capacity is None else capacity
         self.compressor_type = compressor_type
         
-        # secondary source system (cooing tower) properties
+        # secondary source system (cooling tower) properties
         self.coolingtower_type     = coolingtower_type
         self.coolingtower_control  = coolingtower_control
         self.coolingtower_capacity = None if coolingtower_capacity is None else coolingtower_capacity
@@ -405,7 +405,7 @@ class Chiller(SourceSystem):
                 f"Cannot compare {type(self)} instance with {type(other)} instance"
             )
             
-        # two chillers are equal if all fundamental properties are euqal
+        # two chillers are equal if all fundamental properties are equal
         return (self.cop             == other.cop            ) and\
                (self.capacity        == other.capacity       ) and\
                (self.compressor_type == other.compressor_type) and\
@@ -481,7 +481,7 @@ class Chiller(SourceSystem):
         return (
             f"Electric Chiller {self.name} (ID={self.ID})\n"
             f"\t- capacity={chiller_cap_str}, COP={self.cop:4.2f}\n"
-            f"\t- connected coolingtower ({coolingtower_cap_str}): {self.coolingtower_type} type, {self.coolingtower_control} controlled"
+            f"\t- connected cooling tower ({coolingtower_cap_str}): {self.coolingtower_type} type, {self.coolingtower_control} controlled"
         )
     
     def __repr__(self) -> str:
@@ -569,7 +569,7 @@ class AbsorptionChiller(SourceSystem):
                 f"Cannot compare {type(self)} instance with {type(other)} instance"
             )
             
-        # two chillers are equal if all fundamental properties are euqal
+        # two chillers are equal if all fundamental properties are equal
         return (self.cop               == other.cop              ) and\
                (self.capacity          == other.capacity         ) and\
                (self.boiler_efficiency == other.boiler_efficiency)
@@ -807,7 +807,7 @@ class Boiler(SourceSystem):
                 f"Cannot compare {type(self)} instance with {type(other)} instance"
             )
             
-        # two boilers are euqal if all fundamental properties are euqal
+        # two boilers are equal if all fundamental properties are equal
         return (self.fuel            == other.fuel           ) and\
                (self.efficiency      == other.efficiency     ) and\
                (self.capacity        == other.capacity       ) and\
@@ -864,7 +864,7 @@ class NoneSource(SourceSystem):
     # ID for singleton instance
     ID = f"{SpecialTag.SPECIAL}{AUTOID_PREFIX.SOURCE_SYSTEM}-NONE"
     
-    # none-source is singleton class
+    # NoneSource is a singleton class
     _instance = None    
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
@@ -883,11 +883,11 @@ class NoneSource(SourceSystem):
 
 class SupplySystem:
     
-    # map json input to a correspondingsubclasses 
+    # map json input to corresponding subclasses
     # type_mapper class-variable will be defined at the end of the document
     TYPE_MAPPER={}
 
-    # define heat/cool-ablity by subclass and the connected source system
+    # define heating/cooling capability by subclass and the connected source system
     _heatable_sources = []
     _coolable_sources = []
     
@@ -1021,7 +1021,7 @@ class PackagedAirConditioner(SupplySystem):
         
         return (
             f"PackagedAirConditioner {self.name} (ID={self.ID})"
-            f" with COP={self.cop:.2f}, Capa={cap_str}"
+            f" with COP={self.cop:.2f}, capacity={cap_str}"
         )
         
     def __repr__(self) -> str:
@@ -1081,7 +1081,7 @@ class AirHandlingUnit(SupplySystem):
                 f"Cannot compare {type(self)} instance with {type(other)} instance"
             )
             
-        # two air handling units are equal if source systems are identitcal (note: not equal)
+        # two air handling units are equal if source systems are identical (note: not equal)
         return (self.source is other.source)
     
     """ in-out
@@ -1169,7 +1169,7 @@ class FanCoilUnit(AirHandlingUnit):
                 f"Cannot compare {type(self)} instance with {type(other)} instance"
             )
             
-        # two fan coil units are equal if source systems are identitcal (note: not equal)
+        # two fan coil units are equal if source systems are identical (note: not equal)
         return (self.source is other.source)
     
     """ in-out
@@ -1269,7 +1269,7 @@ class Radiator(SupplySystem):
                 f"Cannot compare {type(self)} instance with {type(other)} instance"
             )
             
-        # two air handling units are equal if capacities are equal and source systems are identitcal (note: not equal)
+        # two air handling units are equal if capacities are equal and source systems are identical (note: not equal)
         return (self.capacity == other.capacity) and\
                (self.source   is other.source  )
     
@@ -1401,7 +1401,7 @@ class ElectricRadiator(SupplySystem):
         # formatting capacity and hotwater supply
         cap_str = f"{self.capacity*Unit.W_TO_KW:4,.1f}kW" if self.capacity is not None else "autosize"
         
-        return f"Electric radiator {self.name} with capa={cap_str} (ID={self.ID})"
+        return f"Electric radiator {self.name} with capacity={cap_str} (ID={self.ID})"
     
     def __repr__(self) -> str:
         return f"<ElectricRadiator {self.name} (ID={self.ID}) at {hex(id(self))}>"
@@ -1468,7 +1468,7 @@ class RadiantFloor(SupplySystem):
                 f"Cannot compare {type(self)} instance with {type(other)} instance"
             )
             
-        # two radiant floors are equal if source systems are identitcal (note: not equal)
+        # two radiant floors are equal if source systems are identical (note: not equal)
         return (self.source is other.source)
     
     """ in-out
@@ -1789,7 +1789,7 @@ class PhotoVoltaicSystem:
                 f"Cannot compare {type(self)} instance with {type(other)} instance"
             )
             
-        # two PV-panels are equal if physical properties and specifications are euqal
+        # two PV-panels are equal if physical properties and specifications are equal
         return (self.area       == other.area      ) and\
                (self.efficiency == other.efficiency) and\
                (self.azimuth    == other.azimuth   ) and\

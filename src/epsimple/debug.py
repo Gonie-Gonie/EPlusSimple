@@ -160,16 +160,16 @@ class InsufficientSurfaceForZone(ExcelException):
         exceptions = []
         for _, row in exceldata["실"].iterrows():
             
-            # skip for empty row
+            # skip empty rows
             if pd.isna(row["이름"]):
                 break
             
-            # inspect for each part
+            # inspect each surface type
             exception_floor   = InsufficientSurfaceForZone.inspect_floor(row["이름"], floors, ceilings)
             exception_ceiling = InsufficientSurfaceForZone.inspect_ceiling(row["이름"], ceilings, floors)
             exception_wall    = InsufficientSurfaceForZone.inspect_wall(row["이름"], walls)
             
-            # append to the exception lists
+            # append to the exception list
             exceptions += [
                 exception for exception
                 in [exception_floor, exception_ceiling, exception_wall]
@@ -212,7 +212,7 @@ class InvalidFenestrationConstruction(ExcelException):
     @staticmethod
     def inspect(exceldata:dict[str, pd.DataFrame]) -> list[InsufficientSurfaceForZone]: 
         
-        # for the reference
+        # reference data
         fenestration_construction = exceldata["구조체_개구부"].set_index("이름")
         
         # check
@@ -284,14 +284,14 @@ class InvalidSurfaceConstruction(ExcelException):
     @staticmethod
     def inspect(exceldata:dict[str, pd.DataFrame]) -> list[InsufficientSurfaceForZone]: 
         
-        # for the reference
+        # reference data
         surface_construction = exceldata["구조체_면"].set_index("이름")
         
         # check
         exceptions = []
         for _, row in exceldata["면"].iterrows():
             
-            # skip empty row
+            # skip empty rows
             if pd.isna(row["이름"]):
                 break
             
@@ -325,7 +325,7 @@ class BlindForNonOutdoorWindow(ExcelException):
     @staticmethod
     def inspect(exceldata:dict[str, pd.DataFrame]) -> list[BlindForNonOutdoorWindow]:
         
-        # for the reference
+        # reference data
         interzone_surfaces = exceldata["면"].query("경계조건 != 'outdoors'")["이름"].tolist()
         
         exceptions = []
@@ -358,7 +358,7 @@ class InsufficientMaterialDefinition(ExcelException):
         exceptions = []
         for _, row in exceldata["재료"].iterrows():
             
-            # skip empty row
+            # skip empty rows
             if pd.isna(row["이름"]):
                 break
             
@@ -384,7 +384,7 @@ class InvalidAdjacentZoneName(ExcelException):
     @staticmethod
     def inspect(exceldata:dict[str, pd.DataFrame]) -> list[InvalidAdjacentZoneName]: 
         
-        # for the reference
+        # reference data
         existing_zones = exceldata["실"]["이름"].to_list()
         
         # check
@@ -413,7 +413,7 @@ class InvalidSourceSystemName(ExcelException):
     @staticmethod
     def inspect(exceldata:dict[str, pd.DataFrame]) -> list[InvalidSourceSystemName]: 
         
-        # for the reference
+        # reference data
         existing_sources = exceldata["생산설비"]["이름"].to_list()
         
         # check
@@ -599,7 +599,7 @@ class NotUsedSupplySystem(ExcelWarning):
     @staticmethod
     def inspect(exceldata:dict[str, pd.DataFrame]) -> list[NotUsedSupplySystem]:
         
-        # for the reference
+        # reference data
         used_supply_systems = set(exceldata["실"][["난방 공급 설비", "난방 공급 설비2", "냉방 공급 설비", "냉방 공급 설비2"]].values.flatten().tolist())
         used_supply_systems = [item for item in used_supply_systems if not pd.isna(item)]
         
@@ -629,7 +629,7 @@ class NotUsedSourceSystem(ExcelWarning):
     @staticmethod
     def inspect(exceldata:dict[str, pd.DataFrame]) -> list[NotUsedSupplySystem]:
         
-        # for the reference
+        # reference data
         used_source_systems = set(exceldata["공급설비"]["생산설비명"].to_list())
         used_source_systems = [item for item in used_source_systems if not pd.isna(item)]
         
@@ -658,7 +658,7 @@ class NotUsedSurfaceConstruction(ExcelWarning):
     @staticmethod
     def inspect(exceldata:dict[str, pd.DataFrame]) -> list[NotUsedSupplySystem]:
         
-        # for the reference
+        # reference data
         used_constructions = set(exceldata["면"]["구조체 이름"].to_list())
         used_constructions = [item for item in used_constructions if not pd.isna(item)]
         

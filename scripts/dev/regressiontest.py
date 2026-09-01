@@ -120,12 +120,12 @@ def test_profile():
 
 def apply_profile_result(tex:str) -> str:
     
-    # get profile contents
+    # generate profile results
     grrs = test_profile()
     df   = grrs2df(grrs)
     replacement = df2latex(df)
     
-    # replace in tex
+    # replace the table in TeX
     replacepointstr = r"% PythonReplacePoint: ASHRAE 140-modified 프로필별 결과"
     pattern = replacepointstr + r"\n\\begin\{tabular\}.*?\\end\{tabular\}"
     replaced_tex = re.sub(pattern, lambda m: "\n".join([replacepointstr, replacement]), tex, flags=re.DOTALL)
@@ -177,12 +177,12 @@ def test_weather():
 
 def apply_weather_result(tex:str) -> str:
     
-    # get weather contents
+    # generate weather results
     grrs = test_weather()
     df   = grrs2df(grrs)
     replacement = df2latex(df)
     
-    # replace in tex
+    # replace the table in TeX
     replacepointstr = r"% PythonReplacePoint: ASHRAE 140-modified 지역별 결과"
     pattern = replacepointstr + r"\n\\begin\{tabular\}.*?\\end\{tabular\}"
     replaced_tex = re.sub(pattern, lambda m: "\n".join([replacepointstr, replacement]), tex, flags=re.DOTALL)

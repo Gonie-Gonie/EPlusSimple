@@ -103,7 +103,7 @@ def address_to_weather(
     sigungu_match = re.search(r"^[\w ]+[시군구](?= |$)", address)
     if sigungu_match is None:
         raise InvalidAddressError(
-            f"Cannot find '시' or '군' or '구' from '{address}'"
+            f"Cannot find '시' or '군' or '구' in '{address}'"
         )
     
     sigungu = sigungu_match.group(0)
@@ -139,7 +139,7 @@ class GreenRetrofitModel:
         self.address   =address
         self.north_axis=north_axis
         
-        # childrens
+        # child objects
         self.zone=zone
         self.pv  =pv
         
@@ -234,7 +234,7 @@ class GreenRetrofitModel:
         
         if not isinstance(value, Iterable) and not all(isinstance(item, SourceSystem) for item in value):
             raise ValueError(
-                f"Source system of a GreenRetrofitModel instance should be an iterable instance of SourceSystem(s)."
+                f"Source system of a GreenRetrofitModel instance must be an iterable of SourceSystem instances."
             )
         
         self.__source_system = list(value)
@@ -440,7 +440,7 @@ class GreenRetrofitModel:
         with open(filepath, encoding="UTF-8") as f:
             input = json.load(f, object_hook=lambda d: SimpleNamespace(**d))
         
-        # create a green-retrofit-model
+        # create a GreenRetrofitModel
         grm = cls(
             input.building.name,
             input.building.address,
@@ -508,7 +508,7 @@ class GreenRetrofitModel:
         # pv panel
         grm.pv = list(photovoltaic_systems.values())
         
-        # allocate adjacent zone information
+        # assign adjacent-zone references
         zone_dict = {zone.ID: zone for zone in grm.zone}
         surf_dict = {surf.ID: surf for zone in grm.zone for surf in zone.surface}
         for floor_input in input.building.floors:
@@ -552,7 +552,7 @@ class GreenRetrofitModel:
             if any(isinstance(sys, RadiantFloor|ElectricRadiantFloor) for sys in zone.supply_systems)
         ], start=[])
         
-        # allocate unknowns
+        # resolve unknown constructions
         default_innerwall_construction = SurfaceConstruction(
             f"{SpecialTag.SPECIAL}DefaultInnerWallConstruction",
             Material.get_DB("gypsumboard"), 0.0125, 
@@ -605,15 +605,15 @@ class GreenRetrofitModel:
                 surface_construction_dict[dragonized_construction.name] = dragonized_construction
         surface_dict |= copied_surface_dict
         
-        # create special constructions for coolroof
-        # allocation of the coolroof construction is handled in Surface.to_dragon
+        # create special constructions for cool roofs
+        # allocation of the cool-roof construction is handled in Surface.to_dragon
         for surface in surface_dict.values():
             if surface.reflectance is not None:
                 
                 # get original construction
                 original_construction = surface_construction_dict[surface.construction.ID]
                 
-                # create coolroof layer (outside layer)
+                # create a cool-roof layer (outside layer)
                 coolroof_layer = dragon.Layer(
                     f"{SpecialTag.COOLROOF}{original_construction.layers[0].name}",
                     dragon.Material(
@@ -627,7 +627,7 @@ class GreenRetrofitModel:
                     original_construction.layers[0].thickness
                 )
                 
-                # create coolroof construction and save to the dictionary
+                # create a cool-roof construction and save it to the dictionary
                 coolroof_construction = dragon.Construction(
                     f"{SpecialTag.COOLROOF}{original_construction.name}",
                     coolroof_layer, *original_construction.layers[1:]
@@ -771,7 +771,7 @@ class GreenRetrofitModel:
         return f"<GreenRetrofitModel {self.name} at {hex(id(self))}>"
     
     def __str__(self) -> str:
-        return f"GreenRetrofitModel '{self.name}' with {len(self.zone)} zones and total area of {self.area} m2."
+        return f"GreenRetrofitModel '{self.name}' with {len(self.zone)} zones and a total area of {self.area} m2."
 
 
 class GreenRetrofitResult:
@@ -886,7 +886,7 @@ class GreenRetrofitResult:
             if table_name not in self.result.tbl:
                 continue
             
-            # get use 
+            # extract end-use data
             df   = self.result.tbl[table_name]
             fuel = fuel_type.name
             for use in df_site.columns:
@@ -1038,14 +1038,13 @@ class GreenRetrofitResult:
         # convert the result to a dictionary tree
         result_dict = self.to_dict()
 
-        # write the dictionary tree as json format
+        # write the dictionary tree in JSON format
         with open(filepath, "w", encoding="UTF-8") as f:
-            # format the dictionrary into a json string
+            # format the dictionary into a json string
             json_str = json.dumps(result_dict, ensure_ascii=False, indent=4)
-            # revise the multiline-list to a line
+            # collapse each multiline list onto one line
             json_str = re.sub(r"\[\s+([^\[\]]+?)\s+\]", lambda m: f"[{' '.join(m.group(1).split())}]", json_str)
             # write
             f.write(json_str)
-  
+
         return
-  

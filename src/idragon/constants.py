@@ -67,7 +67,7 @@ class THERMAL(float, Enum):
 class SpecialTag(str, Enum):
     
     """
-    Special tags (to be precise, prefix) are used to indicate special instances,
+    Special tags (more precisely, prefixes) are used to indicate special instances,
     by being attached as a prefix to the instance's name
     """
     

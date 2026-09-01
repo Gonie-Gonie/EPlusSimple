@@ -18,7 +18,7 @@ from typing import (
 # local modules
 
 # ---------------------------------------------------------------------------- #
-#                             TYPE VALIDATING CLASS                            #
+#                          TYPE VALIDATION DECORATORS                          #
 # ---------------------------------------------------------------------------- #
 
 def validate_type(
@@ -59,7 +59,7 @@ def validate_range(
             
             if (max is not None) and (value is not None) and (value > max):
                 raise ValueError(
-                     f"Value '{value}' for {func.__name__} is below the maxmimum {max}."
+                     f"Value '{value}' for {func.__name__} is above the maximum {max}."
                 )
             
             return func(self, value)

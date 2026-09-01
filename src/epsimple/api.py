@@ -37,7 +37,7 @@ from .debug import (
 )
 
 # ---------------------------------------------------------------------------- #
-#                                   MAIN FUNC                                  #
+#                                MAIN FUNCTIONS                                #
 # ---------------------------------------------------------------------------- #
 
 
@@ -53,13 +53,13 @@ def run_grjson(
     Args
     ----
     input_filepath (str, default="in.grm")
-        * not need to have 'grm' extension
-    output_filepath (str|None, defulat=None)
+        * does not need to have 'grm' extension
+    output_filepath (str|None, default=None)
         * where to save the result
-        * automatically defined using input_filepath if given None
+        * automatically determined using input_filepath when None is given
     save (bool, default=True)
         * if True, save the result to output_filepath
-        * else return the dictionarized data
+        * else return the dictionary representation
     
     """
     
@@ -82,7 +82,7 @@ def run_grjson(
         grr.write(output_filepath)
         return output_filepath
     
-    # else return the dictionarized data
+    # else return the dictionary representation
     else:
         return grr.to_dict()
 
@@ -94,18 +94,18 @@ def run_grexcel(
     ) -> str|dict:
     
     """ run grexcel input file and write result
-    * note: this function has the identital structure with the 'run_grjson' func
+    * note: this function has the identical structure with the 'run_grjson' func
     
     Args
     ----
     input_filepath (str, default="in.xlsx")
-        * not need to have 'xlsx' extension
-    output_filepath (str|None, defulat=None)
+        * does not need to have 'xlsx' extension
+    output_filepath (str|None, default=None)
         * where to save the result
         * automatically defined using input_filepath if given None
     save (bool, default=True)
         * if True, save the result to output_filepath
-        * else return the dictionarized data
+        * else return the dictionary representation
     
     """
     
@@ -121,7 +121,7 @@ def run_grexcel(
         output_filepath = run_grjson(grjson_filepath, output_filepath, save=save)
         return output_filepath
     
-    # and remove the temporal grjson file
+    # and remove the temporary 'GRM' file
     finally:
         os.remove(grjson_filepath)
     
@@ -137,24 +137,24 @@ def get_database(
     as_dict:bool=False
     ) -> dict|Profile|Material|SurfaceConstruction|FenestrationConstruction:
     
-    """ get item from the specific database
+    """ retrieve an item from the specified database
 
     Args
     ----
     datatype (str)
         * type(name) of the database
-        * one of ["day_schedule","ruleset","schedule","profile","material","surface_construction","fenestration_construction"]
+        * one of ["profile", "material", "surface_construction", "fenestration_construction"]
     key (str)
         * profile, material: name of the item
-        * (surface, fenestration) construction: options concatted by '&'
+        * (surface, fenestration) construction: options concatenated by '&'
         *                                       or special keys: '__path__', '__all__'
     as_dict (bool, default=False)
         * if True, return item in a dictionary form (else return item itself)
-        * set as True if the result need to be printed (for GUI, ...)
+        * set as True if the result needs to be printed (for GUI, ...)
     
     Returns
     -------
-    item(s) or dictionarized item(s)
+    item(s) or item(s) represented as dictionaries
     
     Examples
     --------
@@ -168,7 +168,7 @@ def get_database(
     {'name': '단창&하드코팅&미주입&적용&금속재&6mm', 'U-value': 6.1, 'SHGC': 0.717}
     
     >>> get_database("fenestration_construction", "__path__", as_dict=True)
-    '.../_data/construction/fenestration_regulation_surface.csv'
+    '.../_data/construction/construction_regulation_fenestration.csv'
     
     """
     
@@ -198,7 +198,7 @@ def get_database(
         case _:
             raise KeyError(
                 f"{datatype} is not a valid database type"             ,
-                f"(Expected 'day_scheduel', 'ruleset', 'schedule', 'profile', 'material', 'surface_construction' or 'fenestration_construction').",
+                f"(Expected 'profile', 'material', 'surface_construction', 'fenestration_construction').",
             )
     
     return
@@ -216,7 +216,7 @@ class GreenRetrofitDataFormat(str, Enum):
         convertibles: tuple[str, ...]
         ) -> GreenRetrofitDataFormat:  
         
-        # 
+        # Remove the empty comment or describe enum initialization
         obj = str.__new__(cls, value) 
         obj._value_ = value            
         
@@ -243,7 +243,7 @@ def convert_inputformat(
         * format of the input file
     dst (GreenRetrofitDataFormat)
         * format of the output file
-    output_filepath (str|None, defulat=None)
+    output_filepath (str|None, default=None)
         * where to save the result
         * automatically defined using input_filepath with changed extension if given None
     """
@@ -259,7 +259,7 @@ def convert_inputformat(
             f"{src.value} is not convertible to {dst.value} (available: {available})."
         )
         
-    # default output filepath: same as input
+    # default output path: input path with the destination suffix
     if output_filepath is None:
         if input_filepath.endswith(f".{src.extension}"):
             output_filepath = input_filepath.replace(src.extension, dst.extension)

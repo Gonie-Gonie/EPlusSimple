@@ -296,7 +296,7 @@ class DaySchedule(UserList):
         item = self.type.validate(item)
         super().__setitem__(index, item)
     
-    """ algebraric operations
+    """ algebraic operations
     """
         
     def __mul__(self, other:int|float|DaySchedule) -> DaySchedule:
@@ -1669,7 +1669,7 @@ class RuleSet:
     def holiday(self, value: DaySchedule|None) -> None:
         self.__holiday = value
     
-    """ algebraric methods
+    """ algebraic methods
     """
     
     @staticmethod
@@ -2542,7 +2542,7 @@ class Schedule(UserList):
         if not inplace:
             return target
     
-    """ algebraric operation
+    """ algebraic operation
     """
     
     @staticmethod
@@ -2920,7 +2920,7 @@ class Schedule(UserList):
         
     def insert(self, index:int, item:Any) -> None:
         raise AttributeError(
-            f"Cannot insert to the fixed-length ({self.fixed_length}) Schedule"
+            f"Cannot insert into the fixed-length ({self.fixed_length}) Schedule"
         )
     
     @property

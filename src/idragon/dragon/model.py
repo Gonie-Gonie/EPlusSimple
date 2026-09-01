@@ -107,7 +107,7 @@ class EnergyModel:
     @staticmethod
     def create_default_idf() -> IDF:
         
-        # default runnable idf and settings
+        # default runnable IDF and settings
         idf = IDF(ensure_validity=False)
         idf["SimulationControl"].append(["Yes","Yes","Yes","No","Yes","No"])
         idf["SizingPeriod:WeatherFileDays"].append(["DesignWinter",1,1,1,31])
@@ -125,7 +125,7 @@ class EnergyModel:
         # assumptions
         idf["Schedule:Constant"].append(["$DEFAULT$PEOPLEACTIVITY", ScheduleType.REAL, THERMAL.PEOPLE_ACTIVITY_LEVEL.value])
         
-        # main output
+        # primary outputs
         idf["OutputControl:Table:Style"].append(["COMMA", "JtoKWH"])
         idf["Output:Table:SummaryReports"].append([
             "EndUseEnergyConsumptionElectricityMonthly",
@@ -187,7 +187,7 @@ class EnergyModel:
         idf.append(*[layer.to_idf_object() for layer in self.used_layers])            
         for surface in self.surfaces:
             
-            # surface consturction
+            # surface construction
             if isinstance(surface.construction, Construction):
                 idf.append(*surface.construction.to_idf_object(surface))
             
@@ -223,7 +223,7 @@ class EnergyModel:
                 created_sources.add(source)
                 
         # HVAC: Supply 
-        # Should be after adding supply systems and zones to the idf
+        # This must run after supply systems and zones have been added to the IDF
         for zone in self.conditioned_zones:
             EnergyModel.add_supply_system(idf, zone, zone.supply)      
         
@@ -262,4 +262,3 @@ class EnergyModel:
     
     
     
-   
