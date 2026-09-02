@@ -80,17 +80,25 @@ def check_modules(modules:list[str]):
 #                             EXCEL GUI: VARIABLES                             #
 # ---------------------------------------------------------------------------- #
 
+# Row index (0-based) of the header row in the input excel sheets.
+# The 2026 dataset template places headers on the 2nd row (index 1),
+# reserving the 1st row for annotations and the 1st two columns for legends.
+HEADER_ROW = 1
+
+# Number of the material layers a surface construction sheet can hold
+MAX_SURFACE_LAYERS = 5
+
 VALID_COLUMNS = {
-    "건물정보"     : ["건물명", "north_axis [°]","주소","지상층수","지하층수","허가일자"],
-    "실"           : ["이름","층","천정고 [m]", "용도프로필","조명밀도 [W/m2]", "침기율 [ACH@50]","난방 공급 설비","냉방 공급 설비", "환기 설비"],
+    "건물정보"     : ["건물명","용도","north_axis [°]","주소","허가일자"],
+    "실"           : ["이름","층","천장고 [m]", "용도프로필","조명밀도 [W/m2]"],
     "면"           : ["이름","소속 실","유형","경계조건","면적 [m2]","향 [°]","인접존 이름","구조체 이름", "쿨루프 반사율 [%]"],
     "개구부"       : ["이름","소속 면","유형","면적 [m2]","구조체 이름", "블라인드"],
     "구조체_면"    : ["이름","레이어1_재료","레이어1_두께 [mm]","레이어2_재료","레이어2_두께 [mm]","레이어3_재료","레이어3_두께 [mm]","레이어4_재료","레이어4_두께 [mm]","레이어5_재료","레이어5_두께 [mm]"],
     "구조체_개구부": ["이름","투명여부","열관류율 [W/m2·K]","태양열취득계수"],
     "재료"         : ["이름","열전도율 [W/m·K]", "밀도 [kg/m3]","비열 [J/kg·K]"],
-    "공급설비"     : ["이름","유형","냉방용량 [W]","난방용량 [W]","냉방COP [W/W]","생산설비명"],
+    "공급설비"     : ["이름","유형","냉방용량 [W]","난방용량 [W]","냉방COP [W/W]","대수","생산설비명","공급 실"],
     "생산설비"     : ["이름","유형","냉방용량 [W]","난방용량 [W]","냉방COP [W/W]","난방COP [W/W]","효율 [%]","급탕용","연료종류", "압축기 종류", "냉각탑 종류","냉각탑 용량 [W]", "냉각탑 제어방식", "연동보일러 효율 [%]"],
-    "환기설비"     : ["이름", "난방효율 [%]", "냉방효율 [%]"],
+    "환기설비"     : ["이름", "난방효율 [%]", "냉방효율 [%]", "용량 [CMH]", "대수", "공급 실"],
     "PV패널"      : ["이름","면적","효율 [%]","방위각 [°]","경사각 [°]"],
 }
 
@@ -110,20 +118,15 @@ ID_PREFIX = {
 COLUMN_RENAME_DICT = {
     # 건물정보
     "건물명"  :"name",
+    "용도"    :"is_multifamily_housing",
     "주소"    :"address",
-    "지상층수": "num_aboveground_floors",
-    "지하층수": "num_underground_floors",
     "허가일자": "vintage",
     # 실
     "이름"      : "name",
     "층"        : "floor_number",
-    "천정고"    : "height",
+    "천장고"    : "height",
     "용도프로필": "profile",
     "조명밀도" : "light_density",
-    "침기율"    : "infiltration" ,
-    "난방 공급 설비": "supply_system_heating_name",
-    "냉방 공급 설비": "supply_system_cooling_name",
-    "환기 설비"     : "ventilation_system_name",
     # 면
     "소속 실"    : "parent_zone_name",
     "유형"       : "type",
@@ -160,6 +163,8 @@ COLUMN_RENAME_DICT = {
     "난방용량": "capacity_heating",
     "냉방COP" : "cop_cooling",
     "생산설비명": "source_sys_name",
+    "대수"    : "count",
+    "공급 실" : "zone_name",
     # 생산설비
     "난방COP" : "cop_heating",
     "효율"    : "efficiency",
@@ -173,6 +178,7 @@ COLUMN_RENAME_DICT = {
     # 환기설비
     "난방효율" : "efficiency_heating",
     "냉방효율" : "efficiency_cooling",
+    "용량"     : "airflow_rate",
     # PV패널
     "방위각": "azimuth",
     "경사각": "tilt"   ,
@@ -198,7 +204,7 @@ PROPERTY_RENAME_DICT = {
     },
     "fuel_type": {
         "전기"   : "electricity",
-        "천연가스": "natural_gas",
+        "도시가스": "natural_gas",
         "LPG"    : "lpg"        ,
         "난방유" : "oil"        ,
         "지역난방": "district_heating",
@@ -215,7 +221,11 @@ PROPERTY_RENAME_DICT = {
     "is_transparent": {
         "투명": True,
         "불투명": False,
-    }
+    },
+    "is_multifamily_housing": {
+        "공동주택"  : True ,
+        "공동주택 외": False,
+    },
 }
 
 GRJSON_FORMAT =  {
@@ -224,11 +234,10 @@ GRJSON_FORMAT =  {
         "north_axis": 0,
         "address"   : "",
         "vintage"   : [1900,1,1],
-        "num_aboveground_floors": 0,
-        "num_underground_floors": 0, 
+        "is_multifamily_housing": False,
         "floors"        : [],
-        "supply_systems": [],
-        "source_systems": [],
+        "supply_systems": {},
+        "source_systems": {},
         "ventilation_systems": [],
         "photovoltaic_systems": [],
     },
@@ -379,9 +388,31 @@ def _rename_properties(
         
     return
         
+def _group_systems_by_type(
+    system_list:list[dict]
+    ) -> dict[str, list[dict]]:
+    
+    """ Group the converted system dicts by their type.
+    
+    The grjson schema nests systems under their type
+    (e.g. {"air_handling_unit": [...], "radiant_floor": [...]}),
+    which GreenRetrofitModel.from_grjson consumes through
+    SupplySystem.TYPE_MAPPER / SourceSystem.TYPE_MAPPER.
+    The 'type' key itself is dropped since it is carried by the group.
+    """
+    
+    grouped = {}
+    for system in system_list:
+        grouped.setdefault(system["type"], []).append(
+            {k:v for k,v in system.items() if k != "type"}
+        )
+    
+    return grouped
+
+
 def _convert_source_systems(
     df_source:pd.DataFrame
-    ) -> list[dict]:
+    ) -> dict[str, list[dict]]:
     
     # Define required properties by the source system type
     VALID_PROPERTIES = {
@@ -421,13 +452,13 @@ def _convert_source_systems(
         # Append to the list
         source_list.append(source_dict)
     
-    return source_list
+    return _group_systems_by_type(source_list)
 
 
 def _convert_supply_systems(
     df_supply:pd.DataFrame,
     df_source:pd.DataFrame,
-    ) -> list[dict]:
+    ) -> dict[str, list[dict]]:
     
     # Define required properties by the supply system type
     VALID_PROPERTIES = {
@@ -460,7 +491,7 @@ def _convert_supply_systems(
         # Append to the list
         supply_list.append(supply_dict)
     
-    return supply_list
+    return _group_systems_by_type(supply_list)
 
 
 def _convert_ventilation_systems(
@@ -476,6 +507,12 @@ def _convert_ventilation_systems(
         # convert units
         ventilation_dict["efficiency_heating"] *= Unit.PERCENT_TO_FRACTION
         ventilation_dict["efficiency_cooling"] *= Unit.PERCENT_TO_FRACTION
+        ventilation_dict["airflow_rate"]       *= Unit.CMH_TO_M3_PER_S
+        
+        # Remove unused properties
+        # ('count' and 'zone_name' belong to the zone that the system supplies)
+        ventilation_dict.pop("count")
+        ventilation_dict.pop("zone_name")
         
         # Append to the list
         ventilation_list.append(ventilation_dict)
@@ -588,6 +625,50 @@ def _convert_surfaces(
     return surf_list
 
 
+def _system_count(
+    row:pd.Series
+    ) -> int:
+    
+    # An empty '대수' cell means a single unit
+    count = row["count"]
+    return 1 if pd.isna(count) else int(count)
+
+
+def _collect_supply_system_ids(
+    df_supply:pd.DataFrame,
+    zone_name:str         ,
+    ) -> list[str]:
+    
+    """ Collect the supply system IDs serving the given zone.
+    
+    Zone.from_json instantiates one system object per ID,
+    so a system installed n times is repeated n times.
+    """
+    
+    return [
+        row["id"]
+        for _, row in df_supply.loc[df_supply["zone_name"] == zone_name].iterrows()
+        for _ in range(_system_count(row))
+    ]
+
+
+def _collect_ventilation_systems(
+    df_ventilation:pd.DataFrame,
+    zone_name     :str         ,
+    ) -> list[dict]:
+    
+    """ Collect the ventilation systems serving the given zone.
+    
+    Unlike supply systems, Zone.from_json reads the installed count
+    from the reference itself, so it is kept as a property.
+    """
+    
+    return [
+        {"id": row["id"], "count": _system_count(row)}
+        for _, row in df_ventilation.loc[df_ventilation["zone_name"] == zone_name].iterrows()
+    ]
+
+
 def _convert_zones(
     df_zone        :pd.DataFrame,
     df_surface     :pd.DataFrame,
@@ -604,16 +685,14 @@ def _convert_zones(
         # Convert the row to a dictionary
         zone_dict = row.to_dict()
 
-        # Get ID of the reference properties (heating supply system, cooling supply system)
-        zone_dict["supply_system_heating_id"] = _name_to_id(df_supply_system, zone_dict["supply_system_heating_name"])
-        zone_dict["supply_system_cooling_id"] = _name_to_id(df_supply_system, zone_dict["supply_system_cooling_name"])
-        zone_dict["ventilation_system_id"] = _name_to_id(df_ventilation_system, zone_dict["ventilation_system_name"])
+        # Collect the systems supplying this zone.
+        # The systems reference the zone (not the other way around),
+        # so the linkage is resolved from the system sheets.
+        zone_dict["supply_system_ids"]   = _collect_supply_system_ids(df_supply_system, row["name"])
+        zone_dict["ventilation_systems"] = _collect_ventilation_systems(df_ventilation_system, row["name"])
         
         # Remove unused properties
         zone_dict.pop("floor_number")
-        zone_dict.pop("supply_system_heating_name")
-        zone_dict.pop("supply_system_cooling_name")
-        zone_dict.pop("ventilation_system_name")
         
         # Find child surface objects,
         child_surfaces = df_surface.query("parent_zone_name == @row['name']")
@@ -658,13 +737,15 @@ def _convert_construction_surface(
         const_dict = {k:(_name_to_id(df_material, v) if k.endswith("material") else v) for k,v in const_dict.items()}
         
         # Construct layer info.:
-        # After first two values (id, name), the remaining values come in material_id & thickness pairs
-        material_ids = list(const_dict.values())[2::2]
-        thicknesses  = list(const_dict.values())[3::2]
+        # Referenced by column name, so that unrelated columns
+        # placed between 'name' and the layers do not shift the pairing
         layers = [
-            {"material_id": material_id, "thickness": thickness*Unit.MM_TO_M}
-            for material_id, thickness in zip(material_ids, thicknesses)
-            if material_id is not None
+            {
+                "material_id": const_dict[f"layer{n}_material"],
+                "thickness"  : const_dict[f"layer{n}_thickness"]*Unit.MM_TO_M,
+            }
+            for n in range(1, MAX_SURFACE_LAYERS+1)
+            if const_dict.get(f"layer{n}_material") is not None
         ]
         
         # Reconstruct construction dict
@@ -734,12 +815,17 @@ def excel2grjson(
     
     # Read the excel file and preprocess:
     # filtering sheets and columns, renaming columns, assigning id
-    excel_org = pd.read_excel(input_filepath, sheet_name=None)
+    excel_org = pd.read_excel(input_filepath, sheet_name=list(VALID_COLUMNS.keys()), header=HEADER_ROW)
     excel     = _preprocess_excel_dict(excel_org)
 
     # Get default grjson struct and assign building information
     grjson = deepcopy(GRJSON_FORMAT)
     grjson["building"] |= excel["건물정보"].iloc[0].to_dict()
+    
+    # Rename values
+    _rename_properties(grjson["building"],
+        ("is_multifamily_housing", "is_multifamily_housing")
+    )
     
     # Convert form of the building vintage: timestamp -> list[year, month, day]
     if isinstance(grjson["building"]["vintage"], str):

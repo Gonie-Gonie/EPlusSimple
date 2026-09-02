@@ -62,6 +62,7 @@ class Unit(float, Enum):
     
     # VOLUME FLOW RATE
     M3_PER_S_TO_CMH = 3600
+    CMH_TO_M3_PER_S = 1/3600
     
 class ConvectionHeatTransfer(float, Enum):
     
