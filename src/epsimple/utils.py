@@ -625,7 +625,7 @@ def _convert_surfaces(
     return surf_list
 
 
-def _system_count(
+def _ventilation_count(
     row:pd.Series
     ) -> int:
     
@@ -641,15 +641,15 @@ def _collect_supply_system_ids(
     
     """ Collect the supply system IDs serving the given zone.
     
-    Zone.from_json instantiates one system object per ID,
-    so a system installed n times is repeated n times.
+    A zone cannot reference the same supply system twice
+    (see Zone.supply_systems), and the grjson schema offers no place
+    for an installed count on the supply side, unlike ventilation.
+    The '대수' column is therefore not reflected here.
     """
     
-    return [
-        row["id"]
-        for _, row in df_supply.loc[df_supply["zone_name"] == zone_name].iterrows()
-        for _ in range(_system_count(row))
-    ]
+    serving = df_supply.loc[df_supply["zone_name"] == zone_name]
+    
+    return list(dict.fromkeys(serving["id"]))
 
 
 def _collect_ventilation_systems(
@@ -664,7 +664,7 @@ def _collect_ventilation_systems(
     """
     
     return [
-        {"id": row["id"], "count": _system_count(row)}
+        {"id": row["id"], "count": _ventilation_count(row)}
         for _, row in df_ventilation.loc[df_ventilation["zone_name"] == zone_name].iterrows()
     ]
 
