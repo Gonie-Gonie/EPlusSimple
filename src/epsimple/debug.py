@@ -20,6 +20,44 @@ from abc import (
 import pandas as pd
 
 # local modules
+from .utils import (
+    HEADER_ROW   ,
+    VALID_COLUMNS,
+)
+
+# ---------------------------------------------------------------------------- #
+#                                   CONSTANTS                                  #
+# ---------------------------------------------------------------------------- #
+
+# Supply system types capable of heating / cooling a zone.
+# Mirrors the '난방 공급 설비' / '냉방 공급 설비' formulas of the input template.
+HEATING_SUPPLY_TYPES = ("공조기", "팬코일유닛", "방열기", "전기방열기", "바닥난방", "전기바닥난방")
+COOLING_SUPPLY_TYPES = ("패키지에어컨", "공조기", "팬코일유닛")
+
+# Supply system types occupying the floor of a zone
+RADIANT_FLOOR_SUPPLY_TYPES = ("바닥난방", "전기바닥난방")
+
+
+def _to_bool(
+    series:pd.Series
+    ) -> pd.Series:
+    
+    # Treat an empty cell as False, so that TRUE/FALSE columns
+    # can be tested regardless of the dtype pandas inferred
+    return series.map(lambda value: False if pd.isna(value) else bool(value))
+
+
+def _assigned_supply_systems(
+    exceldata:dict[str, pd.DataFrame]
+    ) -> pd.DataFrame:
+    
+    # Supply systems actually assigned to an existing zone.
+    # The supply system references the zone it serves ('공급 실'),
+    # so the linkage is read from the supply sheet.
+    zone_names = set(exceldata["실"]["이름"].dropna())
+    supply     = exceldata["공급설비"]
+    
+    return supply.loc[supply["공급 실"].isin(zone_names)]
 
 
 # ---------------------------------------------------------------------------- #
@@ -491,25 +529,23 @@ class DualRadiantFloor(ExcelException):
     def __init__(self, zonename:str) -> None:
         
         super().__init__("실", zonename)
-        self.message = f"실 '{zonename}'의 난방 공급 설비와 난방 공급 설비2가 모두 바닥난방입니다. (주된 보일러를 사용하는 바닥난방만 남겨주세요)"
+        self.message = f"실 '{zonename}'에 바닥난방 공급설비가 둘 이상 입력되었습니다. (주된 보일러를 사용하는 바닥난방만 남겨주세요)"
         
     @staticmethod
     def inspect(exceldata:dict[str, pd.DataFrame]) -> list[DualRadiantFloor]:
         
+        # reference data
+        supply  = _assigned_supply_systems(exceldata)
+        radiant = supply.loc[supply["유형"].isin(RADIANT_FLOOR_SUPPLY_TYPES)]
+        
+        # check
         exceptions = []
-        for _, row in exceldata["실"].iterrows():
+        for zone_name, zone_radiant in radiant.groupby("공급 실"):
             
-            if pd.isna(row["난방 공급 설비"]) or pd.isna(row["난방 공급 설비2"]):
-                continue
-            
-            supply_systems = exceldata["공급설비"].set_index("이름")
-            supply1_type = supply_systems.loc[row["난방 공급 설비"], "유형"]
-            supply2_type = supply_systems.loc[row["난방 공급 설비2"], "유형"]
-            
-            if (supply1_type == "바닥난방") and (supply2_type == "바닥난방"):
+            if len(zone_radiant) > 1:
                 exceptions.append(
                     DualRadiantFloor(
-                        row["이름"]
+                        zone_name
                     )
                 )
         
@@ -600,8 +636,7 @@ class NotUsedSupplySystem(ExcelWarning):
     def inspect(exceldata:dict[str, pd.DataFrame]) -> list[NotUsedSupplySystem]:
         
         # reference data
-        used_supply_systems = set(exceldata["실"][["난방 공급 설비", "난방 공급 설비2", "냉방 공급 설비", "냉방 공급 설비2"]].values.flatten().tolist())
-        used_supply_systems = [item for item in used_supply_systems if not pd.isna(item)]
+        used_supply_systems = set(_assigned_supply_systems(exceldata)["이름"].dropna())
         
         # check
         warnings = []
@@ -710,10 +745,13 @@ class NoHVACSystemApplied(ExcelWarning):
     @staticmethod
     def inspect(exceldata:dict[str, pd.DataFrame]) -> list[NoHVACSystemApplied]:
         
+        # reference data
+        assigned_types = _assigned_supply_systems(exceldata)["유형"]
+        
         exceptions = []
         
         # heating
-        if pd.isna(exceldata["실"]["난방 공급 설비"]).all():
+        if not assigned_types.isin(HEATING_SUPPLY_TYPES).any():
             exceptions.append(
                 NoHVACSystemApplied(
                     NoHVACSystemAppliedSubCategory.NoHeatingSupply
@@ -721,7 +759,7 @@ class NoHVACSystemApplied(ExcelWarning):
             )
             
         # cooling
-        if pd.isna(exceldata["실"]["냉방 공급 설비"]).all():
+        if not assigned_types.isin(COOLING_SUPPLY_TYPES).any():
             exceptions.append(
                 NoHVACSystemApplied(
                     NoHVACSystemAppliedSubCategory.NoCoolingSupply
@@ -729,7 +767,7 @@ class NoHVACSystemApplied(ExcelWarning):
             )
         
         # hotwater
-        if not (exceldata["생산설비"]["급탕용"] == 1.0).any():
+        if not _to_bool(exceldata["생산설비"]["급탕용"]).any():
             exceptions.append(
                 NoHVACSystemApplied(
                     NoHVACSystemAppliedSubCategory.NoHotwaterSource
@@ -766,7 +804,7 @@ JSON_INSPECTORS = [
 ]
 
 def debug_excel(filepath:str) -> list[ExcelException]:
-    exceldata = pd.read_excel(filepath, sheet_name=None)
+    exceldata = pd.read_excel(filepath, sheet_name=list(VALID_COLUMNS.keys()), header=HEADER_ROW)
 
     exceptions = []
     warnings   = []
