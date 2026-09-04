@@ -5,6 +5,7 @@
 
 # built-in modules
 import os
+import re
 import sys
 import json
 import warnings
@@ -14,7 +15,8 @@ from uuid     import uuid4
 from copy     import deepcopy
 from datetime import datetime
 from typing   import (
-    Any     ,
+    Any          ,
+    TYPE_CHECKING,
 )
 
 # third-party modules
@@ -22,6 +24,8 @@ import pandas as pd
 
 # local modules
 from .constants import Unit
+if TYPE_CHECKING:
+    from .core.construction import SurfaceConstruction
 
 # ---------------------------------------------------------------------------- #
 #                              PACKAGE MANAGEMENT                              #
@@ -93,7 +97,7 @@ VALID_COLUMNS = {
     "실"           : ["이름","층","천장고 [m]", "용도프로필","조명밀도 [W/m2]"],
     "면"           : ["이름","소속 실","유형","경계조건","면적 [m2]","향 [°]","인접존 이름","구조체 이름", "쿨루프 반사율 [%]"],
     "개구부"       : ["이름","소속 면","유형","면적 [m2]","구조체 이름", "블라인드"],
-    "구조체_면"    : ["이름","레이어1_재료","레이어1_두께 [mm]","레이어2_재료","레이어2_두께 [mm]","레이어3_재료","레이어3_두께 [mm]","레이어4_재료","레이어4_두께 [mm]","레이어5_재료","레이어5_두께 [mm]"],
+    "구조체_면"    : ["이름","법규기준벽체 레이어순서","레이어1_재료","레이어1_두께 [mm]","레이어2_재료","레이어2_두께 [mm]","레이어3_재료","레이어3_두께 [mm]","레이어4_재료","레이어4_두께 [mm]","레이어5_재료","레이어5_두께 [mm]"],
     "구조체_개구부": ["이름","투명여부","열관류율 [W/m2·K]","태양열취득계수"],
     "재료"         : ["이름","열전도율 [W/m·K]", "밀도 [kg/m3]","비열 [J/kg·K]"],
     "공급설비"     : ["이름","유형","냉방용량 [W]","난방용량 [W]","냉방COP [W/W]","대수","생산설비명","공급 실"],
@@ -140,6 +144,7 @@ COLUMN_RENAME_DICT = {
     "소속 면": "parent_surface_name",
     "블라인드": "blind",
     # 구조체_면
+    "법규기준벽체 레이어순서": "regulated_wall_position",
     "레이어1_재료": "layer1_material",
     "레이어1_두께": "layer1_thickness",
     "레이어2_재료": "layer2_material",
@@ -228,6 +233,24 @@ PROPERTY_RENAME_DICT = {
     },
 }
 
+# Usage profile names offered by the 2026 template ('참조' sheet)
+# that differ from the names of the built-in profile DB (KoreanUsageProfile.csv).
+# The other names are identical and passed through.
+PROFILE_RENAME_DICT = {
+    "회의 및 세미나실": "회의실 및 세미나실",
+    "강의실"         : "강의실(대학)",
+    "매장"           : "매장(상점/백화점)",
+    "전시실"         : "전시실(전시관/박물관)",
+    "열람실"         : "열람실(도서관)",
+}
+
+# Options of the '법규기준벽체 레이어순서' column ('참조' sheet of the 2026 template),
+# other than the '레이어n 뒤' pattern
+REGULATED_WALL_NOT_REFERENCED = "참조안함"
+REGULATED_WALL_OUTERMOST      = "최외측"
+REGULATED_WALL_INNERMOST      = "최내측"
+REGULATED_WALL_AFTER_LAYER    = re.compile(r"레이어(\d+) 뒤")
+
 GRJSON_FORMAT =  {
     "building":{
         "name"      : "",
@@ -268,6 +291,15 @@ def _clean_column_names(
     return df_cleaned
 
 
+def _format_id(
+    sheetname:str,
+    index    :int,
+    ) -> str:
+
+    # ID convention: <prefix of the sheet>-0x<6-digit hexadecimal index>
+    return f"{ID_PREFIX[sheetname]}-0x{index:06X}"
+
+
 def _assign_id(
     df       :pd.DataFrame,
     sheetname:str         ,
@@ -279,9 +311,6 @@ def _assign_id(
     # If no ID is required for the sheet, return the copy itself
     if sheetname in ["건물정보"]:
         return df_assigned
-    
-    # Get prefix for the sheetname
-    prefix = ID_PREFIX[sheetname]
     
     # Check uniqueness of the names
     # If not, raise an exception
@@ -297,7 +326,7 @@ def _assign_id(
     # Assign id using the index
     # For safety, reset the index before the assigning
     df_assigned.reset_index(inplace=True, drop=True)
-    df_assigned.insert(0, "id", df_assigned.index.map(lambda v: f"{prefix}-0x{v:06X}"))
+    df_assigned.insert(0, "id", df_assigned.index.map(lambda v: _format_id(sheetname, v)))
     
     return df_assigned
 
@@ -685,6 +714,9 @@ def _convert_zones(
         # Convert the row to a dictionary
         zone_dict = row.to_dict()
 
+        # Rename values (profile names differing from the built-in DB)
+        zone_dict["profile"] = PROFILE_RENAME_DICT.get(zone_dict["profile"], zone_dict["profile"])
+
         # Collect the systems supplying this zone.
         # The systems reference the zone (not the other way around),
         # so the linkage is resolved from the system sheets.
@@ -744,8 +776,7 @@ def _convert_construction_surface(
                 "material_id": const_dict[f"layer{n}_material"],
                 "thickness"  : const_dict[f"layer{n}_thickness"]*Unit.MM_TO_M,
             }
-            for n in range(1, MAX_SURFACE_LAYERS+1)
-            if const_dict.get(f"layer{n}_material") is not None
+            for n in _defined_layer_numbers(const_dict)
         ]
         
         # Reconstruct construction dict
@@ -759,6 +790,230 @@ def _convert_construction_surface(
         const_list.append(const_dict_structured)
     
     return const_list
+
+
+def _defined_layer_numbers(
+    row:dict|pd.Series
+    ) -> list[int]:
+
+    # Numbers of the layer columns holding a material,
+    # in the outside-to-inside order of the sheet
+    return [
+        n for n in range(1, MAX_SURFACE_LAYERS+1)
+        if not pd.isna(row.get(f"layer{n}_material"))
+    ]
+
+
+def _parse_regulated_wall_position(
+    value:Any
+    ) -> int|None:
+
+    """ Parse a '법규기준벽체 레이어순서' cell into the number of the layer
+        that the regulated wall follows
+
+        * None               : not referenced (empty cell or '참조안함')
+        * 0                  : '최외측', in front of the 1st layer
+        * n                  : '레이어n 뒤', between the n-th and the (n+1)-th layers
+        * MAX_SURFACE_LAYERS : '최내측', behind the last layer
+    """
+
+    if pd.isna(value):
+        return None
+
+    value = str(value).strip()
+
+    if value in ("", REGULATED_WALL_NOT_REFERENCED):
+        return None
+    if value == REGULATED_WALL_OUTERMOST:
+        return 0
+    if value == REGULATED_WALL_INNERMOST:
+        return MAX_SURFACE_LAYERS
+
+    matched = REGULATED_WALL_AFTER_LAYER.fullmatch(value)
+    if (matched is not None) and (1 <= int(matched.group(1)) <= MAX_SURFACE_LAYERS):
+        return int(matched.group(1))
+
+    raise ValueError(
+        f"Invalid '법규기준벽체 레이어순서': '{value}'. "
+        f"Expected one of '{REGULATED_WALL_NOT_REFERENCED}', '{REGULATED_WALL_OUTERMOST}', "
+        f"'레이어1 뒤' ~ '레이어{MAX_SURFACE_LAYERS-1} 뒤' or '{REGULATED_WALL_INNERMOST}'."
+    )
+
+
+def _get_unknown_construction(
+    surface_type      :str     ,
+    boundary_condition:str     ,
+    vintage           :datetime,
+    climate           :str     ,
+    *,
+    is_radiant_floor      :bool,
+    is_multifamily_housing:bool,
+    ) -> tuple[str, "SurfaceConstruction"]:
+
+    """ Resolve the construction that the model applies to an 'unknown' surface,
+        mirroring GreenRetrofitModel._dragonize_surface:
+        the default inner wall for an interior wall, the regulation DB otherwise
+
+        Returns (label of the part, SurfaceConstruction)
+    """
+
+    # imported here to avoid a circular import (core.model imports this module)
+    from .core import (
+        SurfaceType             ,
+        SurfaceBoundaryCondition,
+        SurfaceConstruction     ,
+    )
+
+    # interior wall
+    if (SurfaceType(surface_type) is SurfaceType.WALL) and (SurfaceBoundaryCondition(boundary_condition) is SurfaceBoundaryCondition.ZONE):
+        return "내벽", SurfaceConstruction.create_default_innerwall()
+
+    # exterior wall / roof / floor
+    key = SurfaceConstruction.get_regulation_key(
+        vintage           ,
+        surface_type      ,
+        boundary_condition,
+        climate           ,
+        is_radiant_floor      =is_radiant_floor      ,
+        is_multifamily_housing=is_multifamily_housing,
+    )
+    return key[1], SurfaceConstruction.get_DB(key)
+
+
+def _resolve_regulated_wall_layers(
+    grjson                 :dict        ,
+    df_construction_surface:pd.DataFrame,
+    ) -> None:
+
+    """ Splice the regulated wall layers into the surface constructions
+        referencing it by the '법규기준벽체 레이어순서' column
+
+    The grjson schema has no attribute for the reference, so the layers
+    that the model would apply to an 'unknown' surface (the regulation DB
+    by the vintage, climate and usage of the building, and the part of
+    the surface) are inserted at the given position in advance.
+
+    The part depends on the surface, so a construction shared by surfaces
+    of different parts (e.g. an exterior wall and a roof) is split into
+    one construction per part, and the surfaces are re-linked to them.
+    A construction used by no surface is treated as an exterior wall.
+
+    The grjson is modified in place: 'surface_constructions', 'materials',
+    and the 'construction_id' of the surfaces.
+    """
+
+    # Positions of the regulated wall by the construction id
+    positions = {}
+    for _, row in df_construction_surface.iterrows():
+        try:
+            position = _parse_regulated_wall_position(row["regulated_wall_position"])
+        except ValueError as e:
+            raise ValueError(f"Construction '{row['name']}': {e}") from None
+        if position is not None:
+            positions[row["id"]] = position
+
+    # Nothing to do if no construction references the regulated wall
+    if not positions:
+        return
+
+    # imported here to avoid a circular import (core.model imports this module)
+    from .core.model import address_to_weather
+
+    # Building information determining the regulation
+    building = grjson["building"]
+    vintage  = datetime(*building["vintage"])
+    _, climate, _, _ = address_to_weather(building["address"], vintage)
+    is_multifamily_housing = (
+        bool(building["is_multifamily_housing"])
+        if not pd.isna(building["is_multifamily_housing"]) else False
+    )
+
+    # Zones with a radiant floor system use the '바닥난방인' floor regulation
+    radiant_floor_ids = {
+        system["id"]
+        for system_type in ("radiant_floor", "electric_radiant_floor")
+        for system in building["supply_systems"].get(system_type, [])
+    }
+
+    # Surfaces referencing the constructions, with the radiant floor flag of the zone
+    surfaces_by_construction = {construction_id: [] for construction_id in positions}
+    for floor in building["floors"]:
+        for zone in floor["zones"]:
+            is_radiant_floor = any(system_id in radiant_floor_ids for system_id in zone["supply_system_ids"])
+            for surface in zone["surfaces"]:
+                if surface["construction_id"] in positions:
+                    surfaces_by_construction[surface["construction_id"]].append((surface, is_radiant_floor))
+
+    # Materials of the regulated wall, appended to the grjson on the first use
+    material_ids = {}
+    def _material_id(material) -> str:
+        if material.ID not in material_ids:
+            material_ids[material.ID] = _format_id("재료", len(grjson["materials"]))
+            grjson["materials"].append({"id": material_ids[material.ID]} | material.to_dict())
+        return material_ids[material.ID]
+
+    # Splice the layers
+    constructions = []
+    num_added     = 0
+    for construction in grjson["surface_constructions"]:
+
+        # Constructions without the reference are kept as they are
+        if construction["id"] not in positions:
+            constructions.append(construction)
+            continue
+
+        # Index of the layer list to insert the regulated wall at,
+        # counted by the layer numbers of the sheet (empty layer columns are skipped)
+        row       = df_construction_surface.loc[df_construction_surface["id"] == construction["id"]].iloc[0]
+        insert_at = sum(1 for n in _defined_layer_numbers(row) if n <= positions[construction["id"]])
+
+        # Resolve the regulated wall of each surface and group the surfaces by the part
+        variants = {}
+        for surface, is_radiant_floor in surfaces_by_construction[construction["id"]]:
+            label, unknown = _get_unknown_construction(
+                surface["type"], surface["boundary_condition"], vintage, climate,
+                is_radiant_floor      =is_radiant_floor      ,
+                is_multifamily_housing=is_multifamily_housing,
+            )
+            variants.setdefault(label, (unknown, []))[1].append(surface)
+
+        # A construction used by no surface is treated as an exterior wall
+        if not variants:
+            label, unknown = _get_unknown_construction(
+                "wall", "outdoors", vintage, climate,
+                is_radiant_floor      =False                 ,
+                is_multifamily_housing=is_multifamily_housing,
+            )
+            variants[label] = (unknown, [])
+
+        # Create a construction per part:
+        # the 1st keeps the original id and the others get new ids,
+        # and the names are suffixed by the part only when split
+        for k, (label, (unknown, surfaces)) in enumerate(variants.items()):
+
+            spliced = deepcopy(construction)
+
+            if k > 0:
+                spliced["id"] = _format_id("구조체_면", len(df_construction_surface) + num_added)
+                num_added += 1
+            if len(variants) > 1:
+                spliced["name"] = f"{construction['name']} ({label})"
+
+            spliced["layers"] = (
+                construction["layers"][:insert_at] +
+                [
+                    {"material_id": _material_id(material), "thickness": thickness}
+                    for material, thickness in unknown.layers
+                ] +
+                construction["layers"][insert_at:]
+            )
+
+            for surface in surfaces:
+                surface["construction_id"] = spliced["id"]
+
+            constructions.append(spliced)
+
+    grjson["surface_constructions"] = constructions
 
 
 def _convert_construction_fenestration(
@@ -863,7 +1118,11 @@ def excel2grjson(
     grjson["materials"]                  = _convert_material(excel["재료"])
     grjson["surface_constructions"]      = _convert_construction_surface(excel["구조체_면"], excel["재료"])
     grjson["fenestration_constructions"] = _convert_construction_fenestration(excel["구조체_개구부"])
-    
+
+    # Splice the regulated wall layers into the constructions referencing it
+    # ('법규기준벽체 레이어순서'), since the grjson schema cannot carry the reference
+    _resolve_regulated_wall_layers(grjson, excel["구조체_면"])
+
     # Finalize: replace pd.NA to None
     grjson = _replace_nan_to_none(grjson)
         
