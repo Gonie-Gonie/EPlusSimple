@@ -58,7 +58,87 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   rawDataDownloadButton.addEventListener("click", downloadRawDataCSV);
+  initializeFileDrop();
 });
+
+function initializeFileDrop() {
+  const isFileDrag = event =>
+    Array.from(event.dataTransfer?.types || []).includes("Files");
+  const isBusy = () => document.getElementById("submitButton").disabled;
+
+  // 영역 밖에 놓은 파일이 WebView에서 직접 열리지 않도록 차단합니다.
+  for (const eventName of ["dragover", "drop"]) {
+    window.addEventListener(eventName, event => {
+      if (!isFileDrag(event)) return;
+      event.preventDefault();
+      if (eventName === "dragover") event.dataTransfer.dropEffect = "none";
+    });
+  }
+
+  const targets = [
+    ["filenameBoxBefore", "fileInputBefore", "리모델링 전"],
+    ["filenameBoxAfter", "fileInputAfter", "리모델링 후"],
+  ];
+
+  for (const [boxID, inputID, label] of targets) {
+    const box = document.getElementById(boxID);
+    const input = document.getElementById(inputID);
+
+    for (const eventName of ["dragenter", "dragover"]) {
+      box.addEventListener(eventName, event => {
+        if (!isFileDrag(event)) return;
+        event.preventDefault();
+        event.stopPropagation();
+
+        const allowed = !isBusy() && !input.disabled;
+        event.dataTransfer.dropEffect = allowed ? "copy" : "none";
+        box.classList.toggle("drag-over", allowed);
+      });
+    }
+
+    box.addEventListener("dragleave", event => {
+      if (!box.contains(event.relatedTarget)) {
+        box.classList.remove("drag-over");
+      }
+    });
+
+    box.addEventListener("drop", event => {
+      event.preventDefault();
+      event.stopPropagation();
+      box.classList.remove("drag-over");
+
+      if (isBusy() || input.disabled || !event.dataTransfer) return;
+
+      try {
+        const items = Array.from(event.dataTransfer.items || []);
+        if (items.some(item => item.webkitGetAsEntry?.()?.isDirectory)) {
+          throw new Error("폴더는 선택할 수 없습니다. 파일을 드롭해 주세요.");
+        }
+
+        const files = Array.from(event.dataTransfer.files);
+        if (files.length === 0) return;
+
+        // 기존 HTML의 multiple 설정으로 전/후 개수 제한을 구분합니다.
+        if (!input.multiple && files.length > 1) {
+          throw new Error(`${label} 파일은 하나만 선택할 수 있습니다.`);
+        }
+
+        // 모두 검증한 후 교체하므로 잘못된 드롭은 기존 선택을 유지합니다.
+        files.forEach(file => validateUploadFile(file, label));
+
+        const selected = new DataTransfer();
+        files.forEach(file => selected.items.add(file));
+        input.files = selected.files;
+
+        // 기존 change 이벤트를 실행하여 파일명 표시를 갱신합니다.
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+        setStatus("");
+      } catch (error) {
+        setStatus(error.message, true);
+      }
+    });
+  }
+}
 
 async function submitSimulation(event) {
   event.preventDefault();

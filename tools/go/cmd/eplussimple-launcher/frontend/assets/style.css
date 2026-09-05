@@ -67,6 +67,16 @@ input[type="file"] {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
+#filenameBoxBefore.drag-over {
+  border-color: #36c46d;
+  background-color: #f0fbf4;
+}
+
+#filenameBoxAfter.drag-over {
+  border-color: #5b8cde;
+  background-color: #f2f6ff;
+}
+
 .status-area {
   margin-top: 1em;
   padding: 0.9em 1.2em;
