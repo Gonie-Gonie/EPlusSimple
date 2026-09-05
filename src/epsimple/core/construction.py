@@ -515,7 +515,7 @@ class SurfaceConstruction:
             return construction.to_dict()
     
     @staticmethod
-    def get_regulated_construction(
+    def get_regulation_key(
         vintage      :datetime ,
         surface_type :SurfaceType,
         boundary_cond:SurfaceBoundaryCondition,
@@ -523,7 +523,12 @@ class SurfaceConstruction:
         *,
         is_radiant_floor      :bool=False,
         is_multifamily_housing:bool=False,
-        ) -> SurfaceConstruction:
+        ) -> tuple[str, str, str, str, str]:
+        
+        """ get the regulation DB key of the construction applied to a surface
+            * key: (시행일자, 부위, 외기조건, 용도, 지역)
+            * the part (부위) is determined by the surface type and boundary condition
+        """
         
         # type regulation
         surface_type  = SurfaceType(surface_type)
@@ -562,8 +567,47 @@ class SurfaceConstruction:
         else:
             usage = "공동주택 외"
         
+        return (regulation_date.strftime(r"%Y%m%d"), part, "외기 직접", usage, climate)
+    
+    @staticmethod
+    def get_regulated_construction(
+        vintage      :datetime ,
+        surface_type :SurfaceType,
+        boundary_cond:SurfaceBoundaryCondition,
+        climate      :str        ,
+        *,
+        is_radiant_floor      :bool=False,
+        is_multifamily_housing:bool=False,
+        ) -> SurfaceConstruction:
+        
+        """ get the regulated construction applied to a surface
+            * see get_regulation_key for the key determination
+        """
+        
         return SurfaceConstruction.get_DB(
-            (regulation_date.strftime(r"%Y%m%d"), part, "외기 직접", usage, climate)
+            SurfaceConstruction.get_regulation_key(
+                vintage      ,
+                surface_type ,
+                boundary_cond,
+                climate      ,
+                is_radiant_floor      =is_radiant_floor      ,
+                is_multifamily_housing=is_multifamily_housing,
+            )
+        )
+    
+    @classmethod
+    def create_default_innerwall(cls) -> SurfaceConstruction:
+        
+        """ create the default construction for an interior wall
+            whose construction is unknown
+            * layers: gypsumboard 12.5mm - glasswool 50mm - gypsumboard 12.5mm
+        """
+        
+        return cls(
+            f"{SpecialTag.SPECIAL}DefaultInnerWallConstruction",
+            Material.get_DB("gypsumboard"), 0.0125, 
+            Material.get_DB("glasswool")  , 0.0500,
+            Material.get_DB("gypsumboard"), 0.0125,
         )
     
     """ representation

@@ -20,6 +20,58 @@ from abc import (
 import pandas as pd
 
 # local modules
+from .utils import (
+    HEADER_ROW   ,
+    VALID_COLUMNS,
+)
+
+# ---------------------------------------------------------------------------- #
+#                                   CONSTANTS                                  #
+# ---------------------------------------------------------------------------- #
+
+# Supply system types capable of heating / cooling a zone.
+# Mirrors the '난방 공급 설비' / '냉방 공급 설비' formulas of the input template.
+HEATING_SUPPLY_TYPES = ("공조기", "팬코일유닛", "방열기", "전기방열기", "바닥난방", "전기바닥난방")
+COOLING_SUPPLY_TYPES = ("패키지에어컨", "공조기", "팬코일유닛")
+
+# Supply system types occupying the floor of a zone
+RADIANT_FLOOR_SUPPLY_TYPES = ("바닥난방", "전기바닥난방")
+
+# Source system types each supply system type can be driven by.
+# Mirrors the _heatable_sources / _coolable_sources of the SupplySystem
+# subclasses in core.hvac; an empty tuple means the supply system runs on
+# its own and ignores whatever '생산설비명' holds.
+COMPATIBLE_SOURCE_TYPES = {
+    "패키지에어컨": ()                                         ,
+    "전기방열기"  : ()                                         ,
+    "전기바닥난방": ()                                         ,
+    "공조기"      : ("히트펌프", "지열히트펌프")                 ,
+    "팬코일유닛"  : ("보일러", "지역난방", "냉동기", "흡수식냉동기"),
+    "방열기"      : ("보일러", "지역난방")                      ,
+    "바닥난방"    : ("보일러", "지역난방")                      ,
+}
+
+
+def _to_bool(
+    series:pd.Series
+    ) -> pd.Series:
+    
+    # Treat an empty cell as False, so that TRUE/FALSE columns
+    # can be tested regardless of the dtype pandas inferred
+    return series.map(lambda value: False if pd.isna(value) else bool(value))
+
+
+def _assigned_supply_systems(
+    exceldata:dict[str, pd.DataFrame]
+    ) -> pd.DataFrame:
+    
+    # Supply systems actually assigned to an existing zone.
+    # The supply system references the zone it serves ('공급 실'),
+    # so the linkage is read from the supply sheet.
+    zone_names = set(exceldata["실"]["이름"].dropna())
+    supply     = exceldata["공급설비"]
+    
+    return supply.loc[supply["공급 실"].isin(zone_names)]
 
 
 # ---------------------------------------------------------------------------- #
@@ -491,29 +543,103 @@ class DualRadiantFloor(ExcelException):
     def __init__(self, zonename:str) -> None:
         
         super().__init__("실", zonename)
-        self.message = f"실 '{zonename}'의 난방 공급 설비와 난방 공급 설비2가 모두 바닥난방입니다. (주된 보일러를 사용하는 바닥난방만 남겨주세요)"
+        self.message = f"실 '{zonename}'에 바닥난방 공급설비가 둘 이상 입력되었습니다. (주된 보일러를 사용하는 바닥난방만 남겨주세요)"
         
     @staticmethod
     def inspect(exceldata:dict[str, pd.DataFrame]) -> list[DualRadiantFloor]:
         
+        # reference data
+        supply  = _assigned_supply_systems(exceldata)
+        radiant = supply.loc[supply["유형"].isin(RADIANT_FLOOR_SUPPLY_TYPES)]
+        
+        # check
         exceptions = []
-        for _, row in exceldata["실"].iterrows():
+        for zone_name, zone_radiant in radiant.groupby("공급 실"):
             
-            if pd.isna(row["난방 공급 설비"]) or pd.isna(row["난방 공급 설비2"]):
-                continue
-            
-            supply_systems = exceldata["공급설비"].set_index("이름")
-            supply1_type = supply_systems.loc[row["난방 공급 설비"], "유형"]
-            supply2_type = supply_systems.loc[row["난방 공급 설비2"], "유형"]
-            
-            if (supply1_type == "바닥난방") and (supply2_type == "바닥난방"):
+            if len(zone_radiant) > 1:
                 exceptions.append(
                     DualRadiantFloor(
-                        row["이름"]
+                        zone_name
                     )
                 )
         
         return exceptions    
+
+
+class IncompatibleSourceSystem(ExcelException):
+    
+    def __init__(self,
+        object_name :str      ,
+        supply_type :str      ,
+        source_name :str|None ,
+        source_type :str|None ,
+        ) -> None:
+        
+        super().__init__("공급설비", object_name)
+        
+        allowed = ", ".join(COMPATIBLE_SOURCE_TYPES[supply_type])
+        
+        # no source system given, though the supply system needs one
+        if source_name is None:
+            self.message = (
+                f"공급설비 '{self.object_name}'({supply_type})에 생산설비가 입력되지 않았습니다. "
+                f"다음 유형 중 하나를 입력해주세요: {allowed}"
+            )
+        
+        # a source system is given, but of an unusable type
+        else:
+            self.message = (
+                f"공급설비 '{self.object_name}'({supply_type})은/는 "
+                f"'{source_name}'의 유형({source_type})을 사용할 수 없습니다. "
+                f"사용 가능한 유형: {allowed}"
+            )
+        
+        return
+    
+    @staticmethod
+    def inspect(exceldata:dict[str, pd.DataFrame]) -> list[IncompatibleSourceSystem]:
+        
+        # reference data
+        source_types = exceldata["생산설비"].dropna(subset=["이름"]).set_index("이름")["유형"]
+        
+        # check
+        exceptions = []
+        for _, row in exceldata["공급설비"].iterrows():
+            
+            supply_type = row["유형"]
+            
+            # skip rows that another inspector already reports
+            if pd.isna(row["이름"]) or (supply_type not in COMPATIBLE_SOURCE_TYPES):
+                continue
+            
+            allowed = COMPATIBLE_SOURCE_TYPES[supply_type]
+            
+            # the supply system runs on its own,
+            # so whatever is written in '생산설비명' does not matter
+            if not allowed:
+                continue
+            
+            source_name = row["생산설비명"]
+            
+            # a source system is required but not given
+            if pd.isna(source_name):
+                exceptions.append(
+                    IncompatibleSourceSystem(row["이름"], supply_type, None, None)
+                )
+                continue
+            
+            # an unknown name is reported by InvalidSourceSystemName
+            if source_name not in source_types.index:
+                continue
+            
+            # the given source system is of an unusable type
+            source_type = source_types.loc[source_name]
+            if source_type not in allowed:
+                exceptions.append(
+                    IncompatibleSourceSystem(row["이름"], supply_type, source_name, source_type)
+                )
+        
+        return exceptions
 
 
 # ---------------------------------------------------------------------------- #
@@ -600,8 +726,7 @@ class NotUsedSupplySystem(ExcelWarning):
     def inspect(exceldata:dict[str, pd.DataFrame]) -> list[NotUsedSupplySystem]:
         
         # reference data
-        used_supply_systems = set(exceldata["실"][["난방 공급 설비", "난방 공급 설비2", "냉방 공급 설비", "냉방 공급 설비2"]].values.flatten().tolist())
-        used_supply_systems = [item for item in used_supply_systems if not pd.isna(item)]
+        used_supply_systems = set(_assigned_supply_systems(exceldata)["이름"].dropna())
         
         # check
         warnings = []
@@ -611,6 +736,40 @@ class NotUsedSupplySystem(ExcelWarning):
                 warnings.append(
                     NotUsedSupplySystem(
                         row["이름"]
+                    )
+                )
+        
+        return warnings
+    
+    
+class UnreflectedSupplySystemCount(ExcelWarning):
+    
+    def __init__(self, object_name:str, count:int) -> None:
+        
+        # superclass properties
+        super().__init__("공급설비", object_name)
+        
+        # class-specific properties
+        self.message = (
+            f"공급설비 '{self.object_name}'의 대수({count}대)는 계산에 반영되지 않습니다. "
+            f"입력한 용량은 1대분으로 계산되므로, 전체 용량을 입력하거나 설비를 나누어 입력해주세요."
+        )
+        
+        return
+    
+    @staticmethod
+    def inspect(exceldata:dict[str, pd.DataFrame]) -> list[UnreflectedSupplySystemCount]:
+        
+        # check
+        warnings = []
+        for _, row in _assigned_supply_systems(exceldata).iterrows():
+            
+            count = row["대수"]
+            
+            if not pd.isna(count) and (count > 1):
+                warnings.append(
+                    UnreflectedSupplySystemCount(
+                        row["이름"], int(count)
                     )
                 )
         
@@ -710,10 +869,13 @@ class NoHVACSystemApplied(ExcelWarning):
     @staticmethod
     def inspect(exceldata:dict[str, pd.DataFrame]) -> list[NoHVACSystemApplied]:
         
+        # reference data
+        assigned_types = _assigned_supply_systems(exceldata)["유형"]
+        
         exceptions = []
         
         # heating
-        if pd.isna(exceldata["실"]["난방 공급 설비"]).all():
+        if not assigned_types.isin(HEATING_SUPPLY_TYPES).any():
             exceptions.append(
                 NoHVACSystemApplied(
                     NoHVACSystemAppliedSubCategory.NoHeatingSupply
@@ -721,7 +883,7 @@ class NoHVACSystemApplied(ExcelWarning):
             )
             
         # cooling
-        if pd.isna(exceldata["실"]["냉방 공급 설비"]).all():
+        if not assigned_types.isin(COOLING_SUPPLY_TYPES).any():
             exceptions.append(
                 NoHVACSystemApplied(
                     NoHVACSystemAppliedSubCategory.NoCoolingSupply
@@ -729,7 +891,7 @@ class NoHVACSystemApplied(ExcelWarning):
             )
         
         # hotwater
-        if not (exceldata["생산설비"]["급탕용"] == 1.0).any():
+        if not _to_bool(exceldata["생산설비"]["급탕용"]).any():
             exceptions.append(
                 NoHVACSystemApplied(
                     NoHVACSystemAppliedSubCategory.NoHotwaterSource
@@ -754,8 +916,11 @@ EXCEL_INSPECTORS = [
     InsufficientMaterialDefinition,
     DuplicatedName,
     ExcessiveOpeningArea,
+    DualRadiantFloor,
+    IncompatibleSourceSystem,
     # warnings
     NotUsedSupplySystem,
+    UnreflectedSupplySystemCount,
     NotUsedSourceSystem,
     NotUsedSurfaceConstruction,
     NoHVACSystemApplied,
@@ -766,7 +931,7 @@ JSON_INSPECTORS = [
 ]
 
 def debug_excel(filepath:str) -> list[ExcelException]:
-    exceldata = pd.read_excel(filepath, sheet_name=None)
+    exceldata = pd.read_excel(filepath, sheet_name=list(VALID_COLUMNS.keys()), header=HEADER_ROW)
 
     exceptions = []
     warnings   = []
