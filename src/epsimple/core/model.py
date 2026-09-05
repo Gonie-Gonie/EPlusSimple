@@ -711,11 +711,21 @@ class GreenRetrofitModel:
         ventilator_dict = {zone.ID: None for zone in self.zone}
         for zone in self.zone:
             if len(zone.ventilation_systems) > 0:
-                total_airflow = sum(vent_sys.airflow_rate for vent_sys in zone.ventilation_systems)
+                
+                # estimate airflow rates
+                notnone_airflowrate_ventilators = [vent_sys for vent_sys in zone.ventilation_systems if vent_sys.airflow_rate is not None]
+                if len(notnone_airflowrate_ventilators) == 0:
+                    default_airflowrate = 1
+                else:
+                    default_airflowrate = sum(vent_sys.airflow_rate for vent_sys in notnone_airflowrate_ventilators) / len(notnone_airflowrate_ventilators)
+                airflowrate_or_default = lambda vent_sys: vent_sys.airflow_rate if vent_sys.airflow_rate is not None else default_airflowrate
+                
+                # define dragon ventilator with weighted average efficiency
+                total_airflow = sum(airflowrate_or_default(vent_sys) for vent_sys in zone.ventilation_systems)
                 ventilator_dict[zone.ID] = dragon.EnergyRecoveryVentilator(
                     f"ERV_for_{zone.ID}",
-                    sum(vent_sys.heating_efficiency*vent_sys.airflow_rate for vent_sys in zone.ventilation_systems)/total_airflow,
-                    sum(vent_sys.cooling_efficiency*vent_sys.airflow_rate for vent_sys in zone.ventilation_systems)/total_airflow,
+                    sum(vent_sys.heating_efficiency * airflowrate_or_default(vent_sys) for vent_sys in zone.ventilation_systems) / total_airflow,
+                    sum(vent_sys.cooling_efficiency * airflowrate_or_default(vent_sys) for vent_sys in zone.ventilation_systems) / total_airflow,
                 )            
         
         # photovoltaic system

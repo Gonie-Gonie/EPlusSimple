@@ -536,7 +536,8 @@ def _convert_ventilation_systems(
         # convert units
         ventilation_dict["efficiency_heating"] *= Unit.PERCENT_TO_FRACTION
         ventilation_dict["efficiency_cooling"] *= Unit.PERCENT_TO_FRACTION
-        ventilation_dict["airflow_rate"]       *= Unit.CMH_TO_M3_PER_S
+        if ventilation_dict["airflow_rate"] is not None:
+            ventilation_dict["airflow_rate"]       *= Unit.CMH_TO_M3_PER_S
         
         # Remove unused properties
         # ('count' and 'zone_name' belong to the zone that the system supplies)

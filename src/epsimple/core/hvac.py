@@ -1591,7 +1591,7 @@ class VentilationSystem:
     
     def __init__(self,
         name:str,
-        airflow_rate      :int|float          ,
+        airflow_rate      :int|float|None=None,
         heating_efficiency:int|float|None=None,
         cooling_efficiency:int|float|None=None,
         *,
@@ -1615,13 +1615,13 @@ class VentilationSystem:
     """
     
     @property
-    def airflow_rate(self) -> int|float:
+    def airflow_rate(self) -> int|float|None:
         return self.__airflow_rate
     
     @airflow_rate.setter
     @validate_range(min=math.nextafter(0,math.inf))
-    @validate_type(int, float)
-    def airflow_rate(self, value:int|float) -> None:
+    @validate_type(int, float,allow_none=True)
+    def airflow_rate(self, value:int|float|None) -> None:
         self.__airflow_rate = value
     
     @property
@@ -1678,9 +1678,9 @@ class VentilationSystem:
         
         return VentilationSystem(
             input.name,
-            input.airflow_rate,
-            getattr(input,"efficiency_heating", None),
-            getattr(input,"efficiency_cooling", None),
+            getattr(input, "airflow_rate", None),
+            getattr(input, "efficiency_heating", None),
+            getattr(input, "efficiency_cooling", None),
             ID=input.id,
         )
     
