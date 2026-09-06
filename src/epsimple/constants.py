@@ -167,6 +167,7 @@ class AUTOID_PREFIX(str, Enum):
     SURFACE      = "SURF"
     FENESTRATION = "FNST"
     ZONE         = "ZONE"
+    LIGHTING     = "LGTN"
     
     # profile
     DAY_SCHEDULE = "DYSC"

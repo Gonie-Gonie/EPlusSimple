@@ -47,6 +47,7 @@ from .shape import (
     Door     ,
     GlassDoor,
     Zone     ,
+    Lighting ,
 )
 from .model import (
     GreenRetrofitModel ,

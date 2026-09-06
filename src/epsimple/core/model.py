@@ -58,6 +58,7 @@ from . import (
     SurfaceBoundaryCondition,
     SurfaceType             ,
     Zone                    ,
+    Lighting                ,
 )
 from ..utils import (
     excel2grjson,
@@ -468,6 +469,10 @@ class GreenRetrofitModel:
         surface_construction_dict["unknown"] = UnknownConstruction()
         
         # system
+        lighting_dict = {
+            lighting_input.id: Lighting.from_json(lighting_input)
+            for lighting_input in input.lightings
+        }
         source_system_dict = {
             sys_item.id: SourceSystem.TYPE_MAPPER[sys_type].from_json(sys_item)
             for sys_type, sys_list in vars(input.building.source_systems).items()
@@ -493,6 +498,7 @@ class GreenRetrofitModel:
                 zone_input                    ,
                 surface_construction_dict     ,
                 fenestration_construction_dict,
+                lighting_dict                 ,
                 supply_system_dict            ,
                 ventilation_system_dict       ,
             )

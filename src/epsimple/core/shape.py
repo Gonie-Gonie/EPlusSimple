@@ -611,7 +611,7 @@ class Zone:
         height  :int|float,
         surfaces:list[Surface],
         profile :Profile,
-        light_density:int|float,
+        lightings:list[Lighting]=None,
         supply_systems     :list[SupplySystem]=None,
         ventilation_systems:list[VentilationSystem]=None,
         *,
@@ -627,8 +627,12 @@ class Zone:
         self.height = height
         self.surface = surfaces
         self.profile = profile
-        self.light_density = light_density
-        
+        self.lightings = lightings
+
+        if lightings is None:
+            lightings = []
+        self.lightings = lightings
+
         if supply_systems is None:
             supply_systems = []
         self.supply_systems = supply_systems
@@ -653,6 +657,10 @@ class Zone:
     @validate_range(min=math.nextafter(0,math.inf))
     def height(self, value: int|float) -> None:
         self.__height = value
+    
+    @property
+    def light_density(self) -> int|float:
+        return sum(light.power for light in self.lightings) / self.area
     
     @property
     def supply_systems(self) -> list[SupplySystem]:
@@ -778,6 +786,7 @@ class Zone:
         input:SimpleNamespace,
         surface_construction_dict     :dict[str, SurfaceConstruction],
         fenestration_construction_dict:dict[str, FenestrationConstruction],
+        lighting_dict          :dict[str, Lighting         ],
         supply_system_dict     :dict[str, SupplySystem     ],
         ventilation_system_dict:dict[str, VentilationSystem],
         ) -> Zone:
@@ -787,12 +796,17 @@ class Zone:
             for _ in range(vent_sys.count):
                 ventilation_systems.append(ventilation_system_dict.get(vent_sys.id))
         
+        lightings = []
+        for light in input.lightings:
+            for _ in range(light.count):
+                lightings.append(lighting_dict.get(light.id))
+        
         return Zone(
             input.name,
             input.height,
             [Surface.from_json(surf_input, surface_construction_dict, fenestration_construction_dict) for surf_input in input.surfaces],
             Profile._DB[input.profile],
-            input.light_density,
+            lightings,
             [supply_system_dict[sys_id] for sys_id in input.supply_system_ids],
             ventilation_systems,
             ID=input.id
@@ -803,4 +817,44 @@ class Zone:
         
         raise NotImplementedError(
             f"이거 쓰지 마세요"
+        )
+
+
+# ---------------------------------------------------------------------------- #
+#                                   LIGHTING                                   #
+# ---------------------------------------------------------------------------- #
+
+class Lighting:
+    
+    def __init__(self,
+        name:str,
+        power:int|float,
+        *,
+        ID:str|None=None
+        ) -> None:
+        
+        self.name = name
+        self.power = power
+        
+        if ID is None:
+            ID = f"{AUTOID_PREFIX.LIGHTING}AUTOID{hex(id(self))}"
+        self.__ID = ID
+        
+        
+    @property
+    def ID(self) -> str:
+        return self.__ID
+    
+    def __hash__(self) -> int:
+        return hash(self.ID)
+    
+    @staticmethod
+    def from_json(
+        input:SimpleNamespace
+        ) -> Lighting:
+        
+        return Lighting(
+            input.name,
+            input.power,
+            ID=input.id
         )
