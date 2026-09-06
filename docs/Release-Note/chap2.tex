@@ -1,6 +1,22 @@
 
 \chapter{버전별 변경사항}
 
+\newversionsection{0.7.1}{2026-09-06}{
+    \begin{itemize}
+        \item 엑셀 기반 입력 지원 및 예시파일 추가
+    \end{itemize}
+}{
+    \begin{itemize}
+        \item 환기설비의 풍량을 선택적 입력값으로 변경. 환기설비 풍량 미입력시 다른 환기설비들의 풍량을 가중평균한 값으로 가정 (모든 환기설비의 풍량을 미입력시 풍량이 모두 동일한 것으로 가정)
+    \end{itemize}
+}{
+    \begin{itemize}
+        \item Python 프로세스마다 실행 결과가 달라지던 문제 수정
+    \end{itemize}
+}{
+    \par -
+}
+
 \newversionsection{0.7.0}{2026-08-07}{
     \begin{itemize}
         \item GRR 결과에 기기부하 에너지 사용량을 별도 집계하는 \texttt{equipment} 용도 항목을 추가.

@@ -33,7 +33,7 @@ class Directory:
 class PackageInfo:
     
     NAME    = "invisible-dragon"
-    VERSION = (0,7,0)
+    VERSION = (0,7,1)
     REQUIRED_PYTHON = (3,12)
     
 
